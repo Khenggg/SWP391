@@ -14,52 +14,24 @@ SWP391/
 
 ## Branches
 
-- `main`: stable source for demo/release.
-- `dev`: active development branch.
-- `docs`: documentation updates, diagrams, reports, and planning notes.
-
-Recommended workflow:
-
-1. Create feature branches from `dev`.
-2. Open Pull Requests back into `dev`.
-3. Merge `dev` into `main` only when the build is ready for demo/release.
-4. Keep documents in `docs/` and use the `docs` branch for larger documentation changes.
+- `main`: stable code.
+- `dev`: development work.
+- `docs`: documentation updates.
 
 ## Environment Files
-
-Real environment files must stay local and should not be committed:
 
 - `backend/.env`
 - `frontend/.env`
 
-Use these templates when setting up a new machine:
+Templates:
 
 - `backend/.env.example`
 - `frontend/.env.example`
 
 ## Local Setup
 
-Backend and frontend commands should be updated after the team finalizes the tech stack.
+Backend and frontend commands will be added after the tech stack is finalized.
 
-```bash
-cd backend
-# install dependencies
-# run backend server
-```
+## Vietnamese Version
 
-```bash
-cd frontend
-# install dependencies
-# run frontend app
-```
-
-## Documentation
-
-Project documents should be placed under `docs/`, for example:
-
-- requirements
-- database design
-- API specification
-- UI wireframes
-- sprint notes
-- meeting notes
+- [README.vn.md](README.vn.md)
