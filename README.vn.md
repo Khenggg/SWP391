@@ -28,7 +28,7 @@ SWP301/
 
 - Backend chưa có source code triển khai.
 - Các thư mục kiến trúc được giữ bằng `.gitkeep` để Git thấy được folder.
-- Frontend cũng không còn code UI triển khai; chỉ giữ kiến trúc thư mục.
+- Frontend chỉ có bootstrap Vite/React tối thiểu; UI chức năng và API integration để sinh viên triển khai.
 - File env example vẫn giữ port/base URL dự kiến cho mô hình dual-backend.
 
 ## Port Dự Kiến

@@ -1,8 +1,8 @@
 # Frontend Skeleton
 
-This folder only keeps the React architecture for the Parking Building Management System.
+This folder keeps the React architecture for the Parking Building Management System.
 
-No UI implementation is included. Students should scaffold the actual React app, routes, providers, API clients, pages, components, hooks, utilities, styles, and tests according to the dual-backend specification in `../docs`.
+Only the minimal Vite/React bootstrap is included. Students should implement the actual routes, providers, API clients, pages, components, hooks, utilities, styles, and tests according to the dual-backend specification in `../docs`.
 
 Expected API ownership when implemented:
 

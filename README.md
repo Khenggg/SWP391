@@ -28,7 +28,7 @@ SWP301/
 
 - Backend source files are not implemented.
 - Folder architecture is prepared with `.gitkeep` files so the structure is visible in Git.
-- Frontend implementation files are not included; only the folder architecture is kept.
+- Frontend includes only a minimal Vite/React bootstrap; feature UI and API integration are for students to implement.
 - Environment examples keep the expected dual-backend ports and base URLs.
 
 ## Expected Local Ports
