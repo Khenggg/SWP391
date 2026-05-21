@@ -1,0 +1,20 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://aws-1-ap-south-1.pooler.supabase.com:5432/postgres
+    username: postgres.iqzkddymzmfhyqbfrnyu
+    password: Moghicha12@
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+
+jwt:
+  issuer: parking-building-auth
+  audience: parking-building-api
+  secret: dev-secret-key-change-in-production

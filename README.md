@@ -17,8 +17,6 @@ SWP301/
 |-- database/                             # Support SQL scripts and snapshots only
 |-- docs/                                 # Specifications and references
 |-- postman/                              # Shared API collection and environment template
-|-- docker-compose.yml                    # Optional local PostgreSQL
-|-- .env.example                          # Root environment template
 `-- README.md
 ```
 
@@ -31,16 +29,15 @@ SWP301/
 
 ## Current State
 
-- Backend source files are not implemented.
+- Backend business features are not implemented yet; the Spring Boot Support API has a Maven bootstrap and health endpoint.
 - Folder architecture is prepared with `.gitkeep` files so the structure is visible in Git.
 - Frontend includes only a minimal Vite/React bootstrap; feature UI and API integration are for students to implement.
-- Environment examples keep the expected dual-backend ports and base URLs.
 - `docs/Parking Building Management UI (1)/` is a UI reference package, not the source frontend app.
 
 ## Expected Local Ports
 
 ```text
-PostgreSQL  : localhost:5432
+PostgreSQL  : Supabase PostgreSQL configured in backend config files
 .NET Core   : http://localhost:5000
 Spring Boot : http://localhost:8080
 React Vite  : http://localhost:5173
@@ -48,7 +45,7 @@ React Vite  : http://localhost:5173
 
 ## Run Order
 
-1. Start PostgreSQL or configure Supabase PostgreSQL credentials locally.
+1. Configure Supabase PostgreSQL credentials directly in the backend config files.
 2. Run `.NET Core API` and apply EF Core migrations.
 3. Run `Spring Boot Support API` with `ddl-auto=validate`.
 4. Run React from `frontend/`.

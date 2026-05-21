@@ -11,11 +11,6 @@ target/
 bin/
 obj/
 
-# Environment files
-.env
-.env.*
-!.env.example
-
 # Logs
 *.log
 npm-debug.log*
@@ -42,4 +37,3 @@ Thumbs.db
 # Test and coverage
 coverage/
 .nyc_output/
-
