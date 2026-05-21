@@ -1,19 +1,24 @@
 # Parking Building Management System
 
-Repo hiện chỉ giữ **khung kiến trúc project** theo tài liệu
+Repo monorepo skeleton theo tài liệu
 `docs/Developer_Implementation_Specification_Dual_Backend_NET_SpringBoot.md`.
 
-Các thư mục backend cố ý không có code triển khai. Sinh viên sẽ tự viết controller, service, entity, repository, migration và test trong cấu trúc đã chuẩn bị.
+Các thư mục backend cố ý không có code triển khai. Sinh viên sẽ tự viết controller, service, entity, repository, migration và test trong cấu trúc đã chuẩn bị. Frontend chỉ có bootstrap Vite/React tối thiểu.
 
 ## Cấu Trúc
 
 ```text
 SWP301/
+|-- .github/                              # Issue/PR template và workflow sau này
 |-- backend/
 |   |-- ParkingBuilding.CoreApi/          # Khung ASP.NET Core API
 |   `-- parking-building-support-api/     # Khung Spring Boot Support API
-|-- frontend/                             # Khung frontend React
-|-- docs/                                 # Tài liệu đặc tả
+|-- frontend/                             # Source frontend React thật
+|-- database/                             # Script phụ và snapshot, không phải migration chính
+|-- docs/                                 # Tài liệu đặc tả và tham khảo
+|-- postman/                              # Collection và environment template
+|-- docker-compose.yml                    # PostgreSQL local tùy chọn
+|-- .env.example                          # Env template root
 `-- README.md
 ```
 
@@ -22,14 +27,14 @@ SWP301/
 - `.NET Core API`: `/api/core/*`, auth, user/driver write, transaction nghiệp vụ core, EF Core migration.
 - `Spring Boot Support API`: `/api/support/*`, `/api/public/*`, public read, dashboard, report, audit search.
 - `PostgreSQL`: database dùng chung, schema do `.NET Core API` sở hữu.
-- `React`: khi sinh viên nối API thật, phải tách đúng `coreApi`, `supportApi`, `publicApi`.
+- `React`: source app nằm ở `frontend/`; khi sinh viên nối API thật, phải tách đúng `coreApi`, `supportApi`, `publicApi`.
 
 ## Trạng Thái Hiện Tại
 
 - Backend chưa có source code triển khai.
 - Các thư mục kiến trúc được giữ bằng `.gitkeep` để Git thấy được folder.
 - Frontend chỉ có bootstrap Vite/React tối thiểu; UI chức năng và API integration để sinh viên triển khai.
-- File env example vẫn giữ port/base URL dự kiến cho mô hình dual-backend.
+- `docs/Parking Building Management UI (1)/` chỉ là gói UI tham khảo, không phải source frontend thật.
 
 ## Port Dự Kiến
 
@@ -39,6 +44,13 @@ PostgreSQL  : localhost:5432
 Spring Boot : http://localhost:8080
 React Vite  : http://localhost:5173
 ```
+
+## Thứ Tự Chạy
+
+1. Chạy PostgreSQL local hoặc cấu hình Supabase PostgreSQL ở máy cá nhân.
+2. Chạy `.NET Core API` và apply EF Core migration.
+3. Chạy `Spring Boot Support API` với `ddl-auto=validate`.
+4. Chạy React từ `frontend/`.
 
 ## Sinh Viên Bắt Đầu Code
 

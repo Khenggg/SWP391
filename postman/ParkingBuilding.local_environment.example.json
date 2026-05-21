@@ -1,0 +1,14 @@
+{
+  "name": "Parking Building Local",
+  "values": [
+    { "key": "core_url", "value": "http://localhost:5000", "type": "default", "enabled": true },
+    { "key": "support_url", "value": "http://localhost:8080", "type": "default", "enabled": true },
+    { "key": "public_url", "value": "http://localhost:8080", "type": "default", "enabled": true },
+    { "key": "token", "value": "", "type": "secret", "enabled": true },
+    { "key": "card_code", "value": "C001", "type": "default", "enabled": true },
+    { "key": "card_id", "value": "", "type": "default", "enabled": true },
+    { "key": "session_id", "value": "", "type": "default", "enabled": true },
+    { "key": "payment_id", "value": "", "type": "default", "enabled": true },
+    { "key": "qr_token", "value": "", "type": "default", "enabled": true }
+  ]
+}

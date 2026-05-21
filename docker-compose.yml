@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: parking-postgres
+    environment:
+      POSTGRES_DB: parking_building
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - parking_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d parking_building"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  parking_pgdata:
