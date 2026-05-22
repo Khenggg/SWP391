@@ -1,0 +1,2 @@
+-- Helper script placeholder.
+-- Add SELECT queries for active parking sessions here when the schema exists.

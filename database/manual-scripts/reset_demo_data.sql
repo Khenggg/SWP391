@@ -1,0 +1,2 @@
+-- Helper script placeholder.
+-- Add local/demo reset SQL here when the schema exists.

@@ -1,0 +1,20 @@
+{
+  "info": {
+    "name": "Parking Building API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    { "name": "01 Auth - Core API", "item": [] },
+    { "name": "02 Users - Core API", "item": [] },
+    { "name": "03 Vehicle + Structure - Core API", "item": [] },
+    { "name": "04 Cards - Core API", "item": [] },
+    { "name": "05 Entry Flow - Core API", "item": [] },
+    { "name": "06 Exit Flow - Core API", "item": [] },
+    { "name": "07 Payment + Receipt - Core API", "item": [] },
+    { "name": "08 Lost Card + Mismatch - Core API", "item": [] },
+    { "name": "09 Public Driver - Spring Public API", "item": [] },
+    { "name": "10 Dashboard - Spring Support API", "item": [] },
+    { "name": "11 Reports - Spring Support API", "item": [] },
+    { "name": "12 Audit Log - Spring Support API", "item": [] }
+  ]
+}

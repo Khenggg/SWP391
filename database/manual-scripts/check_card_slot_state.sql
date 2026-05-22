@@ -1,0 +1,2 @@
+-- Helper script placeholder.
+-- Add card/slot consistency checks here when the schema exists.

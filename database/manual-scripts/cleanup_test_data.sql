@@ -1,0 +1,2 @@
+-- Helper script placeholder.
+-- Add local test cleanup SQL here when the schema exists.
