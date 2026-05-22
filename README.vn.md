@@ -1,7 +1,7 @@
 # Parking Building Management System
 
 Repo monorepo skeleton theo tài liệu
-`docs/Developer_Implementation_Specification_Dual_Backend_NET_SpringBoot.md`.
+`docs/specification/Developer_Implementation_Specification_Dual_Backend_NET_SpringBoot.md`.
 
 Các thư mục backend cố ý không có code triển khai. Sinh viên sẽ tự viết controller, service, entity, repository, migration và test trong cấu trúc đã chuẩn bị. Frontend chỉ có bootstrap Vite/React tối thiểu.
 
