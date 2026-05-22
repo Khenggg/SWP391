@@ -1,7 +1,7 @@
 # Parking Building Management System
 
 Monorepo skeleton for the dual-backend design in
-`docs/Developer_Implementation_Specification_Dual_Backend_NET_SpringBoot.md`.
+`docs/specification/Developer_Implementation_Specification_Dual_Backend_NET_SpringBoot.md`.
 
 The backend folders intentionally contain no implementation code. Students should create controllers, services, entities, repositories, migrations, and tests inside the prepared structure. The frontend has only a minimal Vite/React bootstrap.
 
