@@ -184,9 +184,9 @@ Spring Boot chỉ đọc kết quả sau khi .NET API trả success.
 MVP khuyến nghị frontend gọi trực tiếp 2 backend nhưng vẫn giữ prefix:
 
 ```text
-VITE_CORE_API_BASE_URL=http://localhost:5000
-VITE_SUPPORT_API_BASE_URL=http://localhost:8080
-VITE_PUBLIC_API_BASE_URL=http://localhost:8080
+Core API base URL    http://localhost:5000
+Support API base URL http://localhost:8080
+Public API base URL  http://localhost:8080
 ```
 
 Prefix chuẩn:
@@ -456,7 +456,7 @@ spring.jpa.hibernate.ddl-auto: update
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=parking_building;Username=postgres;Password=postgres"
+    "DefaultConnection": "Host=db.your-project-ref.supabase.co;Port=5432;Database=postgres;Username=postgres;Password=your-supabase-db-password;SSL Mode=Require;Trust Server Certificate=true"
   }
 }
 ```
@@ -466,9 +466,9 @@ Spring Boot:
 ```yaml
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/parking_building
+    url: jdbc:postgresql://db.your-project-ref.supabase.co:5432/postgres?sslmode=require
     username: postgres
-    password: postgres
+    password: your-supabase-db-password
   jpa:
     hibernate:
       ddl-auto: validate
@@ -2826,15 +2826,15 @@ src
 
 ```javascript
 export const coreApi = axios.create({
-  baseURL: import.meta.env.VITE_CORE_API_BASE_URL,
+  baseURL: "http://localhost:5000",
 });
 
 export const supportApi = axios.create({
-  baseURL: import.meta.env.VITE_SUPPORT_API_BASE_URL,
+  baseURL: "http://localhost:8080",
 });
 
 export const publicApi = axios.create({
-  baseURL: import.meta.env.VITE_PUBLIC_API_BASE_URL,
+  baseURL: "http://localhost:8080",
 });
 ```
 
@@ -3207,15 +3207,22 @@ git --version
 
 Nếu lệnh không chạy, chưa cài tool hoặc chưa cấu hình PATH.
 
-### Bước 2 - Tạo Database
+### Bước 2 - Cấu Hình Supabase Database
 
-Nếu dùng PostgreSQL cài trực tiếp:
+Lấy thông tin kết nối trong Supabase Project Settings > Database.
+Cấu hình trực tiếp trong file config của từng backend.
 
-```sql
-CREATE DATABASE parking_building;
+Ví dụ Spring Boot `application-local.yml`:
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:postgresql://db.your-project-ref.supabase.co:5432/postgres?sslmode=require
+    username: postgres
+    password: your-supabase-db-password
 ```
 
-Nếu dùng Docker, xem section `19.4 Docker Compose PostgreSQL`.
+Repo này dùng Supabase PostgreSQL, không cần PostgreSQL local.
 
 ### Bước 3 - Chạy .NET Core API Trước
 
@@ -3326,25 +3333,22 @@ Lý do:
 - Spring Boot cần database schema có sẵn để `ddl-auto=validate`.
 - React cần biết base URL của 2 backend.
 
-### Database Local
+### Supabase Database
 
-Tạo database:
+Database dùng Supabase PostgreSQL. Lấy connection string trong Supabase Project Settings > Database rồi cấu hình trực tiếp cho cả .NET và Spring Boot.
 
-```sql
-CREATE DATABASE parking_building;
-```
-
-Thông tin local mặc định:
+Thông tin mẫu:
 
 ```text
-Host: localhost
+Host: db.your-project-ref.supabase.co
 Port: 5432
-Database: parking_building
+Database: postgres
 Username: postgres
-Password: postgres
+Password: your-supabase-db-password
+SSL: require
 ```
 
-Nếu máy bạn dùng password khác, sửa config của cả .NET và Spring cùng lúc.
+Nếu dùng Supabase pooler, dùng đúng host/port/user từ connection string Supabase cung cấp.
 
 ### .NET Core API Local
 
@@ -3353,7 +3357,7 @@ File config mẫu:
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=parking_building;Username=postgres;Password=postgres"
+    "DefaultConnection": "Host=db.your-project-ref.supabase.co;Port=5432;Database=postgres;Username=postgres;Password=your-supabase-db-password;SSL Mode=Require;Trust Server Certificate=true"
   },
   "Jwt": {
     "Issuer": "parking-building-auth",
@@ -3387,9 +3391,9 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/parking_building
+    url: jdbc:postgresql://db.your-project-ref.supabase.co:5432/postgres?sslmode=require
     username: postgres
-    password: postgres
+    password: your-supabase-db-password
   jpa:
     hibernate:
       ddl-auto: validate
@@ -3414,12 +3418,12 @@ http://localhost:8080/swagger-ui/index.html
 
 ### React Local
 
-File `.env.local` mẫu:
+Base URL API có thể đặt trực tiếp trong file client:
 
-```text
-VITE_CORE_API_BASE_URL=http://localhost:5000
-VITE_SUPPORT_API_BASE_URL=http://localhost:8080
-VITE_PUBLIC_API_BASE_URL=http://localhost:8080
+```javascript
+export const coreApiBaseUrl = "http://localhost:5000";
+export const supportApiBaseUrl = "http://localhost:8080";
+export const publicApiBaseUrl = "http://localhost:8080";
 ```
 
 Lệnh chạy:
@@ -3429,50 +3433,25 @@ npm install
 npm run dev
 ```
 
-## 19.4 Docker Compose PostgreSQL
+## 19.4 Supabase PostgreSQL
 
-Nếu sinh viên cài PostgreSQL thủ công bị lỗi, dùng Docker.
+Repo này dùng Supabase PostgreSQL làm database chính.
 
-File `docker-compose.yml` mẫu ở root repo:
+Điền thông tin kết nối Supabase trực tiếp trong file config backend.
+
+Spring Boot:
 
 ```yaml
-services:
-  postgres:
-    image: postgres:16
-    container_name: parking-postgres
-    environment:
-      POSTGRES_DB: parking_building
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - parking_pgdata:/var/lib/postgresql/data
-
-volumes:
-  parking_pgdata:
+spring:
+  datasource:
+    url: jdbc:postgresql://db.your-project-ref.supabase.co:5432/postgres?sslmode=require
+    username: postgres
+    password: your-supabase-db-password
 ```
 
-Chạy:
+Nếu dùng Supabase pooler, thay host/port/user theo connection string Supabase cung cấp.
 
-```bash
-docker compose up -d
-```
-
-Dừng:
-
-```bash
-docker compose down
-```
-
-Xóa sạch database để làm lại từ đầu:
-
-```bash
-docker compose down -v
-docker compose up -d
-```
-
-Cảnh báo: `down -v` sẽ xóa toàn bộ data local.
+Không đưa database dump hoặc dữ liệu nhạy cảm lên repo.
 
 ## 19.5 Git Workflow Cho Sinh Viên
 
@@ -3524,7 +3503,6 @@ Nếu conflict:
 ### Không Được Commit
 
 ```text
-.env
 bin/
 obj/
 target/
@@ -4021,7 +3999,7 @@ Sinh viên mới thường không biết bắt đầu page từ đâu. Làm theo
 import axios from "axios";
 
 export const coreApi = axios.create({
-  baseURL: import.meta.env.VITE_CORE_API_BASE_URL,
+  baseURL: "http://localhost:5000",
 });
 
 coreApi.interceptors.request.use((config) => {
@@ -4867,10 +4845,10 @@ Unable to connect to any of the specified PostgreSQL hosts
 Cách sửa:
 
 ```text
-1. Kiểm tra PostgreSQL/Docker đang chạy.
-2. Kiểm tra port 5432.
-3. Kiểm tra username/password trong appsettings.
-4. Thử login bằng DBeaver/pgAdmin.
+1. Kiểm tra Supabase project đang hoạt động.
+2. Kiểm tra host/port trong file config đúng với connection string Supabase.
+3. Kiểm tra username/password và `sslmode=require`.
+4. Thử login bằng DBeaver/pgAdmin với SSL enabled.
 ```
 
 ### EF Migration Lỗi
@@ -4901,7 +4879,7 @@ Cách sửa:
 
 ```text
 1. Chạy .NET migration trước.
-2. Kiểm tra đúng database parking_building.
+2. Kiểm tra đúng database/schema Supabase mà hai backend cùng kết nối.
 3. Không đổi ddl-auto thành update.
 ```
 

@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: parking-building-support-api
+  profiles:
+    active: local

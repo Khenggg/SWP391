@@ -17,8 +17,6 @@ SWP301/
 |-- database/                             # Script phụ và snapshot, không phải migration chính
 |-- docs/                                 # Tài liệu đặc tả và tham khảo
 |-- postman/                              # Collection và environment template
-|-- docker-compose.yml                    # PostgreSQL local tùy chọn
-|-- .env.example                          # Env template root
 `-- README.md
 ```
 
@@ -31,7 +29,7 @@ SWP301/
 
 ## Trạng Thái Hiện Tại
 
-- Backend chưa có source code triển khai.
+- Backend chưa có tính năng nghiệp vụ; Spring Boot Support API đã có Maven bootstrap và health endpoint.
 - Các thư mục kiến trúc được giữ bằng `.gitkeep` để Git thấy được folder.
 - Frontend chỉ có bootstrap Vite/React tối thiểu; UI chức năng và API integration để sinh viên triển khai.
 - `docs/Parking Building Management UI (1)/` chỉ là gói UI tham khảo, không phải source frontend thật.
@@ -39,7 +37,7 @@ SWP301/
 ## Port Dự Kiến
 
 ```text
-PostgreSQL  : localhost:5432
+PostgreSQL  : Supabase PostgreSQL cấu hình trực tiếp trong file config backend
 .NET Core   : http://localhost:5000
 Spring Boot : http://localhost:8080
 React Vite  : http://localhost:5173
@@ -47,7 +45,7 @@ React Vite  : http://localhost:5173
 
 ## Thứ Tự Chạy
 
-1. Chạy PostgreSQL local hoặc cấu hình Supabase PostgreSQL ở máy cá nhân.
+1. Cấu hình thông tin Supabase PostgreSQL trực tiếp trong file config backend.
 2. Chạy `.NET Core API` và apply EF Core migration.
 3. Chạy `Spring Boot Support API` với `ddl-auto=validate`.
 4. Chạy React từ `frontend/`.
