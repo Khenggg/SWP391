@@ -17,8 +17,11 @@ database/
 |-- 02_seed.sql                   # Demo users and master data
 |-- 03_indexes_constraints.sql    # Indexes, unique constraints, late FKs
 |-- manual-scripts/               # Optional local/debug helper SQL
+|   `-- drop_all_public_objects.sql # Destructive reset: drops public schema objects
 `-- snapshots/                    # Optional exported schema snapshots
 ```
+
+`manual-scripts/drop_all_public_objects.sql` is intentionally excluded from the normal run order. It deletes all project tables and related public-schema objects so the database can be rebuilt from `01_schema.sql`.
 
 ## Run Order
 

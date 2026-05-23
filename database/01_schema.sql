@@ -61,7 +61,12 @@ CREATE TABLE IF NOT EXISTS parking_cards (
     note TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT ck_parking_cards_status CHECK (status IN ('AVAILABLE', 'IN_USE', 'LOST', 'DAMAGED', 'INACTIVE'))
+    CONSTRAINT ck_parking_cards_status CHECK (status IN ('AVAILABLE', 'IN_USE', 'LOST', 'DAMAGED', 'INACTIVE')),
+    CONSTRAINT ck_parking_cards_current_session_status CHECK (
+        (status = 'IN_USE' AND current_session_id IS NOT NULL)
+        OR status = 'LOST'
+        OR (status IN ('AVAILABLE', 'DAMAGED', 'INACTIVE') AND current_session_id IS NULL)
+    )
 );
 
 CREATE TABLE IF NOT EXISTS floors (
@@ -101,7 +106,11 @@ CREATE TABLE IF NOT EXISTS slots (
     current_session_id BIGINT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT ck_slots_status CHECK (status IN ('AVAILABLE', 'OCCUPIED', 'LOCKED', 'MAINTENANCE'))
+    CONSTRAINT ck_slots_status CHECK (status IN ('AVAILABLE', 'OCCUPIED', 'LOCKED', 'MAINTENANCE')),
+    CONSTRAINT ck_slots_current_session_status CHECK (
+        (status = 'OCCUPIED' AND current_session_id IS NOT NULL)
+        OR (status IN ('AVAILABLE', 'LOCKED', 'MAINTENANCE') AND current_session_id IS NULL)
+    )
 );
 
 CREATE TABLE IF NOT EXISTS gates (
@@ -197,7 +206,11 @@ CREATE TABLE IF NOT EXISTS parking_sessions (
     CONSTRAINT ck_sessions_customer_type CHECK (customer_type IN ('CASUAL', 'MONTHLY')),
     CONSTRAINT ck_sessions_status CHECK (status IN ('ACTIVE', 'COMPLETED', 'CANCELLED', 'LOST_CARD_PENDING', 'MISMATCH_PENDING')),
     CONSTRAINT ck_sessions_payment_status CHECK (payment_status IN ('PENDING', 'PAID', 'FAILED', 'CANCELLED', 'WAIVED', 'NOT_REQUIRED')),
-    CONSTRAINT ck_sessions_plate_or_no_plate CHECK (no_plate = true OR normalized_plate_number IS NOT NULL)
+    CONSTRAINT ck_sessions_plate_or_no_plate CHECK (no_plate = true OR normalized_plate_number IS NOT NULL),
+    CONSTRAINT ck_sessions_no_plate_description CHECK (
+        no_plate = false OR NULLIF(BTRIM(vehicle_description), '') IS NOT NULL
+    ),
+    CONSTRAINT ck_sessions_exit_time CHECK (exit_time IS NULL OR exit_time >= entry_time)
 );
 
 CREATE TABLE IF NOT EXISTS payments (
@@ -215,7 +228,8 @@ CREATE TABLE IF NOT EXISTS payments (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT ck_payments_method CHECK (method IN ('CASH', 'NONE')),
     CONSTRAINT ck_payments_status CHECK (status IN ('PENDING', 'PAID', 'FAILED', 'CANCELLED', 'WAIVED', 'NOT_REQUIRED')),
-    CONSTRAINT ck_payments_amounts CHECK (amount >= 0 AND lost_card_fee >= 0 AND total_amount >= 0)
+    CONSTRAINT ck_payments_amounts CHECK (amount >= 0 AND lost_card_fee >= 0 AND total_amount >= 0),
+    CONSTRAINT ck_payments_total_amount CHECK (total_amount = amount + lost_card_fee)
 );
 
 CREATE TABLE IF NOT EXISTS receipts (
@@ -237,6 +251,7 @@ CREATE TABLE IF NOT EXISTS receipts (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT ck_receipts_payment_method CHECK (payment_method IN ('CASH', 'NONE')),
     CONSTRAINT ck_receipts_amounts CHECK (amount >= 0 AND lost_card_fee >= 0 AND total_amount >= 0),
+    CONSTRAINT ck_receipts_total_amount CHECK (total_amount = amount + lost_card_fee),
     CONSTRAINT ck_receipts_printed_count CHECK (printed_count >= 0)
 );
 
