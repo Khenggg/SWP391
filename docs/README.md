@@ -1,51 +1,50 @@
-# Tài Liệu Dự Án
+# Project Documentation
 
-Thư mục này chứa tài liệu quản lý, đặc tả, API, test và hướng dẫn làm việc cho dự án Parking Building Management System.
+This folder contains project management, specification, API, test, and workflow documents for the Parking Building Management System.
 
-## Cấu Trúc Thư Mục
+## Directory Structure
 
 ```text
 docs/
   README.md
-  specification/   Đặc tả yêu cầu, API, ERD và implementation spec
-  planning/        Sprint plan, GitHub Project và meeting notes
-  git/             Kiến thức Git, branch và Pull Request
-  testing/         Test cases, demo script và Postman guide
-  references/      File PDF/DOCX tham khảo
-  Parking Building Management UI (1)/  UI mẫu/tham khảo
+  specification/   Requirements, API, ERD, and implementation spec
+  planning/        Sprint plan, GitHub Project guide, and meeting notes
+  git/             Git, branch, and Pull Request workflow
+  testing/         Test cases, demo script, and Postman guide
+  references/      Reference PDF/DOCX files
+  Parking Building Management UI (1)/  UI reference package
 ```
 
 ## Specification
 
-- `specification/SRS.md`: điểm vào của tài liệu yêu cầu.
-- `specification/Developer_Implementation_Specification_Dual_Backend_NET_SpringBoot.md`: tài liệu triển khai chính cho kiến trúc 2 backend.
-- `specification/API_Contract.md`: danh sách base URL, prefix và endpoint ưu tiên.
-- `specification/ERD.md`: ghi chú quan hệ bảng và nguyên tắc schema. Migration thật vẫn thuộc `.NET Core API`.
+- `specification/SRS.md`: entry point for requirements.
+- `specification/Developer_Implementation_Specification_Dual_Backend_NET_SpringBoot.md`: main implementation guide for the dual-backend architecture.
+- `specification/API_Contract.md`: base URLs, API prefixes, and priority endpoints.
+- `specification/ERD.md`: table relationship notes. Official schema changes must be made in `../database/*.sql`.
+
+## Database Rule
+
+`database/*.sql` is the source of truth for database schema and seed data.
+
+- Change SQL scripts first when schema changes.
+- .NET must not create schema through EF Core Migration.
+- Spring Boot must not create or update schema through Hibernate.
+- Flyway and Liquibase are out of scope for now.
 
 ## Planning
 
-- `planning/Sprint_30_Day_Plan.md`: kế hoạch 5 sprint trong 30 ngày.
-- `planning/GitHub_Project_Guide.md`: cách tạo GitHub Project, field, milestone, priority và issue.
-- `planning/Meeting_Notes.md`: mẫu ghi biên bản họp, quyết định và action item.
-
-## Git
-
-- `git/Git_Workflow.md`: quy trình branch, commit, pull request và merge.
-- `git/Branch_Naming.md`: quy tắc đặt tên branch.
-- `git/branching.md`: tóm tắt nhanh luồng branch `main`/`dev`/feature.
+- `planning/Sprint_30_Day_Plan.md`: 5-sprint plan for 30 days.
+- `planning/GitHub_Project_Guide.md`: GitHub Project fields, milestones, priority, and issues.
+- `planning/Meeting_Notes.md`: meeting notes template.
 
 ## Testing
 
-- `testing/Test_Cases.md`: nhóm test bắt buộc cho MVP/demo.
-- `testing/Demo_Script.md`: thứ tự demo tối thiểu.
-- `testing/Postman_Guide.md`: cách dùng collection và environment trong thư mục `postman/`.
+- `testing/Test_Cases.md`: required MVP/demo test groups.
+- `testing/Demo_Script.md`: minimum demo flow.
+- `testing/Postman_Guide.md`: how to use the collection and environment in `postman/`.
 
 ## References
 
-- `references/bo_sung_kien_thuc_github_hoan_chinh_1.pdf`: tài liệu tham khảo về Git/GitHub.
-- `references/huong_dan_git_branch_github_1.docx`: tài liệu tham khảo về branch/GitHub.
-- `Parking Building Management UI (1)/`: UI mẫu/tham khảo, không phải source chính của frontend hiện tại.
-
-## Ghi Chú Dọn Dẹp
-
-Hiện chưa nên xóa file Markdown nào trong thư mục này vì mỗi file đang giữ một vai trò riêng. Nếu muốn giảm số lượng file sau này, có thể cân nhắc gộp `git/branching.md` vào `git/Git_Workflow.md`, nhưng chỉ nên làm khi team đã thống nhất để tránh làm mất link tài liệu đang được dùng.
+- `references/bo_sung_kien_thuc_github_hoan_chinh_1.pdf`: Git/GitHub reference.
+- `references/huong_dan_git_branch_github_1.docx`: branch/GitHub reference.
+- `Parking Building Management UI (1)/`: UI reference package, not the current source frontend.

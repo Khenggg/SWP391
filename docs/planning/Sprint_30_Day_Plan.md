@@ -10,10 +10,10 @@ Tài liệu nguồn cần đối chiếu:
 
 ## Quy Tắc Delivery
 
-- `.NET Core API` sở hữu nghiệp vụ ghi chính: auth, EF Core migrations, user management, parking cards, structure, sessions, entry, exit, fee, payment, receipt, monthly pass, lost card, mismatch, cancel session và slot adjustment.
+- `.NET Core API` sở hữu nghiệp vụ ghi chính: auth, user management, parking cards, structure, sessions, entry, exit, fee, payment, receipt, monthly pass, lost card, mismatch, cancel session và slot adjustment.
 - `Spring Boot Support API` sở hữu public reads, dashboard, reports, audit search và các support/export optional.
-- PostgreSQL là single source of truth.
-- Chỉ `.NET Core API` thay đổi schema chính thức bằng EF Core migrations.
+- `database/*.sql` là database source of truth cho PostgreSQL/Supabase.
+- Mọi thay đổi schema chính thức phải bắt đầu từ SQL script trong `database/`.
 - Spring Boot không được ghi core tables. Spring chỉ được append audit log cho action của chính nó.
 - React gọi đúng backend owner: `/api/core/*` cho core write, `/api/public/*` và `/api/support/*` cho Spring read/support APIs.
 - Mỗi sprint phải có test và integration, không dồn toàn bộ test sang S05.
@@ -44,7 +44,7 @@ Mục tiêu: làm hệ thống thật sự chạy được và tránh việc m�
 
 Output:
 
-- `.NET Core API` có project setup thật, EF Core baseline, Swagger, JWT config và common response/error.
+- `.NET Core API` có project setup thật, `DbContext` map schema có sẵn, Swagger, JWT config và common response/error.
 - PostgreSQL/Supabase có schema baseline và seed data.
 - Spring Boot verify được JWT do `.NET` phát hành.
 - React login được, lưu token, bảo vệ route và gọi được cả 2 backend qua API clients riêng.
@@ -53,8 +53,10 @@ Issue list:
 
 ```text
 [.NET][Setup] Add real Core API project setup: csproj, Program, Swagger, config
-[.NET][DB] Create ParkingDbContext, core entities, enums, and initial EF Core migration
-[.NET][DB] Seed roles, admin, manager, staff, vehicle types, floors, areas, slots, gates
+[DB][SQL] Create initial PostgreSQL schema and seed scripts
+[.NET][DB] Map ParkingDbContext, core entities, and enums to existing PostgreSQL schema
+[Spring][DB] Map JPA entities/read models to existing PostgreSQL schema
+[DB][SQL] Seed admin, manager, staff, vehicle types, floors, areas, slots, gates
 [.NET][Common] Standardize ApiResponse, ErrorResponse, Pagination
 [.NET][Auth] Implement POST /api/core/auth/login with JWT
 [.NET][Auth] Implement GET /api/core/auth/me

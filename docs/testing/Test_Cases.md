@@ -6,6 +6,7 @@ File này dùng để theo dõi test thủ công và test tự động cho MVP/d
 
 - Auth login thành công/thất bại.
 - JWT do `.NET` phát hành được Spring verify.
+- Database tạo từ `database/01_schema.sql`, `02_seed.sql`, `03_indexes_constraints.sql`.
 - Spring giữ `ddl-auto=validate` và không tự sửa schema.
 - Vehicle type, card, slot, gate, pricing có dữ liệu hợp lệ.
 - Entry transaction tạo session, cập nhật card/slot và ghi audit log.
