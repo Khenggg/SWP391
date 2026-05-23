@@ -15,7 +15,7 @@
 --   [F07] Đổi tên bảng: rfid_cards->parking_cards, parking_floors->floors,
 --         parking_areas->areas, parking_slots->slots, price_rules->pricing_rules,
 --         payment_transactions->payments, resident_subscriptions->monthly_passes
---   [F08] parking_sessions: thêm no_plate, vehicle_description, payment_required,
+--   [F08] parking_sessions: thêm no_plate , vehicle_description, payment_required,
 --         suggestion cols, snapshot cols phẳng, đổi cancel_reason->cancellation_reason
 --   [F09] users: thêm phone (alias), status varchar
 --   [F10] driver_profiles: thêm phone, email, status
