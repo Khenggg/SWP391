@@ -65,7 +65,6 @@ Các chức năng bắt buộc cho MVP/demo:
 - Exit Processing cho Monthly Pass.
 - Fee Calculation.
 - Cash Payment.
-- Receipt.
 - Monthly Pass.
 - Booking/Reservation.
 - Reservation: Đặt trước slot ô tô tại tầng B2, giữ chỗ tối đa 15 phút, tự động hủy/hết hạn nếu quá giờ.
@@ -171,7 +170,7 @@ Spring Boot chỉ đọc kết quả sau khi .NET API trả success.
 | Parking session, entry, exit                | .NET               | Core transaction nhiều bước                                         |
 | Parking card/state                          | .NET               | Entry/exit update thường xuyên                                      |
 | Parking structure/slot/gate                 | .NET               | Slot status bị transaction core update                              |
-| Pricing/Fee/Payment/Receipt                 | .NET               | Ảnh hưởng thanh toán và session completion                          |
+| Pricing/Fee/Payment                         | .NET               | Ảnh hưởng thanh toán và session completion                          |
 | Monthly Pass                                | .NET               | Entry/exit cần check trong core flow                                |
 | Lost Card/Mismatch/Cancel Session           | .NET               | Exception core cần transaction                                      |
 | Public parking info/available slots/pricing | Spring Boot        | Read-heavy, public                                                  |
@@ -232,7 +231,6 @@ Phụ trách:
 - Exit processing.
 - Fee calculation.
 - Cash payment.
-- Receipt.
 - Monthly Pass.
 - Lost Card.
 - Plate Mismatch.
@@ -494,7 +492,6 @@ spring:
 | parking_sessions     | .NET               | Read/Write    | Read              | Core transaction                |
 | pricing_rules        | .NET               | Read/Write    | Read              | Fee calculation consistent      |
 | payments             | .NET               | Read/Write    | Read              | Payment core                    |
-| receipts             | .NET               | Read/Write    | Read              | Receipt core                    |
 | monthly_passes       | .NET               | Read/Write    | Read              | Entry/exit check                |
 | lost_card_cases      | .NET               | Read/Write    | Read              | Exception core                  |
 | plate_mismatch_cases | .NET               | Read/Write    | Read              | Exception core                  |
@@ -789,7 +786,7 @@ Owner: `.NET`
 | monthly_pass_id         | BIGINT FK monthly_passes(id)  |       No | Nullable                       |
 | floor_id                | BIGINT FK floors(id)          |      Yes | Tầng                           |
 | area_id                 | BIGINT FK areas(id)           |      Yes | Khu vực                        |
-| slot_id                 | BIGINT FK slots(id)           |      Yes | Slot                           |
+| slot_id                 | BIGINT FK slots(id)           |       No | Slot                           |
 | entry_gate_id           | BIGINT FK gates(id)           |      Yes | Cổng vào                       |
 | exit_gate_id            | BIGINT FK gates(id)           |       No | Cổng ra                        |
 | entry_staff_id          | BIGINT FK users(id)           |      Yes | Staff vào                      |
@@ -892,36 +889,6 @@ Rule:
 - Không sửa payment đã `PAID`, `WAIVED`, `NOT_REQUIRED`.
 - Khách vãng lai không được complete session nếu payment chưa `PAID`.
 - Monthly Pass valid có thể tạo payment `WAIVED` hoặc `NOT_REQUIRED`.
-
-## 8.14 receipts
-
-Owner: `.NET`
-
-| Column            | Type                           | Required | Note            |
-| ----------------- | ------------------------------ | -------: | --------------- |
-| id                | BIGSERIAL                      |      Yes | PK              |
-| receipt_code      | VARCHAR(50)                    |      Yes | Unique          |
-| session_id        | BIGINT FK parking_sessions(id) |      Yes | Session         |
-| payment_id        | BIGINT FK payments(id)         |       No | Nullable nếu 0đ |
-| card_code         | VARCHAR(50)                    |      Yes | Snapshot        |
-| plate_number      | VARCHAR(30)                    |       No | Snapshot        |
-| vehicle_type_name | VARCHAR(100)                   |      Yes | Snapshot        |
-| entry_time        | TIMESTAMPTZ                    |      Yes | Snapshot        |
-| exit_time         | TIMESTAMPTZ                    |      Yes | Snapshot        |
-| amount            | NUMERIC(12,2)                  |      Yes | Phí gửi         |
-| lost_card_fee     | NUMERIC(12,2)                  |      Yes | Phí mất thẻ     |
-| total_amount      | NUMERIC(12,2)                  |      Yes | Tổng            |
-| payment_method    | VARCHAR(30)                    |      Yes | CASH/NONE       |
-| printed_count     | INT                            |      Yes | Default 0       |
-| created_by        | BIGINT FK users(id)            |       No | Staff           |
-| created_at        | TIMESTAMPTZ                    |      Yes | Auto            |
-
-Indexes:
-
-```sql
-CREATE UNIQUE INDEX ux_receipts_code ON receipts(receipt_code);
-CREATE INDEX ix_receipts_session ON receipts(session_id);
-```
 
 ## 8.15 monthly_passes
 
@@ -1186,7 +1153,6 @@ ParkingBuilding.CoreApi
 │   ├── GatesController.cs
 │   ├── ParkingSessionsController.cs
 │   ├── PaymentsController.cs
-│   ├── ReceiptsController.cs
 │   ├── MonthlyPassesController.cs
 │   ├── LostCardCasesController.cs
 │   ├── PlateMismatchController.cs
@@ -1201,7 +1167,6 @@ ParkingBuilding.CoreApi
 │   ├── ParkingSessions
 │   ├── FeeCalculation
 │   ├── Payments
-│   ├── Receipts
 │   ├── MonthlyPasses
 │   ├── LostCards
 │   ├── Mismatch
@@ -1304,7 +1269,6 @@ gates
 parking_sessions
 pricing_rules
 payments
-receipts
 monthly_passes
 lost_card_cases
 plate_mismatch_cases
@@ -1978,7 +1942,6 @@ IExitService.ValidatePaymentPaidAsync(long sessionId)
 IExitService.MarkSessionCompletedAsync(...)
 IExitService.ReleaseSlotAsync(...)
 IExitService.ReleaseCardAsync(...)
-IExitService.GenerateReceiptAsync(...)
 IExitService.WriteExitAuditLogAsync(...)
 ```
 
@@ -1992,7 +1955,6 @@ Transaction boundary:
 - Mark session completed.
 - Release slot.
 - Release card nếu card không LOST/DAMAGED/INACTIVE.
-- Generate receipt.
 - Write audit log.
 
 Business validation:
@@ -2022,7 +1984,7 @@ Test cases:
 | TC-EXIT-01 | Tìm session bằng Card Code       |
 | TC-EXIT-02 | Casual exit sau paid thành công  |
 | TC-EXIT-03 | Chưa paid không completed        |
-| TC-EXIT-04 | Monthly pass exit tạo receipt 0đ |
+| TC-EXIT-04 | Monthly pass exit hoàn thành lượt gửi không thu tiền |
 | TC-EXIT-05 | Exit giải phóng card/slot        |
 | TC-EXIT-06 | Sai biển số bị chặn              |
 
@@ -2150,60 +2112,6 @@ Test cases:
 | TC-PAY-02 | Không tạo lại payment đã PAID   |
 | TC-PAY-03 | Payment amount mismatch bị chặn |
 | TC-PAY-04 | Waive payment cần Manager/Admin |
-
-## 12.12 Module Receipt
-
-FR liên quan: FR-12.
-
-Owner: `.NET Core API`
-
-APIs:
-
-| Method | Endpoint                                    | Role                |
-| ------ | ------------------------------------------- | ------------------- |
-| GET    | `/api/core/receipts/by-session/{sessionId}` | STAFF/MANAGER/ADMIN |
-| POST   | `/api/core/receipts/{id}/reprint`           | MANAGER/ADMIN       |
-
-DTO:
-
-```csharp
-ReceiptResponse { receiptCode, sessionCode, cardCode, plateNumber, vehicleTypeName, entryTime, exitTime, totalAmount, paymentMethod }
-ReprintReceiptRequest { reason }
-```
-
-Services:
-
-```csharp
-IReceiptService.GenerateReceiptForPaymentAsync(long paymentId)
-IReceiptService.GenerateZeroReceiptForMonthlyPassAsync(long sessionId)
-IReceiptService.GetReceiptBySessionAsync(long sessionId)
-IReceiptService.ReprintReceiptAsync(long receiptId, ReprintReceiptRequest request, long userId)
-IReceiptService.BuildReceiptHtmlAsync(long receiptId)
-```
-
-Business validation:
-
-| Validation            | Error                     |
-| --------------------- | ------------------------- |
-| Payment chưa final    | `PAYMENT_NOT_FINAL`       |
-| Receipt không tồn tại | `RECEIPT_NOT_FOUND`       |
-| Reprint thiếu reason  | `REPRINT_REASON_REQUIRED` |
-
-Frontend:
-
-| Page/Component       | Mô tả                |
-| -------------------- | -------------------- |
-| ReceiptModal         | Hiển thị hóa đơn     |
-| PrintReceiptButton   | Browser print        |
-| ReprintReceiptButton | Manager/Admin in lại |
-
-Test cases:
-
-| Test ID   | Mô tả                        |
-| --------- | ---------------------------- |
-| TC-RCP-01 | Receipt tạo sau payment PAID |
-| TC-RCP-02 | Monthly pass có receipt 0đ   |
-| TC-RCP-03 | Manager reprint ghi audit    |
 
 ## 12.13 Module Monthly Pass
 
@@ -2492,7 +2400,6 @@ SLOT_STATUS_CHANGED
 SESSION_MOVED_SLOT
 PAYMENT_PAID
 PAYMENT_WAIVED
-RECEIPT_REPRINTED
 MONTHLY_PASS_CREATED
 MONTHLY_PASS_RENEWED
 LOST_CARD_CREATED
@@ -2851,7 +2758,6 @@ src
 │   ├── cardApi.js
 │   ├── structureApi.js
 │   ├── paymentApi.js
-│   ├── receiptApi.js
 │   ├── reportApi.js
 │   └── publicApi.js
 ├── components
@@ -2908,7 +2814,7 @@ client.interceptors.request.use((config) => {
 | Card management                         | coreApi                       |
 | Structure management                    | coreApi                       |
 | Entry/Exit                              | coreApi                       |
-| Fee/Payment/Receipt                     | coreApi                       |
+| Fee/Payment                             | coreApi                       |
 | Monthly Pass                            | coreApi                       |
 | Lost Card/Mismatch/Cancel               | coreApi                       |
 | Pricing Management                      | coreApi                       |
@@ -2946,7 +2852,6 @@ client.interceptors.request.use((config) => {
 | StaffExitPage          | `/staff/exit`               | Must     | by-card, calculate-fee, payment, exit           | .NET    |
 | StaffLostCardPage      | `/staff/lost-card`          | Must     | `POST /api/core/lost-card-cases`                | .NET    |
 | StaffSessionSearchPage | `/staff/sessions`           | Must     | `GET /api/core/parking-sessions/search`         | .NET    |
-| StaffReceiptPage       | `/staff/receipt/:sessionId` | Must     | `GET /api/core/receipts/by-session/{sessionId}` | .NET    |
 
 ## 15.3 Manager Pages
 
@@ -2989,7 +2894,6 @@ client.interceptors.request.use((config) => {
 | FR-09 | Exit            | `/exit`, `/monthly-pass-exit`                    | .NET                              | StaffExitPage           | TC-EXIT       |
 | FR-10 | Fee             | `/calculate-fee`                                 | .NET                              | FeeSummaryPanel         | TC-FEE        |
 | FR-11 | Payment         | `/api/core/payments/cash`, `/waive`              | .NET                              | CashPaymentPanel        | TC-PAY        |
-| FR-12 | Receipt         | `/api/core/receipts/*`                           | .NET                              | ReceiptModal            | TC-RCP        |
 | FR-13 | Monthly Pass    | `/api/core/monthly-passes`                       | .NET                              | MonthlyPassPage         | TC-MON        |
 | FR-14 | Lost Card       | `/api/core/lost-card-cases`                      | .NET                              | LostCardPage            | TC-LOST       |
 | FR-15 | Mismatch        | `/mismatch/confirm`, `/mismatch/reject`          | .NET                              | MismatchApprovalPage    | TC-MIS        |
@@ -3064,9 +2968,6 @@ POST   /api/core/payments/cash
 POST   /api/core/payments/waive
 GET    /api/core/payments/{id}
 GET    /api/core/payments/by-session/{sessionId}
-
-GET    /api/core/receipts/by-session/{sessionId}
-POST   /api/core/receipts/{id}/reprint
 
 GET    /api/core/monthly-passes
 POST   /api/core/monthly-passes
@@ -3171,7 +3072,6 @@ parking_sessions
 parking_cards
 slots
 payments
-receipts
 monthly_passes
 lost_card_cases
 plate_mismatch_cases
@@ -3201,7 +3101,6 @@ Các nghiệp vụ sau phải transaction trong `.NET`:
 - Exit.
 - Monthly pass exit.
 - Cash payment.
-- Receipt generation after payment.
 - Lost card create/approve/reject.
 - Mismatch create/confirm/reject.
 - Cancel session.
@@ -4447,7 +4346,6 @@ Quan hệ chính:
 - `parking_sessions` là lượt gửi xe, nối card, vehicle, slot, staff, gate, pricing snapshot.
 - `pricing_rules` là bảng giá hiện hành; khi entry thì copy giá vào session snapshot.
 - `payments` là thanh toán của session.
-- `receipts` là hóa đơn/biên nhận sau payment hoặc monthly pass exit.
 - `monthly_passes` là vé tháng theo biển số và loại xe.
 - `lost_card_cases` là hồ sơ mất thẻ, gắn với session.
 - `plate_mismatch_cases` là hồ sơ sai biển số, gắn với session.
@@ -4506,9 +4404,8 @@ Quan hệ chính:
 15. .NET mark session COMPLETED.
 16. .NET release slot.
 17. .NET release card.
-18. .NET generate receipt.
-19. .NET ghi audit log.
-20. .NET commit transaction.
+18. .NET ghi audit log.
+19. .NET commit transaction.
 ```
 
 ### Monthly Pass Exit Flow
@@ -4520,7 +4417,6 @@ Quan hệ chính:
 4. .NET tạo payment WAIVED hoặc NOT_REQUIRED.
 5. .NET complete session.
 6. .NET release slot/card.
-7. .NET tạo receipt 0đ.
 ```
 
 ### Lost Card Flow
@@ -5065,15 +4961,14 @@ Không làm module theo cảm hứng. Làm theo thứ tự phụ thuộc:
 9. Fee Calculation
 10. Payment
 11. Exit
-12. Receipt
-13. Monthly Pass
-14. Lost Card
-15. Plate Mismatch
-16. Cancel Session / Move Slot
-17. Public QR Lookup
-18. Dashboard
-19. Reports / Audit
-20. Driver Should Have / Feedback / Mock optional
+12. Monthly Pass
+13. Lost Card
+14. Plate Mismatch
+15. Cancel Session / Move Slot
+16. Public QR Lookup
+17. Dashboard
+18. Reports / Audit
+19. Driver Should Have / Feedback / Mock optional
 ```
 
 Nếu module sau cần module trước mà module trước chưa xong, dùng mock data tạm nhưng phải thay bằng API thật trước integration test.
@@ -5119,8 +5014,7 @@ Mục tiêu: hiểu transaction và rollback.
 1. Calculate fee.
 2. Cash payment.
 3. Exit.
-4. Receipt.
-5. Dashboard đọc số liệu mới.
+4. Dashboard đọc số liệu mới.
 
 Mục tiêu: hiểu liên kết giữa 2 backend.
 
@@ -5250,13 +5144,12 @@ ParkingCardService
 SlotService
 ```
 
-## 20.3 .NET Developer 3 - Payment, Receipt, Monthly Pass, Exceptions
+## 20.3 .NET Developer 3 - Payment, Monthly Pass, Exceptions
 
 Phụ trách:
 
 - Fee Calculation.
 - Payment.
-- Receipt.
 - Monthly Pass.
 - Lost Card.
 - Plate Mismatch.
@@ -5266,14 +5159,12 @@ Deliverables:
 
 ```text
 PaymentsController
-ReceiptsController
 MonthlyPassesController
 LostCardCasesController
 PlateMismatchController
 SessionAdminService
 FeeCalculationService
 PaymentService
-ReceiptService
 MonthlyPassService
 LostCardCaseService
 PlateMismatchService
@@ -5340,7 +5231,7 @@ Apache POI Excel export
 | Tuần 2 | Auth, User, VehicleType, Pricing base        | Public info read API, dashboard skeleton              | Login, protected route, layout          | Đăng nhập + đọc public info |
 | Tuần 3 | Card, Structure, MonthlyPass CRUD            | Public available slots, public pricing/rules          | Card/Structure/Pricing UI               | Quản lý dữ liệu nền         |
 | Tuần 4 | Suggestion + Entry transaction               | Public QR lookup                                      | Staff Entry UI + QR lookup page         | Demo xe vào + QR tra cứu    |
-| Tuần 5 | Fee, Payment, Exit, Receipt                  | Dashboard summary                                     | Staff Exit UI + receipt UI              | Demo xe ra                  |
+| Tuần 5 | Fee, Payment, Exit                           | Dashboard summary                                     | Staff Exit UI                           | Demo xe ra                  |
 | Tuần 6 | Lost Card, Mismatch, Cancel, Move Slot       | Audit log search, report base                         | Manager approval UI, Admin cancel UI    | Demo exception              |
 | Tuần 7 | Driver Should Have, harden transaction       | Reports, Excel export                                 | Dashboard, Reports, Audit, Driver pages | Demo quản lý                |
 | Tuần 8 | Integration test, seed demo, Swagger cleanup | Report polish, support bugfix                         | UI polish, responsive, demo script      | Sẵn sàng bảo vệ             |
@@ -5369,9 +5260,8 @@ Apache POI Excel export
 | TC-16   | Public lookup privacy | Spring Boot | Không lộ dữ liệu nhạy cảm                   |
 | TC-17   | Fee calculation       | .NET        | Tính đúng block 4 tiếng                     |
 | TC-18   | Payment cash          | .NET        | Payment PAID                                |
-| TC-19   | Receipt               | .NET        | Receipt tạo sau payment                     |
 | TC-20   | Exit casual           | .NET        | Session completed, card/slot available      |
-| TC-21   | Monthly pass exit     | .NET        | Payment WAIVED/NOT_REQUIRED, receipt 0đ     |
+| TC-21   | Monthly pass exit     | .NET        | Payment WAIVED/NOT_REQUIRED                 |
 | TC-22   | Dashboard update      | Spring Boot | Dashboard đọc đúng số liệu mới              |
 | TC-23   | Lost card create      | .NET        | Staff tạo hồ sơ, session pending            |
 | TC-24   | Lost card approve     | .NET        | Manager duyệt, fee/card update              |
@@ -5426,10 +5316,9 @@ Backend chính: `.NET`
 5. Gọi `/api/core/payments/cash`.
 6. Gọi exit.
 7. Payment `PAID`.
-8. Receipt tạo.
-9. Session `COMPLETED`.
-10. Card `AVAILABLE`.
-11. Slot `AVAILABLE`.
+8. Session `COMPLETED`.
+9. Card `AVAILABLE`.
+10. Slot `AVAILABLE`.
 
 ## Demo 4: Monthly Pass Exit
 
@@ -5440,7 +5329,6 @@ Backend chính: `.NET`
 3. Hệ thống detect `customerType = MONTHLY`.
 4. Staff exit bằng `/api/core/parking-sessions/{id}/monthly-pass-exit`.
 5. Payment `WAIVED` hoặc `NOT_REQUIRED`.
-6. Receipt 0đ được tạo.
 
 ## Demo 5: Dashboard Cập Nhật
 
