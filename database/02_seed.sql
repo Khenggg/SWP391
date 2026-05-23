@@ -1,5 +1,8 @@
 -- Parking Building Management System - MVP seed data
 -- Run after 01_schema.sql. Demo passwords are "123456".
+-- This file seeds baseline master/demo data only. Core transaction data
+-- such as sessions, payments, receipts, lost-card cases and mismatch cases
+-- should be created through APIs during flow tests.
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -7,36 +10,61 @@ INSERT INTO users (id, full_name, username, email, phone, password_hash, role, s
 VALUES
     (1, 'System Admin', 'admin01', 'admin01@example.local', '0900000001', crypt('123456', gen_salt('bf', 10)), 'ADMIN', 'ACTIVE'),
     (2, 'Demo Manager', 'manager01', 'manager01@example.local', '0900000002', crypt('123456', gen_salt('bf', 10)), 'MANAGER', 'ACTIVE'),
-    (3, 'Demo Staff', 'staff01', 'staff01@example.local', '0900000003', crypt('123456', gen_salt('bf', 10)), 'STAFF', 'ACTIVE')
+    (3, 'Demo Staff', 'staff01', 'staff01@example.local', '0900000003', crypt('123456', gen_salt('bf', 10)), 'STAFF', 'ACTIVE'),
+    (4, 'Demo Driver', 'driver01', 'driver01@example.local', '0900000004', crypt('123456', gen_salt('bf', 10)), 'DRIVER', 'ACTIVE')
 ON CONFLICT (id) DO UPDATE SET
     full_name = EXCLUDED.full_name,
     username = EXCLUDED.username,
     email = EXCLUDED.email,
     phone = EXCLUDED.phone,
+    password_hash = EXCLUDED.password_hash,
     role = EXCLUDED.role,
+    status = EXCLUDED.status,
+    updated_at = now();
+
+INSERT INTO driver_profiles (id, user_id, full_name, phone, email, status)
+VALUES
+    (1, 4, 'Demo Driver', '0900000004', 'driver01@example.local', 'ACTIVE')
+ON CONFLICT (id) DO UPDATE SET
+    user_id = EXCLUDED.user_id,
+    full_name = EXCLUDED.full_name,
+    phone = EXCLUDED.phone,
+    email = EXCLUDED.email,
     status = EXCLUDED.status,
     updated_at = now();
 
 INSERT INTO vehicle_types (id, name, description, is_active)
 VALUES
-    (1, 'Bicycle', 'Standard bicycle', true),
-    (2, 'Electric bicycle', 'Electric bicycle or light e-bike', true),
-    (3, 'Motorbike', 'Standard motorbike', true),
-    (4, 'Electric motorbike', 'Electric motorbike', true),
-    (5, 'Car', 'Passenger car', true),
-    (6, 'Electric car', 'Electric passenger car', true),
-    (7, 'Delivery vehicle', 'Small delivery or cargo vehicle', true)
+    (1, 'Xe đạp', 'Xe đạp tiêu chuẩn', true),
+    (2, 'Xe đạp điện', 'Xe đạp điện hoặc xe điện nhẹ', true),
+    (3, 'Xe máy', 'Xe máy tiêu chuẩn', true),
+    (4, 'Xe máy điện', 'Xe máy điện', true),
+    (5, 'Ô tô', 'Ô tô chở khách', true),
+    (6, 'Ô tô điện', 'Ô tô điện chở khách', true),
+    (7, 'Xe vận chuyển hàng hóa', 'Xe giao hàng hoặc xe chở hàng nhỏ', true)
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     description = EXCLUDED.description,
     is_active = EXCLUDED.is_active,
     updated_at = now();
 
+INSERT INTO vehicles (id, driver_id, plate_number, normalized_plate_number, vehicle_type_id, description, status)
+VALUES
+    (1, 1, '51A-99999', '51A99999', 3, 'Demo monthly pass motorbike', 'ACTIVE')
+ON CONFLICT (id) DO UPDATE SET
+    driver_id = EXCLUDED.driver_id,
+    plate_number = EXCLUDED.plate_number,
+    normalized_plate_number = EXCLUDED.normalized_plate_number,
+    vehicle_type_id = EXCLUDED.vehicle_type_id,
+    description = EXCLUDED.description,
+    status = EXCLUDED.status,
+    updated_at = now();
+
 INSERT INTO floors (id, floor_code, floor_name, status)
 VALUES
-    (1, 'B1', 'Basement 1', 'ACTIVE'),
-    (2, 'B2', 'Basement 2', 'ACTIVE'),
-    (3, 'B3', 'Basement 3', 'ACTIVE')
+    (1, 'B1', 'Tầng hầm B1', 'ACTIVE'),
+    (2, 'B2', 'Tầng hầm B2', 'ACTIVE'),
+    (3, 'B3', 'Tầng hầm B3', 'ACTIVE')
 ON CONFLICT (id) DO UPDATE SET
     floor_code = EXCLUDED.floor_code,
     floor_name = EXCLUDED.floor_name,
@@ -45,11 +73,11 @@ ON CONFLICT (id) DO UPDATE SET
 
 INSERT INTO areas (id, floor_id, area_code, area_name, priority_order, status)
 VALUES
-    (1, 1, 'A', 'B1 Motorbike Area A', 10, 'ACTIVE'),
-    (2, 1, 'B', 'B1 Car Area B', 20, 'ACTIVE'),
-    (3, 2, 'A', 'B2 Motorbike Area A', 30, 'ACTIVE'),
-    (4, 2, 'B', 'B2 Car Area B', 40, 'ACTIVE'),
-    (5, 3, 'A', 'B3 Bicycle Area A', 50, 'ACTIVE')
+    (1, 1, 'A', 'B1 - Khu xe máy A', 10, 'ACTIVE'),
+    (2, 1, 'B', 'B1 - Khu ô tô B', 20, 'ACTIVE'),
+    (3, 2, 'A', 'B2 - Khu xe máy A', 30, 'ACTIVE'),
+    (4, 2, 'B', 'B2 - Khu ô tô B', 40, 'ACTIVE'),
+    (5, 3, 'A', 'B3 - Khu xe đạp A', 50, 'ACTIVE')
 ON CONFLICT (id) DO UPDATE SET
     floor_id = EXCLUDED.floor_id,
     area_code = EXCLUDED.area_code,
@@ -64,32 +92,72 @@ VALUES
     (1, 4),
     (2, 5),
     (2, 6),
+    (2, 7),
     (3, 3),
     (3, 4),
     (4, 5),
     (4, 6),
+    (4, 7),
     (5, 1),
     (5, 2)
 ON CONFLICT (area_id, vehicle_type_id) DO NOTHING;
 
 INSERT INTO slots (id, area_id, slot_code, allowed_vehicle_type_id, status)
 VALUES
-    (1, 1, 'A01', 3, 'AVAILABLE'),
-    (2, 1, 'A02', 3, 'AVAILABLE'),
-    (3, 1, 'A03', 4, 'AVAILABLE'),
-    (4, 2, 'B01', 5, 'AVAILABLE'),
-    (5, 2, 'B02', 6, 'AVAILABLE'),
-    (6, 3, 'A01', 3, 'AVAILABLE'),
-    (7, 3, 'A02', 4, 'AVAILABLE'),
-    (8, 4, 'B01', 5, 'AVAILABLE'),
-    (9, 4, 'B02', 6, 'AVAILABLE'),
-    (10, 5, 'A01', 1, 'AVAILABLE'),
-    (11, 5, 'A02', 2, 'AVAILABLE')
+    (1, 1, 'A-M01', 3, 'AVAILABLE'),
+    (2, 1, 'A-M02', 3, 'AVAILABLE'),
+    (3, 1, 'A-M03', 3, 'AVAILABLE'),
+    (4, 1, 'A-M04', 3, 'AVAILABLE'),
+    (5, 1, 'A-M05', 3, 'AVAILABLE'),
+    (6, 1, 'A-M06', 3, 'AVAILABLE'),
+    (7, 1, 'A-M07', 3, 'AVAILABLE'),
+    (8, 1, 'A-E01', 4, 'AVAILABLE'),
+    (9, 1, 'A-E02', 4, 'AVAILABLE'),
+    (10, 1, 'A-E03', 4, 'AVAILABLE'),
+    (11, 2, 'B-C01', 5, 'AVAILABLE'),
+    (12, 2, 'B-C02', 5, 'AVAILABLE'),
+    (13, 2, 'B-C03', 5, 'AVAILABLE'),
+    (14, 2, 'B-C04', 5, 'AVAILABLE'),
+    (15, 2, 'B-C05', 5, 'AVAILABLE'),
+    (16, 2, 'B-C06', 5, 'AVAILABLE'),
+    (17, 2, 'B-C07', 5, 'AVAILABLE'),
+    (18, 2, 'B-EC01', 6, 'AVAILABLE'),
+    (19, 2, 'B-EC02', 6, 'AVAILABLE'),
+    (20, 2, 'B-D01', 7, 'AVAILABLE'),
+    (21, 3, 'A-M01', 3, 'AVAILABLE'),
+    (22, 3, 'A-M02', 3, 'AVAILABLE'),
+    (23, 3, 'A-M03', 3, 'AVAILABLE'),
+    (24, 3, 'A-M04', 3, 'AVAILABLE'),
+    (25, 3, 'A-M05', 3, 'AVAILABLE'),
+    (26, 3, 'A-M06', 3, 'AVAILABLE'),
+    (27, 3, 'A-M07', 3, 'AVAILABLE'),
+    (28, 3, 'A-E01', 4, 'AVAILABLE'),
+    (29, 3, 'A-E02', 4, 'AVAILABLE'),
+    (30, 3, 'A-E03', 4, 'AVAILABLE'),
+    (31, 4, 'B-C01', 5, 'AVAILABLE'),
+    (32, 4, 'B-C02', 5, 'AVAILABLE'),
+    (33, 4, 'B-C03', 5, 'AVAILABLE'),
+    (34, 4, 'B-C04', 5, 'AVAILABLE'),
+    (35, 4, 'B-C05', 5, 'AVAILABLE'),
+    (36, 4, 'B-C06', 5, 'AVAILABLE'),
+    (37, 4, 'B-C07', 5, 'AVAILABLE'),
+    (38, 4, 'B-EC01', 6, 'AVAILABLE'),
+    (39, 4, 'B-EC02', 6, 'AVAILABLE'),
+    (40, 4, 'B-D01', 7, 'AVAILABLE'),
+    (41, 5, 'A-B01', 1, 'AVAILABLE'),
+    (42, 5, 'A-B02', 1, 'AVAILABLE'),
+    (43, 5, 'A-B03', 1, 'AVAILABLE'),
+    (44, 5, 'A-B04', 1, 'AVAILABLE'),
+    (45, 5, 'A-B05', 1, 'AVAILABLE'),
+    (46, 5, 'A-B06', 1, 'AVAILABLE'),
+    (47, 5, 'A-B07', 1, 'AVAILABLE'),
+    (48, 5, 'A-EB01', 2, 'AVAILABLE'),
+    (49, 5, 'A-EB02', 2, 'AVAILABLE'),
+    (50, 5, 'A-EB03', 2, 'AVAILABLE')
 ON CONFLICT (id) DO UPDATE SET
     area_id = EXCLUDED.area_id,
     slot_code = EXCLUDED.slot_code,
     allowed_vehicle_type_id = EXCLUDED.allowed_vehicle_type_id,
-    status = EXCLUDED.status,
     updated_at = now();
 
 INSERT INTO gates (id, floor_id, gate_code, gate_type, status)
@@ -108,21 +176,16 @@ ON CONFLICT (id) DO UPDATE SET
     updated_at = now();
 
 INSERT INTO parking_cards (id, card_code, qr_token, status, note)
-VALUES
-    (1, 'C001', 'QR-C001-DEMO-TOKEN', 'AVAILABLE', 'Demo card'),
-    (2, 'C002', 'QR-C002-DEMO-TOKEN', 'AVAILABLE', 'Demo card'),
-    (3, 'C003', 'QR-C003-DEMO-TOKEN', 'AVAILABLE', 'Demo card'),
-    (4, 'C004', 'QR-C004-DEMO-TOKEN', 'AVAILABLE', 'Demo card'),
-    (5, 'C005', 'QR-C005-DEMO-TOKEN', 'AVAILABLE', 'Demo card'),
-    (6, 'C006', 'QR-C006-DEMO-TOKEN', 'AVAILABLE', 'Demo card'),
-    (7, 'C007', 'QR-C007-DEMO-TOKEN', 'AVAILABLE', 'Demo card'),
-    (8, 'C008', 'QR-C008-DEMO-TOKEN', 'AVAILABLE', 'Demo card'),
-    (9, 'C009', 'QR-C009-DEMO-TOKEN', 'AVAILABLE', 'Demo card'),
-    (10, 'C010', 'QR-C010-DEMO-TOKEN', 'AVAILABLE', 'Demo card')
+SELECT
+    card_number,
+    'C' || LPAD(card_number::TEXT, 3, '0'),
+    'QR-C' || LPAD(card_number::TEXT, 3, '0') || '-DEMO-' || UPPER(SUBSTRING(MD5('parking-card-' || card_number::TEXT), 1, 16)),
+    'AVAILABLE',
+    'Demo card'
+FROM generate_series(1, 20) AS card_number
 ON CONFLICT (id) DO UPDATE SET
     card_code = EXCLUDED.card_code,
     qr_token = EXCLUDED.qr_token,
-    status = EXCLUDED.status,
     note = EXCLUDED.note,
     updated_at = now();
 
@@ -138,13 +201,13 @@ INSERT INTO pricing_rules (
     created_by
 )
 VALUES
-    (1, 1, 2000, 3000, 100000, 50000, '2026-01-01 00:00:00+00', 'ACTIVE', 2),
-    (2, 2, 3000, 4000, 120000, 50000, '2026-01-01 00:00:00+00', 'ACTIVE', 2),
-    (3, 3, 5000, 7000, 250000, 100000, '2026-01-01 00:00:00+00', 'ACTIVE', 2),
-    (4, 4, 6000, 8000, 280000, 100000, '2026-01-01 00:00:00+00', 'ACTIVE', 2),
-    (5, 5, 30000, 50000, 2500000, 500000, '2026-01-01 00:00:00+00', 'ACTIVE', 2),
-    (6, 6, 35000, 55000, 2800000, 500000, '2026-01-01 00:00:00+00', 'ACTIVE', 2),
-    (7, 7, 40000, 60000, 3000000, 500000, '2026-01-01 00:00:00+00', 'ACTIVE', 2)
+    (1, 1, 2000, 3000, 50000, 30000, '2026-01-01 00:00:00+07', 'ACTIVE', 2),
+    (2, 2, 3000, 4000, 70000, 30000, '2026-01-01 00:00:00+07', 'ACTIVE', 2),
+    (3, 3, 5000, 7000, 150000, 50000, '2026-01-01 00:00:00+07', 'ACTIVE', 2),
+    (4, 4, 6000, 8000, 180000, 50000, '2026-01-01 00:00:00+07', 'ACTIVE', 2),
+    (5, 5, 20000, 30000, 1200000, 200000, '2026-01-01 00:00:00+07', 'ACTIVE', 2),
+    (6, 6, 25000, 35000, 1400000, 200000, '2026-01-01 00:00:00+07', 'ACTIVE', 2),
+    (7, 7, 30000, 40000, 1500000, 250000, '2026-01-01 00:00:00+07', 'ACTIVE', 2)
 ON CONFLICT (id) DO UPDATE SET
     vehicle_type_id = EXCLUDED.vehicle_type_id,
     day_price = EXCLUDED.day_price,
@@ -158,6 +221,7 @@ ON CONFLICT (id) DO UPDATE SET
 
 INSERT INTO monthly_passes (
     id,
+    driver_id,
     owner_name,
     phone,
     plate_number,
@@ -169,8 +233,9 @@ INSERT INTO monthly_passes (
     created_by
 )
 VALUES
-    (1, 'Demo Monthly Customer', '0900000100', '59A-12345', '59A12345', 3, '2026-01-01', '2026-12-31', 'ACTIVE', 2)
+    (1, 1, 'Nguyen Van Monthly', '0900000100', '51A-99999', '51A99999', 3, (CURRENT_DATE - INTERVAL '5 days')::DATE, (CURRENT_DATE + INTERVAL '25 days')::DATE, 'ACTIVE', 2)
 ON CONFLICT (id) DO UPDATE SET
+    driver_id = EXCLUDED.driver_id,
     owner_name = EXCLUDED.owner_name,
     phone = EXCLUDED.phone,
     plate_number = EXCLUDED.plate_number,
@@ -193,3 +258,9 @@ SELECT setval('slots_id_seq', COALESCE((SELECT max(id) FROM slots), 1), (SELECT 
 SELECT setval('gates_id_seq', COALESCE((SELECT max(id) FROM gates), 1), (SELECT count(*) > 0 FROM gates));
 SELECT setval('pricing_rules_id_seq', COALESCE((SELECT max(id) FROM pricing_rules), 1), (SELECT count(*) > 0 FROM pricing_rules));
 SELECT setval('monthly_passes_id_seq', COALESCE((SELECT max(id) FROM monthly_passes), 1), (SELECT count(*) > 0 FROM monthly_passes));
+SELECT setval('parking_sessions_id_seq', COALESCE((SELECT max(id) FROM parking_sessions), 1), (SELECT count(*) > 0 FROM parking_sessions));
+SELECT setval('payments_id_seq', COALESCE((SELECT max(id) FROM payments), 1), (SELECT count(*) > 0 FROM payments));
+SELECT setval('receipts_id_seq', COALESCE((SELECT max(id) FROM receipts), 1), (SELECT count(*) > 0 FROM receipts));
+SELECT setval('lost_card_cases_id_seq', COALESCE((SELECT max(id) FROM lost_card_cases), 1), (SELECT count(*) > 0 FROM lost_card_cases));
+SELECT setval('plate_mismatch_cases_id_seq', COALESCE((SELECT max(id) FROM plate_mismatch_cases), 1), (SELECT count(*) > 0 FROM plate_mismatch_cases));
+SELECT setval('audit_logs_id_seq', COALESCE((SELECT max(id) FROM audit_logs), 1), (SELECT count(*) > 0 FROM audit_logs));
