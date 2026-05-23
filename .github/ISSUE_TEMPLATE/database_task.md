@@ -11,6 +11,8 @@ labels: database
 
 ## Acceptance Criteria
 
-- [ ] Official schema change is in .NET EF Core migration
-- [ ] Support scripts stay under `database/manual-scripts`
+- [ ] Official schema change is in `database/01_schema.sql`
+- [ ] Seed changes are in `database/02_seed.sql`
+- [ ] Index/constraint changes are in `database/03_indexes_constraints.sql`
+- [ ] Backends do not auto-create or auto-update schema
 - [ ] No production secrets or dumps committed

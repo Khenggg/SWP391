@@ -128,7 +128,7 @@ Spring Boot API  -----/
 Quy tắc bắt buộc:
 
 - Chỉ có một schema PostgreSQL chính.
-- Chỉ `.NET Core API` tạo migration chính bằng EF Core.
+- `database/*.sql` tao schema/seed chinh thuc; ca hai backend chi map schema da co.
 - Spring Boot dùng JPA validate/read mapping, không tự thay đổi schema.
 - Backend không phải owner chỉ đọc bảng core, hoặc gọi API của owner để thay đổi.
 - Không để cả .NET và Spring cùng update một trạng thái nghiệp vụ quan trọng.
@@ -238,7 +238,7 @@ Phụ trách:
 - Slot move/status adjustment.
 - Pricing Management.
 - Ghi audit log cho nghiệp vụ core.
-- EF Core migration và seed data.
+- `DbContext` mapping theo schema da co va seed data tu `database/02_seed.sql`.
 
 ## 4.2 Spring Boot API - Support Service
 
@@ -378,7 +378,7 @@ MVP dùng `role` enum trực tiếp trong bảng `users`.
 
 Không dùng các bảng phân quyền tách riêng trong MVP.
 
-Nếu sau này cần RBAC đầy đủ, tạo migration riêng và cập nhật lại spec.
+Neu sau nay can RBAC day du, cap nhat SQL script rieng va cap nhat lai spec.
 
 ## 6.3 JWT Claims Bắt Buộc
 
@@ -425,13 +425,14 @@ Database: created_at
 Java: createdAt
 ```
 
-## 7.2 Migration Ownership
+## 7.2 SQL Script Ownership
 
-Chỉ `.NET Core API` tạo migration chính:
+Schema/seed chinh thuc nam trong `database/*.sql`:
 
-```bash
-dotnet ef migrations add InitialCreate
-dotnet ef database update
+```text
+database/01_schema.sql
+database/02_seed.sql
+database/03_indexes_constraints.sql
 ```
 
 Spring Boot config bắt buộc:
@@ -1187,7 +1188,7 @@ ParkingBuilding.CoreApi
 │   ├── Persistence
 │   │   ├── ParkingDbContext.cs
 │   │   ├── Configurations
-│   │   └── Migrations
+│   │   └── Migrations (deprecated, do not use)
 │   ├── Repositories
 │   └── Security
 ├── Contracts
@@ -3229,8 +3230,15 @@ Repo này dùng Supabase PostgreSQL, không cần PostgreSQL local.
 ```bash
 cd backend/ParkingBuilding.CoreApi
 dotnet restore
-dotnet ef database update
 dotnet run
+```
+
+Truoc khi chay backend, tao database bang SQL scripts theo thu tu:
+
+```text
+database/01_schema.sql
+database/02_seed.sql
+database/03_indexes_constraints.sql
 ```
 
 Kỳ vọng:
@@ -3254,7 +3262,7 @@ Tomcat started on port 8080
 Không báo missing table/column
 ```
 
-Nếu Spring báo thiếu table, nghĩa là .NET migration/seed chưa chạy đúng.
+Neu Spring bao thieu table, nghia la chua chay dung `database/*.sql`.
 
 ### Bước 5 - Chạy React
 
@@ -3329,7 +3337,7 @@ Luôn chạy theo thứ tự:
 
 Lý do:
 
-- .NET tạo migration và seed data.
+- Chay `database/*.sql` de tao schema va seed data.
 - Spring Boot cần database schema có sẵn để `ddl-auto=validate`.
 - React cần biết base URL của 2 backend.
 
@@ -3371,7 +3379,7 @@ Lệnh chạy mẫu:
 
 ```bash
 dotnet restore
-dotnet ef database update
+database/02_seed.sql
 dotnet run
 ```
 
@@ -3560,17 +3568,16 @@ Contracts/Responses
 Contracts/Common
 ```
 
-Cài EF tool nếu chưa có:
+Quy tac SQL scripts:
 
-```bash
-dotnet tool install --global dotnet-ef
-```
+Khong cai dat cong cu EF schema tooling cho scope hien tai.
 
-Tạo migration sau khi đã có entity/config:
+Cap nhat SQL scripts sau khi chot entity/config:
 
-```bash
-dotnet ef migrations add InitialCreate
-dotnet ef database update
+```text
+database/01_schema.sql
+database/02_seed.sql
+database/03_indexes_constraints.sql
 ```
 
 ### Tạo Spring Boot Project
@@ -4596,68 +4603,11 @@ end_date = hôm nay + 25 ngày
 status = ACTIVE
 ```
 
-## 19.17 Seeder Mẫu Cho .NET
+## 19.17 Seed Data
 
-Seeder giúp nhóm demo được ngay mà không phải nhập tay từng bảng.
+Seed data chinh thuc nam trong `database/02_seed.sql`.
 
-### DbSeeder Skeleton
-
-```csharp
-public static class DbSeeder
-{
-    public static async Task SeedAsync(ParkingDbContext db)
-    {
-        await SeedUsersAsync(db);
-        await SeedVehicleTypesAsync(db);
-        await SeedStructureAsync(db);
-        await SeedCardsAsync(db);
-        await SeedPricingRulesAsync(db);
-        await db.SaveChangesAsync();
-    }
-
-    private static async Task SeedUsersAsync(ParkingDbContext db)
-    {
-        if (await db.Users.AnyAsync()) return;
-
-        db.Users.AddRange(
-            new User
-            {
-                FullName = "System Admin",
-                Username = "admin01",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
-                Role = UserRole.ADMIN,
-                Status = UserStatus.ACTIVE,
-                CreatedAt = DateTimeOffset.UtcNow,
-                UpdatedAt = DateTimeOffset.UtcNow
-            },
-            new User
-            {
-                FullName = "Parking Staff",
-                Username = "staff01",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
-                Role = UserRole.STAFF,
-                Status = UserStatus.ACTIVE,
-                CreatedAt = DateTimeOffset.UtcNow,
-                UpdatedAt = DateTimeOffset.UtcNow
-            }
-        );
-    }
-}
-```
-
-### Gọi Seeder Trong Program.cs
-
-```csharp
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<ParkingDbContext>();
-    await db.Database.MigrateAsync();
-    await DbSeeder.SeedAsync(db);
-}
-```
-
-Chỉ dùng auto migrate/seed trong môi trường dev/demo. Production phải kiểm soát migration cẩn thận hơn.
-
+.NET khong duoc dung seeder C# de thay the baseline seed. Neu sau nay can runtime-only seeder cho du lieu phu, seeder do khong duoc tao/sua schema va phai duoc ghi ro trong README cua backend.
 ### Thứ Tự Seed Bắt Buộc
 
 ```text
@@ -4809,7 +4759,7 @@ Invoke-RestMethod `
 | Lỗi | Dấu hiệu | Cách kiểm tra | Cách sửa |
 |---|---|---|---|
 | Sai connection string | Backend không connect DB | Log báo connection refused/auth failed | Sửa host/port/user/password ở cả .NET và Spring |
-| Chưa chạy migration | Spring start fail validate | Báo missing table/column | Chạy `.NET ef database update` |
+| Chua chay SQL scripts | Spring start fail validate | Bao missing table/column | Chay `database/01_schema.sql`, `02_seed.sql`, `03_indexes_constraints.sql` |
 | Spring tự sửa schema | Schema lệch khó debug | Thấy `ddl-auto=update` | Đổi về `validate` |
 | JWT mismatch | Spring trả 401 | Issuer/audience/secret khác .NET | Copy cùng config JWT |
 | CORS lỗi | Browser chặn request | Console có CORS error | Cho phép origin frontend trong cả 2 backend |
@@ -4851,7 +4801,7 @@ Cách sửa:
 4. Thử login bằng DBeaver/pgAdmin với SSL enabled.
 ```
 
-### EF Migration Lỗi
+### SQL Schema Loi
 
 Log thường gặp:
 
@@ -4878,7 +4828,7 @@ Schema-validation: missing table [parking_sessions]
 Cách sửa:
 
 ```text
-1. Chạy .NET migration trước.
+1. Chay database SQL scripts truoc.
 2. Kiểm tra đúng database/schema Supabase mà hai backend cùng kết nối.
 3. Không đổi ddl-auto thành update.
 ```
@@ -5053,7 +5003,7 @@ Result: PASS
 Không làm module theo cảm hứng. Làm theo thứ tự phụ thuộc:
 
 ```text
-1. PostgreSQL + migration + seed base
+1. PostgreSQL + SQL schema + seed base
 2. Auth + User
 3. Vehicle Type
 4. Floor/Area/Slot/Gate
@@ -5158,7 +5108,7 @@ Danh sách này phải đọc trước khi code.
 - Không update card/slot ngoài transaction entry/exit/cancel/move.
 - Không nuốt exception rồi trả success.
 - Không tự ý đổi enum string đã chốt.
-- Không sửa schema bằng tay trong database rồi quên migration.
+- Khong sua schema truc tiep trong database roi quen cap nhat `database/*.sql`.
 
 ### Spring Boot Không Được
 
@@ -5183,7 +5133,7 @@ Danh sách này phải đọc trước khi code.
 
 - Không merge code chưa chạy.
 - Không đổi API path mà không báo frontend/tester.
-- Không đổi database field mà không update migration/spec.
+- Khong doi database field ma khong cap nhat SQL script/spec.
 - Không để mỗi người tự đặt enum/status khác nhau.
 - Không demo bằng cách sửa DB thủ công nếu flow có API.
 
@@ -5196,7 +5146,7 @@ Danh sách này phải đọc trước khi code.
 Phụ trách:
 
 - Project setup .NET.
-- EF Core migration.
+- SQL schema scripts trong `database/`.
 - Shared entities/enums.
 - Auth/JWT.
 - User management.
@@ -5209,7 +5159,7 @@ Deliverables:
 
 ```text
 ParkingDbContext
-Initial EF Migration
+Initial SQL Schema
 Seed data
 AuthController
 UsersController
@@ -5335,7 +5285,7 @@ Apache POI Excel export
 
 | Tuần | .NET Team | Spring Boot Team | Frontend Team | Output |
 |---|---|---|---|---|
-| Tuần 1 | Setup .NET, DB schema, EF migration, seed data | Setup Spring Boot, connect DB read-only, JWT validate | Setup React, routing, layout | 3 project chạy được |
+| Tuan 1 | Setup .NET, SQL schema, seed data | Setup Spring Boot, connect DB read-only, JWT validate | Setup React, routing, layout | 3 project chay duoc |
 | Tuần 2 | Auth, User, VehicleType, Pricing base | Public info read API, dashboard skeleton | Login, protected route, layout | Đăng nhập + đọc public info |
 | Tuần 3 | Card, Structure, MonthlyPass CRUD | Public available slots, public pricing/rules | Card/Structure/Pricing UI | Quản lý dữ liệu nền |
 | Tuần 4 | Suggestion + Entry transaction | Public QR lookup | Staff Entry UI + QR lookup page | Demo xe vào + QR tra cứu |
@@ -5383,7 +5333,7 @@ Apache POI Excel export
 | TC-31 | Revenue report | Spring Boot | Báo cáo doanh thu đúng |
 | TC-32 | Excel export | Spring Boot | Xuất file Excel nếu làm |
 | TC-33 | Cross-backend data | Both | .NET ghi xong, Spring đọc được đúng |
-| TC-34 | Migration safety | Both | Spring ddl-auto validate không sửa schema |
+| TC-34 | Schema safety | Both | Spring ddl-auto validate khong sua schema |
 
 ---
 
@@ -5497,7 +5447,7 @@ Backend chính: `Spring Boot`
 
 | Rủi ro | Nguyên nhân | Cách xử lý |
 |---|---|---|
-| Hai backend cùng sửa DB schema | EF migration và Hibernate update cùng chạy | Chỉ .NET migration, Spring `ddl-auto=validate` |
+| Hai backend cung sua DB schema | Runtime auto schema update | Chi `database/*.sql` tao schema, Spring `ddl-auto=validate` |
 | Enum lệch | .NET dùng enum int, Java dùng string | Database lưu enum string |
 | Spring update nhầm bảng core | Dev support viết repository save | Quy định read-only repository cho bảng core |
 | Driver register conflict | Support API tự ghi dữ liệu Driver | Driver write thuộc .NET |
@@ -5557,7 +5507,7 @@ Backend chính: `Spring Boot`
 
 - [ ] PostgreSQL là database duy nhất.
 - [ ] ID mặc định dùng `BIGSERIAL`.
-- [ ] .NET là owner migration.
+- [ ] `database/*.sql` la database source of truth.
 - [ ] Spring Boot `ddl-auto=validate`.
 - [ ] JWT secret/issuer/audience dùng chung.
 - [ ] Timezone lưu `TIMESTAMPTZ`.
@@ -5572,7 +5522,7 @@ Backend chính: `Spring Boot`
 - [ ] Solution ASP.NET Core Web API.
 - [ ] EF Core + Npgsql.
 - [ ] ParkingDbContext.
-- [ ] Initial migration.
+- [ ] Initial SQL schema.
 - [ ] Seed Admin, Staff, Manager.
 - [ ] Seed vehicle types.
 - [ ] Seed floors/areas/slots/gates.
@@ -5628,9 +5578,9 @@ Kết quả mong muốn:
 Bản thiết kế này là spec triển khai chính cho mô hình dual-backend:
 
 ```text
-.NET Core API = core transaction owner + auth + driver write + migration owner
+.NET Core API = core transaction owner + auth + driver write + maps existing SQL schema
 Spring Boot API = support/read/report/public owner
-PostgreSQL = single source of truth
+database/*.sql = database source of truth
 React = gọi đúng API theo module
 ```
 
@@ -5649,4 +5599,4 @@ Spring: Public QR lookup -> Dashboard -> Reports -> Audit search
 PostgreSQL: Dữ liệu chung, enum chung, schema chung, owner rõ ràng
 ```
 
-Nếu tuân thủ ownership bảng, migration rule, API prefix, JWT config và transaction boundary trong tài liệu này, hai backend có thể phát triển song song mà không xung đột dữ liệu.
+Nếu tuân thủ ownership bảng, SQL schema rule, API prefix, JWT config và transaction boundary trong tài liệu này, hai backend có thể phát triển song song mà không xung đột dữ liệu.
