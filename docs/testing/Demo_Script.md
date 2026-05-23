@@ -1,29 +1,30 @@
 # Demo Script
 
-Đây là thứ tự demo tối thiểu cho bản MVP. Mục tiêu là chứng minh luồng chính chạy xuyên suốt từ frontend tới 2 backend và database.
+Minimum MVP demo flow proving the frontend, both backends, and shared database work together.
 
-## Luồng Demo Chính
+## Main Flow
 
-1. Staff login qua `.NET Core API`.
-2. Staff tạo lượt xe vào qua `.NET Core API`.
-3. Public QR lookup đọc session qua Spring Public API.
-4. Staff tìm session bằng card code.
-5. `.NET Core API` tính phí, thanh toán cash, tạo receipt và hoàn tất exit.
-6. Spring Support API hiển thị dashboard summary.
-7. Spring Support API tìm audit log của các action vừa làm.
+1. Run `database/01_schema.sql`, `database/02_seed.sql`, and `database/03_indexes_constraints.sql`.
+2. Staff logs in through `.NET Core API`.
+3. Staff creates vehicle entry through `.NET Core API`.
+4. Public QR lookup reads the active session through Spring Public API.
+5. Staff finds the active session by card code.
+6. `.NET Core API` calculates fee, accepts cash payment, creates receipt, and completes exit.
+7. Spring Support API displays dashboard summary.
+8. Spring Support API searches audit logs for the actions just performed.
 
-## Điều Kiện Pass
+## Pass Conditions
 
-- JWT dùng được cho cả `.NET` và Spring.
-- Entry tạo session `ACTIVE`.
-- Card chuyển `IN_USE`.
-- Slot chuyển `OCCUPIED`.
-- Exit giải phóng card/slot.
-- Receipt có dữ liệu thanh toán.
-- Dashboard/report/audit đọc được dữ liệu mới.
+- JWT works for both `.NET` and Spring.
+- Entry creates an `ACTIVE` session.
+- Card changes to `IN_USE`.
+- Slot changes to `OCCUPIED`.
+- Exit releases card and slot.
+- Receipt has payment data.
+- Dashboard/report/audit reads newly generated data.
 
-## Không Demo Nếu Chưa Ổn Định
+## Do Not Demo Before Stable
 
 - Excel export.
-- Biểu đồ nâng cao.
-- UI polish không ảnh hưởng core flow.
+- Advanced charts.
+- UI polish that does not affect the core flow.

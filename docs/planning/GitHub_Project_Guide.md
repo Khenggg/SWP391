@@ -144,9 +144,9 @@ Labels: bug, backend-dotnet
 
 ## Ownership Bắt Buộc
 
-- `.NET Core API` sở hữu `/api/core/*`, EF Core migrations, auth, core write transactions, thay đổi trạng thái card/slot/session/payment/receipt, monthly pass, lost card, mismatch, cancel session và slot adjustment.
+- `.NET Core API` sở hữu `/api/core/*`, auth, core write transactions, thay đổi trạng thái card/slot/session/payment/receipt, monthly pass, lost card, mismatch, cancel session và slot adjustment.
 - `Spring Boot Support API` sở hữu `/api/public/*`, `/api/support/*`, public read, dashboard, reports, audit search và các support module optional.
-- PostgreSQL là single source of truth.
-- Chỉ `.NET Core API` tạo schema change chính thức bằng EF Core migrations.
+- `database/*.sql` là database source of truth cho PostgreSQL/Supabase.
+- Chỉ SQL script trong `database/` tạo schema/seed chính thức.
 - Spring Boot phải giữ schema validation và không được ghi core tables. Audit log chỉ được append-only.
 - React phải gọi đúng backend owner thay vì tự duplicate business logic.

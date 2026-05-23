@@ -1,61 +1,68 @@
 # Parking Building Management System
 
-Repo monorepo skeleton theo tài liệu
+Repo monorepo skeleton theo tai lieu
 `docs/specification/Developer_Implementation_Specification_Dual_Backend_NET_SpringBoot.md`.
 
-Các thư mục backend cố ý không có code triển khai. Sinh viên sẽ tự viết controller, service, entity, repository, migration và test trong cấu trúc đã chuẩn bị. Frontend chỉ có bootstrap Vite/React tối thiểu.
+Thu muc backend dang la scaffold. Sinh vien se tu viet controller, service, entity, repository, mapping va test trong cau truc da chuan bi. Database schema va seed data duoc quan ly thu cong bang SQL script trong `database/`.
 
-## Cấu Trúc
+## Cau Truc
 
 ```text
 SWP301/
-|-- .github/                              # Issue/PR template và workflow sau này
+|-- .github/                              # Issue/PR template va workflow sau nay
 |-- backend/
 |   |-- ParkingBuilding.CoreApi/          # Khung ASP.NET Core API
 |   `-- parking-building-support-api/     # Khung Spring Boot Support API
-|-- frontend/                             # Source frontend React thật
-|-- database/                             # Script phụ và snapshot, không phải migration chính
-|-- docs/                                 # Tài liệu đặc tả và tham khảo
-|-- postman/                              # Collection và environment template
+|-- frontend/                             # Source frontend React
+|-- database/                             # SQL schema va seed chinh thuc
+|-- docs/                                 # Tai lieu dac ta va tham khao
+|-- postman/                              # Collection va environment template
 `-- README.md
 ```
 
 ## Ownership Backend
 
-- `.NET Core API`: `/api/core/*`, auth, user/driver write, transaction nghiệp vụ core, EF Core migration.
+- `.NET Core API`: `/api/core/*`, auth, user/driver write, core transaction, entry, exit, payment, receipt.
 - `Spring Boot Support API`: `/api/support/*`, `/api/public/*`, public read, dashboard, report, audit search.
-- `PostgreSQL`: database dùng chung, schema do `.NET Core API` sở hữu.
-- `React`: source app nằm ở `frontend/`; khi sinh viên nối API thật, phải tách đúng `coreApi`, `supportApi`, `publicApi`.
+- `PostgreSQL`: database dung chung, tao bang tu `database/*.sql`.
+- `React`: goi `.NET` cho core write/auth/entry/exit/payment; goi Spring cho public read/dashboard/report/audit.
 
-## Trạng Thái Hiện Tại
+## Quy Tac Database
 
-- Backend chưa có tính năng nghiệp vụ; Spring Boot Support API đã có Maven bootstrap và health endpoint.
-- Các thư mục kiến trúc được giữ bằng `.gitkeep` để Git thấy được folder.
-- Frontend chỉ có bootstrap Vite/React tối thiểu; UI chức năng và API integration để sinh viên triển khai.
-- `docs/Parking Building Management UI (1)/` chỉ là gói UI tham khảo, không phải source frontend thật.
+`database/*.sql` la database source of truth.
 
-## Port Dự Kiến
+- Chay SQL script thu cong tren Supabase PostgreSQL hoac pgAdmin.
+- Khong dung EF Core Migration de tao/sua schema chinh thuc.
+- Khong goi `Database.Migrate()` hoac `EnsureCreated()` trong .NET startup.
+- Khong dung Hibernate `ddl-auto=create`, `create-drop`, hoac `update`.
+- Khong dung Flyway hoac Liquibase trong scope hien tai.
+
+## Trang Thai Hien Tai
+
+- Backend chua co tinh nang nghiep vu; Spring Boot Support API da co Maven bootstrap va health endpoint.
+- Cau truc thu muc duoc giu bang `.gitkeep`.
+- Frontend chi co bootstrap Vite/React toi thieu.
+- `docs/Parking Building Management UI (1)/` chi la UI reference, khong phai source frontend that.
+
+## Port Du Kien
 
 ```text
-PostgreSQL  : Supabase PostgreSQL cấu hình trực tiếp trong file config backend
+PostgreSQL  : Supabase PostgreSQL cau hinh trong backend config files
 .NET Core   : http://localhost:5000
 Spring Boot : http://localhost:8080
 React Vite  : http://localhost:5173
 ```
 
-## Thứ Tự Chạy
+## Thu Tu Chay
 
-1. Cấu hình thông tin Supabase PostgreSQL trực tiếp trong file config backend.
-2. Chạy `.NET Core API` và apply EF Core migration.
-3. Chạy `Spring Boot Support API` với `ddl-auto=validate`.
-4. Chạy React từ `frontend/`.
+1. Tao hoac chon database Supabase/PostgreSQL.
+2. Chay `database/01_schema.sql`.
+3. Chay `database/02_seed.sql`.
+4. Chay `database/03_indexes_constraints.sql`.
+5. Chay `.NET Core API`.
+6. Chay `Spring Boot Support API` voi `ddl-auto=validate`.
+7. Chay React tu `frontend/`.
 
-## Sinh Viên Bắt Đầu Code
+## Sinh Vien Bat Dau Code
 
-Sinh viên làm theo các phần scaffold và starter code trong spec dual-backend:
-
-- Section 10: ASP.NET Core Architecture
-- Section 11: Spring Boot Architecture
-- Section 14: Frontend Architecture
-- Section 19.6: Scaffold Project Commands
-- Section 19.7 và 19.8: Starter Code
+Lam theo scaffold/starter-code trong spec dual-backend, nhung moi thay doi schema phai cap nhat `database/*.sql` truoc.

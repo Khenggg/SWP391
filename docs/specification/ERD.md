@@ -1,24 +1,27 @@
 # ERD
 
-File này dùng để ghi chú quan hệ bảng và hỗ trợ đọc schema. Đây không phải nguồn tạo database chính thức.
+This file records table relationships and schema notes. It is not an executable migration tool.
 
-## Nguyên Tắc Chính
+## Main Rules
 
-- PostgreSQL là database chung cho `.NET Core API` và `Spring Boot Support API`.
-- `.NET Core API` là owner schema và tạo migration chính bằng EF Core.
-- Spring Boot chỉ mapping/read schema và phải giữ chế độ validate, không tự update schema.
-- Enum trong database nên lưu dạng string để `.NET` và Java đọc thống nhất.
+- PostgreSQL is shared by `.NET Core API` and `Spring Boot Support API`.
+- Official schema and seed data live in `../../database/*.sql`.
+- When relationships or columns change, update SQL scripts first.
+- .NET may use EF Core `DbContext` to map/query/write data, but EF Core Migration is not used to create or update schema.
+- Spring Boot maps existing tables and must keep Hibernate schema generation disabled (`ddl-auto=validate` or `none`).
+- Database enums are stored as uppercase strings so C# and Java can read the same values.
 
-## Nhóm Bảng Chính
+## Main Table Groups
 
-- Auth/User: `users`, driver profile/vehicle nếu làm phần driver.
-- Master data: `vehicle_types`, `parking_cards`, `floors`, `areas`, `slots`, `gates`, `pricing_rules`.
+- Auth/User: `users`, plus driver profile/vehicle tables when driver features are implemented.
+- Master data: `vehicle_types`, `parking_cards`, `floors`, `areas`, `area_vehicle_types`, `slots`, `gates`, `pricing_rules`.
 - Core transaction: `parking_sessions`, `payments`, `receipts`.
 - Exception/MVP: `monthly_passes`, `lost_card_cases`, `plate_mismatch_cases`.
-- Support/read: `audit_logs` và các view/query phục vụ dashboard/report.
+- Support/read: `audit_logs` and future read queries/views for dashboard/report.
 
-## Ghi Chú Khi Cập Nhật
+## Update Notes
 
-- Nếu thay đổi quan hệ bảng, cập nhật tài liệu triển khai và migration `.NET` trước.
-- Nếu chỉ thêm ghi chú hoặc sơ đồ minh họa, cập nhật file này.
-- Không xem nội dung file này là thay thế cho EF Core migration.
+- Schema source of truth: `../../database/01_schema.sql`.
+- Seed source of truth: `../../database/02_seed.sql`.
+- Index/constraint source of truth: `../../database/03_indexes_constraints.sql`.
+- Do not add EF schema commands, Hibernate auto-update/create modes, Flyway, or Liquibase steps to this project.

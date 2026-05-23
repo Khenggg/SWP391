@@ -12,9 +12,27 @@ Ownership:
 - Optional feedback/notification/mock device modules
 - `/api/public/*` and `/api/support/*`
 
+Database rule:
+
+- PostgreSQL schema and seed data come from `../../database/*.sql`.
+- Keep `spring.jpa.hibernate.ddl-auto=validate` or `none`.
+- Never use `ddl-auto=create`, `create-drop`, or `update`.
+- Do not add Flyway or Liquibase in the current scope.
+- Support API reads core tables; it must not write core transaction tables.
+
+The current local Supabase connection is kept in `src/main/resources/application-local.yml` by team decision.
+
 ## Run
 
-Update Supabase PostgreSQL credentials in `src/main/resources/application-local.yml`, then run:
+First run the database scripts from the repo root:
+
+```text
+database/01_schema.sql
+database/02_seed.sql
+database/03_indexes_constraints.sql
+```
+
+Then run:
 
 ```bash
 mvn spring-boot:run

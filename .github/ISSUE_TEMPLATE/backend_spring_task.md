@@ -13,5 +13,7 @@ labels: backend-spring
 
 - [ ] Uses `/api/support/*` or `/api/public/*`
 - [ ] Does not write core tables
-- [ ] Keeps `ddl-auto=validate`
+- [ ] Keeps `ddl-auto=validate` or `none`
+- [ ] Does not use `ddl-auto=create`, `create-drop`, or `update`
+- [ ] Does not add Flyway or Liquibase
 - [ ] Updates docs/Postman when API changes
