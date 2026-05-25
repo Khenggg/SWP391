@@ -1,5 +1,20 @@
 spring:
-  application:
-    name: parking-building-support-api
-  profiles:
-    active: local
+  datasource:
+    url: jdbc:postgresql://aws-1-ap-south-1.pooler.supabase.com:5432/postgres
+    username: postgres.iqzkddymzmfhyqbfrnyu
+    password: Moghicha12@
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+    show-sql: true
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
