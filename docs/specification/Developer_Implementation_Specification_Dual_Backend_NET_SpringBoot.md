@@ -19,7 +19,7 @@
 | Backend 2                 | Spring Boot REST API - Support API                                                                                       |
 | Frontend                  | React Web Application                                                                                                    |
 | Database                  | PostgreSQL dùng chung                                                                                                    |
-| Quy mô backend team       | 3 dev .NET + 2 dev Spring Boot                                                                                           |
+| Quy mô backend team       | 2 dev .NET + 2 dev Spring Boot                                                                                           |
 | Đối tượng sử dụng         | Backend Developer, Frontend Developer, Tester, Team Leader                                                               |
 | Mục tiêu                  | Chia hệ thống thành 2 backend không xung đột, cùng dùng 1 database, đủ schema/API/service/test để dev triển khai độc lập |
 
@@ -5115,7 +5115,7 @@ JwtTokenService
 AuditWriterService
 ```
 
-## 20.2 .NET Developer 2 - Parking Operation Core
+## 20.2 .NET Developer 2 - Parking Operation Core, Payment, Monthly Pass, Exceptions
 
 Phụ trách:
 
@@ -5126,6 +5126,12 @@ Phụ trách:
 - Exit Processing.
 - Card/Slot state transition.
 - Slot move/status adjustment.
+- Fee Calculation.
+- Payment.
+- Monthly Pass.
+- Lost Card.
+- Plate Mismatch.
+- Admin Cancel Session.
 
 Deliverables:
 
@@ -5141,22 +5147,6 @@ ExitService
 SlotSuggestionService
 ParkingCardService
 SlotService
-```
-
-## 20.3 .NET Developer 3 - Payment, Monthly Pass, Exceptions
-
-Phụ trách:
-
-- Fee Calculation.
-- Payment.
-- Monthly Pass.
-- Lost Card.
-- Plate Mismatch.
-- Admin Cancel Session.
-
-Deliverables:
-
-```text
 PaymentsController
 MonthlyPassesController
 LostCardCasesController
@@ -5169,7 +5159,7 @@ LostCardCaseService
 PlateMismatchService
 ```
 
-## 20.4 Spring Boot Developer 1 - Public And Dashboard
+## 20.3 Spring Boot Developer 1 - Public And Dashboard
 
 Phụ trách:
 
@@ -5196,7 +5186,7 @@ DashboardService
 Read-only JPA entities
 ```
 
-## 20.5 Spring Boot Developer 2 - Reports, Audit, Support
+## 20.4 Spring Boot Developer 2 - Reports, Audit, Support
 
 Phụ trách:
 
@@ -5525,7 +5515,7 @@ React = gọi đúng API theo module
 Phân bổ theo nhân lực:
 
 ```text
-3 dev .NET       -> nhiều task hơn, chịu trách nhiệm nghiệp vụ ghi chính
+2 dev .NET       -> chịu trách nhiệm nghiệp vụ ghi chính và nhiều module core
 2 dev Spring Boot -> public, dashboard, report, audit, support module
 ```
 
