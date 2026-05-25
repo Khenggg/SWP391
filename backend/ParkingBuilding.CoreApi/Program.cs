@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence.Diagnostics;
+using System;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,6 +39,31 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+// =====================================================================================
+// THÊM VÀO ĐÂY: Đoạn mã tự động kiểm tra kết nối Database khi khởi chạy ứng dụng (Bước 8)
+// =====================================================================================
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<ParkingDbContext>();
+        if (context.Database.CanConnect())
+        {
+            Console.WriteLine("\n[SUCCESS] ======> ĐÃ KẾT NỐI ĐẾN POSTGRESQL/SUPABASE DATABASE THÀNH CÔNG! <======\n");
+        }
+        else
+        {
+            Console.WriteLine("\n[FAILURE] ======> KẾT NỐI DATABASE THẤT BẠI! Vui lòng kiểm tra lại Connection String. <======\n");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"\n[ERROR] ======> LỖI KHI KHỞI TẠO HOẶC KẾT NỐI DATABASE: {ex.Message} <======\n");
+    }
+}
+// =====================================================================================
 
 // 4. Bat Swagger UI cho tat ca cac moi truong local test nen tang
 if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
