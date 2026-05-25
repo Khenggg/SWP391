@@ -1,10 +1,14 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
+using ParkingBuilding.CoreApi.Infrastructure.Persistence;
+using ParkingBuilding.CoreApi.Infrastructure.Persistence.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Cấu hình chính sách CORS để ứng dụng React kết nối không bị chặn
+// 1. Cau hinh chinh sach CORS de ung dung React ket noi khong bi chan
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -15,26 +19,36 @@ builder.Services.AddCors(options =>
     });
 });
 
+// 2. Lay Connection String tu appsettings/user-secrets/env va cau hinh DbContext ket noi Supabase
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
+
+builder.Services.AddDbContext<ParkingDbContext>(options =>
+    options.UseNpgsql(connectionString, npgsqlOptions =>
+    {
+        npgsqlOptions.EnableRetryOnFailure(maxRetryCount: 3);
+        npgsqlOptions.CommandTimeout(30);
+    }));
+builder.Services.AddHostedService<SupabaseConnectionLogger>();
+
 builder.Services.AddControllers();
 
-// 2. Kích hoạt dịch vụ OpenAPI và Swagger UI cho .NET 10
-builder.Services.AddOpenApi(); 
-builder.Services.AddEndpointsApiExplorer(); 
-builder.Services.AddSwaggerGen(); 
+// 3. Kich hoat dich vu OpenAPI va Swagger UI cho .NET 10
+builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Đảm bảo Swagger VÀ các môi trường local luôn bật trong lúc setup/test nền tảng
-// Bạn có thể để bên ngoài hoặc giữ IsDevelopment nhưng phải chạy đúng lệnh ở Bước 3
+// 4. Bat Swagger UI cho tat ca cac moi truong local test nen tang
 if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 {
-    app.MapOpenApi(); 
-    app.UseSwagger();   
+    app.MapOpenApi();
+    app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
-        // Cấu hình endpoint Swagger UI trỏ đúng file JSON đặc tả của OpenAPI
+        // Cau hinh endpoint Swagger UI tro dung file JSON dac ta cua OpenAPI
         options.SwaggerEndpoint("/openapi/v1.json", "ParkingBuilding Core API v1");
-        options.RoutePrefix = "swagger"; // Đường dẫn truy cập sẽ là /swagger
+        options.RoutePrefix = "swagger"; // Duong dan truy cap se la /swagger
     });
 }
 

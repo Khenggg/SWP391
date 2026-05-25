@@ -9,10 +9,12 @@ public sealed class SupabaseConnectionLogger(
 {
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        logger.LogInformation("Dang kiem tra ket noi Supabase PostgreSQL khi khoi dong server...");
+
         if (!SupabaseConnectionProbe.IsConfigured(configuration))
         {
             logger.LogWarning(
-                "Supabase PostgreSQL connection string is not configured. Set ConnectionStrings:DefaultConnection with dotnet user-secrets or an environment variable.");
+                "KET NOI DATABASE CHUA DUOC CAU HINH. Hay set ConnectionStrings:DefaultConnection trong appsettings.Development.json, dotnet user-secrets, hoac bien moi truong ConnectionStrings__DefaultConnection.");
             return;
         }
 
@@ -23,14 +25,14 @@ public sealed class SupabaseConnectionLogger(
         if (result.Success)
         {
             logger.LogInformation(
-                "Supabase PostgreSQL connection successful. Database: {DatabaseName}; User: {UserName}; PostgreSQL: {PostgreSqlVersion}",
+                "KET NOI DATABASE THANH CONG. Provider: Supabase PostgreSQL; Database: {DatabaseName}; User: {UserName}; PostgreSQL: {PostgreSqlVersion}",
                 result.DatabaseName,
                 result.UserName,
                 result.PostgreSqlVersion);
             return;
         }
 
-        logger.LogError("Supabase PostgreSQL connection failed: {ErrorMessage}", result.ErrorMessage);
+        logger.LogError("KET NOI DATABASE THAT BAI. Provider: Supabase PostgreSQL; Error: {ErrorMessage}", result.ErrorMessage);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
