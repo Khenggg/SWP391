@@ -8,7 +8,11 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@Setter
 @Entity
 @Table(name = "vehicle_types")
 public class VehicleTypeReadEntity {
@@ -31,4 +35,5 @@ public class VehicleTypeReadEntity {
 
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
+
 }
