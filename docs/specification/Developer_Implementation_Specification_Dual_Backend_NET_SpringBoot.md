@@ -400,7 +400,7 @@ Neu sau nay can RBAC day du, cap nhat SQL script rieng va cap nhat lai spec.
 | ------- | ---------------------------------------------------------------------------------------------- |
 | ADMIN   | Tất cả API quản trị, cancel session, audit, user management                                    |
 | MANAGER | Dashboard, reports, card/structure/pricing/monthly pass, lost card approval, mismatch approval |
-| STAFF   | Entry, exit, lost card create, session search, receipt print                                   |
+| STAFF   | Entry, exit, lost card create, session search                                   |
 | DRIVER  | Driver profile, vehicles, history nếu làm                                                      |
 | Public  | Parking info, available slots, pricing, public card QR lookup                                  |
 
@@ -1893,7 +1893,7 @@ Test cases:
 
 ## 12.9 Module Exit Processing
 
-FR liên quan: FR-09, FR-10, FR-11, FR-12, FR-13, FR-15.
+FR liên quan: FR-09, FR-10, FR-11, FR-13, FR-15.
 
 Owner: `.NET Core API`
 
@@ -1975,7 +1975,6 @@ Frontend:
 | SessionLookupPanel | Tìm session |
 | FeeSummaryPanel    | Phí         |
 | CashPaymentPanel   | Thanh toán  |
-| ReceiptModal       | Hóa đơn     |
 
 Test cases:
 
@@ -5533,7 +5532,7 @@ Phân bổ theo nhân lực:
 Luồng demo core cần đạt:
 
 ```text
-.NET: Login -> Entry -> Card/Slot update -> Fee -> Payment -> Exit -> Receipt
+.NET: Login -> Entry -> Card/Slot update -> Fee -> Payment -> Exit
 Spring: Public QR lookup -> Dashboard -> Reports -> Audit search
 PostgreSQL: Dữ liệu chung, enum chung, schema chung, owner rõ ràng
 ```
