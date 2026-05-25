@@ -1,6 +1,6 @@
 # ParkingBuilding.CoreApi
 
-ASP.NET Core Web API for core write flows.
+ASP.NET Core API skeleton.
 
 Ownership:
 
@@ -16,29 +16,4 @@ Database rule:
 - Do not call `Database.Migrate()` or `EnsureCreated()` in `Program.cs`.
 - Seed baseline data from `../../database/02_seed.sql`; use C# seeders only for explicit runtime needs.
 
-## Local Setup
-
-Set the Supabase PostgreSQL connection string outside Git:
-
-```powershell
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=aws-1-ap-south-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.iqzkddymzmfhyqbfrnyu;Password=<your-password>;SSL Mode=Require;Trust Server Certificate=true;Include Error Detail=true"
-```
-
-Run the API:
-
-```powershell
-dotnet run --launch-profile http
-```
-
-URLs:
-
-- API: `http://localhost:5000`
-- Swagger UI: `http://localhost:5000/swagger`
-- Database check: `http://localhost:5000/api/core/db-check`
-
-Expected startup proof:
-
-```text
-Now listening on: http://localhost:5000
-Supabase PostgreSQL connection successful.
-```
+Code is intentionally not implemented yet. Students should add `.csproj`, `Program.cs`, controllers, services, entities, `ParkingDbContext`, repositories, and tests. Schema changes must start in `../../database/*.sql`.
