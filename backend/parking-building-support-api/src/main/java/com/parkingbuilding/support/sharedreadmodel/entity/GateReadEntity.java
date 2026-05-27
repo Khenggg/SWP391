@@ -27,7 +27,7 @@ public class GateReadEntity {
     private String gateCode;
 
     @Column(name = "gate_type", nullable = false)
-    private String gate_type;
+    private String gateType;
 
     @Column(name = "status")
     private String status;
