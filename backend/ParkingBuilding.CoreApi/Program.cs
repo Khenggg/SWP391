@@ -9,8 +9,10 @@ using System.Linq;
 using ParkingBuilding.CoreApi.Infrastructure.Middleware;
 using ParkingBuilding.CoreApi.Contracts.Common;
 using Microsoft.AspNetCore.Mvc;
+using ParkingBuilding.CoreApi.Infrastructure.Security;
 
 var builder = WebApplication.CreateBuilder(args);
+
 
 // 1. Cau hinh chinh sach CORS de ung dung React ket noi khong bi chan
 builder.Services.AddCors(options =>
@@ -33,6 +35,7 @@ builder.Services.AddDbContext<ParkingDbContext>(options =>
         npgsqlOptions.CommandTimeout(30);
     }));
 builder.Services.AddHostedService<SupabaseConnectionLogger>();
+builder.Services.AddSingleton<JwtTokenGenerator>();
 
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>
