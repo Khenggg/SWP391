@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence.Diagnostics;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 
 namespace ParkingBuilding.CoreApi.Controllers;
 
@@ -35,19 +37,75 @@ public sealed class DbCheckController(
             });
         }
 
+        // EF Core mapping and query check
+        int usersCount = 0;
+        int auditLogsCount = 0;
+        object? sampleUser = null;
+        string? userMappingError = null;
+        string? auditMappingError = null;
+
+        try
+        {
+            usersCount = await dbContext.Users.CountAsync(cancellationToken);
+            var firstUser = await dbContext.Users.OrderBy(u => u.Id).FirstOrDefaultAsync(cancellationToken);
+            if (firstUser != null)
+            {
+                sampleUser = new
+                {
+                    firstUser.Id,
+                    firstUser.Username,
+                    firstUser.Email,
+                    firstUser.FullName,
+                    firstUser.Role,
+                    firstUser.Status,
+                    firstUser.Phone,
+                    firstUser.LastLoginAt,
+                    firstUser.CreatedAt,
+                    firstUser.UpdatedAt
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "EF Core User mapping check failed.");
+            userMappingError = ex.Message;
+        }
+
+        try
+        {
+            auditLogsCount = await dbContext.AuditLogs.CountAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "EF Core AuditLog mapping check failed.");
+            auditMappingError = ex.Message;
+        }
+
         logger.LogInformation(
             "Manual Supabase PostgreSQL check successful. Database: {DatabaseName}; User: {UserName}",
             result.DatabaseName,
             result.UserName);
 
+        bool isMappingSuccessful = userMappingError == null && auditMappingError == null;
+
         return Ok(new
         {
-            status = "connected",
+            status = isMappingSuccessful ? "connected" : "mapping_failed",
             provider = "Supabase PostgreSQL",
             result.DatabaseName,
             result.UserName,
             result.PostgreSqlVersion,
-            checkedAtUtc = DateTimeOffset.UtcNow
+            checkedAtUtc = DateTimeOffset.UtcNow,
+            efCoreVerification = new
+            {
+                success = isMappingSuccessful,
+                usersCount,
+                auditLogsCount,
+                sampleUser,
+                userMappingError,
+                auditMappingError
+            }
         });
     }
 }
+
