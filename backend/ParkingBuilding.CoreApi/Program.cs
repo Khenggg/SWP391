@@ -5,7 +5,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence.Diagnostics;
-using System;
+using System.Linq;
+using ParkingBuilding.CoreApi.Infrastructure.Middleware;
+using ParkingBuilding.CoreApi.Contracts.Common;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,7 +34,20 @@ builder.Services.AddDbContext<ParkingDbContext>(options =>
     }));
 builder.Services.AddHostedService<SupabaseConnectionLogger>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .ToList();
+
+            var response = ApiResponse.FailureResult("Validation failed", errors);
+            return new BadRequestObjectResult(response);
+        };
+    });
 
 // 3. Kich hoat dich vu OpenAPI va Swagger UI cho .NET 10
 builder.Services.AddOpenApi();
@@ -39,6 +55,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
 // =====================================================================================
 // THÊM VÀO ĐÂY: Đoạn mã tự động kiểm tra kết nối Database khi khởi chạy ứng dụng (Bước 8)

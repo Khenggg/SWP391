@@ -11,18 +11,18 @@ namespace ParkingBuilding.CoreApi.Controllers;
 public sealed class DbCheckController(
     ParkingDbContext dbContext,
     IConfiguration configuration,
-    ILogger<DbCheckController> logger) : ControllerBase
+    ILogger<DbCheckController> logger) : BaseApiController
 {
     [HttpGet]
     public async Task<IActionResult> Check(CancellationToken cancellationToken)
     {
         if (!SupabaseConnectionProbe.IsConfigured(configuration))
         {
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, new
-            {
-                status = "not_configured",
-                message = "Set ConnectionStrings:DefaultConnection with dotnet user-secrets or an environment variable."
-            });
+            return StatusCodeResponse(
+                StatusCodes.Status503ServiceUnavailable,
+                "Database configuration is missing.",
+                "Set ConnectionStrings:DefaultConnection with dotnet user-secrets or an environment variable."
+            );
         }
 
         var result = await SupabaseConnectionProbe.CheckAsync(dbContext, cancellationToken);
@@ -30,11 +30,11 @@ public sealed class DbCheckController(
         {
             logger.LogError("Manual Supabase PostgreSQL check failed: {ErrorMessage}", result.ErrorMessage);
 
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, new
-            {
-                status = "failed",
-                result.ErrorMessage
-            });
+            return StatusCodeResponse(
+                StatusCodes.Status503ServiceUnavailable,
+                "Database connection check failed.",
+                result.ErrorMessage ?? "Unknown connection error"
+            );
         }
 
         // EF Core mapping and query check
@@ -88,14 +88,12 @@ public sealed class DbCheckController(
 
         bool isMappingSuccessful = userMappingError == null && auditMappingError == null;
 
-        return Ok(new
+        var responseData = new
         {
-            status = isMappingSuccessful ? "connected" : "mapping_failed",
             provider = "Supabase PostgreSQL",
             result.DatabaseName,
             result.UserName,
             result.PostgreSqlVersion,
-            checkedAtUtc = DateTimeOffset.UtcNow,
             efCoreVerification = new
             {
                 success = isMappingSuccessful,
@@ -105,7 +103,21 @@ public sealed class DbCheckController(
                 userMappingError,
                 auditMappingError
             }
-        });
+        };
+
+        if (!isMappingSuccessful)
+        {
+            var errors = new List<string>();
+            if (userMappingError != null) errors.Add($"User Mapping: {userMappingError}");
+            if (auditMappingError != null) errors.Add($"AuditLog Mapping: {auditMappingError}");
+            return StatusCodeResponse(
+                StatusCodes.Status500InternalServerError,
+                "EF Core mapping validation failed.",
+                errors
+            );
+        }
+
+        return Success(responseData, "Connected and verified EF Core mappings successfully.");
     }
 }
 
