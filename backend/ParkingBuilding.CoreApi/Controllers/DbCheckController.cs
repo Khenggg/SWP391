@@ -71,9 +71,48 @@ public sealed class DbCheckController(
             userMappingError = ex.Message;
         }
 
+        List<string> auditLogColumns = new List<string>();
+        List<object> sampleAuditLogs = new List<object>();
         try
         {
+            var connection = dbContext.Database.GetDbConnection();
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT column_name FROM information_schema.columns WHERE table_name = 'audit_logs';";
+                if (connection.State != System.Data.ConnectionState.Open)
+                {
+                    await connection.OpenAsync(cancellationToken);
+                }
+                using (var reader = await command.ExecuteReaderAsync(cancellationToken))
+                {
+                    while (await reader.ReadAsync(cancellationToken))
+                    {
+                        auditLogColumns.Add(reader.GetString(0));
+                    }
+                }
+            }
             auditLogsCount = await dbContext.AuditLogs.CountAsync(cancellationToken);
+            var logs = await dbContext.AuditLogs
+                .OrderByDescending(a => a.Id)
+                .Take(5)
+                .ToListAsync(cancellationToken);
+            
+            foreach (var log in logs)
+            {
+                sampleAuditLogs.Add(new
+                {
+                    log.Id,
+                    log.ActorUserId,
+                    log.SourceService,
+                    log.Action,
+                    log.TargetType,
+                    log.TargetId,
+                    log.OldValue,
+                    log.NewValue,
+                    log.Reason,
+                    log.CreatedAt
+                });
+            }
         }
         catch (Exception ex)
         {
@@ -82,9 +121,10 @@ public sealed class DbCheckController(
         }
 
         logger.LogInformation(
-            "Manual Supabase PostgreSQL check successful. Database: {DatabaseName}; User: {UserName}",
+            "Manual Supabase PostgreSQL check successful. Database: {DatabaseName}; User: {UserName}. Columns: {Columns}",
             result.DatabaseName,
-            result.UserName);
+            result.UserName,
+            string.Join(", ", auditLogColumns));
 
         bool isMappingSuccessful = userMappingError == null && auditMappingError == null;
 
@@ -99,6 +139,8 @@ public sealed class DbCheckController(
                 success = isMappingSuccessful,
                 usersCount,
                 auditLogsCount,
+                auditLogColumns,
+                sampleAuditLogs,
                 sampleUser,
                 userMappingError,
                 auditMappingError
