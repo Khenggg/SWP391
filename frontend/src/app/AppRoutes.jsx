@@ -28,6 +28,13 @@ import CardManagementPage from "../pages/manager/CardManagementPage";
 import StructureManagementPage from "../pages/manager/StructureManagementPage";
 import PricingManagementPage from "../pages/manager/PricingManagementPage";
 import MonthlyPassManagementPage from "../pages/manager/MonthlyPassManagementPage";
+import ManagerDashboardPage from "../pages/manager/ManagerDashboardPage";
+
+// =========================================================================
+// STAFF & DRIVER PAGES - Shell UI
+// =========================================================================
+import StaffEntryPage from "../pages/staff/StaffEntryPage";
+import DriverProfilePage from "../pages/driver/DriverProfilePage";
 
 // =========================================================================
 // ROUTE GUARDS
@@ -69,9 +76,12 @@ export default function AppRoutes({ isAuthenticated, userRole, currentUser, onLo
             userRole === "ADMIN" ? (
               <Navigate to="/admin/users" replace />
             ) : userRole === "MANAGER" ? (
-              <Navigate to="/manager/cards" replace />
+              <Navigate to="/manager/dashboard" replace />
+            ) : userRole === "STAFF" ? (
+              <Navigate to="/staff/entry" replace />
+            ) : userRole === "DRIVER" ? (
+              <Navigate to="/driver/profile" replace />
             ) : (
-              // STAFF / DRIVER chưa có trang riêng → về trang chủ public
               <Navigate to="/" replace />
             )
           ) : (
@@ -86,11 +96,12 @@ export default function AppRoutes({ isAuthenticated, userRole, currentUser, onLo
 
           {/* MANAGER — các trang đã build */}
           <Route element={<RequireRole userRole={userRole} allowedRoles={["MANAGER"]} />}>
+            <Route path="/manager/dashboard" element={<ManagerDashboardPage />} />
             <Route path="/manager/cards" element={<CardManagementPage />} />
             <Route path="/manager/structures" element={<StructureManagementPage />} />
             <Route path="/manager/pricing" element={<PricingManagementPage />} />
             <Route path="/manager/monthly-passes" element={<MonthlyPassManagementPage />} />
-            {/* Chưa build: /manager/dashboard, /manager/reports, /manager/lost-card-approvals,
+            {/* Chưa build: /manager/reports, /manager/lost-card-approvals,
                 /manager/mismatch-approvals, /manager/audit-logs — Sprint 4/5 */}
           </Route>
 
@@ -100,8 +111,15 @@ export default function AppRoutes({ isAuthenticated, userRole, currentUser, onLo
             {/* Chưa build: /admin/audit-logs, /admin/sessions-administration — Sprint 4/5 */}
           </Route>
 
-          {/* STAFF — chưa build (Sprint 3/4) */}
-          {/* DRIVER — chưa build */}
+          {/* STAFF — các trang đã build */}
+          <Route element={<RequireRole userRole={userRole} allowedRoles={["STAFF", "MANAGER"]} />}>
+            <Route path="/staff/entry" element={<StaffEntryPage />} />
+          </Route>
+
+          {/* DRIVER — các trang đã build */}
+          <Route element={<RequireRole userRole={userRole} allowedRoles={["DRIVER"]} />}>
+            <Route path="/driver/profile" element={<DriverProfilePage />} />
+          </Route>
 
         </Route>
       </Route>
