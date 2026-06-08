@@ -180,7 +180,7 @@ CREATE TABLE IF NOT EXISTS parking_sessions (
     monthly_pass_id BIGINT REFERENCES monthly_passes(id),
     floor_id BIGINT NOT NULL REFERENCES floors(id),
     area_id BIGINT NOT NULL REFERENCES areas(id),
-    slot_id BIGINT NOT NULL REFERENCES slots(id),
+    slot_id BIGINT REFERENCES slots(id),
     entry_gate_id BIGINT NOT NULL REFERENCES gates(id),
     exit_gate_id BIGINT REFERENCES gates(id),
     entry_staff_id BIGINT NOT NULL REFERENCES users(id),

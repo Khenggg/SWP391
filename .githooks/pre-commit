@@ -1,0 +1,102 @@
+#!/bin/sh
+
+protected_branches="main dev"
+allowed_prefixes="feature/* fix/* docs/* test/* chore/* refactor/* hotfix/* release/* bugfix/*"
+branch="$(git symbolic-ref --quiet --short HEAD 2>/dev/null || true)"
+
+case "$branch" in
+  main|dev)
+    echo "ERROR: Commit directly on '$branch' is blocked." >&2
+    echo "Create a feature/fix/docs/chore branch, commit there, then open a Pull Request." >&2
+    echo "Protected branches: $protected_branches" >&2
+    exit 1
+    ;;
+esac
+
+if [ -n "$branch" ]; then
+  case "$branch" in
+    feature/*|fix/*|docs/*|test/*|chore/*|refactor/*|hotfix/*|release/*|bugfix/*)
+      ;;
+    *)
+      echo "ERROR: Branch name '$branch' is not allowed." >&2
+      echo "Allowed branch prefixes: $allowed_prefixes" >&2
+      exit 1
+      ;;
+  esac
+fi
+
+staged_files="$(git diff --cached --name-only --diff-filter=ACMR)"
+if [ -z "$staged_files" ]; then
+  exit 0
+fi
+
+max_mb="$(git config --get guard.maxFileSizeMB 2>/dev/null || echo 5)"
+case "$max_mb" in
+  ''|*[!0-9]*)
+    max_mb=5
+    ;;
+esac
+max_size_bytes=$((max_mb * 1024 * 1024))
+
+printf '%s\n' "$staged_files" | while IFS= read -r file
+do
+  [ -z "$file" ] && continue
+  base="${file##*/}"
+
+  case "$file" in
+    .env|.env.*|*/.env|*/.env.*)
+      case "$file" in
+        *.example|*.sample|*.template|*.dist)
+          ;;
+        *)
+          echo "ERROR: Sensitive environment file is staged: $file" >&2
+          echo "Commit an example/template file instead, not real local secrets." >&2
+          exit 1
+          ;;
+      esac
+      ;;
+  esac
+
+  case "$base" in
+    id_rsa|id_dsa|id_ecdsa|id_ed25519|*.pem|*.p12|*.pfx|*.key)
+      echo "ERROR: Private key or certificate-like file is staged: $file" >&2
+      exit 1
+      ;;
+  esac
+
+  case "$file" in
+    *.zip|*.rar|*.7z|*.tar|*.gz|*.exe|*.dll|*.mp4|*.mov|*.avi|*.iso|*.db|*.sqlite|*.sqlite3)
+      echo "ERROR: Large/binary artifact is staged: $file" >&2
+      echo "Do not commit generated archives, executables, videos, or local database files." >&2
+      exit 1
+      ;;
+  esac
+
+  size="$(git cat-file -s ":$file" 2>/dev/null || echo 0)"
+  if [ "$size" -gt "$max_size_bytes" ]; then
+    echo "ERROR: Staged file is larger than ${max_mb}MB: $file" >&2
+    echo "Use Git LFS or keep generated assets outside the repo." >&2
+    exit 1
+  fi
+done || exit 1
+
+secret_pattern="(password|passwd|pwd|secret|api[_-]?key|access[_-]?token|refresh[_-]?token|private[_-]?key|connection[_-]?string|database_url|jwt[_-]?secret)[[:space:]]*[:=][[:space:]]*['\"][^'\"[:space:]]{12,}"
+
+printf '%s\n' "$staged_files" | while IFS= read -r file
+do
+  [ -z "$file" ] && continue
+
+  case "$file" in
+    docs/*|*.md|.githooks/*|*.example|*.sample|*.template|*.dist)
+      continue
+      ;;
+  esac
+
+  if git grep --cached -I -E "$secret_pattern" -- "$file" >/dev/null 2>&1; then
+    echo "ERROR: Potential secret is staged in: $file" >&2
+    echo "Move real credentials to an untracked local config or environment variable." >&2
+    exit 1
+  fi
+done || exit 1
+
+exit 0

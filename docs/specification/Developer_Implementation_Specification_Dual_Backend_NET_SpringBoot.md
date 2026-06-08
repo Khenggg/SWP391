@@ -1,26 +1,27 @@
 # Developer Implementation Specification v1.1
 
 # Parking Building Management System
+
 ## Dual Backend: ASP.NET Core + Spring Boot dùng chung PostgreSQL
 
 ---
 
 ## Thông Tin Tài Liệu
 
-| Thuộc tính | Nội dung |
-|---|---|
-| Tên tài liệu | Developer Implementation Specification - Dual Backend |
-| Tên hệ thống | Parking Building Management System |
-| Phiên bản tài liệu | v1.1 |
-| Nguồn yêu cầu chính | `SRS_v2_2_Parking_Building_Management_System.md` |
-| Nguồn chi tiết triển khai | `Developer_Implementation_Specification_Parking_Building_Management_System_v1_0.md` |
-| Backend 1 | ASP.NET Core Web API - Core API |
-| Backend 2 | Spring Boot REST API - Support API |
-| Frontend | React Web Application |
-| Database | PostgreSQL dùng chung |
-| Quy mô backend team | 3 dev .NET + 2 dev Spring Boot |
-| Đối tượng sử dụng | Backend Developer, Frontend Developer, Tester, Team Leader |
-| Mục tiêu | Chia hệ thống thành 2 backend không xung đột, cùng dùng 1 database, đủ schema/API/service/test để dev triển khai độc lập |
+| Thuộc tính                | Nội dung                                                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Tên tài liệu              | Developer Implementation Specification - Dual Backend                                                                    |
+| Tên hệ thống              | Parking Building Management System                                                                                       |
+| Phiên bản tài liệu        | v1.1                                                                                                                     |
+| Nguồn yêu cầu chính       | `SRS_v2_2_Parking_Building_Management_System.md`                                                                         |
+| Nguồn chi tiết triển khai | `Developer_Implementation_Specification_Parking_Building_Management_System_v1_0.md`                                      |
+| Backend 1                 | ASP.NET Core Web API - Core API                                                                                          |
+| Backend 2                 | Spring Boot REST API - Support API                                                                                       |
+| Frontend                  | React Web Application                                                                                                    |
+| Database                  | PostgreSQL dùng chung                                                                                                    |
+| Quy mô backend team       | 2 dev .NET + 2 dev Spring Boot                                                                                           |
+| Đối tượng sử dụng         | Backend Developer, Frontend Developer, Tester, Team Leader                                                               |
+| Mục tiêu                  | Chia hệ thống thành 2 backend không xung đột, cùng dùng 1 database, đủ schema/API/service/test để dev triển khai độc lập |
 
 ---
 
@@ -64,8 +65,9 @@ Các chức năng bắt buộc cho MVP/demo:
 - Exit Processing cho Monthly Pass.
 - Fee Calculation.
 - Cash Payment.
-- Receipt.
 - Monthly Pass.
+- Booking/Reservation.
+- Reservation: Đặt trước slot ô tô tại tầng B2, giữ chỗ tối đa 15 phút, tự động hủy/hết hạn nếu quá giờ.
 - Lost Card.
 - Plate Mismatch.
 - Session Administration / Cancel Session.
@@ -102,7 +104,6 @@ Chỉ làm nếu còn dư thời gian:
 
 - Thiết bị camera/RFID/barrier thật.
 - Thanh toán online thật.
-- Đặt chỗ trước.
 - Realtime WebSocket bắt buộc.
 - Multi-building/multi-tenant.
 - RBAC đầy đủ bằng các bảng phân quyền riêng.
@@ -162,22 +163,22 @@ Spring Boot chỉ đọc kết quả sau khi .NET API trả success.
 
 ## 3.3 Module Owner Rule
 
-| Loại module | Backend chính | Lý do |
-|---|---|---|
-| Auth/User/Role enum | .NET | Token và quyền thống nhất toàn hệ thống |
-| Driver account/profile/vehicles | .NET | Có ghi `users`, `driver_profiles`, `vehicles`, cần chung auth owner |
-| Parking session, entry, exit | .NET | Core transaction nhiều bước |
-| Parking card/state | .NET | Entry/exit update thường xuyên |
-| Parking structure/slot/gate | .NET | Slot status bị transaction core update |
-| Pricing/Fee/Payment/Receipt | .NET | Ảnh hưởng thanh toán và session completion |
-| Monthly Pass | .NET | Entry/exit cần check trong core flow |
-| Lost Card/Mismatch/Cancel Session | .NET | Exception core cần transaction |
-| Public parking info/available slots/pricing | Spring Boot | Read-heavy, public |
-| Public QR lookup | Spring Boot | Read-only, che dữ liệu nhạy cảm |
-| Dashboard/Reports/Excel | Spring Boot | Query đọc nhiều, tách khỏi core write |
-| Audit Log Search | Spring Boot | Read/export audit log |
-| Audit Log Write | Cả hai append-only | Mỗi service ghi action của chính nó |
-| Feedback/Notification/Mock Device | Spring Boot | Optional support module |
+| Loại module                                 | Backend chính      | Lý do                                                               |
+| ------------------------------------------- | ------------------ | ------------------------------------------------------------------- |
+| Auth/User/Role enum                         | .NET               | Token và quyền thống nhất toàn hệ thống                             |
+| Driver account/profile/vehicles             | .NET               | Có ghi `users`, `driver_profiles`, `vehicles`, cần chung auth owner |
+| Parking session, entry, exit                | .NET               | Core transaction nhiều bước                                         |
+| Parking card/state                          | .NET               | Entry/exit update thường xuyên                                      |
+| Parking structure/slot/gate                 | .NET               | Slot status bị transaction core update                              |
+| Pricing/Fee/Payment                         | .NET               | Ảnh hưởng thanh toán và session completion                          |
+| Monthly Pass                                | .NET               | Entry/exit cần check trong core flow                                |
+| Lost Card/Mismatch/Cancel Session           | .NET               | Exception core cần transaction                                      |
+| Public parking info/available slots/pricing | Spring Boot        | Read-heavy, public                                                  |
+| Public QR lookup                            | Spring Boot        | Read-only, che dữ liệu nhạy cảm                                     |
+| Dashboard/Reports/Excel                     | Spring Boot        | Query đọc nhiều, tách khỏi core write                               |
+| Audit Log Search                            | Spring Boot        | Read/export audit log                                               |
+| Audit Log Write                             | Cả hai append-only | Mỗi service ghi action của chính nó                                 |
+| Feedback/Notification/Mock Device           | Spring Boot        | Optional support module                                             |
 
 ## 3.4 API Gateway Hoặc Frontend Gọi Trực Tiếp
 
@@ -230,7 +231,6 @@ Phụ trách:
 - Exit processing.
 - Fee calculation.
 - Cash payment.
-- Receipt.
 - Monthly Pass.
 - Lost Card.
 - Plate Mismatch.
@@ -317,32 +317,32 @@ Pagination:
 
 ## 5.2 HTTP Status Convention
 
-| Trường hợp | HTTP Status |
-|---|---:|
-| GET thành công | 200 |
-| Tạo mới thành công | 201 |
-| Cập nhật thành công | 200 |
-| Hủy/xóa logic thành công | 200 |
-| Validation lỗi | 400 |
-| Chưa đăng nhập | 401 |
-| Không đủ quyền | 403 |
-| Không tìm thấy | 404 |
-| Conflict nghiệp vụ | 409 |
-| Lỗi server | 500 |
+| Trường hợp               | HTTP Status |
+| ------------------------ | ----------: |
+| GET thành công           |         200 |
+| Tạo mới thành công       |         201 |
+| Cập nhật thành công      |         200 |
+| Hủy/xóa logic thành công |         200 |
+| Validation lỗi           |         400 |
+| Chưa đăng nhập           |         401 |
+| Không đủ quyền           |         403 |
+| Không tìm thấy           |         404 |
+| Conflict nghiệp vụ       |         409 |
+| Lỗi server               |         500 |
 
 ## 5.3 Error Code Convention
 
-| Nhóm lỗi | Ví dụ |
-|---|---|
-| Auth | `INVALID_CREDENTIALS`, `ACCOUNT_LOCKED`, `TOKEN_EXPIRED` |
-| User | `USERNAME_ALREADY_EXISTS`, `EMAIL_ALREADY_EXISTS` |
-| Card | `CARD_NOT_FOUND`, `CARD_NOT_AVAILABLE`, `CARD_STATE_CONFLICT` |
-| Vehicle | `VEHICLE_HAS_ACTIVE_SESSION`, `VEHICLE_TYPE_INACTIVE` |
-| Slot | `SLOT_NOT_AVAILABLE`, `SLOT_VEHICLE_TYPE_NOT_ALLOWED` |
-| Session | `SESSION_NOT_FOUND`, `SESSION_NOT_ACTIVE`, `SESSION_ALREADY_COMPLETED` |
-| Payment | `PAYMENT_ALREADY_PAID`, `PAYMENT_REQUIRED_BEFORE_EXIT` |
-| Lost Card | `LOST_CARD_CASE_PENDING`, `LOST_CARD_NOT_APPROVED` |
-| Mismatch | `PLATE_MISMATCH_REQUIRES_APPROVAL` |
+| Nhóm lỗi  | Ví dụ                                                                  |
+| --------- | ---------------------------------------------------------------------- |
+| Auth      | `INVALID_CREDENTIALS`, `ACCOUNT_LOCKED`, `TOKEN_EXPIRED`               |
+| User      | `USERNAME_ALREADY_EXISTS`, `EMAIL_ALREADY_EXISTS`                      |
+| Card      | `CARD_NOT_FOUND`, `CARD_NOT_AVAILABLE`, `CARD_STATE_CONFLICT`          |
+| Vehicle   | `VEHICLE_HAS_ACTIVE_SESSION`, `VEHICLE_TYPE_INACTIVE`                  |
+| Slot      | `SLOT_NOT_AVAILABLE`, `SLOT_VEHICLE_TYPE_NOT_ALLOWED`                  |
+| Session   | `SESSION_NOT_FOUND`, `SESSION_NOT_ACTIVE`, `SESSION_ALREADY_COMPLETED` |
+| Payment   | `PAYMENT_ALREADY_PAID`, `PAYMENT_REQUIRED_BEFORE_EXIT`                 |
+| Lost Card | `LOST_CARD_CASE_PENDING`, `LOST_CARD_NOT_APPROVED`                     |
+| Mismatch  | `PLATE_MISMATCH_REQUIRES_APPROVAL`                                     |
 
 ## 5.4 API Path Convention
 
@@ -396,13 +396,13 @@ Neu sau nay can RBAC day du, cap nhat SQL script rieng va cap nhat lai spec.
 
 ## 6.4 Role Check
 
-| Role | Có thể dùng |
-|---|---|
-| ADMIN | Tất cả API quản trị, cancel session, audit, user management |
+| Role    | Có thể dùng                                                                                    |
+| ------- | ---------------------------------------------------------------------------------------------- |
+| ADMIN   | Tất cả API quản trị, cancel session, audit, user management                                    |
 | MANAGER | Dashboard, reports, card/structure/pricing/monthly pass, lost card approval, mismatch approval |
-| STAFF | Entry, exit, lost card create, session search, receipt print |
-| DRIVER | Driver profile, vehicles, history nếu làm |
-| Public | Parking info, available slots, pricing, public card QR lookup |
+| STAFF   | Entry, exit, lost card create, session search                                   |
+| DRIVER  | Driver profile, vehicles, history nếu làm                                                      |
+| Public  | Parking info, available slots, pricing, public card QR lookup                                  |
 
 ---
 
@@ -477,30 +477,30 @@ spring:
 
 ## 7.4 Table Ownership Matrix
 
-| Bảng | Owner ghi chính | .NET quyền | Spring Boot quyền | Ghi chú |
-|---|---|---|---|---|
-| users | .NET | Read/Write | Read | Auth/User/Driver account |
-| driver_profiles | .NET | Read/Write | Read | Driver register/profile do .NET |
-| vehicles | .NET | Read/Write | Read | Driver vehicles và entry lookup |
-| vehicle_types | .NET | Read/Write | Read | Seed + management |
-| parking_cards | .NET | Read/Write | Read | Entry/exit update status |
-| floors | .NET | Read/Write | Read | Structure management |
-| areas | .NET | Read/Write | Read | Structure management |
-| area_vehicle_types | .NET | Read/Write | Read | Mapping area-vehicle |
-| slots | .NET | Read/Write | Read | Entry/exit update status |
-| gates | .NET | Read/Write | Read | Gate data |
-| parking_sessions | .NET | Read/Write | Read | Core transaction |
-| pricing_rules | .NET | Read/Write | Read | Fee calculation consistent |
-| payments | .NET | Read/Write | Read | Payment core |
-| receipts | .NET | Read/Write | Read | Receipt core |
-| monthly_passes | .NET | Read/Write | Read | Entry/exit check |
-| lost_card_cases | .NET | Read/Write | Read | Exception core |
-| plate_mismatch_cases | .NET | Read/Write | Read | Exception core |
-| audit_logs | Append-only shared | Insert/Read | Insert/Read | Không update/delete |
-| feedbacks | Spring Boot | Read optional | Read/Write | Could Have |
-| notifications | Spring Boot | Read optional | Read/Write | Could Have |
-| mock_device_events | Spring Boot | Read optional | Read/Write | Optional |
-| system_configs | .NET | Read/Write | Read | Could Have, config hệ thống |
+| Bảng                 | Owner ghi chính    | .NET quyền    | Spring Boot quyền | Ghi chú                         |
+| -------------------- | ------------------ | ------------- | ----------------- | ------------------------------- |
+| users                | .NET               | Read/Write    | Read              | Auth/User/Driver account        |
+| driver_profiles      | .NET               | Read/Write    | Read              | Driver register/profile do .NET |
+| vehicles             | .NET               | Read/Write    | Read              | Driver vehicles và entry lookup |
+| vehicle_types        | .NET               | Read/Write    | Read              | Seed + management               |
+| parking_cards        | .NET               | Read/Write    | Read              | Entry/exit update status        |
+| floors               | .NET               | Read/Write    | Read              | Structure management            |
+| areas                | .NET               | Read/Write    | Read              | Structure management            |
+| area_vehicle_types   | .NET               | Read/Write    | Read              | Mapping area-vehicle            |
+| slots                | .NET               | Read/Write    | Read              | Entry/exit update status        |
+| gates                | .NET               | Read/Write    | Read              | Gate data                       |
+| parking_sessions     | .NET               | Read/Write    | Read              | Core transaction                |
+| pricing_rules        | .NET               | Read/Write    | Read              | Fee calculation consistent      |
+| payments             | .NET               | Read/Write    | Read              | Payment core                    |
+| monthly_passes       | .NET               | Read/Write    | Read              | Entry/exit check                |
+| lost_card_cases      | .NET               | Read/Write    | Read              | Exception core                  |
+| plate_mismatch_cases | .NET               | Read/Write    | Read              | Exception core                  |
+| audit_logs           | Append-only shared | Insert/Read   | Insert/Read       | Không update/delete             |
+| feedbacks            | Spring Boot        | Read optional | Read/Write        | Could Have                      |
+| notifications        | Spring Boot        | Read optional | Read/Write        | Could Have                      |
+| mock_device_events   | Spring Boot        | Read optional | Read/Write        | Optional                        |
+| system_configs       | .NET               | Read/Write    | Read              | Could Have, config hệ thống     |
+| reservations         | .NET               | Read/Write    | Read              | Quản lý lượt đặt chỗ trước     |
 
 ## 7.5 Shared Enums
 
@@ -512,7 +512,8 @@ VehicleStatus: ACTIVE, INACTIVE
 CardStatus: AVAILABLE, IN_USE, LOST, DAMAGED, INACTIVE
 FloorStatus: ACTIVE, LOCKED, MAINTENANCE
 AreaStatus: ACTIVE, LOCKED, MAINTENANCE
-SlotStatus: AVAILABLE, OCCUPIED, LOCKED, MAINTENANCE
+SlotStatus: AVAILABLE, OCCUPIED, RESERVED, LOCKED, MAINTENANCE
+ReservationStatus: PENDING, COMPLETED, CANCELLED, EXPIRED
 GateStatus: ACTIVE, LOCKED, MAINTENANCE
 GateType: ENTRY, EXIT
 SessionStatus: ACTIVE, COMPLETED, CANCELLED, LOST_CARD_PENDING, MISMATCH_PENDING
@@ -536,19 +537,19 @@ SystemStatus: OPEN, CLOSED, MAINTENANCE
 
 Owner: `.NET`
 
-| Column | Type | Required | Note |
-|---|---|---:|---|
-| id | BIGSERIAL | Yes | PK |
-| full_name | VARCHAR(150) | Yes | Họ tên |
-| username | VARCHAR(100) | Yes | Unique |
-| email | VARCHAR(150) | No | Unique nếu có |
-| phone | VARCHAR(30) | No | Unique nếu có |
-| password_hash | VARCHAR(255) | Yes | BCrypt |
-| role | VARCHAR(30) | Yes | ADMIN/MANAGER/STAFF/DRIVER |
-| status | VARCHAR(30) | Yes | ACTIVE/LOCKED/INACTIVE |
-| last_login_at | TIMESTAMPTZ | No | Should Have |
-| created_at | TIMESTAMPTZ | Yes | Auto |
-| updated_at | TIMESTAMPTZ | Yes | Auto |
+| Column        | Type         | Required | Note                       |
+| ------------- | ------------ | -------: | -------------------------- |
+| id            | BIGSERIAL    |      Yes | PK                         |
+| full_name     | VARCHAR(150) |      Yes | Họ tên                     |
+| username      | VARCHAR(100) |      Yes | Unique                     |
+| email         | VARCHAR(150) |       No | Unique nếu có              |
+| phone         | VARCHAR(30)  |       No | Unique nếu có              |
+| password_hash | VARCHAR(255) |      Yes | BCrypt                     |
+| role          | VARCHAR(30)  |      Yes | ADMIN/MANAGER/STAFF/DRIVER |
+| status        | VARCHAR(30)  |      Yes | ACTIVE/LOCKED/INACTIVE     |
+| last_login_at | TIMESTAMPTZ  |       No | Should Have                |
+| created_at    | TIMESTAMPTZ  |      Yes | Auto                       |
+| updated_at    | TIMESTAMPTZ  |      Yes | Auto                       |
 
 Indexes:
 
@@ -564,16 +565,16 @@ CREATE INDEX ix_users_status ON users(status);
 
 Owner: `.NET`
 
-| Column | Type | Required | Note |
-|---|---|---:|---|
-| id | BIGSERIAL | Yes | PK |
-| user_id | BIGINT FK users(id) | No | Có nếu registered driver |
-| full_name | VARCHAR(150) | Yes | Họ tên driver |
-| phone | VARCHAR(30) | No | Unique nếu có |
-| email | VARCHAR(150) | No | Unique nếu có |
-| status | VARCHAR(30) | Yes | ACTIVE/LOCKED/INACTIVE |
-| created_at | TIMESTAMPTZ | Yes | Auto |
-| updated_at | TIMESTAMPTZ | Yes | Auto |
+| Column     | Type                | Required | Note                     |
+| ---------- | ------------------- | -------: | ------------------------ |
+| id         | BIGSERIAL           |      Yes | PK                       |
+| user_id    | BIGINT FK users(id) |       No | Có nếu registered driver |
+| full_name  | VARCHAR(150)        |      Yes | Họ tên driver            |
+| phone      | VARCHAR(30)         |       No | Unique nếu có            |
+| email      | VARCHAR(150)        |       No | Unique nếu có            |
+| status     | VARCHAR(30)         |      Yes | ACTIVE/LOCKED/INACTIVE   |
+| created_at | TIMESTAMPTZ         |      Yes | Auto                     |
+| updated_at | TIMESTAMPTZ         |      Yes | Auto                     |
 
 Indexes:
 
@@ -587,14 +588,14 @@ CREATE UNIQUE INDEX ux_driver_profiles_email ON driver_profiles(email) WHERE ema
 
 Owner: `.NET`
 
-| Column | Type | Required | Note |
-|---|---|---:|---|
-| id | BIGSERIAL | Yes | PK |
-| name | VARCHAR(100) | Yes | Xe máy, Ô tô... |
-| description | TEXT | No | Mô tả |
-| is_active | BOOLEAN | Yes | Bật/tắt |
-| created_at | TIMESTAMPTZ | Yes | Auto |
-| updated_at | TIMESTAMPTZ | Yes | Auto |
+| Column      | Type         | Required | Note            |
+| ----------- | ------------ | -------: | --------------- |
+| id          | BIGSERIAL    |      Yes | PK              |
+| name        | VARCHAR(100) |      Yes | Xe máy, Ô tô... |
+| description | TEXT         |       No | Mô tả           |
+| is_active   | BOOLEAN      |      Yes | Bật/tắt         |
+| created_at  | TIMESTAMPTZ  |      Yes | Auto            |
+| updated_at  | TIMESTAMPTZ  |      Yes | Auto            |
 
 Seed bắt buộc:
 
@@ -612,17 +613,17 @@ Xe vận chuyển hàng hóa
 
 Owner: `.NET`
 
-| Column | Type | Required | Note |
-|---|---|---:|---|
-| id | BIGSERIAL | Yes | PK |
-| driver_id | BIGINT FK driver_profiles(id) | No | Nullable với guest |
-| plate_number | VARCHAR(30) | No | Nullable với xe không biển số |
-| normalized_plate_number | VARCHAR(30) | No | Dùng để search/check duplicate |
-| vehicle_type_id | BIGINT FK vehicle_types(id) | Yes | Loại xe |
-| description | TEXT | No | Xe không biển số |
-| status | VARCHAR(30) | Yes | ACTIVE/INACTIVE |
-| created_at | TIMESTAMPTZ | Yes | Auto |
-| updated_at | TIMESTAMPTZ | Yes | Auto |
+| Column                  | Type                          | Required | Note                           |
+| ----------------------- | ----------------------------- | -------: | ------------------------------ |
+| id                      | BIGSERIAL                     |      Yes | PK                             |
+| driver_id               | BIGINT FK driver_profiles(id) |       No | Nullable với guest             |
+| plate_number            | VARCHAR(30)                   |       No | Nullable với xe không biển số  |
+| normalized_plate_number | VARCHAR(30)                   |       No | Dùng để search/check duplicate |
+| vehicle_type_id         | BIGINT FK vehicle_types(id)   |      Yes | Loại xe                        |
+| description             | TEXT                          |       No | Xe không biển số               |
+| status                  | VARCHAR(30)                   |      Yes | ACTIVE/INACTIVE                |
+| created_at              | TIMESTAMPTZ                   |      Yes | Auto                           |
+| updated_at              | TIMESTAMPTZ                   |      Yes | Auto                           |
 
 Indexes:
 
@@ -636,16 +637,16 @@ CREATE INDEX ix_vehicles_type ON vehicles(vehicle_type_id);
 
 Owner: `.NET`
 
-| Column | Type | Required | Note |
-|---|---|---:|---|
-| id | BIGSERIAL | Yes | PK |
-| card_code | VARCHAR(50) | Yes | Unique, ví dụ C001 |
-| qr_token | VARCHAR(120) | Yes | Unique, khó đoán |
-| status | VARCHAR(30) | Yes | AVAILABLE/IN_USE/LOST/DAMAGED/INACTIVE |
-| current_session_id | BIGINT FK parking_sessions(id) | No | Nullable |
-| note | TEXT | No | Ghi chú |
-| created_at | TIMESTAMPTZ | Yes | Auto |
-| updated_at | TIMESTAMPTZ | Yes | Auto |
+| Column             | Type                           | Required | Note                                   |
+| ------------------ | ------------------------------ | -------: | -------------------------------------- |
+| id                 | BIGSERIAL                      |      Yes | PK                                     |
+| card_code          | VARCHAR(50)                    |      Yes | Unique, ví dụ C001                     |
+| qr_token           | VARCHAR(120)                   |      Yes | Unique, khó đoán                       |
+| status             | VARCHAR(30)                    |      Yes | AVAILABLE/IN_USE/LOST/DAMAGED/INACTIVE |
+| current_session_id | BIGINT FK parking_sessions(id) |       No | Nullable                               |
+| note               | TEXT                           |       No | Ghi chú                                |
+| created_at         | TIMESTAMPTZ                    |      Yes | Auto                                   |
+| updated_at         | TIMESTAMPTZ                    |      Yes | Auto                                   |
 
 Indexes:
 
@@ -664,14 +665,14 @@ Rule:
 
 Owner: `.NET`
 
-| Column | Type | Required | Note |
-|---|---|---:|---|
-| id | BIGSERIAL | Yes | PK |
-| floor_code | VARCHAR(30) | Yes | Unique, B1/B2/B3 |
-| floor_name | VARCHAR(100) | Yes | Tên tầng |
-| status | VARCHAR(30) | Yes | ACTIVE/LOCKED/MAINTENANCE |
-| created_at | TIMESTAMPTZ | Yes | Auto |
-| updated_at | TIMESTAMPTZ | Yes | Auto |
+| Column     | Type         | Required | Note                      |
+| ---------- | ------------ | -------: | ------------------------- |
+| id         | BIGSERIAL    |      Yes | PK                        |
+| floor_code | VARCHAR(30)  |      Yes | Unique, B1/B2/B3          |
+| floor_name | VARCHAR(100) |      Yes | Tên tầng                  |
+| status     | VARCHAR(30)  |      Yes | ACTIVE/LOCKED/MAINTENANCE |
+| created_at | TIMESTAMPTZ  |      Yes | Auto                      |
+| updated_at | TIMESTAMPTZ  |      Yes | Auto                      |
 
 Seed demo:
 
@@ -685,16 +686,16 @@ B3 - Tầng 3
 
 Owner: `.NET`
 
-| Column | Type | Required | Note |
-|---|---|---:|---|
-| id | BIGSERIAL | Yes | PK |
-| floor_id | BIGINT FK floors(id) | Yes | Tầng |
-| area_code | VARCHAR(30) | Yes | A/B/C... |
-| area_name | VARCHAR(100) | Yes | Tên khu vực |
-| priority_order | INT | Yes | Số nhỏ ưu tiên trước |
-| status | VARCHAR(30) | Yes | ACTIVE/LOCKED/MAINTENANCE |
-| created_at | TIMESTAMPTZ | Yes | Auto |
-| updated_at | TIMESTAMPTZ | Yes | Auto |
+| Column         | Type                 | Required | Note                      |
+| -------------- | -------------------- | -------: | ------------------------- |
+| id             | BIGSERIAL            |      Yes | PK                        |
+| floor_id       | BIGINT FK floors(id) |      Yes | Tầng                      |
+| area_code      | VARCHAR(30)          |      Yes | A/B/C...                  |
+| area_name      | VARCHAR(100)         |      Yes | Tên khu vực               |
+| priority_order | INT                  |      Yes | Số nhỏ ưu tiên trước      |
+| status         | VARCHAR(30)          |      Yes | ACTIVE/LOCKED/MAINTENANCE |
+| created_at     | TIMESTAMPTZ          |      Yes | Auto                      |
+| updated_at     | TIMESTAMPTZ          |      Yes | Auto                      |
 
 Indexes:
 
@@ -708,10 +709,10 @@ CREATE INDEX ix_areas_priority ON areas(priority_order);
 
 Owner: `.NET`
 
-| Column | Type | Required | Note |
-|---|---|---:|---|
-| area_id | BIGINT FK areas(id) | Yes | PK part |
-| vehicle_type_id | BIGINT FK vehicle_types(id) | Yes | PK part |
+| Column          | Type                        | Required | Note    |
+| --------------- | --------------------------- | -------: | ------- |
+| area_id         | BIGINT FK areas(id)         |      Yes | PK part |
+| vehicle_type_id | BIGINT FK vehicle_types(id) |      Yes | PK part |
 
 Indexes:
 
@@ -723,16 +724,16 @@ CREATE UNIQUE INDEX ux_area_vehicle_types ON area_vehicle_types(area_id, vehicle
 
 Owner: `.NET`
 
-| Column | Type | Required | Note |
-|---|---|---:|---|
-| id | BIGSERIAL | Yes | PK |
-| area_id | BIGINT FK areas(id) | Yes | Khu vực |
-| slot_code | VARCHAR(50) | Yes | A1, A2... |
-| allowed_vehicle_type_id | BIGINT FK vehicle_types(id) | Yes | Loại xe chính |
-| status | VARCHAR(30) | Yes | AVAILABLE/OCCUPIED/LOCKED/MAINTENANCE |
-| current_session_id | BIGINT FK parking_sessions(id) | No | Nullable |
-| created_at | TIMESTAMPTZ | Yes | Auto |
-| updated_at | TIMESTAMPTZ | Yes | Auto |
+| Column                  | Type                           | Required | Note                                  |
+| ----------------------- | ------------------------------ | -------: | ------------------------------------- |
+| id                      | BIGSERIAL                      |      Yes | PK                                    |
+| area_id                 | BIGINT FK areas(id)            |      Yes | Khu vực                               |
+| slot_code               | VARCHAR(50)                    |      Yes | A1, A2...                             |
+| allowed_vehicle_type_id | BIGINT FK vehicle_types(id)    |      Yes | Loại xe chính                         |
+| status                  | VARCHAR(30)                    |      Yes | AVAILABLE/OCCUPIED/LOCKED/MAINTENANCE |
+| current_session_id      | BIGINT FK parking_sessions(id) |       No | Nullable                              |
+| created_at              | TIMESTAMPTZ                    |      Yes | Auto                                  |
+| updated_at              | TIMESTAMPTZ                    |      Yes | Auto                                  |
 
 Indexes:
 
@@ -747,15 +748,15 @@ CREATE INDEX ix_slots_current_session ON slots(current_session_id);
 
 Owner: `.NET`
 
-| Column | Type | Required | Note |
-|---|---|---:|---|
-| id | BIGSERIAL | Yes | PK |
-| floor_id | BIGINT FK floors(id) | Yes | Tầng |
-| gate_code | VARCHAR(50) | Yes | B1-IN/B1-OUT |
-| gate_type | VARCHAR(30) | Yes | ENTRY/EXIT |
-| status | VARCHAR(30) | Yes | ACTIVE/LOCKED/MAINTENANCE |
-| created_at | TIMESTAMPTZ | Yes | Auto |
-| updated_at | TIMESTAMPTZ | Yes | Auto |
+| Column     | Type                 | Required | Note                      |
+| ---------- | -------------------- | -------: | ------------------------- |
+| id         | BIGSERIAL            |      Yes | PK                        |
+| floor_id   | BIGINT FK floors(id) |      Yes | Tầng                      |
+| gate_code  | VARCHAR(50)          |      Yes | B1-IN/B1-OUT              |
+| gate_type  | VARCHAR(30)          |      Yes | ENTRY/EXIT                |
+| status     | VARCHAR(30)          |      Yes | ACTIVE/LOCKED/MAINTENANCE |
+| created_at | TIMESTAMPTZ          |      Yes | Auto                      |
+| updated_at | TIMESTAMPTZ          |      Yes | Auto                      |
 
 Seed demo:
 
@@ -769,45 +770,45 @@ B3-IN, B3-OUT
 
 Owner: `.NET`
 
-| Column | Type | Required | Note |
-|---|---|---:|---|
-| id | BIGSERIAL | Yes | PK |
-| session_code | VARCHAR(50) | Yes | Unique, PS202605210001 |
-| card_id | BIGINT FK parking_cards(id) | Yes | Card gắn với lượt gửi |
-| driver_id | BIGINT FK driver_profiles(id) | No | Nullable |
-| vehicle_id | BIGINT FK vehicles(id) | No | Nullable |
-| plate_number | VARCHAR(30) | No | Nullable với xe không biển số |
-| normalized_plate_number | VARCHAR(30) | No | Search/check active |
-| no_plate | BOOLEAN | Yes | Xe không biển số |
-| vehicle_description | TEXT | No | Mô tả xe không biển số |
-| vehicle_type_id | BIGINT FK vehicle_types(id) | Yes | Loại xe |
-| customer_type | VARCHAR(30) | Yes | CASUAL/MONTHLY |
-| monthly_pass_id | BIGINT FK monthly_passes(id) | No | Nullable |
-| floor_id | BIGINT FK floors(id) | Yes | Tầng |
-| area_id | BIGINT FK areas(id) | Yes | Khu vực |
-| slot_id | BIGINT FK slots(id) | Yes | Slot |
-| entry_gate_id | BIGINT FK gates(id) | Yes | Cổng vào |
-| exit_gate_id | BIGINT FK gates(id) | No | Cổng ra |
-| entry_staff_id | BIGINT FK users(id) | Yes | Staff vào |
-| exit_staff_id | BIGINT FK users(id) | No | Staff ra |
-| entry_time | TIMESTAMPTZ | Yes | Thời gian vào |
-| exit_time | TIMESTAMPTZ | No | Thời gian ra |
-| status | VARCHAR(40) | Yes | ACTIVE/COMPLETED/CANCELLED/... |
-| payment_required | BOOLEAN | Yes | false nếu monthly pass valid |
-| payment_status | VARCHAR(40) | Yes | PENDING/PAID/WAIVED/... |
-| pricing_rule_id | BIGINT FK pricing_rules(id) | No | Snapshot source |
-| snapshot_day_price | NUMERIC(12,2) | No | Giá tại lúc vào |
-| snapshot_night_price | NUMERIC(12,2) | No | Giá tại lúc vào |
-| snapshot_monthly_price | NUMERIC(12,2) | No | Giá tại lúc vào |
-| snapshot_lost_card_fee | NUMERIC(12,2) | No | Giá tại lúc vào |
-| suggested_area_id | BIGINT FK areas(id) | No | Khu được gợi ý |
-| suggested_slot_id | BIGINT FK slots(id) | No | Slot được gợi ý |
-| override_area_id | BIGINT FK areas(id) | No | Khu override |
-| override_slot_id | BIGINT FK slots(id) | No | Slot override |
-| override_reason | TEXT | No | Lý do override |
-| cancellation_reason | TEXT | No | Lý do hủy |
-| created_at | TIMESTAMPTZ | Yes | Auto |
-| updated_at | TIMESTAMPTZ | Yes | Auto |
+| Column                  | Type                          | Required | Note                           |
+| ----------------------- | ----------------------------- | -------: | ------------------------------ |
+| id                      | BIGSERIAL                     |      Yes | PK                             |
+| session_code            | VARCHAR(50)                   |      Yes | Unique, PS202605210001         |
+| card_id                 | BIGINT FK parking_cards(id)   |      Yes | Card gắn với lượt gửi          |
+| driver_id               | BIGINT FK driver_profiles(id) |       No | Nullable                       |
+| vehicle_id              | BIGINT FK vehicles(id)        |       No | Nullable                       |
+| plate_number            | VARCHAR(30)                   |       No | Nullable với xe không biển số  |
+| normalized_plate_number | VARCHAR(30)                   |       No | Search/check active            |
+| no_plate                | BOOLEAN                       |      Yes | Xe không biển số               |
+| vehicle_description     | TEXT                          |       No | Mô tả xe không biển số         |
+| vehicle_type_id         | BIGINT FK vehicle_types(id)   |      Yes | Loại xe                        |
+| customer_type           | VARCHAR(30)                   |      Yes | CASUAL/MONTHLY                 |
+| monthly_pass_id         | BIGINT FK monthly_passes(id)  |       No | Nullable                       |
+| floor_id                | BIGINT FK floors(id)          |      Yes | Tầng                           |
+| area_id                 | BIGINT FK areas(id)           |      Yes | Khu vực                        |
+| slot_id                 | BIGINT FK slots(id)           |       No | Slot                           |
+| entry_gate_id           | BIGINT FK gates(id)           |      Yes | Cổng vào                       |
+| exit_gate_id            | BIGINT FK gates(id)           |       No | Cổng ra                        |
+| entry_staff_id          | BIGINT FK users(id)           |      Yes | Staff vào                      |
+| exit_staff_id           | BIGINT FK users(id)           |       No | Staff ra                       |
+| entry_time              | TIMESTAMPTZ                   |      Yes | Thời gian vào                  |
+| exit_time               | TIMESTAMPTZ                   |       No | Thời gian ra                   |
+| status                  | VARCHAR(40)                   |      Yes | ACTIVE/COMPLETED/CANCELLED/... |
+| payment_required        | BOOLEAN                       |      Yes | false nếu monthly pass valid   |
+| payment_status          | VARCHAR(40)                   |      Yes | PENDING/PAID/WAIVED/...        |
+| pricing_rule_id         | BIGINT FK pricing_rules(id)   |       No | Snapshot source                |
+| snapshot_day_price      | NUMERIC(12,2)                 |       No | Giá tại lúc vào                |
+| snapshot_night_price    | NUMERIC(12,2)                 |       No | Giá tại lúc vào                |
+| snapshot_monthly_price  | NUMERIC(12,2)                 |       No | Giá tại lúc vào                |
+| snapshot_lost_card_fee  | NUMERIC(12,2)                 |       No | Giá tại lúc vào                |
+| suggested_area_id       | BIGINT FK areas(id)           |       No | Khu được gợi ý                 |
+| suggested_slot_id       | BIGINT FK slots(id)           |       No | Slot được gợi ý                |
+| override_area_id        | BIGINT FK areas(id)           |       No | Khu override                   |
+| override_slot_id        | BIGINT FK slots(id)           |       No | Slot override                  |
+| override_reason         | TEXT                          |       No | Lý do override                 |
+| cancellation_reason     | TEXT                          |       No | Lý do hủy                      |
+| created_at              | TIMESTAMPTZ                   |      Yes | Auto                           |
+| updated_at              | TIMESTAMPTZ                   |      Yes | Auto                           |
 
 Indexes:
 
@@ -843,20 +844,20 @@ WHERE status IN ('ACTIVE', 'LOST_CARD_PENDING', 'MISMATCH_PENDING');
 
 Owner: `.NET`
 
-| Column | Type | Required | Note |
-|---|---|---:|---|
-| id | BIGSERIAL | Yes | PK |
-| vehicle_type_id | BIGINT FK vehicle_types(id) | Yes | Loại xe |
-| day_price | NUMERIC(12,2) | Yes | Giá block khung ngày |
-| night_price | NUMERIC(12,2) | Yes | Giá block khung tối |
-| monthly_price | NUMERIC(12,2) | Yes | Giá vé tháng |
-| lost_card_fee | NUMERIC(12,2) | Yes | Phí mất thẻ |
-| effective_from | TIMESTAMPTZ | Yes | Bắt đầu hiệu lực |
-| status | VARCHAR(30) | Yes | ACTIVE/INACTIVE |
-| created_by | BIGINT FK users(id) | Yes | Người tạo |
-| updated_by | BIGINT FK users(id) | No | Người cập nhật |
-| created_at | TIMESTAMPTZ | Yes | Auto |
-| updated_at | TIMESTAMPTZ | Yes | Auto |
+| Column          | Type                        | Required | Note                 |
+| --------------- | --------------------------- | -------: | -------------------- |
+| id              | BIGSERIAL                   |      Yes | PK                   |
+| vehicle_type_id | BIGINT FK vehicle_types(id) |      Yes | Loại xe              |
+| day_price       | NUMERIC(12,2)               |      Yes | Giá block khung ngày |
+| night_price     | NUMERIC(12,2)               |      Yes | Giá block khung tối  |
+| monthly_price   | NUMERIC(12,2)               |      Yes | Giá vé tháng         |
+| lost_card_fee   | NUMERIC(12,2)               |      Yes | Phí mất thẻ          |
+| effective_from  | TIMESTAMPTZ                 |      Yes | Bắt đầu hiệu lực     |
+| status          | VARCHAR(30)                 |      Yes | ACTIVE/INACTIVE      |
+| created_by      | BIGINT FK users(id)         |      Yes | Người tạo            |
+| updated_by      | BIGINT FK users(id)         |       No | Người cập nhật       |
+| created_at      | TIMESTAMPTZ                 |      Yes | Auto                 |
+| updated_at      | TIMESTAMPTZ                 |      Yes | Auto                 |
 
 Rule:
 
@@ -868,20 +869,20 @@ Rule:
 
 Owner: `.NET`
 
-| Column | Type | Required | Note |
-|---|---|---:|---|
-| id | BIGSERIAL | Yes | PK |
-| session_id | BIGINT FK parking_sessions(id) | Yes | Session |
-| amount | NUMERIC(12,2) | Yes | Phí gửi xe |
-| lost_card_fee | NUMERIC(12,2) | Yes | Default 0 |
-| total_amount | NUMERIC(12,2) | Yes | amount + lost_card_fee |
-| method | VARCHAR(30) | Yes | CASH/NONE |
-| status | VARCHAR(30) | Yes | PENDING/PAID/FAILED/CANCELLED/WAIVED/NOT_REQUIRED |
-| paid_at | TIMESTAMPTZ | No | Thời gian thanh toán |
-| collected_by | BIGINT FK users(id) | No | Staff thu tiền |
-| waive_reason | VARCHAR(100) | No | MONTHLY_PASS |
-| created_at | TIMESTAMPTZ | Yes | Auto |
-| updated_at | TIMESTAMPTZ | Yes | Auto |
+| Column        | Type                           | Required | Note                                              |
+| ------------- | ------------------------------ | -------: | ------------------------------------------------- |
+| id            | BIGSERIAL                      |      Yes | PK                                                |
+| session_id    | BIGINT FK parking_sessions(id) |      Yes | Session                                           |
+| amount        | NUMERIC(12,2)                  |      Yes | Phí gửi xe                                        |
+| lost_card_fee | NUMERIC(12,2)                  |      Yes | Default 0                                         |
+| total_amount  | NUMERIC(12,2)                  |      Yes | amount + lost_card_fee                            |
+| method        | VARCHAR(30)                    |      Yes | CASH/NONE                                         |
+| status        | VARCHAR(30)                    |      Yes | PENDING/PAID/FAILED/CANCELLED/WAIVED/NOT_REQUIRED |
+| paid_at       | TIMESTAMPTZ                    |       No | Thời gian thanh toán                              |
+| collected_by  | BIGINT FK users(id)            |       No | Staff thu tiền                                    |
+| waive_reason  | VARCHAR(100)                   |       No | MONTHLY_PASS                                      |
+| created_at    | TIMESTAMPTZ                    |      Yes | Auto                                              |
+| updated_at    | TIMESTAMPTZ                    |      Yes | Auto                                              |
 
 Rule:
 
@@ -889,55 +890,25 @@ Rule:
 - Khách vãng lai không được complete session nếu payment chưa `PAID`.
 - Monthly Pass valid có thể tạo payment `WAIVED` hoặc `NOT_REQUIRED`.
 
-## 8.14 receipts
-
-Owner: `.NET`
-
-| Column | Type | Required | Note |
-|---|---|---:|---|
-| id | BIGSERIAL | Yes | PK |
-| receipt_code | VARCHAR(50) | Yes | Unique |
-| session_id | BIGINT FK parking_sessions(id) | Yes | Session |
-| payment_id | BIGINT FK payments(id) | No | Nullable nếu 0đ |
-| card_code | VARCHAR(50) | Yes | Snapshot |
-| plate_number | VARCHAR(30) | No | Snapshot |
-| vehicle_type_name | VARCHAR(100) | Yes | Snapshot |
-| entry_time | TIMESTAMPTZ | Yes | Snapshot |
-| exit_time | TIMESTAMPTZ | Yes | Snapshot |
-| amount | NUMERIC(12,2) | Yes | Phí gửi |
-| lost_card_fee | NUMERIC(12,2) | Yes | Phí mất thẻ |
-| total_amount | NUMERIC(12,2) | Yes | Tổng |
-| payment_method | VARCHAR(30) | Yes | CASH/NONE |
-| printed_count | INT | Yes | Default 0 |
-| created_by | BIGINT FK users(id) | No | Staff |
-| created_at | TIMESTAMPTZ | Yes | Auto |
-
-Indexes:
-
-```sql
-CREATE UNIQUE INDEX ux_receipts_code ON receipts(receipt_code);
-CREATE INDEX ix_receipts_session ON receipts(session_id);
-```
-
 ## 8.15 monthly_passes
 
 Owner: `.NET`
 
-| Column | Type | Required | Note |
-|---|---|---:|---|
-| id | BIGSERIAL | Yes | PK |
-| driver_id | BIGINT FK driver_profiles(id) | No | Nullable |
-| owner_name | VARCHAR(150) | Yes | Chủ xe |
-| phone | VARCHAR(30) | No | SĐT |
-| plate_number | VARCHAR(30) | Yes | Biển số/mã xe |
-| normalized_plate_number | VARCHAR(30) | Yes | Check |
-| vehicle_type_id | BIGINT FK vehicle_types(id) | Yes | Loại xe |
-| start_date | DATE | Yes | Ngày bắt đầu |
-| end_date | DATE | Yes | Ngày hết hạn |
-| status | VARCHAR(30) | Yes | ACTIVE/EXPIRED/LOCKED |
-| created_by | BIGINT FK users(id) | Yes | Người tạo |
-| created_at | TIMESTAMPTZ | Yes | Auto |
-| updated_at | TIMESTAMPTZ | Yes | Auto |
+| Column                  | Type                          | Required | Note                  |
+| ----------------------- | ----------------------------- | -------: | --------------------- |
+| id                      | BIGSERIAL                     |      Yes | PK                    |
+| driver_id               | BIGINT FK driver_profiles(id) |       No | Nullable              |
+| owner_name              | VARCHAR(150)                  |      Yes | Chủ xe                |
+| phone                   | VARCHAR(30)                   |       No | SĐT                   |
+| plate_number            | VARCHAR(30)                   |      Yes | Biển số/mã xe         |
+| normalized_plate_number | VARCHAR(30)                   |      Yes | Check                 |
+| vehicle_type_id         | BIGINT FK vehicle_types(id)   |      Yes | Loại xe               |
+| start_date              | DATE                          |      Yes | Ngày bắt đầu          |
+| end_date                | DATE                          |      Yes | Ngày hết hạn          |
+| status                  | VARCHAR(30)                   |      Yes | ACTIVE/EXPIRED/LOCKED |
+| created_by              | BIGINT FK users(id)           |      Yes | Người tạo             |
+| created_at              | TIMESTAMPTZ                   |      Yes | Auto                  |
+| updated_at              | TIMESTAMPTZ                   |      Yes | Auto                  |
 
 Indexes:
 
@@ -951,23 +922,23 @@ CREATE INDEX ix_monthly_pass_dates ON monthly_passes(start_date, end_date);
 
 Owner: `.NET`
 
-| Column | Type | Required | Note |
-|---|---|---:|---|
-| id | BIGSERIAL | Yes | PK |
-| session_id | BIGINT FK parking_sessions(id) | Yes | Session |
-| card_id | BIGINT FK parking_cards(id) | No | Card nếu biết |
-| reporter_name | VARCHAR(150) | Yes | Người báo mất |
-| phone | VARCHAR(30) | No | SĐT |
-| verification_note | TEXT | Yes | Mô tả xác minh |
-| reason | TEXT | Yes | Lý do |
-| lost_card_fee | NUMERIC(12,2) | Yes | Phí áp dụng |
-| status | VARCHAR(30) | Yes | PENDING/APPROVED/REJECTED |
-| created_by | BIGINT FK users(id) | Yes | Staff |
-| approved_by | BIGINT FK users(id) | No | Manager/Admin |
-| approved_at | TIMESTAMPTZ | No | Thời gian duyệt |
-| rejection_reason | TEXT | No | Lý do từ chối |
-| created_at | TIMESTAMPTZ | Yes | Auto |
-| updated_at | TIMESTAMPTZ | Yes | Auto |
+| Column            | Type                           | Required | Note                      |
+| ----------------- | ------------------------------ | -------: | ------------------------- |
+| id                | BIGSERIAL                      |      Yes | PK                        |
+| session_id        | BIGINT FK parking_sessions(id) |      Yes | Session                   |
+| card_id           | BIGINT FK parking_cards(id)    |       No | Card nếu biết             |
+| reporter_name     | VARCHAR(150)                   |      Yes | Người báo mất             |
+| phone             | VARCHAR(30)                    |       No | SĐT                       |
+| verification_note | TEXT                           |      Yes | Mô tả xác minh            |
+| reason            | TEXT                           |      Yes | Lý do                     |
+| lost_card_fee     | NUMERIC(12,2)                  |      Yes | Phí áp dụng               |
+| status            | VARCHAR(30)                    |      Yes | PENDING/APPROVED/REJECTED |
+| created_by        | BIGINT FK users(id)            |      Yes | Staff                     |
+| approved_by       | BIGINT FK users(id)            |       No | Manager/Admin             |
+| approved_at       | TIMESTAMPTZ                    |       No | Thời gian duyệt           |
+| rejection_reason  | TEXT                           |       No | Lý do từ chối             |
+| created_at        | TIMESTAMPTZ                    |      Yes | Auto                      |
+| updated_at        | TIMESTAMPTZ                    |      Yes | Auto                      |
 
 Rule:
 
@@ -980,20 +951,20 @@ Rule:
 
 Owner: `.NET`
 
-| Column | Type | Required | Note |
-|---|---|---:|---|
-| id | BIGSERIAL | Yes | PK |
-| session_id | BIGINT FK parking_sessions(id) | Yes | Session |
-| entry_plate_number | VARCHAR(30) | No | Biển số lúc vào |
-| exit_plate_number | VARCHAR(30) | Yes | Biển số lúc ra |
-| reason | TEXT | No | Lý do xác nhận |
-| status | VARCHAR(30) | Yes | PENDING/CONFIRMED/REJECTED |
-| created_by | BIGINT FK users(id) | Yes | Staff |
-| confirmed_by | BIGINT FK users(id) | No | Manager/Admin |
-| confirmed_at | TIMESTAMPTZ | No | Thời gian xác nhận |
-| rejection_reason | TEXT | No | Lý do từ chối |
-| created_at | TIMESTAMPTZ | Yes | Auto |
-| updated_at | TIMESTAMPTZ | Yes | Auto |
+| Column             | Type                           | Required | Note                       |
+| ------------------ | ------------------------------ | -------: | -------------------------- |
+| id                 | BIGSERIAL                      |      Yes | PK                         |
+| session_id         | BIGINT FK parking_sessions(id) |      Yes | Session                    |
+| entry_plate_number | VARCHAR(30)                    |       No | Biển số lúc vào            |
+| exit_plate_number  | VARCHAR(30)                    |      Yes | Biển số lúc ra             |
+| reason             | TEXT                           |       No | Lý do xác nhận             |
+| status             | VARCHAR(30)                    |      Yes | PENDING/CONFIRMED/REJECTED |
+| created_by         | BIGINT FK users(id)            |      Yes | Staff                      |
+| confirmed_by       | BIGINT FK users(id)            |       No | Manager/Admin              |
+| confirmed_at       | TIMESTAMPTZ                    |       No | Thời gian xác nhận         |
+| rejection_reason   | TEXT                           |       No | Lý do từ chối              |
+| created_at         | TIMESTAMPTZ                    |      Yes | Auto                       |
+| updated_at         | TIMESTAMPTZ                    |      Yes | Auto                       |
 
 Rule:
 
@@ -1004,18 +975,18 @@ Rule:
 
 Owner: append-only shared.
 
-| Column | Type | Required | Note |
-|---|---|---:|---|
-| id | BIGSERIAL | Yes | PK |
-| actor_user_id | BIGINT FK users(id) | No | Người thực hiện |
-| source_service | VARCHAR(50) | Yes | CORE_API/SUPPORT_API |
-| action | VARCHAR(100) | Yes | SESSION_CREATED... |
-| target_type | VARCHAR(100) | Yes | ParkingSession/Card/... |
-| target_id | VARCHAR(100) | Yes | ID string |
-| old_value | JSONB | No | Snapshot cũ |
-| new_value | JSONB | No | Snapshot mới |
-| reason | TEXT | No | Lý do |
-| created_at | TIMESTAMPTZ | Yes | Auto |
+| Column         | Type                | Required | Note                    |
+| -------------- | ------------------- | -------: | ----------------------- |
+| id             | BIGSERIAL           |      Yes | PK                      |
+| actor_user_id  | BIGINT FK users(id) |       No | Người thực hiện         |
+| source_service | VARCHAR(50)         |      Yes | CORE_API/SUPPORT_API    |
+| action         | VARCHAR(100)        |      Yes | SESSION_CREATED...      |
+| target_type    | VARCHAR(100)        |      Yes | ParkingSession/Card/... |
+| target_id      | VARCHAR(100)        |      Yes | ID string               |
+| old_value      | JSONB               |       No | Snapshot cũ             |
+| new_value      | JSONB               |       No | Snapshot mới            |
+| reason         | TEXT                |       No | Lý do                   |
+| created_at     | TIMESTAMPTZ         |      Yes | Auto                    |
 
 Indexes:
 
@@ -1032,55 +1003,78 @@ Không backend nào được update/delete audit log.
 
 Owner: `Spring Boot`
 
-| Column | Type | Required | Note |
-|---|---|---:|---|
-| id | BIGSERIAL | Yes | PK |
-| driver_user_id | BIGINT FK users(id) | No | Nullable nếu public feedback |
-| type | VARCHAR(50) | Yes | ISSUE/SUGGESTION/OTHER |
-| content | TEXT | Yes | Nội dung |
-| status | VARCHAR(30) | Yes | OPEN/RESOLVED/REJECTED |
-| resolved_by | BIGINT FK users(id) | No | Manager/Admin |
-| resolved_at | TIMESTAMPTZ | No | Thời gian xử lý |
-| created_at | TIMESTAMPTZ | Yes | Auto |
-| updated_at | TIMESTAMPTZ | Yes | Auto |
+| Column         | Type                | Required | Note                         |
+| -------------- | ------------------- | -------: | ---------------------------- |
+| id             | BIGSERIAL           |      Yes | PK                           |
+| driver_user_id | BIGINT FK users(id) |       No | Nullable nếu public feedback |
+| type           | VARCHAR(50)         |      Yes | ISSUE/SUGGESTION/OTHER       |
+| content        | TEXT                |      Yes | Nội dung                     |
+| status         | VARCHAR(30)         |      Yes | OPEN/RESOLVED/REJECTED       |
+| resolved_by    | BIGINT FK users(id) |       No | Manager/Admin                |
+| resolved_at    | TIMESTAMPTZ         |       No | Thời gian xử lý              |
+| created_at     | TIMESTAMPTZ         |      Yes | Auto                         |
+| updated_at     | TIMESTAMPTZ         |      Yes | Auto                         |
 
 ## 8.20 notifications - Could Have
 
 Owner: `Spring Boot`
 
-| Column | Type | Required | Note |
-|---|---|---:|---|
-| id | BIGSERIAL | Yes | PK |
-| user_id | BIGINT FK users(id) | No | Người nhận |
-| title | VARCHAR(150) | Yes | Tiêu đề |
-| content | TEXT | Yes | Nội dung |
-| is_read | BOOLEAN | Yes | Default false |
-| created_at | TIMESTAMPTZ | Yes | Auto |
+| Column     | Type                | Required | Note          |
+| ---------- | ------------------- | -------: | ------------- |
+| id         | BIGSERIAL           |      Yes | PK            |
+| user_id    | BIGINT FK users(id) |       No | Người nhận    |
+| title      | VARCHAR(150)        |      Yes | Tiêu đề       |
+| content    | TEXT                |      Yes | Nội dung      |
+| is_read    | BOOLEAN             |      Yes | Default false |
+| created_at | TIMESTAMPTZ         |      Yes | Auto          |
 
 ## 8.21 mock_device_events - Optional
 
 Owner: `Spring Boot`
 
-| Column | Type | Required | Note |
-|---|---|---:|---|
-| id | BIGSERIAL | Yes | PK |
-| event_type | VARCHAR(50) | Yes | CAMERA_SCAN/BARRIER_OPEN |
-| payload | JSONB | No | Dữ liệu mock |
-| created_by | BIGINT FK users(id) | No | User |
-| created_at | TIMESTAMPTZ | Yes | Auto |
+| Column     | Type                | Required | Note                     |
+| ---------- | ------------------- | -------: | ------------------------ |
+| id         | BIGSERIAL           |      Yes | PK                       |
+| event_type | VARCHAR(50)         |      Yes | CAMERA_SCAN/BARRIER_OPEN |
+| payload    | JSONB               |       No | Dữ liệu mock             |
+| created_by | BIGINT FK users(id) |       No | User                     |
+| created_at | TIMESTAMPTZ         |      Yes | Auto                     |
 
 ## 8.22 system_configs - Could Have
 
 Owner: `.NET`
 
-| Column | Type | Required | Note |
-|---|---|---:|---|
-| id | BIGSERIAL | Yes | PK |
-| config_key | VARCHAR(100) | Yes | Unique |
-| config_value | TEXT | Yes | Giá trị |
-| description | TEXT | No | Mô tả |
-| updated_by | BIGINT FK users(id) | No | Admin |
-| updated_at | TIMESTAMPTZ | Yes | Auto |
+| Column       | Type                | Required | Note    |
+| ------------ | ------------------- | -------: | ------- |
+| id           | BIGSERIAL           |      Yes | PK      |
+| config_key   | VARCHAR(100)        |      Yes | Unique  |
+| config_value | TEXT                |      Yes | Giá trị |
+| description  | TEXT                |       No | Mô tả   |
+| updated_by   | BIGINT FK users(id) |       No | Admin   |
+| updated_at   | TIMESTAMPTZ         |      Yes | Auto    |
+
+## 8.23 reservations
+
+Owner: `.NET`
+
+| Column      | Type                          | Required | Note                                           |
+| ----------- | ----------------------------- | -------: | ---------------------------------------------- |
+| id          | BIGSERIAL                     |      Yes | PK                                             |
+| driver_id   | BIGINT FK driver_profiles(id) |       No | Tài xế đặt chỗ                                 |
+| slot_id     | BIGINT FK slots(id)           |      Yes | Slot ô tô được giữ                             |
+| reserved_at | TIMESTAMPTZ                   |      Yes | Thời điểm đặt                                  |
+| expires_at  | TIMESTAMPTZ                   |      Yes | Thời điểm hết hạn (thời gian vào + 15p)        |
+| status      | VARCHAR(30)                   |      Yes | PENDING/COMPLETED/CANCELLED/EXPIRED            |
+| created_at  | TIMESTAMPTZ                   |      Yes | Auto                                           |
+| updated_at  | TIMESTAMPTZ                   |      Yes | Auto                                           |
+
+Indexes:
+
+```sql
+CREATE INDEX ix_reservations_driver ON reservations(driver_id);
+CREATE INDEX ix_reservations_slot ON reservations(slot_id);
+CREATE INDEX ix_reservations_status ON reservations(status);
+```
 
 ---
 
@@ -1159,7 +1153,6 @@ ParkingBuilding.CoreApi
 │   ├── GatesController.cs
 │   ├── ParkingSessionsController.cs
 │   ├── PaymentsController.cs
-│   ├── ReceiptsController.cs
 │   ├── MonthlyPassesController.cs
 │   ├── LostCardCasesController.cs
 │   ├── PlateMismatchController.cs
@@ -1174,7 +1167,6 @@ ParkingBuilding.CoreApi
 │   ├── ParkingSessions
 │   ├── FeeCalculation
 │   ├── Payments
-│   ├── Receipts
 │   ├── MonthlyPasses
 │   ├── LostCards
 │   ├── Mismatch
@@ -1277,7 +1269,6 @@ gates
 parking_sessions
 pricing_rules
 payments
-receipts
 monthly_passes
 lost_card_cases
 plate_mismatch_cases
@@ -1300,11 +1291,11 @@ Owner: `.NET Core API`
 
 APIs:
 
-| Method | Endpoint | Role | Mô tả |
-|---|---|---|---|
-| POST | `/api/core/auth/login` | Public | Đăng nhập user nội bộ/driver |
-| POST | `/api/core/auth/logout` | Authenticated | Đăng xuất logic |
-| GET | `/api/core/auth/me` | Authenticated | Lấy user hiện tại |
+| Method | Endpoint                | Role          | Mô tả                        |
+| ------ | ----------------------- | ------------- | ---------------------------- |
+| POST   | `/api/core/auth/login`  | Public        | Đăng nhập user nội bộ/driver |
+| POST   | `/api/core/auth/logout` | Authenticated | Đăng xuất logic              |
+| GET    | `/api/core/auth/me`     | Authenticated | Lấy user hiện tại            |
 
 DTO:
 
@@ -1334,28 +1325,28 @@ UserRepository.GetByPhoneAsync(string phone)
 
 Business validation:
 
-| Validation | Error |
-|---|---|
-| Sai username/password | `INVALID_CREDENTIALS` |
-| User LOCKED/INACTIVE | `ACCOUNT_LOCKED` |
-| Password plain text không được lưu | Dev rule |
+| Validation                         | Error                 |
+| ---------------------------------- | --------------------- |
+| Sai username/password              | `INVALID_CREDENTIALS` |
+| User LOCKED/INACTIVE               | `ACCOUNT_LOCKED`      |
+| Password plain text không được lưu | Dev rule              |
 
 Frontend:
 
-| Page/Component | Mô tả |
-|---|---|
-| LoginPage | Login chung |
-| AuthProvider | Lưu token/user |
-| ProtectedRoute | Check auth |
-| RoleBasedRoute | Check role |
+| Page/Component | Mô tả          |
+| -------------- | -------------- |
+| LoginPage      | Login chung    |
+| AuthProvider   | Lưu token/user |
+| ProtectedRoute | Check auth     |
+| RoleBasedRoute | Check role     |
 
 Test cases:
 
-| Test ID | Mô tả |
-|---|---|
-| TC-AUTH-01 | Staff login thành công nhận JWT |
-| TC-AUTH-02 | Sai password trả 401 |
-| TC-AUTH-03 | Account LOCKED không login được |
+| Test ID    | Mô tả                                |
+| ---------- | ------------------------------------ |
+| TC-AUTH-01 | Staff login thành công nhận JWT      |
+| TC-AUTH-02 | Sai password trả 401                 |
+| TC-AUTH-03 | Account LOCKED không login được      |
 | TC-AUTH-04 | Spring verify JWT từ .NET thành công |
 
 ## 12.2 Module User Management
@@ -1366,14 +1357,14 @@ Owner: `.NET Core API`
 
 APIs:
 
-| Method | Endpoint | Role |
-|---|---|---|
-| GET | `/api/core/users` | ADMIN |
-| POST | `/api/core/users` | ADMIN |
-| GET | `/api/core/users/{id}` | ADMIN |
-| PUT | `/api/core/users/{id}` | ADMIN |
-| PATCH | `/api/core/users/{id}/status` | ADMIN |
-| PATCH | `/api/core/users/{id}/role` | ADMIN |
+| Method | Endpoint                      | Role  |
+| ------ | ----------------------------- | ----- |
+| GET    | `/api/core/users`             | ADMIN |
+| POST   | `/api/core/users`             | ADMIN |
+| GET    | `/api/core/users/{id}`        | ADMIN |
+| PUT    | `/api/core/users/{id}`        | ADMIN |
+| PATCH  | `/api/core/users/{id}/status` | ADMIN |
+| PATCH  | `/api/core/users/{id}/role`   | ADMIN |
 
 DTO:
 
@@ -1408,29 +1399,29 @@ UserRepository.ExistsByPhoneAsync(...)
 
 Business validation:
 
-| Validation | Error |
-|---|---|
-| Username trùng | `USERNAME_ALREADY_EXISTS` |
-| Email trùng | `EMAIL_ALREADY_EXISTS` |
-| Phone trùng | `PHONE_ALREADY_EXISTS` |
-| Staff gọi user management | 403 |
+| Validation                | Error                     |
+| ------------------------- | ------------------------- |
+| Username trùng            | `USERNAME_ALREADY_EXISTS` |
+| Email trùng               | `EMAIL_ALREADY_EXISTS`    |
+| Phone trùng               | `PHONE_ALREADY_EXISTS`    |
+| Staff gọi user management | 403                       |
 
 Frontend:
 
-| Page/Component | Mô tả |
-|---|---|
+| Page/Component     | Mô tả          |
+| ------------------ | -------------- |
 | UserManagementPage | Danh sách user |
-| UserCreateModal | Tạo user |
-| UserStatusAction | Lock/unlock |
-| UserRoleSelect | Đổi role |
+| UserCreateModal    | Tạo user       |
+| UserStatusAction   | Lock/unlock    |
+| UserRoleSelect     | Đổi role       |
 
 Test cases:
 
-| Test ID | Mô tả |
-|---|---|
-| TC-USER-01 | Admin tạo Staff |
-| TC-USER-02 | Không tạo username trùng |
-| TC-USER-03 | Admin khóa user |
+| Test ID    | Mô tả                          |
+| ---------- | ------------------------------ |
+| TC-USER-01 | Admin tạo Staff                |
+| TC-USER-02 | Không tạo username trùng       |
+| TC-USER-03 | Admin khóa user                |
 | TC-USER-04 | Staff không gọi được API admin |
 
 ## 12.3 Module Driver Account - Should Have
@@ -1441,14 +1432,14 @@ Owner: `.NET Core API`
 
 APIs:
 
-| Method | Endpoint | Role |
-|---|---|---|
-| POST | `/api/core/driver/register` | Public |
-| GET | `/api/core/driver/me` | DRIVER |
-| PUT | `/api/core/driver/me` | DRIVER |
-| GET | `/api/core/driver/vehicles` | DRIVER |
-| POST | `/api/core/driver/vehicles` | DRIVER |
-| GET | `/api/core/driver/parking-history` | DRIVER |
+| Method | Endpoint                           | Role   |
+| ------ | ---------------------------------- | ------ |
+| POST   | `/api/core/driver/register`        | Public |
+| GET    | `/api/core/driver/me`              | DRIVER |
+| PUT    | `/api/core/driver/me`              | DRIVER |
+| GET    | `/api/core/driver/vehicles`        | DRIVER |
+| POST   | `/api/core/driver/vehicles`        | DRIVER |
+| GET    | `/api/core/driver/parking-history` | DRIVER |
 
 DTO:
 
@@ -1473,11 +1464,11 @@ IDriverService.GetParkingHistoryAsync(long userId, PageRequest request)
 
 Business validation:
 
-| Validation | Error |
-|---|---|
-| Email/phone trùng user | `EMAIL_ALREADY_EXISTS` / `PHONE_ALREADY_EXISTS` |
-| Vehicle type inactive | `VEHICLE_TYPE_INACTIVE` |
-| Driver xem history user khác | 403 |
+| Validation                   | Error                                           |
+| ---------------------------- | ----------------------------------------------- |
+| Email/phone trùng user       | `EMAIL_ALREADY_EXISTS` / `PHONE_ALREADY_EXISTS` |
+| Vehicle type inactive        | `VEHICLE_TYPE_INACTIVE`                         |
+| Driver xem history user khác | 403                                             |
 
 Rule:
 
@@ -1486,20 +1477,20 @@ Rule:
 
 Frontend:
 
-| Page/Component | Mô tả |
-|---|---|
+| Page/Component     | Mô tả       |
+| ------------------ | ----------- |
 | DriverRegisterPage | Should Have |
-| DriverProfilePage | Should Have |
-| MyVehiclesPage | Should Have |
+| DriverProfilePage  | Should Have |
+| MyVehiclesPage     | Should Have |
 | ParkingHistoryPage | Should Have |
 
 Test cases:
 
-| Test ID | Mô tả |
-|---|---|
-| TC-DRV-01 | Driver register bằng email |
-| TC-DRV-02 | Driver thêm xe cá nhân |
-| TC-DRV-03 | Driver xem lịch sử của mình |
+| Test ID   | Mô tả                                    |
+| --------- | ---------------------------------------- |
+| TC-DRV-01 | Driver register bằng email               |
+| TC-DRV-02 | Driver thêm xe cá nhân                   |
+| TC-DRV-03 | Driver xem lịch sử của mình              |
 | TC-DRV-04 | Driver không xem được history người khác |
 
 ## 12.4 Module Vehicle Type And Vehicle
@@ -1510,13 +1501,13 @@ Owner: `.NET Core API`
 
 APIs:
 
-| Method | Endpoint | Role |
-|---|---|---|
-| GET | `/api/core/vehicle-types` | Public/Auth |
-| POST | `/api/core/vehicle-types` | MANAGER/ADMIN |
-| PATCH | `/api/core/vehicle-types/{id}/active` | MANAGER/ADMIN |
-| GET | `/api/core/vehicles` | STAFF/MANAGER/ADMIN |
-| POST | `/api/core/vehicles` | STAFF/MANAGER/ADMIN |
+| Method | Endpoint                              | Role                |
+| ------ | ------------------------------------- | ------------------- |
+| GET    | `/api/core/vehicle-types`             | Public/Auth         |
+| POST   | `/api/core/vehicle-types`             | MANAGER/ADMIN       |
+| PATCH  | `/api/core/vehicle-types/{id}/active` | MANAGER/ADMIN       |
+| GET    | `/api/core/vehicles`                  | STAFF/MANAGER/ADMIN |
+| POST   | `/api/core/vehicles`                  | STAFF/MANAGER/ADMIN |
 
 Services:
 
@@ -1540,29 +1531,29 @@ ParkingSessionRepository.ExistsActiveByPlateAsync(string normalizedPlate)
 
 Business validation:
 
-| Validation | Error |
-|---|---|
-| Vehicle type inactive khi entry | `VEHICLE_TYPE_INACTIVE` |
-| Plate đang có active session | `VEHICLE_HAS_ACTIVE_SESSION` |
-| Xe không biển số phải có mô tả | `VEHICLE_DESCRIPTION_REQUIRED` |
+| Validation                      | Error                          |
+| ------------------------------- | ------------------------------ |
+| Vehicle type inactive khi entry | `VEHICLE_TYPE_INACTIVE`        |
+| Plate đang có active session    | `VEHICLE_HAS_ACTIVE_SESSION`   |
+| Xe không biển số phải có mô tả  | `VEHICLE_DESCRIPTION_REQUIRED` |
 
 Frontend:
 
-| Component | Mô tả |
-|---|---|
-| VehicleTypeSelect | Dropdown loại xe |
+| Component                 | Mô tả                   |
+| ------------------------- | ----------------------- |
+| VehicleTypeSelect         | Dropdown loại xe        |
 | VehicleTypeManagementPage | Manager quản lý loại xe |
-| PlateNumberInput | Nhập biển số |
-| NoPlateToggle | Xe không biển số |
-| VehicleDescriptionInput | Mô tả |
+| PlateNumberInput          | Nhập biển số            |
+| NoPlateToggle             | Xe không biển số        |
+| VehicleDescriptionInput   | Mô tả                   |
 
 Test cases:
 
-| Test ID | Mô tả |
-|---|---|
-| TC-VEH-01 | Lấy danh sách loại xe active |
-| TC-VEH-02 | Manager tắt loại xe |
-| TC-VEH-03 | Không entry với loại xe inactive |
+| Test ID   | Mô tả                                    |
+| --------- | ---------------------------------------- |
+| TC-VEH-01 | Lấy danh sách loại xe active             |
+| TC-VEH-02 | Manager tắt loại xe                      |
+| TC-VEH-03 | Không entry với loại xe inactive         |
 | TC-VEH-04 | Xe đã active session không tạo entry mới |
 
 ## 12.5 Module Parking Card
@@ -1573,14 +1564,14 @@ Owner: `.NET Core API`
 
 APIs:
 
-| Method | Endpoint | Role |
-|---|---|---|
-| GET | `/api/core/cards` | MANAGER/ADMIN |
-| POST | `/api/core/cards` | MANAGER/ADMIN |
-| GET | `/api/core/cards/available` | STAFF/MANAGER/ADMIN |
-| GET | `/api/core/cards/{id}` | MANAGER/ADMIN |
-| PATCH | `/api/core/cards/{id}/status` | MANAGER/ADMIN |
-| GET | `/api/core/cards/by-code/{cardCode}/active-session` | STAFF/MANAGER/ADMIN |
+| Method | Endpoint                                            | Role                |
+| ------ | --------------------------------------------------- | ------------------- |
+| GET    | `/api/core/cards`                                   | MANAGER/ADMIN       |
+| POST   | `/api/core/cards`                                   | MANAGER/ADMIN       |
+| GET    | `/api/core/cards/available`                         | STAFF/MANAGER/ADMIN |
+| GET    | `/api/core/cards/{id}`                              | MANAGER/ADMIN       |
+| PATCH  | `/api/core/cards/{id}/status`                       | MANAGER/ADMIN       |
+| GET    | `/api/core/cards/by-code/{cardCode}/active-session` | STAFF/MANAGER/ADMIN |
 
 DTO:
 
@@ -1617,35 +1608,35 @@ ParkingCardRepository.ExistsByQrTokenAsync(string qrToken)
 
 Business validation:
 
-| Validation | Error |
-|---|---|
-| cardCode trùng | `CARD_CODE_ALREADY_EXISTS` |
-| qrToken trùng | `QR_TOKEN_ALREADY_EXISTS` |
-| Card không AVAILABLE khi entry | `CARD_NOT_AVAILABLE` |
-| Card IN_USE không có active session | `CARD_STATE_CONFLICT` |
-| Card LOST/DAMAGED/INACTIVE không dùng entry | `CARD_NOT_AVAILABLE` |
+| Validation                                  | Error                      |
+| ------------------------------------------- | -------------------------- |
+| cardCode trùng                              | `CARD_CODE_ALREADY_EXISTS` |
+| qrToken trùng                               | `QR_TOKEN_ALREADY_EXISTS`  |
+| Card không AVAILABLE khi entry              | `CARD_NOT_AVAILABLE`       |
+| Card IN_USE không có active session         | `CARD_STATE_CONFLICT`      |
+| Card LOST/DAMAGED/INACTIVE không dùng entry | `CARD_NOT_AVAILABLE`       |
 
 Frontend:
 
-| Page/Component | Mô tả |
-|---|---|
-| CardManagementPage | Manager/Admin quản lý card |
-| CardListTable | Danh sách card |
-| CardCreateModal | Tạo card |
-| CardStatusBadge | Trạng thái card |
-| CardStatusAction | LOST/DAMAGED/INACTIVE |
-| AvailableCardSelect | Staff chọn card lúc entry |
-| CardCodeInput | Staff nhập card lúc exit |
+| Page/Component      | Mô tả                      |
+| ------------------- | -------------------------- |
+| CardManagementPage  | Manager/Admin quản lý card |
+| CardListTable       | Danh sách card             |
+| CardCreateModal     | Tạo card                   |
+| CardStatusBadge     | Trạng thái card            |
+| CardStatusAction    | LOST/DAMAGED/INACTIVE      |
+| AvailableCardSelect | Staff chọn card lúc entry  |
+| CardCodeInput       | Staff nhập card lúc exit   |
 
 Test cases:
 
-| Test ID | Mô tả |
-|---|---|
-| TC-CARD-01 | Manager tạo card C001 |
-| TC-CARD-02 | Không cho tạo cardCode trùng |
-| TC-CARD-03 | Card AVAILABLE được gán vào session |
+| Test ID    | Mô tả                                       |
+| ---------- | ------------------------------------------- |
+| TC-CARD-01 | Manager tạo card C001                       |
+| TC-CARD-02 | Không cho tạo cardCode trùng                |
+| TC-CARD-03 | Card AVAILABLE được gán vào session         |
 | TC-CARD-04 | Card IN_USE không được dùng cho session mới |
-| TC-CARD-05 | Card LOST không được dùng lại |
+| TC-CARD-05 | Card LOST không được dùng lại               |
 
 ## 12.6 Module Parking Structure
 
@@ -1655,19 +1646,19 @@ Owner: `.NET Core API`
 
 APIs:
 
-| Method | Endpoint | Role |
-|---|---|---|
-| GET | `/api/core/floors` | STAFF/MANAGER/ADMIN |
-| POST | `/api/core/floors` | MANAGER/ADMIN |
-| PUT | `/api/core/floors/{id}` | MANAGER/ADMIN |
-| GET | `/api/core/areas` | STAFF/MANAGER/ADMIN |
-| POST | `/api/core/areas` | MANAGER/ADMIN |
-| PUT | `/api/core/areas/{id}` | MANAGER/ADMIN |
-| GET | `/api/core/slots` | STAFF/MANAGER/ADMIN |
-| POST | `/api/core/slots` | MANAGER/ADMIN |
-| PATCH | `/api/core/slots/{id}/status` | MANAGER/ADMIN |
-| POST | `/api/core/parking-sessions/{id}/move-slot` | MANAGER/ADMIN |
-| GET | `/api/core/gates` | STAFF/MANAGER/ADMIN |
+| Method | Endpoint                                    | Role                |
+| ------ | ------------------------------------------- | ------------------- |
+| GET    | `/api/core/floors`                          | STAFF/MANAGER/ADMIN |
+| POST   | `/api/core/floors`                          | MANAGER/ADMIN       |
+| PUT    | `/api/core/floors/{id}`                     | MANAGER/ADMIN       |
+| GET    | `/api/core/areas`                           | STAFF/MANAGER/ADMIN |
+| POST   | `/api/core/areas`                           | MANAGER/ADMIN       |
+| PUT    | `/api/core/areas/{id}`                      | MANAGER/ADMIN       |
+| GET    | `/api/core/slots`                           | STAFF/MANAGER/ADMIN |
+| POST   | `/api/core/slots`                           | MANAGER/ADMIN       |
+| PATCH  | `/api/core/slots/{id}/status`               | MANAGER/ADMIN       |
+| POST   | `/api/core/parking-sessions/{id}/move-slot` | MANAGER/ADMIN       |
+| GET    | `/api/core/gates`                           | STAFF/MANAGER/ADMIN |
 
 Services:
 
@@ -1696,33 +1687,33 @@ GateRepository.FindByTypeAndStatusAsync(...)
 
 Business validation:
 
-| Validation | Error |
-|---|---|
-| Area LOCKED/MAINTENANCE | `AREA_NOT_AVAILABLE` |
-| Slot không AVAILABLE khi entry | `SLOT_NOT_AVAILABLE` |
-| Slot không match vehicle type | `SLOT_VEHICLE_TYPE_NOT_ALLOWED` |
-| Change status slot OCCUPIED không qua flow hợp lệ | `SLOT_HAS_ACTIVE_SESSION` |
-| Move slot thiếu reason | `REASON_REQUIRED` |
+| Validation                                        | Error                           |
+| ------------------------------------------------- | ------------------------------- |
+| Area LOCKED/MAINTENANCE                           | `AREA_NOT_AVAILABLE`            |
+| Slot không AVAILABLE khi entry                    | `SLOT_NOT_AVAILABLE`            |
+| Slot không match vehicle type                     | `SLOT_VEHICLE_TYPE_NOT_ALLOWED` |
+| Change status slot OCCUPIED không qua flow hợp lệ | `SLOT_HAS_ACTIVE_SESSION`       |
+| Move slot thiếu reason                            | `REASON_REQUIRED`               |
 
 Frontend:
 
-| Page/Component | Mô tả |
-|---|---|
-| StructureManagementPage | Quản lý tầng/khu/slot |
-| SlotMap | Sơ đồ slot đơn giản |
-| SlotStatusBadge | Màu trạng thái |
-| SlotStatusAction | Đổi status |
-| MoveSlotModal | Chuyển session sang slot khác |
+| Page/Component          | Mô tả                         |
+| ----------------------- | ----------------------------- |
+| StructureManagementPage | Quản lý tầng/khu/slot         |
+| SlotMap                 | Sơ đồ slot đơn giản           |
+| SlotStatusBadge         | Màu trạng thái                |
+| SlotStatusAction        | Đổi status                    |
+| MoveSlotModal           | Chuyển session sang slot khác |
 
 Test cases:
 
-| Test ID | Mô tả |
-|---|---|
-| TC-STRUCT-01 | Manager tạo floor/area/slot |
-| TC-STRUCT-02 | Không tạo trùng slot trong cùng area |
-| TC-STRUCT-03 | Đổi slot AVAILABLE sang LOCKED |
+| Test ID      | Mô tả                                               |
+| ------------ | --------------------------------------------------- |
+| TC-STRUCT-01 | Manager tạo floor/area/slot                         |
+| TC-STRUCT-02 | Không tạo trùng slot trong cùng area                |
+| TC-STRUCT-03 | Đổi slot AVAILABLE sang LOCKED                      |
 | TC-STRUCT-04 | Không khóa slot đang OCCUPIED nếu không move/cancel |
-| TC-STRUCT-05 | Move session cập nhật slot cũ/mới đúng |
+| TC-STRUCT-05 | Move session cập nhật slot cũ/mới đúng              |
 
 ## 12.7 Module Slot Suggestion
 
@@ -1732,9 +1723,9 @@ Owner: `.NET Core API`
 
 API:
 
-| Method | Endpoint | Role |
-|---|---|---|
-| POST | `/api/core/parking-sessions/suggest-slot` | STAFF/MANAGER/ADMIN |
+| Method | Endpoint                                  | Role                |
+| ------ | ----------------------------------------- | ------------------- |
+| POST   | `/api/core/parking-sessions/suggest-slot` | STAFF/MANAGER/ADMIN |
 
 Request:
 
@@ -1770,22 +1761,22 @@ ISlotSuggestionService.BuildSuggestionReason(...)
 
 Business validation:
 
-| Validation | Error |
-|---|---|
-| Không có area phù hợp | `NO_AVAILABLE_AREA` |
-| Không có slot phù hợp | `NO_AVAILABLE_SLOT` |
-| Staff chọn khác suggestion | `SUGGESTION_OVERRIDE_NOT_ALLOWED` |
-| Manager/Admin override thiếu reason | `OVERRIDE_REASON_REQUIRED` |
+| Validation                          | Error                             |
+| ----------------------------------- | --------------------------------- |
+| Không có area phù hợp               | `NO_AVAILABLE_AREA`               |
+| Không có slot phù hợp               | `NO_AVAILABLE_SLOT`               |
+| Staff chọn khác suggestion          | `SUGGESTION_OVERRIDE_NOT_ALLOWED` |
+| Manager/Admin override thiếu reason | `OVERRIDE_REASON_REQUIRED`        |
 
 Test cases:
 
-| Test ID | Mô tả |
-|---|---|
-| TC-SUG-01 | Đề xuất khu đúng loại xe |
-| TC-SUG-02 | Bỏ qua khu LOCKED |
+| Test ID   | Mô tả                            |
+| --------- | -------------------------------- |
+| TC-SUG-01 | Đề xuất khu đúng loại xe         |
+| TC-SUG-02 | Bỏ qua khu LOCKED                |
 | TC-SUG-03 | Ưu tiên khu nhiều slot trống hơn |
-| TC-SUG-04 | Staff không override suggestion |
-| TC-SUG-05 | Manager override có audit log |
+| TC-SUG-04 | Staff không override suggestion  |
+| TC-SUG-05 | Manager override có audit log    |
 
 ## 12.8 Module Entry Processing
 
@@ -1795,9 +1786,9 @@ Owner: `.NET Core API`
 
 API:
 
-| Method | Endpoint | Role |
-|---|---|---|
-| POST | `/api/core/parking-sessions/entry` | STAFF/MANAGER/ADMIN |
+| Method | Endpoint                           | Role                |
+| ------ | ---------------------------------- | ------------------- |
+| POST   | `/api/core/parking-sessions/entry` | STAFF/MANAGER/ADMIN |
 
 Request:
 
@@ -1869,53 +1860,53 @@ Transaction boundary:
 
 Business validation:
 
-| Validation | Error |
-|---|---|
-| Card không AVAILABLE | `CARD_NOT_AVAILABLE` |
-| Slot không AVAILABLE | `SLOT_NOT_AVAILABLE` |
-| Xe đã active session | `VEHICLE_HAS_ACTIVE_SESSION` |
-| NoPlate nhưng không có mô tả | `VEHICLE_DESCRIPTION_REQUIRED` |
-| Không có pricing active | `PRICING_RULE_NOT_FOUND` |
-| Staff override suggestion | `SUGGESTION_OVERRIDE_NOT_ALLOWED` |
+| Validation                   | Error                             |
+| ---------------------------- | --------------------------------- |
+| Card không AVAILABLE         | `CARD_NOT_AVAILABLE`              |
+| Slot không AVAILABLE         | `SLOT_NOT_AVAILABLE`              |
+| Xe đã active session         | `VEHICLE_HAS_ACTIVE_SESSION`      |
+| NoPlate nhưng không có mô tả | `VEHICLE_DESCRIPTION_REQUIRED`    |
+| Không có pricing active      | `PRICING_RULE_NOT_FOUND`          |
+| Staff override suggestion    | `SUGGESTION_OVERRIDE_NOT_ALLOWED` |
 
 Frontend:
 
-| Page/Component | Mô tả |
-|---|---|
-| StaffEntryPage | Màn xử lý xe vào |
+| Page/Component   | Mô tả            |
+| ---------------- | ---------------- |
+| StaffEntryPage   | Màn xử lý xe vào |
 | MockCameraButton | Điền biển số mẫu |
-| EntryForm | Form vào |
-| SuggestionPanel | Hiển thị gợi ý |
-| EntryResultModal | Kết quả session |
+| EntryForm        | Form vào         |
+| SuggestionPanel  | Hiển thị gợi ý   |
+| EntryResultModal | Kết quả session  |
 
 Test cases:
 
-| Test ID | Mô tả |
-|---|---|
-| TC-ENTRY-01 | Xe vãng lai vào thành công |
-| TC-ENTRY-02 | Card chuyển IN_USE |
-| TC-ENTRY-03 | Slot chuyển OCCUPIED |
-| TC-ENTRY-04 | Duplicate active card bị chặn |
-| TC-ENTRY-05 | Duplicate active plate bị chặn |
+| Test ID     | Mô tả                                        |
+| ----------- | -------------------------------------------- |
+| TC-ENTRY-01 | Xe vãng lai vào thành công                   |
+| TC-ENTRY-02 | Card chuyển IN_USE                           |
+| TC-ENTRY-03 | Slot chuyển OCCUPIED                         |
+| TC-ENTRY-04 | Duplicate active card bị chặn                |
+| TC-ENTRY-05 | Duplicate active plate bị chặn               |
 | TC-ENTRY-06 | Entry monthly pass nhận customerType MONTHLY |
-| TC-ENTRY-07 | Snapshot giá được lưu |
+| TC-ENTRY-07 | Snapshot giá được lưu                        |
 
 ## 12.9 Module Exit Processing
 
-FR liên quan: FR-09, FR-10, FR-11, FR-12, FR-13, FR-15.
+FR liên quan: FR-09, FR-10, FR-11, FR-13, FR-15.
 
 Owner: `.NET Core API`
 
 APIs:
 
-| Method | Endpoint | Role |
-|---|---|---|
-| GET | `/api/core/parking-sessions/{id}` | STAFF/MANAGER/ADMIN |
-| GET | `/api/core/parking-sessions/search` | STAFF/MANAGER/ADMIN |
-| GET | `/api/core/parking-sessions/by-card-code/{cardCode}` | STAFF/MANAGER/ADMIN |
-| POST | `/api/core/parking-sessions/{id}/calculate-fee` | STAFF/MANAGER/ADMIN |
-| POST | `/api/core/parking-sessions/{id}/exit` | STAFF/MANAGER/ADMIN |
-| POST | `/api/core/parking-sessions/{id}/monthly-pass-exit` | STAFF/MANAGER/ADMIN |
+| Method | Endpoint                                             | Role                |
+| ------ | ---------------------------------------------------- | ------------------- |
+| GET    | `/api/core/parking-sessions/{id}`                    | STAFF/MANAGER/ADMIN |
+| GET    | `/api/core/parking-sessions/search`                  | STAFF/MANAGER/ADMIN |
+| GET    | `/api/core/parking-sessions/by-card-code/{cardCode}` | STAFF/MANAGER/ADMIN |
+| POST   | `/api/core/parking-sessions/{id}/calculate-fee`      | STAFF/MANAGER/ADMIN |
+| POST   | `/api/core/parking-sessions/{id}/exit`               | STAFF/MANAGER/ADMIN |
+| POST   | `/api/core/parking-sessions/{id}/monthly-pass-exit`  | STAFF/MANAGER/ADMIN |
 
 Casual exit request:
 
@@ -1951,7 +1942,6 @@ IExitService.ValidatePaymentPaidAsync(long sessionId)
 IExitService.MarkSessionCompletedAsync(...)
 IExitService.ReleaseSlotAsync(...)
 IExitService.ReleaseCardAsync(...)
-IExitService.GenerateReceiptAsync(...)
 IExitService.WriteExitAuditLogAsync(...)
 ```
 
@@ -1965,39 +1955,37 @@ Transaction boundary:
 - Mark session completed.
 - Release slot.
 - Release card nếu card không LOST/DAMAGED/INACTIVE.
-- Generate receipt.
 - Write audit log.
 
 Business validation:
 
-| Validation | Error |
-|---|---|
-| Session không ACTIVE/pending hợp lệ | `SESSION_NOT_ACTIVE` |
-| Khách vãng lai chưa paid | `PAYMENT_REQUIRED_BEFORE_EXIT` |
-| Lost card chưa approved | `LOST_CARD_NOT_APPROVED` |
-| Plate mismatch chưa confirm | `PLATE_MISMATCH_REQUIRES_APPROVAL` |
-| Gate không phải EXIT | `INVALID_EXIT_GATE` |
+| Validation                          | Error                              |
+| ----------------------------------- | ---------------------------------- |
+| Session không ACTIVE/pending hợp lệ | `SESSION_NOT_ACTIVE`               |
+| Khách vãng lai chưa paid            | `PAYMENT_REQUIRED_BEFORE_EXIT`     |
+| Lost card chưa approved             | `LOST_CARD_NOT_APPROVED`           |
+| Plate mismatch chưa confirm         | `PLATE_MISMATCH_REQUIRES_APPROVAL` |
+| Gate không phải EXIT                | `INVALID_EXIT_GATE`                |
 
 Frontend:
 
-| Page/Component | Mô tả |
-|---|---|
-| StaffExitPage | Màn xe ra |
+| Page/Component     | Mô tả       |
+| ------------------ | ----------- |
+| StaffExitPage      | Màn xe ra   |
 | SessionLookupPanel | Tìm session |
-| FeeSummaryPanel | Phí |
-| CashPaymentPanel | Thanh toán |
-| ReceiptModal | Hóa đơn |
+| FeeSummaryPanel    | Phí         |
+| CashPaymentPanel   | Thanh toán  |
 
 Test cases:
 
-| Test ID | Mô tả |
-|---|---|
-| TC-EXIT-01 | Tìm session bằng Card Code |
-| TC-EXIT-02 | Casual exit sau paid thành công |
-| TC-EXIT-03 | Chưa paid không completed |
-| TC-EXIT-04 | Monthly pass exit tạo receipt 0đ |
-| TC-EXIT-05 | Exit giải phóng card/slot |
-| TC-EXIT-06 | Sai biển số bị chặn |
+| Test ID    | Mô tả                            |
+| ---------- | -------------------------------- |
+| TC-EXIT-01 | Tìm session bằng Card Code       |
+| TC-EXIT-02 | Casual exit sau paid thành công  |
+| TC-EXIT-03 | Chưa paid không completed        |
+| TC-EXIT-04 | Monthly pass exit hoàn thành lượt gửi không thu tiền |
+| TC-EXIT-05 | Exit giải phóng card/slot        |
+| TC-EXIT-06 | Sai biển số bị chặn              |
 
 ## 12.10 Module Fee Calculation
 
@@ -2007,9 +1995,9 @@ Owner: `.NET Core API`
 
 API:
 
-| Method | Endpoint | Role |
-|---|---|---|
-| POST | `/api/core/parking-sessions/{id}/calculate-fee` | STAFF/MANAGER/ADMIN |
+| Method | Endpoint                                        | Role                |
+| ------ | ----------------------------------------------- | ------------------- |
+| POST   | `/api/core/parking-sessions/{id}/calculate-fee` | STAFF/MANAGER/ADMIN |
 
 Request:
 
@@ -2065,13 +2053,13 @@ Fee rule:
 
 Test cases:
 
-| Test ID | Mô tả |
-|---|---|
+| Test ID   | Mô tả                         |
+| --------- | ----------------------------- |
 | TC-FEE-01 | Gửi dưới 4 tiếng tính 1 block |
-| TC-FEE-02 | Gửi hơn 4 tiếng tính 2 block |
-| TC-FEE-03 | Gửi qua ngày/tối split đúng |
-| TC-FEE-04 | Lost card cộng fee |
-| TC-FEE-05 | Monthly pass tính 0đ |
+| TC-FEE-02 | Gửi hơn 4 tiếng tính 2 block  |
+| TC-FEE-03 | Gửi qua ngày/tối split đúng   |
+| TC-FEE-04 | Lost card cộng fee            |
+| TC-FEE-05 | Monthly pass tính 0đ          |
 
 ## 12.11 Module Payment
 
@@ -2081,12 +2069,12 @@ Owner: `.NET Core API`
 
 APIs:
 
-| Method | Endpoint | Role |
-|---|---|---|
-| POST | `/api/core/payments/cash` | STAFF/MANAGER/ADMIN |
-| POST | `/api/core/payments/waive` | MANAGER/ADMIN |
-| GET | `/api/core/payments/{id}` | STAFF/MANAGER/ADMIN |
-| GET | `/api/core/payments/by-session/{sessionId}` | STAFF/MANAGER/ADMIN |
+| Method | Endpoint                                    | Role                |
+| ------ | ------------------------------------------- | ------------------- |
+| POST   | `/api/core/payments/cash`                   | STAFF/MANAGER/ADMIN |
+| POST   | `/api/core/payments/waive`                  | MANAGER/ADMIN       |
+| GET    | `/api/core/payments/{id}`                   | STAFF/MANAGER/ADMIN |
+| GET    | `/api/core/payments/by-session/{sessionId}` | STAFF/MANAGER/ADMIN |
 
 DTO:
 
@@ -2108,75 +2096,21 @@ IPaymentService.MarkPaymentCancelledForSessionAsync(long sessionId)
 
 Business validation:
 
-| Validation | Error |
-|---|---|
-| Session không active | `SESSION_NOT_ACTIVE` |
-| Payment đã final | `PAYMENT_ALREADY_FINAL` |
+| Validation                   | Error                     |
+| ---------------------------- | ------------------------- |
+| Session không active         | `SESSION_NOT_ACTIVE`      |
+| Payment đã final             | `PAYMENT_ALREADY_FINAL`   |
 | Total amount không match fee | `PAYMENT_AMOUNT_MISMATCH` |
-| Staff waive không được phép | 403 |
+| Staff waive không được phép  | 403                       |
 
 Test cases:
 
-| Test ID | Mô tả |
-|---|---|
-| TC-PAY-01 | Staff tạo cash payment |
-| TC-PAY-02 | Không tạo lại payment đã PAID |
+| Test ID   | Mô tả                           |
+| --------- | ------------------------------- |
+| TC-PAY-01 | Staff tạo cash payment          |
+| TC-PAY-02 | Không tạo lại payment đã PAID   |
 | TC-PAY-03 | Payment amount mismatch bị chặn |
 | TC-PAY-04 | Waive payment cần Manager/Admin |
-
-## 12.12 Module Receipt
-
-FR liên quan: FR-12.
-
-Owner: `.NET Core API`
-
-APIs:
-
-| Method | Endpoint | Role |
-|---|---|---|
-| GET | `/api/core/receipts/by-session/{sessionId}` | STAFF/MANAGER/ADMIN |
-| POST | `/api/core/receipts/{id}/reprint` | MANAGER/ADMIN |
-
-DTO:
-
-```csharp
-ReceiptResponse { receiptCode, sessionCode, cardCode, plateNumber, vehicleTypeName, entryTime, exitTime, totalAmount, paymentMethod }
-ReprintReceiptRequest { reason }
-```
-
-Services:
-
-```csharp
-IReceiptService.GenerateReceiptForPaymentAsync(long paymentId)
-IReceiptService.GenerateZeroReceiptForMonthlyPassAsync(long sessionId)
-IReceiptService.GetReceiptBySessionAsync(long sessionId)
-IReceiptService.ReprintReceiptAsync(long receiptId, ReprintReceiptRequest request, long userId)
-IReceiptService.BuildReceiptHtmlAsync(long receiptId)
-```
-
-Business validation:
-
-| Validation | Error |
-|---|---|
-| Payment chưa final | `PAYMENT_NOT_FINAL` |
-| Receipt không tồn tại | `RECEIPT_NOT_FOUND` |
-| Reprint thiếu reason | `REPRINT_REASON_REQUIRED` |
-
-Frontend:
-
-| Page/Component | Mô tả |
-|---|---|
-| ReceiptModal | Hiển thị hóa đơn |
-| PrintReceiptButton | Browser print |
-| ReprintReceiptButton | Manager/Admin in lại |
-
-Test cases:
-
-| Test ID | Mô tả |
-|---|---|
-| TC-RCP-01 | Receipt tạo sau payment PAID |
-| TC-RCP-02 | Monthly pass có receipt 0đ |
-| TC-RCP-03 | Manager reprint ghi audit |
 
 ## 12.13 Module Monthly Pass
 
@@ -2186,14 +2120,14 @@ Owner: `.NET Core API`
 
 APIs:
 
-| Method | Endpoint | Role |
-|---|---|---|
-| GET | `/api/core/monthly-passes` | MANAGER/ADMIN |
-| POST | `/api/core/monthly-passes` | MANAGER/ADMIN |
-| PUT | `/api/core/monthly-passes/{id}` | MANAGER/ADMIN |
-| PATCH | `/api/core/monthly-passes/{id}/status` | MANAGER/ADMIN |
-| POST | `/api/core/monthly-passes/{id}/renew` | MANAGER/ADMIN |
-| GET | `/api/core/monthly-passes/check` | STAFF/MANAGER/ADMIN |
+| Method | Endpoint                               | Role                |
+| ------ | -------------------------------------- | ------------------- |
+| GET    | `/api/core/monthly-passes`             | MANAGER/ADMIN       |
+| POST   | `/api/core/monthly-passes`             | MANAGER/ADMIN       |
+| PUT    | `/api/core/monthly-passes/{id}`        | MANAGER/ADMIN       |
+| PATCH  | `/api/core/monthly-passes/{id}/status` | MANAGER/ADMIN       |
+| POST   | `/api/core/monthly-passes/{id}/renew`  | MANAGER/ADMIN       |
+| GET    | `/api/core/monthly-passes/check`       | STAFF/MANAGER/ADMIN |
 
 Services:
 
@@ -2208,27 +2142,27 @@ IMonthlyPassService.IsValid(MonthlyPass pass, DateTimeOffset time)
 
 Business validation:
 
-| Validation | Error |
-|---|---|
-| endDate < startDate | `INVALID_DATE_RANGE` |
-| Pass LOCKED không valid | `MONTHLY_PASS_LOCKED` |
-| Pass hết hạn | `MONTHLY_PASS_EXPIRED` |
+| Validation              | Error                  |
+| ----------------------- | ---------------------- |
+| endDate < startDate     | `INVALID_DATE_RANGE`   |
+| Pass LOCKED không valid | `MONTHLY_PASS_LOCKED`  |
+| Pass hết hạn            | `MONTHLY_PASS_EXPIRED` |
 
 Frontend:
 
-| Page/Component | Mô tả |
-|---|---|
+| Page/Component            | Mô tả            |
+| ------------------------- | ---------------- |
 | MonthlyPassManagementPage | Quản lý vé tháng |
-| MonthlyPassForm | Tạo/sửa/gia hạn |
-| MonthlyPassStatusBadge | Trạng thái |
+| MonthlyPassForm           | Tạo/sửa/gia hạn  |
+| MonthlyPassStatusBadge    | Trạng thái       |
 
 Test cases:
 
-| Test ID | Mô tả |
-|---|---|
-| TC-MON-01 | Manager tạo monthly pass |
-| TC-MON-02 | Renew tăng endDate |
-| TC-MON-03 | Entry detect monthly pass |
+| Test ID   | Mô tả                            |
+| --------- | -------------------------------- |
+| TC-MON-01 | Manager tạo monthly pass         |
+| TC-MON-02 | Renew tăng endDate               |
+| TC-MON-03 | Entry detect monthly pass        |
 | TC-MON-04 | Monthly pass exit không thu tiền |
 
 ## 12.14 Module Lost Card
@@ -2239,13 +2173,13 @@ Owner: `.NET Core API`
 
 APIs:
 
-| Method | Endpoint | Role |
-|---|---|---|
-| POST | `/api/core/lost-card-cases` | STAFF/MANAGER/ADMIN |
-| GET | `/api/core/lost-card-cases` | MANAGER/ADMIN |
-| GET | `/api/core/lost-card-cases/{id}` | MANAGER/ADMIN |
-| POST | `/api/core/lost-card-cases/{id}/approve` | MANAGER/ADMIN |
-| POST | `/api/core/lost-card-cases/{id}/reject` | MANAGER/ADMIN |
+| Method | Endpoint                                 | Role                |
+| ------ | ---------------------------------------- | ------------------- |
+| POST   | `/api/core/lost-card-cases`              | STAFF/MANAGER/ADMIN |
+| GET    | `/api/core/lost-card-cases`              | MANAGER/ADMIN       |
+| GET    | `/api/core/lost-card-cases/{id}`         | MANAGER/ADMIN       |
+| POST   | `/api/core/lost-card-cases/{id}/approve` | MANAGER/ADMIN       |
+| POST   | `/api/core/lost-card-cases/{id}/reject`  | MANAGER/ADMIN       |
 
 Services:
 
@@ -2260,12 +2194,12 @@ ILostCardCaseService.MarkCardLostIfConfirmedAsync(long cardId)
 
 Business validation:
 
-| Validation | Error |
-|---|---|
-| Session không active | `SESSION_NOT_ACTIVE` |
+| Validation              | Error                            |
+| ----------------------- | -------------------------------- |
+| Session không active    | `SESSION_NOT_ACTIVE`             |
 | Case pending đã tồn tại | `LOST_CARD_CASE_ALREADY_PENDING` |
-| Staff approve | 403 |
-| Reject thiếu reason | `REJECTION_REASON_REQUIRED` |
+| Staff approve           | 403                              |
+| Reject thiếu reason     | `REJECTION_REASON_REQUIRED`      |
 
 Transaction boundary:
 
@@ -2275,20 +2209,20 @@ Transaction boundary:
 
 Frontend:
 
-| Page/Component | Mô tả |
-|---|---|
-| StaffLostCardPage | Staff tạo hồ sơ |
-| LostCardApprovalPage | Manager/Admin duyệt |
-| LostCardCaseDetailModal | Chi tiết |
+| Page/Component          | Mô tả               |
+| ----------------------- | ------------------- |
+| StaffLostCardPage       | Staff tạo hồ sơ     |
+| LostCardApprovalPage    | Manager/Admin duyệt |
+| LostCardCaseDetailModal | Chi tiết            |
 
 Test cases:
 
-| Test ID | Mô tả |
-|---|---|
-| TC-LOST-01 | Staff tạo lost card case |
-| TC-LOST-02 | Session chuyển LOST_CARD_PENDING |
-| TC-LOST-03 | Manager approve cộng phí |
-| TC-LOST-04 | Reject quay lại ACTIVE |
+| Test ID    | Mô tả                                 |
+| ---------- | ------------------------------------- |
+| TC-LOST-01 | Staff tạo lost card case              |
+| TC-LOST-02 | Session chuyển LOST_CARD_PENDING      |
+| TC-LOST-03 | Manager approve cộng phí              |
+| TC-LOST-04 | Reject quay lại ACTIVE                |
 | TC-LOST-05 | Pending chưa approved không exit được |
 
 ## 12.15 Module Plate Mismatch
@@ -2299,10 +2233,10 @@ Owner: `.NET Core API`
 
 APIs:
 
-| Method | Endpoint | Role |
-|---|---|---|
-| POST | `/api/core/parking-sessions/{id}/mismatch/confirm` | MANAGER/ADMIN |
-| POST | `/api/core/parking-sessions/{id}/mismatch/reject` | MANAGER/ADMIN |
+| Method | Endpoint                                           | Role          |
+| ------ | -------------------------------------------------- | ------------- |
+| POST   | `/api/core/parking-sessions/{id}/mismatch/confirm` | MANAGER/ADMIN |
+| POST   | `/api/core/parking-sessions/{id}/mismatch/reject`  | MANAGER/ADMIN |
 
 Services:
 
@@ -2315,27 +2249,27 @@ IPlateMismatchService.RejectMismatchAsync(long sessionId, RejectMismatchRequest 
 
 Business validation:
 
-| Validation | Error |
-|---|---|
+| Validation                  | Error                              |
+| --------------------------- | ---------------------------------- |
 | Exit plate khác entry plate | `PLATE_MISMATCH_REQUIRES_APPROVAL` |
-| Confirm thiếu reason | `MISMATCH_REASON_REQUIRED` |
-| Staff confirm | 403 |
+| Confirm thiếu reason        | `MISMATCH_REASON_REQUIRED`         |
+| Staff confirm               | 403                                |
 
 Frontend:
 
-| Page/Component | Mô tả |
-|---|---|
-| MismatchWarningModal | Cảnh báo Staff |
+| Page/Component       | Mô tả               |
+| -------------------- | ------------------- |
+| MismatchWarningModal | Cảnh báo Staff      |
 | MismatchApprovalPage | Manager/Admin duyệt |
 
 Test cases:
 
-| Test ID | Mô tả |
-|---|---|
-| TC-MIS-01 | Sai biển số tạo pending |
-| TC-MIS-02 | Staff không confirm được |
+| Test ID   | Mô tả                     |
+| --------- | ------------------------- |
+| TC-MIS-01 | Sai biển số tạo pending   |
+| TC-MIS-02 | Staff không confirm được  |
 | TC-MIS-03 | Manager confirm có reason |
-| TC-MIS-04 | Rejected không cho exit |
+| TC-MIS-04 | Rejected không cho exit   |
 
 ## 12.16 Module Session Administration And Cancellation
 
@@ -2345,10 +2279,10 @@ Owner: `.NET Core API`
 
 APIs:
 
-| Method | Endpoint | Role |
-|---|---|---|
-| POST | `/api/core/parking-sessions/{id}/cancel` | ADMIN |
-| POST | `/api/core/parking-sessions/{id}/move-slot` | MANAGER/ADMIN |
+| Method | Endpoint                                    | Role          |
+| ------ | ------------------------------------------- | ------------- |
+| POST   | `/api/core/parking-sessions/{id}/cancel`    | ADMIN         |
+| POST   | `/api/core/parking-sessions/{id}/move-slot` | MANAGER/ADMIN |
 
 Services:
 
@@ -2363,11 +2297,11 @@ ISessionAdminService.WriteCancelAuditLogAsync(...)
 
 Business validation:
 
-| Validation | Error |
-|---|---|
-| Session COMPLETED | `SESSION_ALREADY_COMPLETED` |
+| Validation          | Error                          |
+| ------------------- | ------------------------------ |
+| Session COMPLETED   | `SESSION_ALREADY_COMPLETED`    |
 | Cancel thiếu reason | `CANCELLATION_REASON_REQUIRED` |
-| Non-admin cancel | 403 |
+| Non-admin cancel    | 403                            |
 
 Transaction boundary:
 
@@ -2379,12 +2313,12 @@ Transaction boundary:
 
 Test cases:
 
-| Test ID | Mô tả |
-|---|---|
-| TC-CAN-01 | Admin cancel active session |
-| TC-CAN-02 | Cancel giải phóng slot/card |
+| Test ID   | Mô tả                          |
+| --------- | ------------------------------ |
+| TC-CAN-01 | Admin cancel active session    |
+| TC-CAN-02 | Cancel giải phóng slot/card    |
 | TC-CAN-03 | Không cancel completed session |
-| TC-CAN-04 | Cancel ghi audit log |
+| TC-CAN-04 | Cancel ghi audit log           |
 
 ## 12.17 Module Pricing Management
 
@@ -2394,11 +2328,11 @@ Owner: `.NET Core API`
 
 APIs:
 
-| Method | Endpoint | Role |
-|---|---|---|
-| GET | `/api/core/pricing-rules` | MANAGER/ADMIN |
-| POST | `/api/core/pricing-rules` | MANAGER/ADMIN |
-| PUT | `/api/core/pricing-rules/{id}` | MANAGER/ADMIN |
+| Method | Endpoint                       | Role          |
+| ------ | ------------------------------ | ------------- |
+| GET    | `/api/core/pricing-rules`      | MANAGER/ADMIN |
+| POST   | `/api/core/pricing-rules`      | MANAGER/ADMIN |
+| PUT    | `/api/core/pricing-rules/{id}` | MANAGER/ADMIN |
 
 Services:
 
@@ -2413,27 +2347,27 @@ IPricingRuleService.WritePricingAuditLogAsync(...)
 
 Business validation:
 
-| Validation | Error |
-|---|---|
-| Giá âm | `PRICE_MUST_NOT_BE_NEGATIVE` |
-| Vehicle type inactive | `VEHICLE_TYPE_INACTIVE` |
-| Không có active pricing rule | `PRICING_RULE_NOT_FOUND` |
+| Validation                   | Error                        |
+| ---------------------------- | ---------------------------- |
+| Giá âm                       | `PRICE_MUST_NOT_BE_NEGATIVE` |
+| Vehicle type inactive        | `VEHICLE_TYPE_INACTIVE`      |
+| Không có active pricing rule | `PRICING_RULE_NOT_FOUND`     |
 
 Frontend:
 
-| Page/Component | Mô tả |
-|---|---|
-| PricingManagementPage | Quản lý bảng giá |
-| PricingRuleForm | Cập nhật giá |
-| PublicPricingPage | Driver xem bảng giá qua Spring public API |
+| Page/Component        | Mô tả                                     |
+| --------------------- | ----------------------------------------- |
+| PricingManagementPage | Quản lý bảng giá                          |
+| PricingRuleForm       | Cập nhật giá                              |
+| PublicPricingPage     | Driver xem bảng giá qua Spring public API |
 
 Test cases:
 
-| Test ID | Mô tả |
-|---|---|
-| TC-PRICE-01 | Manager xem bảng giá |
-| TC-PRICE-02 | Không lưu giá âm |
-| TC-PRICE-03 | Update giá ghi audit |
+| Test ID     | Mô tả                                  |
+| ----------- | -------------------------------------- |
+| TC-PRICE-01 | Manager xem bảng giá                   |
+| TC-PRICE-02 | Không lưu giá âm                       |
+| TC-PRICE-03 | Update giá ghi audit                   |
 | TC-PRICE-04 | Entry sau khi update dùng snapshot mới |
 
 ## 12.18 Module Audit Writer
@@ -2465,7 +2399,6 @@ SLOT_STATUS_CHANGED
 SESSION_MOVED_SLOT
 PAYMENT_PAID
 PAYMENT_WAIVED
-RECEIPT_REPRINTED
 MONTHLY_PASS_CREATED
 MONTHLY_PASS_RENEWED
 LOST_CARD_CREATED
@@ -2482,6 +2415,27 @@ Rule:
 - Audit failure trong transaction core nên rollback nếu action là bắt buộc cho nghiệp vụ nhạy cảm.
 - `source_service = CORE_API`.
 
+## 12.19 Module Reservation
+
+FR liên quan: MF-05.
+
+Owner: `.NET Core API`
+
+APIs:
+
+| Method | Endpoint                            | Role                   | Mô tả                                     |
+| ------ | ----------------------------------- | ---------------------- | ----------------------------------------- |
+| POST   | `/api/core/reservations`            | DRIVER, STAFF          | Tạo lượt đặt chỗ mới, giữ slot            |
+| POST   | `/api/core/reservations/{id}/cancel` | DRIVER, STAFF, MANAGER | Hủy lượt đặt chỗ trước hạn                |
+| GET    | `/api/core/reservations/active`     | DRIVER, STAFF          | Lấy lượt đặt chỗ đang có hiệu lực         |
+
+Business validation:
+
+- Chỉ cho phép đặt trước đối với xe ô tô và slot thuộc khu vực quy định (Tầng B2).
+- Slot được chọn phải có trạng thái là `AVAILABLE`.
+- Khi tạo thành công, phải cập nhật `slots.status = 'RESERVED'` và ghi nhận log `RESERVATION_CREATED`.
+- Mọi thao tác ghi phải nằm gọn trong một Transaction duy nhất của .NET.
+
 ---
 
 # 13. Spring Boot API Module Breakdown
@@ -2494,13 +2448,13 @@ Owner: `Spring Boot Support API`
 
 APIs:
 
-| Method | Endpoint | Role | DB access |
-|---|---|---|---|
-| GET | `/api/public/parking-info` | Public | Read |
-| GET | `/api/public/available-slots` | Public | Read |
-| GET | `/api/public/pricing` | Public | Read |
-| GET | `/api/public/rules` | Public | Static/config read |
-| GET | `/api/public/cards/{qrToken}/active-session` | Public | Read |
+| Method | Endpoint                                     | Role   | DB access          |
+| ------ | -------------------------------------------- | ------ | ------------------ |
+| GET    | `/api/public/parking-info`                   | Public | Read               |
+| GET    | `/api/public/available-slots`                | Public | Read               |
+| GET    | `/api/public/pricing`                        | Public | Read               |
+| GET    | `/api/public/rules`                          | Public | Static/config read |
+| GET    | `/api/public/cards/{qrToken}/active-session` | Public | Read               |
 
 Services:
 
@@ -2548,12 +2502,12 @@ Privacy rule:
 
 Test cases:
 
-| Test ID | Mô tả |
-|---|---|
-| TC-PUB-01 | Guest xem thông tin bãi xe |
-| TC-PUB-02 | Guest xem slot trống |
-| TC-PUB-03 | Guest xem bảng giá |
-| TC-PUB-04 | QR lookup active session |
+| Test ID   | Mô tả                               |
+| --------- | ----------------------------------- |
+| TC-PUB-01 | Guest xem thông tin bãi xe          |
+| TC-PUB-02 | Guest xem slot trống                |
+| TC-PUB-03 | Guest xem bảng giá                  |
+| TC-PUB-04 | QR lookup active session            |
 | TC-PUB-05 | QR lookup không lộ dữ liệu nhạy cảm |
 
 ## 13.2 Module Dashboard
@@ -2564,9 +2518,9 @@ Owner: `Spring Boot Support API`
 
 APIs:
 
-| Method | Endpoint | Role |
-|---|---|---|
-| GET | `/api/support/dashboard/summary` | MANAGER/ADMIN |
+| Method | Endpoint                         | Role          |
+| ------ | -------------------------------- | ------------- |
+| GET    | `/api/support/dashboard/summary` | MANAGER/ADMIN |
 
 Response:
 
@@ -2616,11 +2570,11 @@ PlateMismatchCaseReadRepository.countByStatus(String status)
 
 Test cases:
 
-| Test ID | Mô tả |
-|---|---|
-| TC-DASH-01 | Dashboard verify JWT |
-| TC-DASH-02 | Số slot trống đúng sau entry |
-| TC-DASH-03 | Doanh thu hôm nay đúng sau payment |
+| Test ID    | Mô tả                                    |
+| ---------- | ---------------------------------------- |
+| TC-DASH-01 | Dashboard verify JWT                     |
+| TC-DASH-02 | Số slot trống đúng sau entry             |
+| TC-DASH-03 | Doanh thu hôm nay đúng sau payment       |
 | TC-DASH-04 | Query phản hồi dưới 5 giây với seed demo |
 
 ## 13.3 Module Reports
@@ -2631,14 +2585,14 @@ Owner: `Spring Boot Support API`
 
 APIs:
 
-| Method | Endpoint | Role |
-|---|---|---|
-| GET | `/api/support/reports/revenue` | MANAGER/ADMIN |
-| GET | `/api/support/reports/traffic` | MANAGER/ADMIN |
-| GET | `/api/support/reports/occupancy` | MANAGER/ADMIN |
-| GET | `/api/support/reports/cards` | MANAGER/ADMIN |
-| GET | `/api/support/reports/sessions` | MANAGER/ADMIN |
-| GET | `/api/support/reports/export-excel` | MANAGER/ADMIN |
+| Method | Endpoint                            | Role          |
+| ------ | ----------------------------------- | ------------- |
+| GET    | `/api/support/reports/revenue`      | MANAGER/ADMIN |
+| GET    | `/api/support/reports/traffic`      | MANAGER/ADMIN |
+| GET    | `/api/support/reports/occupancy`    | MANAGER/ADMIN |
+| GET    | `/api/support/reports/cards`        | MANAGER/ADMIN |
+| GET    | `/api/support/reports/sessions`     | MANAGER/ADMIN |
+| GET    | `/api/support/reports/export-excel` | MANAGER/ADMIN |
 
 Query convention:
 
@@ -2670,13 +2624,13 @@ Output Excel:
 
 Test cases:
 
-| Test ID | Mô tả |
-|---|---|
+| Test ID   | Mô tả                       |
+| --------- | --------------------------- |
 | TC-RPT-01 | Báo cáo doanh thu theo ngày |
-| TC-RPT-02 | Báo cáo traffic vào/ra |
+| TC-RPT-02 | Báo cáo traffic vào/ra      |
 | TC-RPT-03 | Báo cáo occupancy theo area |
-| TC-RPT-04 | Báo cáo card status |
-| TC-RPT-05 | Excel export mở được |
+| TC-RPT-04 | Báo cáo card status         |
+| TC-RPT-05 | Excel export mở được        |
 
 ## 13.4 Module Audit Log Search
 
@@ -2686,11 +2640,11 @@ Owner: `Spring Boot Support API`
 
 APIs:
 
-| Method | Endpoint | Role |
-|---|---|---|
-| GET | `/api/support/audit-logs` | MANAGER/ADMIN |
-| GET | `/api/support/audit-logs/{id}` | MANAGER/ADMIN |
-| GET | `/api/support/audit-logs/export-excel` | ADMIN |
+| Method | Endpoint                               | Role          |
+| ------ | -------------------------------------- | ------------- |
+| GET    | `/api/support/audit-logs`              | MANAGER/ADMIN |
+| GET    | `/api/support/audit-logs/{id}`         | MANAGER/ADMIN |
+| GET    | `/api/support/audit-logs/export-excel` | ADMIN         |
 
 Services:
 
@@ -2725,12 +2679,12 @@ Rule:
 
 Test cases:
 
-| Test ID | Mô tả |
-|---|---|
-| TC-AUDIT-01 | Search theo action |
-| TC-AUDIT-02 | Search theo date range |
+| Test ID     | Mô tả                        |
+| ----------- | ---------------------------- |
+| TC-AUDIT-01 | Search theo action           |
+| TC-AUDIT-02 | Search theo date range       |
 | TC-AUDIT-03 | Detail hiển thị old/new JSON |
-| TC-AUDIT-04 | Export audit chỉ ADMIN |
+| TC-AUDIT-04 | Export audit chỉ ADMIN       |
 
 ## 13.5 Module Feedback - Could Have
 
@@ -2740,11 +2694,11 @@ Owner: `Spring Boot Support API`
 
 APIs:
 
-| Method | Endpoint | Role |
-|---|---|---|
-| POST | `/api/support/feedback` | DRIVER |
-| GET | `/api/support/feedback` | MANAGER/ADMIN |
-| PATCH | `/api/support/feedback/{id}/status` | MANAGER/ADMIN |
+| Method | Endpoint                            | Role          |
+| ------ | ----------------------------------- | ------------- |
+| POST   | `/api/support/feedback`             | DRIVER        |
+| GET    | `/api/support/feedback`             | MANAGER/ADMIN |
+| PATCH  | `/api/support/feedback/{id}/status` | MANAGER/ADMIN |
 
 Services:
 
@@ -2768,11 +2722,11 @@ Owner: `Spring Boot Support API` hoặc frontend mock.
 
 APIs:
 
-| Method | Endpoint | Role |
-|---|---|---|
-| POST | `/api/support/mock-camera/scan` | STAFF/MANAGER/ADMIN |
-| POST | `/api/support/mock-barrier/open` | STAFF/MANAGER/ADMIN |
-| GET | `/api/support/cards/{id}/qr` | MANAGER/ADMIN |
+| Method | Endpoint                         | Role                |
+| ------ | -------------------------------- | ------------------- |
+| POST   | `/api/support/mock-camera/scan`  | STAFF/MANAGER/ADMIN |
+| POST   | `/api/support/mock-barrier/open` | STAFF/MANAGER/ADMIN |
+| GET    | `/api/support/cards/{id}/qr`     | MANAGER/ADMIN       |
 
 Rule:
 
@@ -2803,7 +2757,6 @@ src
 │   ├── cardApi.js
 │   ├── structureApi.js
 │   ├── paymentApi.js
-│   ├── receiptApi.js
 │   ├── reportApi.js
 │   └── publicApi.js
 ├── components
@@ -2851,26 +2804,26 @@ client.interceptors.request.use((config) => {
 
 ## 14.3 API Ownership Frontend
 
-| Frontend feature | API client |
-|---|---|
-| Login/Auth | coreApi |
-| User management | coreApi |
-| Driver account/profile/vehicles/history | coreApi |
-| Vehicle Type/Vehicle | coreApi |
-| Card management | coreApi |
-| Structure management | coreApi |
-| Entry/Exit | coreApi |
-| Fee/Payment/Receipt | coreApi |
-| Monthly Pass | coreApi |
-| Lost Card/Mismatch/Cancel | coreApi |
-| Pricing Management | coreApi |
-| Dashboard | supportApi |
-| Reports/Excel | supportApi |
-| Audit Log | supportApi |
-| Public parking info/pricing/rules | publicApi |
-| Public QR lookup | publicApi |
-| Feedback | supportApi |
-| Mock Device | supportApi hoặc frontend mock |
+| Frontend feature                        | API client                    |
+| --------------------------------------- | ----------------------------- |
+| Login/Auth                              | coreApi                       |
+| User management                         | coreApi                       |
+| Driver account/profile/vehicles/history | coreApi                       |
+| Vehicle Type/Vehicle                    | coreApi                       |
+| Card management                         | coreApi                       |
+| Structure management                    | coreApi                       |
+| Entry/Exit                              | coreApi                       |
+| Fee/Payment                             | coreApi                       |
+| Monthly Pass                            | coreApi                       |
+| Lost Card/Mismatch/Cancel               | coreApi                       |
+| Pricing Management                      | coreApi                       |
+| Dashboard                               | supportApi                    |
+| Reports/Excel                           | supportApi                    |
+| Audit Log                               | supportApi                    |
+| Public parking info/pricing/rules       | publicApi                     |
+| Public QR lookup                        | publicApi                     |
+| Feedback                                | supportApi                    |
+| Mock Device                             | supportApi hoặc frontend mock |
 
 ---
 
@@ -2878,82 +2831,80 @@ client.interceptors.request.use((config) => {
 
 ## 15.1 Public Driver Pages
 
-| Page | Route | Priority | API | Backend |
-|---|---|---|---|---|
-| ParkingInfoPage | `/` | Must | `GET /api/public/parking-info` | Spring |
-| AvailableSlotsPage | `/available-slots` | Must | `GET /api/public/available-slots` | Spring |
-| PublicPricingPage | `/pricing` | Must | `GET /api/public/pricing` | Spring |
-| RulesPage | `/rules` | Must | `GET /api/public/rules` hoặc static | Spring/Frontend |
-| CardLookupPage | `/card/:qrToken` | Must | `GET /api/public/cards/{qrToken}/active-session` | Spring |
-| DriverRegisterPage | `/driver/register` | Should | `POST /api/core/driver/register` | .NET |
-| DriverProfilePage | `/driver/profile` | Should | `/api/core/driver/me` | .NET |
-| MyVehiclesPage | `/driver/vehicles` | Should | `/api/core/driver/vehicles` | .NET |
-| ParkingHistoryPage | `/driver/history` | Should | `/api/core/driver/parking-history` | .NET |
+| Page               | Route              | Priority | API                                              | Backend         |
+| ------------------ | ------------------ | -------- | ------------------------------------------------ | --------------- |
+| ParkingInfoPage    | `/`                | Must     | `GET /api/public/parking-info`                   | Spring          |
+| AvailableSlotsPage | `/available-slots` | Must     | `GET /api/public/available-slots`                | Spring          |
+| PublicPricingPage  | `/pricing`         | Must     | `GET /api/public/pricing`                        | Spring          |
+| RulesPage          | `/rules`           | Must     | `GET /api/public/rules` hoặc static              | Spring/Frontend |
+| CardLookupPage     | `/card/:qrToken`   | Must     | `GET /api/public/cards/{qrToken}/active-session` | Spring          |
+| DriverRegisterPage | `/driver/register` | Should   | `POST /api/core/driver/register`                 | .NET            |
+| DriverProfilePage  | `/driver/profile`  | Should   | `/api/core/driver/me`                            | .NET            |
+| MyVehiclesPage     | `/driver/vehicles` | Should   | `/api/core/driver/vehicles`                      | .NET            |
+| ParkingHistoryPage | `/driver/history`  | Should   | `/api/core/driver/parking-history`               | .NET            |
 
 ## 15.2 Staff Pages
 
-| Page | Route | Priority | API | Backend |
-|---|---|---|---|---|
-| StaffEntryPage | `/staff/entry` | Must | `POST /api/core/parking-sessions/entry` | .NET |
-| StaffExitPage | `/staff/exit` | Must | by-card, calculate-fee, payment, exit | .NET |
-| StaffLostCardPage | `/staff/lost-card` | Must | `POST /api/core/lost-card-cases` | .NET |
-| StaffSessionSearchPage | `/staff/sessions` | Must | `GET /api/core/parking-sessions/search` | .NET |
-| StaffReceiptPage | `/staff/receipt/:sessionId` | Must | `GET /api/core/receipts/by-session/{sessionId}` | .NET |
+| Page                   | Route                       | Priority | API                                             | Backend |
+| ---------------------- | --------------------------- | -------- | ----------------------------------------------- | ------- |
+| StaffEntryPage         | `/staff/entry`              | Must     | `POST /api/core/parking-sessions/entry`         | .NET    |
+| StaffExitPage          | `/staff/exit`               | Must     | by-card, calculate-fee, payment, exit           | .NET    |
+| StaffLostCardPage      | `/staff/lost-card`          | Must     | `POST /api/core/lost-card-cases`                | .NET    |
+| StaffSessionSearchPage | `/staff/sessions`           | Must     | `GET /api/core/parking-sessions/search`         | .NET    |
 
 ## 15.3 Manager Pages
 
-| Page | Route | Priority | API | Backend |
-|---|---|---|---|---|
-| ManagerDashboardPage | `/manager/dashboard` | Must | `GET /api/support/dashboard/summary` | Spring |
-| CardManagementPage | `/manager/cards` | Must | `/api/core/cards` | .NET |
-| StructureManagementPage | `/manager/structure` | Must | floors/areas/slots/gates | .NET |
-| PricingManagementPage | `/manager/pricing` | Must | `/api/core/pricing-rules` | .NET |
-| MonthlyPassManagementPage | `/manager/monthly-passes` | Must | `/api/core/monthly-passes` | .NET |
-| LostCardApprovalPage | `/manager/lost-card-cases` | Must | `/api/core/lost-card-cases` | .NET |
-| MismatchApprovalPage | `/manager/mismatch` | Must | mismatch APIs | .NET |
-| ReportsPage | `/manager/reports` | Must | `/api/support/reports/*` | Spring |
-| AuditLogPage | `/manager/audit-logs` | Must | `/api/support/audit-logs` | Spring |
-| FeedbackPage | `/manager/feedback` | Could | `/api/support/feedback` | Spring |
+| Page                      | Route                      | Priority | API                                  | Backend |
+| ------------------------- | -------------------------- | -------- | ------------------------------------ | ------- |
+| ManagerDashboardPage      | `/manager/dashboard`       | Must     | `GET /api/support/dashboard/summary` | Spring  |
+| CardManagementPage        | `/manager/cards`           | Must     | `/api/core/cards`                    | .NET    |
+| StructureManagementPage   | `/manager/structure`       | Must     | floors/areas/slots/gates             | .NET    |
+| PricingManagementPage     | `/manager/pricing`         | Must     | `/api/core/pricing-rules`            | .NET    |
+| MonthlyPassManagementPage | `/manager/monthly-passes`  | Must     | `/api/core/monthly-passes`           | .NET    |
+| LostCardApprovalPage      | `/manager/lost-card-cases` | Must     | `/api/core/lost-card-cases`          | .NET    |
+| MismatchApprovalPage      | `/manager/mismatch`        | Must     | mismatch APIs                        | .NET    |
+| ReportsPage               | `/manager/reports`         | Must     | `/api/support/reports/*`             | Spring  |
+| AuditLogPage              | `/manager/audit-logs`      | Must     | `/api/support/audit-logs`            | Spring  |
+| FeedbackPage              | `/manager/feedback`        | Could    | `/api/support/feedback`              | Spring  |
 
 ## 15.4 Admin Pages
 
-| Page | Route | Priority | API | Backend |
-|---|---|---|---|---|
-| UserManagementPage | `/admin/users` | Must | `/api/core/users` | .NET |
-| SessionAdministrationPage | `/admin/sessions` | Must | search + cancel | .NET |
-| AdminAuditLogPage | `/admin/audit-logs` | Must | `/api/support/audit-logs` | Spring |
-| SystemConfigurationPage | `/admin/config` | Could | `/api/core/system-configs` | .NET |
+| Page                      | Route               | Priority | API                        | Backend |
+| ------------------------- | ------------------- | -------- | -------------------------- | ------- |
+| UserManagementPage        | `/admin/users`      | Must     | `/api/core/users`          | .NET    |
+| SessionAdministrationPage | `/admin/sessions`   | Must     | search + cancel            | .NET    |
+| AdminAuditLogPage         | `/admin/audit-logs` | Must     | `/api/support/audit-logs`  | Spring  |
+| SystemConfigurationPage   | `/admin/config`     | Could    | `/api/core/system-configs` | .NET    |
 
 ---
 
 # 16. FR To API To Code Mapping Summary
 
-| FR | Module | Main APIs | Backend Owner | Frontend chính | Test chính |
-|---|---|---|---|---|---|
-| FR-01 | Auth | `/api/core/auth/login`, `/me` | .NET | LoginPage | TC-AUTH |
-| FR-02 | User | `/api/core/users` | .NET | UserManagementPage | TC-USER |
-| FR-03 | Driver/Public | `/api/public/*`, `/api/core/driver/*` | Spring public + .NET driver write | Driver pages | TC-DRV/TC-PUB |
-| FR-04 | Card | `/api/core/cards/*` | .NET | CardManagementPage | TC-CARD |
-| FR-05 | Vehicle | `/api/core/vehicle-types`, `/api/core/vehicles` | .NET | VehicleTypeSelect | TC-VEH |
-| FR-06 | Structure | `/api/core/floors`, `/areas`, `/slots`, `/gates` | .NET | StructureManagementPage | TC-STRUCT |
-| FR-07 | Entry | `/api/core/parking-sessions/entry` | .NET | StaffEntryPage | TC-ENTRY |
-| FR-08 | Suggestion | `/api/core/parking-sessions/suggest-slot` | .NET | SuggestionPanel | TC-SUG |
-| FR-09 | Exit | `/exit`, `/monthly-pass-exit` | .NET | StaffExitPage | TC-EXIT |
-| FR-10 | Fee | `/calculate-fee` | .NET | FeeSummaryPanel | TC-FEE |
-| FR-11 | Payment | `/api/core/payments/cash`, `/waive` | .NET | CashPaymentPanel | TC-PAY |
-| FR-12 | Receipt | `/api/core/receipts/*` | .NET | ReceiptModal | TC-RCP |
-| FR-13 | Monthly Pass | `/api/core/monthly-passes` | .NET | MonthlyPassPage | TC-MON |
-| FR-14 | Lost Card | `/api/core/lost-card-cases` | .NET | LostCardPage | TC-LOST |
-| FR-15 | Mismatch | `/mismatch/confirm`, `/mismatch/reject` | .NET | MismatchApprovalPage | TC-MIS |
-| FR-16 | Cancel Session | `/cancel` | .NET | SessionAdminPage | TC-CAN |
-| FR-17 | Slot Adjustment | `/slots/{id}/status`, `/move-slot` | .NET | StructureManagementPage | TC-SLOT |
-| FR-18 | Dashboard | `/api/support/dashboard/summary` | Spring | DashboardPage | TC-DASH |
-| FR-19 | Reports | `/api/support/reports/*` | Spring | ReportsPage | TC-RPT |
-| FR-20 | Audit | `/api/support/audit-logs` | .NET write + Spring search | AuditLogPage | TC-AUDIT |
-| FR-21 | Pricing | `/api/core/pricing-rules`, `/api/public/pricing` | .NET write + Spring public read | PricingPage | TC-PRICE |
-| FR-22 | Feedback | `/api/support/feedback` | Spring | FeedbackPage | TC-FEED |
-| FR-23 | Mock Device | `/api/support/mock-*` | Spring/Frontend | Mock buttons | TC-MOCK |
-| FR-24 | Config | `/api/core/system-configs` | .NET | ConfigPage | TC-CONFIG |
+| FR    | Module          | Main APIs                                        | Backend Owner                     | Frontend chính          | Test chính    |
+| ----- | --------------- | ------------------------------------------------ | --------------------------------- | ----------------------- | ------------- |
+| FR-01 | Auth            | `/api/core/auth/login`, `/me`                    | .NET                              | LoginPage               | TC-AUTH       |
+| FR-02 | User            | `/api/core/users`                                | .NET                              | UserManagementPage      | TC-USER       |
+| FR-03 | Driver/Public   | `/api/public/*`, `/api/core/driver/*`            | Spring public + .NET driver write | Driver pages            | TC-DRV/TC-PUB |
+| FR-04 | Card            | `/api/core/cards/*`                              | .NET                              | CardManagementPage      | TC-CARD       |
+| FR-05 | Vehicle         | `/api/core/vehicle-types`, `/api/core/vehicles`  | .NET                              | VehicleTypeSelect       | TC-VEH        |
+| FR-06 | Structure       | `/api/core/floors`, `/areas`, `/slots`, `/gates` | .NET                              | StructureManagementPage | TC-STRUCT     |
+| FR-07 | Entry           | `/api/core/parking-sessions/entry`               | .NET                              | StaffEntryPage          | TC-ENTRY      |
+| FR-08 | Suggestion      | `/api/core/parking-sessions/suggest-slot`        | .NET                              | SuggestionPanel         | TC-SUG        |
+| FR-09 | Exit            | `/exit`, `/monthly-pass-exit`                    | .NET                              | StaffExitPage           | TC-EXIT       |
+| FR-10 | Fee             | `/calculate-fee`                                 | .NET                              | FeeSummaryPanel         | TC-FEE        |
+| FR-11 | Payment         | `/api/core/payments/cash`, `/waive`              | .NET                              | CashPaymentPanel        | TC-PAY        |
+| FR-13 | Monthly Pass    | `/api/core/monthly-passes`                       | .NET                              | MonthlyPassPage         | TC-MON        |
+| FR-14 | Lost Card       | `/api/core/lost-card-cases`                      | .NET                              | LostCardPage            | TC-LOST       |
+| FR-15 | Mismatch        | `/mismatch/confirm`, `/mismatch/reject`          | .NET                              | MismatchApprovalPage    | TC-MIS        |
+| FR-16 | Cancel Session  | `/cancel`                                        | .NET                              | SessionAdminPage        | TC-CAN        |
+| FR-17 | Slot Adjustment | `/slots/{id}/status`, `/move-slot`               | .NET                              | StructureManagementPage | TC-SLOT       |
+| FR-18 | Dashboard       | `/api/support/dashboard/summary`                 | Spring                            | DashboardPage           | TC-DASH       |
+| FR-19 | Reports         | `/api/support/reports/*`                         | Spring                            | ReportsPage             | TC-RPT        |
+| FR-20 | Audit           | `/api/support/audit-logs`                        | .NET write + Spring search        | AuditLogPage            | TC-AUDIT      |
+| FR-21 | Pricing         | `/api/core/pricing-rules`, `/api/public/pricing` | .NET write + Spring public read   | PricingPage             | TC-PRICE      |
+| FR-22 | Feedback        | `/api/support/feedback`                          | Spring                            | FeedbackPage            | TC-FEED       |
+| FR-23 | Mock Device     | `/api/support/mock-*`                            | Spring/Frontend                   | Mock buttons            | TC-MOCK       |
+| FR-24 | Config          | `/api/core/system-configs`                       | .NET                              | ConfigPage              | TC-CONFIG     |
 
 ---
 
@@ -3016,9 +2967,6 @@ POST   /api/core/payments/cash
 POST   /api/core/payments/waive
 GET    /api/core/payments/{id}
 GET    /api/core/payments/by-session/{sessionId}
-
-GET    /api/core/receipts/by-session/{sessionId}
-POST   /api/core/receipts/{id}/reprint
 
 GET    /api/core/monthly-passes
 POST   /api/core/monthly-passes
@@ -3123,7 +3071,6 @@ parking_sessions
 parking_cards
 slots
 payments
-receipts
 monthly_passes
 lost_card_cases
 plate_mismatch_cases
@@ -3153,7 +3100,6 @@ Các nghiệp vụ sau phải transaction trong `.NET`:
 - Exit.
 - Monthly pass exit.
 - Cash payment.
-- Receipt generation after payment.
 - Lost card create/approve/reject.
 - Mismatch create/confirm/reject.
 - Cancel session.
@@ -3293,13 +3239,13 @@ Nếu bước này pass, 3 phần DB + .NET + Spring đã kết nối được.
 
 Không nên đọc từ đầu đến cuối rồi mới code. Hãy đọc theo vai trò được giao.
 
-| Vai trò | Đọc trước | Đọc tiếp | Khi code cần mở song song |
-|---|---|---|---|
-| .NET dev | Section 3, 5, 6, 7, 8, 9 | Section 10, 12, 17, 18 | Module mình làm + DB table liên quan |
-| Spring dev | Section 3, 5, 6, 7, 11 | Section 13, 17, 18 | Read-only rule + report/public API |
-| Frontend dev | Section 5, 6, 14, 15, 17 | Section 12/13 API module liên quan | API request/response + role check |
-| Tester | Section 2, 9, 16, 17, 21, 22 | Section 23, 24 | Demo script + test mapping |
-| Team lead | Section 1, 2, 3, 18, 19, 20, 24, 25 | Toàn bộ phần module | Ownership + sprint plan |
+| Vai trò      | Đọc trước                           | Đọc tiếp                           | Khi code cần mở song song            |
+| ------------ | ----------------------------------- | ---------------------------------- | ------------------------------------ |
+| .NET dev     | Section 3, 5, 6, 7, 8, 9            | Section 10, 12, 17, 18             | Module mình làm + DB table liên quan |
+| Spring dev   | Section 3, 5, 6, 7, 11              | Section 13, 17, 18                 | Read-only rule + report/public API   |
+| Frontend dev | Section 5, 6, 14, 15, 17            | Section 12/13 API module liên quan | API request/response + role check    |
+| Tester       | Section 2, 9, 16, 17, 21, 22        | Section 23, 24                     | Demo script + test mapping           |
+| Team lead    | Section 1, 2, 3, 18, 19, 20, 24, 25 | Toàn bộ phần module                | Ownership + sprint plan              |
 
 Quy tắc học/làm:
 
@@ -3313,16 +3259,16 @@ Phần `19.1` là quy trình chạy lần đầu. Phần này chỉ là bảng c
 
 ### Công Cụ Cần Cài
 
-| Công cụ | Gợi ý version | Dùng để |
-|---|---|---|
-| PostgreSQL | 15+ hoặc 16+ | Database chung |
-| pgAdmin hoặc DBeaver | Bản mới | Xem bảng/query data |
-| .NET SDK | 8.x | Chạy ASP.NET Core API |
-| Java JDK | 17 hoặc 21 | Chạy Spring Boot |
-| Maven | 3.9+ | Build Spring Boot nếu không dùng wrapper |
-| Node.js | 20+ | Chạy React |
-| Git | Bản mới | Quản lý source |
-| Postman/Bruno/Insomnia | Bản mới | Test API |
+| Công cụ                | Gợi ý version | Dùng để                                  |
+| ---------------------- | ------------- | ---------------------------------------- |
+| PostgreSQL             | 15+ hoặc 16+  | Database chung                           |
+| pgAdmin hoặc DBeaver   | Bản mới       | Xem bảng/query data                      |
+| .NET SDK               | 8.x           | Chạy ASP.NET Core API                    |
+| Java JDK               | 17 hoặc 21    | Chạy Spring Boot                         |
+| Maven                  | 3.9+          | Build Spring Boot nếu không dùng wrapper |
+| Node.js                | 20+           | Chạy React                               |
+| Git                    | Bản mới       | Quản lý source                           |
+| Postman/Bruno/Insomnia | Bản mới       | Test API                                 |
 
 ### Thứ Tự Chạy Hệ Thống
 
@@ -4033,7 +3979,8 @@ function VehicleTypesPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    vehicleTypeApi.getAll()
+    vehicleTypeApi
+      .getAll()
       .then((res) => setItems(res.data.data))
       .catch(() => setError("Không tải được loại xe"))
       .finally(() => setLoading(false));
@@ -4337,7 +4284,8 @@ import { coreApi } from "./coreAxiosClient";
 export const cardApi = {
   getCards: (params) => coreApi.get("/api/core/cards", { params }),
   createCard: (payload) => coreApi.post("/api/core/cards", payload),
-  changeStatus: (id, payload) => coreApi.patch(`/api/core/cards/${id}/status`, payload),
+  changeStatus: (id, payload) =>
+    coreApi.patch(`/api/core/cards/${id}/status`, payload),
 };
 ```
 
@@ -4397,7 +4345,6 @@ Quan hệ chính:
 - `parking_sessions` là lượt gửi xe, nối card, vehicle, slot, staff, gate, pricing snapshot.
 - `pricing_rules` là bảng giá hiện hành; khi entry thì copy giá vào session snapshot.
 - `payments` là thanh toán của session.
-- `receipts` là hóa đơn/biên nhận sau payment hoặc monthly pass exit.
 - `monthly_passes` là vé tháng theo biển số và loại xe.
 - `lost_card_cases` là hồ sơ mất thẻ, gắn với session.
 - `plate_mismatch_cases` là hồ sơ sai biển số, gắn với session.
@@ -4456,9 +4403,8 @@ Quan hệ chính:
 15. .NET mark session COMPLETED.
 16. .NET release slot.
 17. .NET release card.
-18. .NET generate receipt.
-19. .NET ghi audit log.
-20. .NET commit transaction.
+18. .NET ghi audit log.
+19. .NET commit transaction.
 ```
 
 ### Monthly Pass Exit Flow
@@ -4470,7 +4416,6 @@ Quan hệ chính:
 4. .NET tạo payment WAIVED hoặc NOT_REQUIRED.
 5. .NET complete session.
 6. .NET release slot/card.
-7. .NET tạo receipt 0đ.
 ```
 
 ### Lost Card Flow
@@ -4527,12 +4472,12 @@ Seed tối thiểu để demo không bị kẹt:
 
 ### Accounts
 
-| Username | Password demo | Role |
-|---|---|---|
-| admin01 | 123456 | ADMIN |
-| manager01 | 123456 | MANAGER |
-| staff01 | 123456 | STAFF |
-| driver01 | 123456 | DRIVER |
+| Username  | Password demo | Role    |
+| --------- | ------------- | ------- |
+| admin01   | 123456        | ADMIN   |
+| manager01 | 123456        | MANAGER |
+| staff01   | 123456        | STAFF   |
+| driver01  | 123456        | DRIVER  |
 
 Password trong database phải hash bằng BCrypt, không lưu plain text.
 
@@ -4587,10 +4532,10 @@ qr_token = chuỗi random khó đoán
 Seed mỗi loại xe một pricing rule active:
 
 | Loại xe | Day price | Night price | Monthly price | Lost card fee |
-|---|---:|---:|---:|---:|
-| Xe đạp | 2000 | 3000 | 50000 | 30000 |
-| Xe máy | 5000 | 7000 | 150000 | 50000 |
-| Ô tô | 20000 | 30000 | 1200000 | 200000 |
+| ------- | --------: | ----------: | ------------: | ------------: |
+| Xe đạp  |      2000 |        3000 |         50000 |         30000 |
+| Xe máy  |      5000 |        7000 |        150000 |         50000 |
+| Ô tô    |     20000 |       30000 |       1200000 |        200000 |
 
 ### Monthly Pass Mẫu
 
@@ -4608,6 +4553,7 @@ status = ACTIVE
 Seed data chinh thuc nam trong `database/02_seed.sql`.
 
 .NET khong duoc dung seeder C# de thay the baseline seed. Neu sau nay can runtime-only seeder cho du lieu phu, seeder do khong duoc tao/sua schema va phai duoc ghi ro trong README cua backend.
+
 ### Thứ Tự Seed Bắt Buộc
 
 ```text
@@ -4756,19 +4702,19 @@ Invoke-RestMethod `
 
 ## 19.19 Common Mistakes Và Debug Guide
 
-| Lỗi | Dấu hiệu | Cách kiểm tra | Cách sửa |
-|---|---|---|---|
-| Sai connection string | Backend không connect DB | Log báo connection refused/auth failed | Sửa host/port/user/password ở cả .NET và Spring |
-| Chua chay SQL scripts | Spring start fail validate | Bao missing table/column | Chay `database/01_schema.sql`, `02_seed.sql`, `03_indexes_constraints.sql` |
-| Spring tự sửa schema | Schema lệch khó debug | Thấy `ddl-auto=update` | Đổi về `validate` |
-| JWT mismatch | Spring trả 401 | Issuer/audience/secret khác .NET | Copy cùng config JWT |
-| CORS lỗi | Browser chặn request | Console có CORS error | Cho phép origin frontend trong cả 2 backend |
-| Card không entry được | API trả `CARD_NOT_AVAILABLE` | Query `parking_cards.status` | Dùng card AVAILABLE hoặc exit/cancel session cũ |
-| Slot không entry được | API trả `SLOT_NOT_AVAILABLE` | Query `slots.status` | Dùng slot AVAILABLE hoặc release session cũ |
-| Duplicate active plate | API trả `VEHICLE_HAS_ACTIVE_SESSION` | Search active session theo plate | Exit/cancel session cũ trước |
-| Exit fail vì payment | API trả `PAYMENT_REQUIRED_BEFORE_EXIT` | Check payments by session | Tạo cash payment trước exit |
-| Dashboard sai số | Spring đọc số cũ | Check .NET transaction đã success chưa | Gọi lại dashboard sau API .NET success |
-| Public QR không thấy session | Card AVAILABLE hoặc QR sai | Check card qr_token/current_session | Dùng QR của card IN_USE |
+| Lỗi                          | Dấu hiệu                               | Cách kiểm tra                          | Cách sửa                                                                   |
+| ---------------------------- | -------------------------------------- | -------------------------------------- | -------------------------------------------------------------------------- |
+| Sai connection string        | Backend không connect DB               | Log báo connection refused/auth failed | Sửa host/port/user/password ở cả .NET và Spring                            |
+| Chua chay SQL scripts        | Spring start fail validate             | Bao missing table/column               | Chay `database/01_schema.sql`, `02_seed.sql`, `03_indexes_constraints.sql` |
+| Spring tự sửa schema         | Schema lệch khó debug                  | Thấy `ddl-auto=update`                 | Đổi về `validate`                                                          |
+| JWT mismatch                 | Spring trả 401                         | Issuer/audience/secret khác .NET       | Copy cùng config JWT                                                       |
+| CORS lỗi                     | Browser chặn request                   | Console có CORS error                  | Cho phép origin frontend trong cả 2 backend                                |
+| Card không entry được        | API trả `CARD_NOT_AVAILABLE`           | Query `parking_cards.status`           | Dùng card AVAILABLE hoặc exit/cancel session cũ                            |
+| Slot không entry được        | API trả `SLOT_NOT_AVAILABLE`           | Query `slots.status`                   | Dùng slot AVAILABLE hoặc release session cũ                                |
+| Duplicate active plate       | API trả `VEHICLE_HAS_ACTIVE_SESSION`   | Search active session theo plate       | Exit/cancel session cũ trước                                               |
+| Exit fail vì payment         | API trả `PAYMENT_REQUIRED_BEFORE_EXIT` | Check payments by session              | Tạo cash payment trước exit                                                |
+| Dashboard sai số             | Spring đọc số cũ                       | Check .NET transaction đã success chưa | Gọi lại dashboard sau API .NET success                                     |
+| Public QR không thấy session | Card AVAILABLE hoặc QR sai             | Check card qr_token/current_session    | Dùng QR của card IN_USE                                                    |
 
 Debug theo thứ tự:
 
@@ -5014,15 +4960,14 @@ Không làm module theo cảm hứng. Làm theo thứ tự phụ thuộc:
 9. Fee Calculation
 10. Payment
 11. Exit
-12. Receipt
-13. Monthly Pass
-14. Lost Card
-15. Plate Mismatch
-16. Cancel Session / Move Slot
-17. Public QR Lookup
-18. Dashboard
-19. Reports / Audit
-20. Driver Should Have / Feedback / Mock optional
+12. Monthly Pass
+13. Lost Card
+14. Plate Mismatch
+15. Cancel Session / Move Slot
+16. Public QR Lookup
+17. Dashboard
+18. Reports / Audit
+19. Driver Should Have / Feedback / Mock optional
 ```
 
 Nếu module sau cần module trước mà module trước chưa xong, dùng mock data tạm nhưng phải thay bằng API thật trước integration test.
@@ -5068,8 +5013,7 @@ Mục tiêu: hiểu transaction và rollback.
 1. Calculate fee.
 2. Cash payment.
 3. Exit.
-4. Receipt.
-5. Dashboard đọc số liệu mới.
+4. Dashboard đọc số liệu mới.
 
 Mục tiêu: hiểu liên kết giữa 2 backend.
 
@@ -5083,17 +5027,17 @@ Mục tiêu: hiểu trạng thái pending và approval.
 
 ## 19.25 Mini Glossary
 
-| Thuật ngữ | Giải thích ngắn |
-|---|---|
-| Core API | ASP.NET Core backend, chịu trách nhiệm ghi nghiệp vụ chính |
-| Support API | Spring Boot backend, chủ yếu đọc public/report/audit |
-| Table owner | Backend được phép ghi chính vào bảng |
-| Transaction boundary | Ranh giới một transaction phải commit/rollback cùng nhau |
-| Active session | Parking session đang `ACTIVE` hoặc pending exception |
-| Static QR | QR cố định gắn với card, không chứa session id |
-| Pricing snapshot | Bản copy giá tại lúc xe vào |
-| Append-only audit | Chỉ insert log, không update/delete |
-| Read-only repository | Repository chỉ query, không save/delete |
+| Thuật ngữ            | Giải thích ngắn                                            |
+| -------------------- | ---------------------------------------------------------- |
+| Core API             | ASP.NET Core backend, chịu trách nhiệm ghi nghiệp vụ chính |
+| Support API          | Spring Boot backend, chủ yếu đọc public/report/audit       |
+| Table owner          | Backend được phép ghi chính vào bảng                       |
+| Transaction boundary | Ranh giới một transaction phải commit/rollback cùng nhau   |
+| Active session       | Parking session đang `ACTIVE` hoặc pending exception       |
+| Static QR            | QR cố định gắn với card, không chứa session id             |
+| Pricing snapshot     | Bản copy giá tại lúc xe vào                                |
+| Append-only audit    | Chỉ insert log, không update/delete                        |
+| Read-only repository | Repository chỉ query, không save/delete                    |
 
 ## 19.26 Không Được Làm Gì
 
@@ -5171,7 +5115,7 @@ JwtTokenService
 AuditWriterService
 ```
 
-## 20.2 .NET Developer 2 - Parking Operation Core
+## 20.2 .NET Developer 2 - Parking Operation Core, Payment, Monthly Pass, Exceptions
 
 Phụ trách:
 
@@ -5182,6 +5126,12 @@ Phụ trách:
 - Exit Processing.
 - Card/Slot state transition.
 - Slot move/status adjustment.
+- Fee Calculation.
+- Payment.
+- Monthly Pass.
+- Lost Card.
+- Plate Mismatch.
+- Admin Cancel Session.
 
 Deliverables:
 
@@ -5197,38 +5147,19 @@ ExitService
 SlotSuggestionService
 ParkingCardService
 SlotService
-```
-
-## 20.3 .NET Developer 3 - Payment, Receipt, Monthly Pass, Exceptions
-
-Phụ trách:
-
-- Fee Calculation.
-- Payment.
-- Receipt.
-- Monthly Pass.
-- Lost Card.
-- Plate Mismatch.
-- Admin Cancel Session.
-
-Deliverables:
-
-```text
 PaymentsController
-ReceiptsController
 MonthlyPassesController
 LostCardCasesController
 PlateMismatchController
 SessionAdminService
 FeeCalculationService
 PaymentService
-ReceiptService
 MonthlyPassService
 LostCardCaseService
 PlateMismatchService
 ```
 
-## 20.4 Spring Boot Developer 1 - Public And Dashboard
+## 20.3 Spring Boot Developer 1 - Public And Dashboard
 
 Phụ trách:
 
@@ -5255,7 +5186,7 @@ DashboardService
 Read-only JPA entities
 ```
 
-## 20.5 Spring Boot Developer 2 - Reports, Audit, Support
+## 20.4 Spring Boot Developer 2 - Reports, Audit, Support
 
 Phụ trách:
 
@@ -5283,57 +5214,56 @@ Apache POI Excel export
 
 # 21. Sprint Plan 60 Ngày
 
-| Tuần | .NET Team | Spring Boot Team | Frontend Team | Output |
-|---|---|---|---|---|
-| Tuan 1 | Setup .NET, SQL schema, seed data | Setup Spring Boot, connect DB read-only, JWT validate | Setup React, routing, layout | 3 project chay duoc |
-| Tuần 2 | Auth, User, VehicleType, Pricing base | Public info read API, dashboard skeleton | Login, protected route, layout | Đăng nhập + đọc public info |
-| Tuần 3 | Card, Structure, MonthlyPass CRUD | Public available slots, public pricing/rules | Card/Structure/Pricing UI | Quản lý dữ liệu nền |
-| Tuần 4 | Suggestion + Entry transaction | Public QR lookup | Staff Entry UI + QR lookup page | Demo xe vào + QR tra cứu |
-| Tuần 5 | Fee, Payment, Exit, Receipt | Dashboard summary | Staff Exit UI + receipt UI | Demo xe ra |
-| Tuần 6 | Lost Card, Mismatch, Cancel, Move Slot | Audit log search, report base | Manager approval UI, Admin cancel UI | Demo exception |
-| Tuần 7 | Driver Should Have, harden transaction | Reports, Excel export | Dashboard, Reports, Audit, Driver pages | Demo quản lý |
-| Tuần 8 | Integration test, seed demo, Swagger cleanup | Report polish, support bugfix | UI polish, responsive, demo script | Sẵn sàng bảo vệ |
+| Tuần   | .NET Team                                    | Spring Boot Team                                      | Frontend Team                           | Output                      |
+| ------ | -------------------------------------------- | ----------------------------------------------------- | --------------------------------------- | --------------------------- |
+| Tuan 1 | Setup .NET, SQL schema, seed data            | Setup Spring Boot, connect DB read-only, JWT validate | Setup React, routing, layout            | 3 project chay duoc         |
+| Tuần 2 | Auth, User, VehicleType, Pricing base        | Public info read API, dashboard skeleton              | Login, protected route, layout          | Đăng nhập + đọc public info |
+| Tuần 3 | Card, Structure, MonthlyPass CRUD            | Public available slots, public pricing/rules          | Card/Structure/Pricing UI               | Quản lý dữ liệu nền         |
+| Tuần 4 | Suggestion + Entry transaction               | Public QR lookup                                      | Staff Entry UI + QR lookup page         | Demo xe vào + QR tra cứu    |
+| Tuần 5 | Fee, Payment, Exit                           | Dashboard summary                                     | Staff Exit UI                           | Demo xe ra                  |
+| Tuần 6 | Lost Card, Mismatch, Cancel, Move Slot       | Audit log search, report base                         | Manager approval UI, Admin cancel UI    | Demo exception              |
+| Tuần 7 | Driver Should Have, harden transaction       | Reports, Excel export                                 | Dashboard, Reports, Audit, Driver pages | Demo quản lý                |
+| Tuần 8 | Integration test, seed demo, Swagger cleanup | Report polish, support bugfix                         | UI polish, responsive, demo script      | Sẵn sàng bảo vệ             |
 
 ---
 
 # 22. Test Case Mapping By Backend
 
-| Test ID | Module | Backend | Expected Result |
-|---|---|---|---|
-| TC-01 | Auth login | .NET | Staff login thành công, nhận JWT |
-| TC-02 | Spring verify JWT | Spring Boot | Gọi dashboard bằng JWT hợp lệ thành công |
-| TC-03 | User create | .NET | Admin tạo Staff/Manager |
-| TC-04 | Driver register | .NET | Driver tạo user/profile nếu làm Should Have |
-| TC-05 | Vehicle type | .NET | Lấy loại xe active |
-| TC-06 | Structure CRUD | .NET | Manager tạo floor/area/slot |
-| TC-07 | Card create | .NET | Tạo Parking Card C001 |
-| TC-08 | Suggestion | .NET | Đề xuất đúng khu theo loại xe |
-| TC-09 | Entry | .NET | Tạo session với Card AVAILABLE |
-| TC-10 | Card status | .NET | Card chuyển IN_USE |
-| TC-11 | Slot status | .NET | Slot chuyển OCCUPIED |
-| TC-12 | Active conflict card | .NET + DB | Card IN_USE không dùng cho session mới |
-| TC-13 | Active conflict plate | .NET + DB | Plate đang active không tạo session mới |
-| TC-14 | Active conflict slot | .NET + DB | Slot đang active không gán session mới |
-| TC-15 | Public QR lookup | Spring Boot | Driver xem session active qua QR Token |
-| TC-16 | Public lookup privacy | Spring Boot | Không lộ dữ liệu nhạy cảm |
-| TC-17 | Fee calculation | .NET | Tính đúng block 4 tiếng |
-| TC-18 | Payment cash | .NET | Payment PAID |
-| TC-19 | Receipt | .NET | Receipt tạo sau payment |
-| TC-20 | Exit casual | .NET | Session completed, card/slot available |
-| TC-21 | Monthly pass exit | .NET | Payment WAIVED/NOT_REQUIRED, receipt 0đ |
-| TC-22 | Dashboard update | Spring Boot | Dashboard đọc đúng số liệu mới |
-| TC-23 | Lost card create | .NET | Staff tạo hồ sơ, session pending |
-| TC-24 | Lost card approve | .NET | Manager duyệt, fee/card update |
-| TC-25 | Mismatch create | .NET | Sai biển số bị chặn |
-| TC-26 | Mismatch confirm | .NET | Manager xác nhận kèm lý do |
-| TC-27 | Cancel session | .NET | Admin hủy session và giải phóng card/slot |
-| TC-28 | Move slot | .NET | Slot cũ available, slot mới occupied |
-| TC-29 | Pricing snapshot | .NET | Entry lưu snapshot giá |
-| TC-30 | Audit search | Spring Boot | Tìm log action quan trọng |
-| TC-31 | Revenue report | Spring Boot | Báo cáo doanh thu đúng |
-| TC-32 | Excel export | Spring Boot | Xuất file Excel nếu làm |
-| TC-33 | Cross-backend data | Both | .NET ghi xong, Spring đọc được đúng |
-| TC-34 | Schema safety | Both | Spring ddl-auto validate khong sua schema |
+| Test ID | Module                | Backend     | Expected Result                             |
+| ------- | --------------------- | ----------- | ------------------------------------------- |
+| TC-01   | Auth login            | .NET        | Staff login thành công, nhận JWT            |
+| TC-02   | Spring verify JWT     | Spring Boot | Gọi dashboard bằng JWT hợp lệ thành công    |
+| TC-03   | User create           | .NET        | Admin tạo Staff/Manager                     |
+| TC-04   | Driver register       | .NET        | Driver tạo user/profile nếu làm Should Have |
+| TC-05   | Vehicle type          | .NET        | Lấy loại xe active                          |
+| TC-06   | Structure CRUD        | .NET        | Manager tạo floor/area/slot                 |
+| TC-07   | Card create           | .NET        | Tạo Parking Card C001                       |
+| TC-08   | Suggestion            | .NET        | Đề xuất đúng khu theo loại xe               |
+| TC-09   | Entry                 | .NET        | Tạo session với Card AVAILABLE              |
+| TC-10   | Card status           | .NET        | Card chuyển IN_USE                          |
+| TC-11   | Slot status           | .NET        | Slot chuyển OCCUPIED                        |
+| TC-12   | Active conflict card  | .NET + DB   | Card IN_USE không dùng cho session mới      |
+| TC-13   | Active conflict plate | .NET + DB   | Plate đang active không tạo session mới     |
+| TC-14   | Active conflict slot  | .NET + DB   | Slot đang active không gán session mới      |
+| TC-15   | Public QR lookup      | Spring Boot | Driver xem session active qua QR Token      |
+| TC-16   | Public lookup privacy | Spring Boot | Không lộ dữ liệu nhạy cảm                   |
+| TC-17   | Fee calculation       | .NET        | Tính đúng block 4 tiếng                     |
+| TC-18   | Payment cash          | .NET        | Payment PAID                                |
+| TC-20   | Exit casual           | .NET        | Session completed, card/slot available      |
+| TC-21   | Monthly pass exit     | .NET        | Payment WAIVED/NOT_REQUIRED                 |
+| TC-22   | Dashboard update      | Spring Boot | Dashboard đọc đúng số liệu mới              |
+| TC-23   | Lost card create      | .NET        | Staff tạo hồ sơ, session pending            |
+| TC-24   | Lost card approve     | .NET        | Manager duyệt, fee/card update              |
+| TC-25   | Mismatch create       | .NET        | Sai biển số bị chặn                         |
+| TC-26   | Mismatch confirm      | .NET        | Manager xác nhận kèm lý do                  |
+| TC-27   | Cancel session        | .NET        | Admin hủy session và giải phóng card/slot   |
+| TC-28   | Move slot             | .NET        | Slot cũ available, slot mới occupied        |
+| TC-29   | Pricing snapshot      | .NET        | Entry lưu snapshot giá                      |
+| TC-30   | Audit search          | Spring Boot | Tìm log action quan trọng                   |
+| TC-31   | Revenue report        | Spring Boot | Báo cáo doanh thu đúng                      |
+| TC-32   | Excel export          | Spring Boot | Xuất file Excel nếu làm                     |
+| TC-33   | Cross-backend data    | Both        | .NET ghi xong, Spring đọc được đúng         |
+| TC-34   | Schema safety         | Both        | Spring ddl-auto validate khong sua schema   |
 
 ---
 
@@ -5375,10 +5305,9 @@ Backend chính: `.NET`
 5. Gọi `/api/core/payments/cash`.
 6. Gọi exit.
 7. Payment `PAID`.
-8. Receipt tạo.
-9. Session `COMPLETED`.
-10. Card `AVAILABLE`.
-11. Slot `AVAILABLE`.
+8. Session `COMPLETED`.
+9. Card `AVAILABLE`.
+10. Slot `AVAILABLE`.
 
 ## Demo 4: Monthly Pass Exit
 
@@ -5389,7 +5318,6 @@ Backend chính: `.NET`
 3. Hệ thống detect `customerType = MONTHLY`.
 4. Staff exit bằng `/api/core/parking-sessions/{id}/monthly-pass-exit`.
 5. Payment `WAIVED` hoặc `NOT_REQUIRED`.
-6. Receipt 0đ được tạo.
 
 ## Demo 5: Dashboard Cập Nhật
 
@@ -5445,19 +5373,19 @@ Backend chính: `Spring Boot`
 
 # 24. Risks And Mitigation
 
-| Rủi ro | Nguyên nhân | Cách xử lý |
-|---|---|---|
-| Hai backend cung sua DB schema | Runtime auto schema update | Chi `database/*.sql` tao schema, Spring `ddl-auto=validate` |
-| Enum lệch | .NET dùng enum int, Java dùng string | Database lưu enum string |
-| Spring update nhầm bảng core | Dev support viết repository save | Quy định read-only repository cho bảng core |
-| Driver register conflict | Support API tự ghi dữ liệu Driver | Driver write thuộc .NET |
-| JWT không verify được giữa 2 backend | Khác secret/issuer/audience | Dùng chung JWT config |
-| Dashboard đọc dữ liệu chưa commit | Gọi report quá sớm | Chỉ đọc sau khi .NET API success |
-| Report query nặng | Join nhiều bảng | Thêm index, giới hạn date range |
-| Logic tính phí bị duplicate | Spring tự tính khác .NET | Fee chính thức chỉ .NET, Spring chỉ preview |
-| Frontend gọi nhầm service | API path không rõ | Prefix `/api/core`, `/api/support`, `/api/public` |
-| Audit log thiếu | Dev quên ghi log | Tạo AuditWriterService trong .NET và AuditLogWriterService trong Spring |
-| Giá đổi khi session active | Tính theo giá mới gây tranh cãi | Snapshot giá lúc entry |
+| Rủi ro                               | Nguyên nhân                          | Cách xử lý                                                              |
+| ------------------------------------ | ------------------------------------ | ----------------------------------------------------------------------- |
+| Hai backend cung sua DB schema       | Runtime auto schema update           | Chi `database/*.sql` tao schema, Spring `ddl-auto=validate`             |
+| Enum lệch                            | .NET dùng enum int, Java dùng string | Database lưu enum string                                                |
+| Spring update nhầm bảng core         | Dev support viết repository save     | Quy định read-only repository cho bảng core                             |
+| Driver register conflict             | Support API tự ghi dữ liệu Driver    | Driver write thuộc .NET                                                 |
+| JWT không verify được giữa 2 backend | Khác secret/issuer/audience          | Dùng chung JWT config                                                   |
+| Dashboard đọc dữ liệu chưa commit    | Gọi report quá sớm                   | Chỉ đọc sau khi .NET API success                                        |
+| Report query nặng                    | Join nhiều bảng                      | Thêm index, giới hạn date range                                         |
+| Logic tính phí bị duplicate          | Spring tự tính khác .NET             | Fee chính thức chỉ .NET, Spring chỉ preview                             |
+| Frontend gọi nhầm service            | API path không rõ                    | Prefix `/api/core`, `/api/support`, `/api/public`                       |
+| Audit log thiếu                      | Dev quên ghi log                     | Tạo AuditWriterService trong .NET và AuditLogWriterService trong Spring |
+| Giá đổi khi session active           | Tính theo giá mới gây tranh cãi      | Snapshot giá lúc entry                                                  |
 
 ---
 
@@ -5587,14 +5515,14 @@ React = gọi đúng API theo module
 Phân bổ theo nhân lực:
 
 ```text
-3 dev .NET       -> nhiều task hơn, chịu trách nhiệm nghiệp vụ ghi chính
+2 dev .NET       -> chịu trách nhiệm nghiệp vụ ghi chính và nhiều module core
 2 dev Spring Boot -> public, dashboard, report, audit, support module
 ```
 
 Luồng demo core cần đạt:
 
 ```text
-.NET: Login -> Entry -> Card/Slot update -> Fee -> Payment -> Exit -> Receipt
+.NET: Login -> Entry -> Card/Slot update -> Fee -> Payment -> Exit
 Spring: Public QR lookup -> Dashboard -> Reports -> Audit search
 PostgreSQL: Dữ liệu chung, enum chung, schema chung, owner rõ ràng
 ```
