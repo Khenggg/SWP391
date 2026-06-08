@@ -208,78 +208,63 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trg_users_set_updated_at ON users;
-CREATE TRIGGER trg_users_set_updated_at
+CREATE OR REPLACE TRIGGER trg_users_set_updated_at
 BEFORE UPDATE ON users
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-DROP TRIGGER IF EXISTS trg_driver_profiles_set_updated_at ON driver_profiles;
-CREATE TRIGGER trg_driver_profiles_set_updated_at
+CREATE OR REPLACE TRIGGER trg_driver_profiles_set_updated_at
 BEFORE UPDATE ON driver_profiles
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-DROP TRIGGER IF EXISTS trg_vehicle_types_set_updated_at ON vehicle_types;
-CREATE TRIGGER trg_vehicle_types_set_updated_at
+CREATE OR REPLACE TRIGGER trg_vehicle_types_set_updated_at
 BEFORE UPDATE ON vehicle_types
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-DROP TRIGGER IF EXISTS trg_vehicles_set_updated_at ON vehicles;
-CREATE TRIGGER trg_vehicles_set_updated_at
+CREATE OR REPLACE TRIGGER trg_vehicles_set_updated_at
 BEFORE UPDATE ON vehicles
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-DROP TRIGGER IF EXISTS trg_parking_cards_set_updated_at ON parking_cards;
-CREATE TRIGGER trg_parking_cards_set_updated_at
+CREATE OR REPLACE TRIGGER trg_parking_cards_set_updated_at
 BEFORE UPDATE ON parking_cards
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-DROP TRIGGER IF EXISTS trg_floors_set_updated_at ON floors;
-CREATE TRIGGER trg_floors_set_updated_at
+CREATE OR REPLACE TRIGGER trg_floors_set_updated_at
 BEFORE UPDATE ON floors
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-DROP TRIGGER IF EXISTS trg_areas_set_updated_at ON areas;
-CREATE TRIGGER trg_areas_set_updated_at
+CREATE OR REPLACE TRIGGER trg_areas_set_updated_at
 BEFORE UPDATE ON areas
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-DROP TRIGGER IF EXISTS trg_slots_set_updated_at ON slots;
-CREATE TRIGGER trg_slots_set_updated_at
+CREATE OR REPLACE TRIGGER trg_slots_set_updated_at
 BEFORE UPDATE ON slots
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-DROP TRIGGER IF EXISTS trg_gates_set_updated_at ON gates;
-CREATE TRIGGER trg_gates_set_updated_at
+CREATE OR REPLACE TRIGGER trg_gates_set_updated_at
 BEFORE UPDATE ON gates
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-DROP TRIGGER IF EXISTS trg_pricing_rules_set_updated_at ON pricing_rules;
-CREATE TRIGGER trg_pricing_rules_set_updated_at
+CREATE OR REPLACE TRIGGER trg_pricing_rules_set_updated_at
 BEFORE UPDATE ON pricing_rules
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-DROP TRIGGER IF EXISTS trg_monthly_passes_set_updated_at ON monthly_passes;
-CREATE TRIGGER trg_monthly_passes_set_updated_at
+CREATE OR REPLACE TRIGGER trg_monthly_passes_set_updated_at
 BEFORE UPDATE ON monthly_passes
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-DROP TRIGGER IF EXISTS trg_parking_sessions_set_updated_at ON parking_sessions;
-CREATE TRIGGER trg_parking_sessions_set_updated_at
+CREATE OR REPLACE TRIGGER trg_parking_sessions_set_updated_at
 BEFORE UPDATE ON parking_sessions
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-DROP TRIGGER IF EXISTS trg_payments_set_updated_at ON payments;
-CREATE TRIGGER trg_payments_set_updated_at
+CREATE OR REPLACE TRIGGER trg_payments_set_updated_at
 BEFORE UPDATE ON payments
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-DROP TRIGGER IF EXISTS trg_lost_card_cases_set_updated_at ON lost_card_cases;
-CREATE TRIGGER trg_lost_card_cases_set_updated_at
+CREATE OR REPLACE TRIGGER trg_lost_card_cases_set_updated_at
 BEFORE UPDATE ON lost_card_cases
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-DROP TRIGGER IF EXISTS trg_plate_mismatch_cases_set_updated_at ON plate_mismatch_cases;
-CREATE TRIGGER trg_plate_mismatch_cases_set_updated_at
+CREATE OR REPLACE TRIGGER trg_plate_mismatch_cases_set_updated_at
 BEFORE UPDATE ON plate_mismatch_cases
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
@@ -290,7 +275,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trg_audit_logs_append_only ON audit_logs;
-CREATE TRIGGER trg_audit_logs_append_only
+CREATE OR REPLACE TRIGGER trg_audit_logs_append_only
 BEFORE UPDATE OR DELETE ON audit_logs
 FOR EACH ROW EXECUTE FUNCTION prevent_audit_logs_update_delete();
