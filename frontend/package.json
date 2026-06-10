@@ -19,7 +19,13 @@
   "devDependencies": {
     "@tailwindcss/vite": "4.1.12",
     "@vitejs/plugin-react": "4.7.0",
+    "msw": "^2.14.6",
     "tailwindcss": "4.1.12",
     "vite": "^6.4.2"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }
