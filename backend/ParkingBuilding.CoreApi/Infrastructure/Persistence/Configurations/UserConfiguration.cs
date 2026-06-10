@@ -1,82 +1,76 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ParkingBuilding.CoreApi.Domain.Entities;
-using ParkingBuilding.CoreApi.Domain.Enums;
-using System;
 
-namespace ParkingBuilding.CoreApi.Infrastructure.Persistence.Configurations
+namespace ParkingBuilding.Persistence.Configurations
 {
     public class UserConfiguration : IEntityTypeConfiguration<User>
     {
         public void Configure(EntityTypeBuilder<User> builder)
         {
-            // 1. Map Entity với bảng "users" trong DB
+            // Map vào đúng bảng 'users' trong PostgreSQL (chữ thường)
             builder.ToTable("users");
 
-            // 2. Cấu hình Khóa chính và định nghĩa kiểu dữ liệu UUID cụ thể của PostgreSQL
+            // Cấu hình Khóa chính và map với BIGINT/BIGSERIAL
             builder.HasKey(u => u.Id);
             builder.Property(u => u.Id)
                    .HasColumnName("id")
-                   .HasColumnType("uuid");
+                   .ValueGeneratedOnAdd(); // Tương ứng với BIGSERIAL tự tăng
 
-            // 3. Cấu hình các trường thông tin chuỗi văn bản (Đảm bảo độ dài và tính bắt buộc)
-            builder.Property(u => u.FullName)
-                   .HasColumnName("full_name")
-                   .HasColumnType("varchar(255)")
-                   .IsRequired();
-
+            // Cấu hình các thuộc tính khớp chính xác tên cột và độ dài mã hóa chữ thường
             builder.Property(u => u.Username)
                    .HasColumnName("username")
-                   .HasColumnType("varchar(100)")
+                   .HasMaxLength(100)
                    .IsRequired();
 
             builder.Property(u => u.Email)
                    .HasColumnName("email")
-                   .HasColumnType("varchar(255)")
-                   .IsRequired();
+                   .HasMaxLength(150)
+                   .IsRequired(false);
 
             builder.Property(u => u.Phone)
                    .HasColumnName("phone")
-                   .HasColumnType("varchar(20)");
+                   .HasMaxLength(30)
+                   .IsRequired(false);
 
             builder.Property(u => u.PasswordHash)
                    .HasColumnName("password_hash")
-                   .HasColumnType("text")
+                   .HasMaxLength(255)
                    .IsRequired();
 
-            // 4. Tối ưu hóa chuyển đổi Enum thành String Uppercase an toàn (Bật ignoreCase)
+            builder.Property(u => u.FullName)
+                   .HasColumnName("full_name")
+                   .HasMaxLength(150)
+                   .IsRequired();
+
+            // Mapping Enum thành String trong Postgres VARCHAR
             builder.Property(u => u.Role)
                    .HasColumnName("role")
-                   .HasColumnType("varchar(50)")
-                   .HasConversion(
-                       v => v.ToString(),
-                       v => Enum.Parse<UserRole>(v, true)
-                   )
+                   .HasMaxLength(30)
+                   .HasConversion<string>()
                    .IsRequired();
 
             builder.Property(u => u.Status)
                    .HasColumnName("status")
-                   .HasColumnType("varchar(50)")
-                   .HasConversion(
-                       v => v.ToString(),
-                       v => Enum.Parse<UserStatus>(v, true)
-                   )
+                   .HasMaxLength(30)
+                   .HasConversion<string>()
                    .IsRequired();
 
-            // 5. Cấu hình đồng bộ kiểu dữ liệu Thời gian cho PostgreSQL (timestamp)
+            // Mapping các trường thời gian với TIMESTAMPTZ
             builder.Property(u => u.LastLoginAt)
                    .HasColumnName("last_login_at")
-                   .HasColumnType("timestamp");
+                   .HasColumnType("timestamp with time zone")
+                   .IsRequired(false);
 
             builder.Property(u => u.CreatedAt)
                    .HasColumnName("created_at")
-                   .HasColumnType("timestamp")
-                   .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                   .HasColumnType("timestamp with time zone")
+                   .IsRequired();
 
             builder.Property(u => u.UpdatedAt)
                    .HasColumnName("updated_at")
-                   .HasColumnType("timestamp")
-                   .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                   .HasColumnType("timestamp with time zone")
+                   .IsRequired();
         }
     }
 }

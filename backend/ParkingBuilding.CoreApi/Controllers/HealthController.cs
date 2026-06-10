@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using ParkingBuilding.CoreApi.Contracts.Responses;
 
 namespace ParkingBuilding.CoreApi.Controllers
 {
@@ -9,8 +8,13 @@ namespace ParkingBuilding.CoreApi.Controllers
         [HttpGet] // Kích hoạt phương thức GET cho endpoint /api/core/health
         public IActionResult GetHealth()
         {
-            var response = new HealthCheckResponse();
-            return Ok(response);
+            var data = new
+            {
+                service = "ParkingBuilding.CoreApi",
+                status = "UP"
+            };
+            return Success(data, "Core API is running");
         }
+
     }
 }

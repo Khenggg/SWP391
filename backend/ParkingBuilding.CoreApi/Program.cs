@@ -5,9 +5,18 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence.Diagnostics;
-using System;
+using System.Linq;
+using ParkingBuilding.CoreApi.Infrastructure.Middleware;
+using ParkingBuilding.CoreApi.Contracts.Common;
+using Microsoft.AspNetCore.Mvc;
+using ParkingBuilding.CoreApi.Infrastructure.Security;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using ParkingBuilding.CoreApi.Application.Audit;
 
 var builder = WebApplication.CreateBuilder(args);
+
 
 // 1. Cau hinh chinh sach CORS de ung dung React ket noi khong bi chan
 builder.Services.AddCors(options =>
@@ -29,16 +38,126 @@ builder.Services.AddDbContext<ParkingDbContext>(options =>
         npgsqlOptions.EnableRetryOnFailure(maxRetryCount: 3);
         npgsqlOptions.CommandTimeout(30);
     }));
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IAuditWriterService, AuditWriterService>();
 builder.Services.AddHostedService<SupabaseConnectionLogger>();
+builder.Services.AddSingleton<JwtTokenGenerator>();
 
-builder.Services.AddControllers();
+// Cau hinh JWT Authentication
+var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "DEVELOPMENT_SECRET_KEY_FOR_LOCAL_TESTING_ONLY_2026_SWP391";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "ParkingBuilding.CoreApi";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "ParkingBuilding.Frontend";
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+        ClockSkew = TimeSpan.Zero
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnChallenge = async context =>
+        {
+            context.HandleResponse();
+            context.Response.StatusCode = 401;
+            context.Response.ContentType = "application/json";
+            
+            var response = ApiResponse.FailureResult("Unauthorized", "You are not authorized to access this resource.");
+            await context.Response.WriteAsJsonAsync(response);
+        }
+    };
+});
+
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .ToList();
+
+            var response = ApiResponse.FailureResult("Validation failed", errors);
+            return new BadRequestObjectResult(response);
+        };
+    });
 
 // 3. Kich hoat dich vu OpenAPI va Swagger UI cho .NET 10
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, context, cancellationToken) =>
+    {
+        if (document == null) return Task.CompletedTask;
+
+        var securityScheme = new Microsoft.OpenApi.OpenApiSecurityScheme
+        {
+            Type = Microsoft.OpenApi.SecuritySchemeType.Http,
+            Name = "Authorization",
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            In = Microsoft.OpenApi.ParameterLocation.Header,
+            Description = "JWT Authorization header using the Bearer scheme. Enter your token in the text input below."
+        };
+
+        document.Components ??= new Microsoft.OpenApi.OpenApiComponents();
+        document.Components.SecuritySchemes ??= new System.Collections.Generic.Dictionary<string, Microsoft.OpenApi.IOpenApiSecurityScheme>();
+        document.Components.SecuritySchemes.Add("Bearer", securityScheme);
+
+        if (document.Paths != null)
+        {
+            foreach (var path in document.Paths.Values)
+            {
+                if (path.Operations != null)
+                {
+                    foreach (var operation in path.Operations.Values)
+                    {
+                        operation.Security ??= new System.Collections.Generic.List<Microsoft.OpenApi.OpenApiSecurityRequirement>();
+                        operation.Security.Add(new Microsoft.OpenApi.OpenApiSecurityRequirement
+                        {
+                            [new Microsoft.OpenApi.OpenApiSecuritySchemeReference("Bearer", document!)] = new System.Collections.Generic.List<string>()
+                        });
+                    }
+                }
+            }
+        }
+
+        return Task.CompletedTask;
+    });
+});
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.OpenApiSecurityScheme
+    {
+        Type = Microsoft.OpenApi.SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.ParameterLocation.Header,
+        Description = "JWT Authorization header using the Bearer scheme. \r\n\r\n Enter your token in the text input below."
+    });
+    options.AddSecurityRequirement(document => new Microsoft.OpenApi.OpenApiSecurityRequirement
+    {
+        [new Microsoft.OpenApi.OpenApiSecuritySchemeReference("Bearer", document)] = new System.Collections.Generic.List<string>()
+    });
+});
 
 var app = builder.Build();
+
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
 // =====================================================================================
 // THÊM VÀO ĐÂY: Đoạn mã tự động kiểm tra kết nối Database khi khởi chạy ứng dụng (Bước 8)
@@ -80,6 +199,7 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 
 app.UseCors("AllowAll");
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
