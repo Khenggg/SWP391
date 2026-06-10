@@ -28,8 +28,16 @@ export default function PricingManagementPage() {
   const [formErrors, setFormErrors] = useState({});
 
   React.useEffect(() => {
-    setRules(pricingService.getPricingRules());
-    setVehicleTypes(parkingService.getVehicleTypes());
+    const fetchPricing = async () => {
+      try {
+        const rulesData = await pricingService.getPricingRules();
+        setRules(rulesData);
+        setVehicleTypes(parkingService.getVehicleTypes());
+      } catch (e) {
+        console.error("Lỗi lấy cấu hình giá:", e);
+      }
+    };
+    fetchPricing();
   }, []);
 
   const showToast = (message, type = "success") => setToast({ message, type });
@@ -75,7 +83,7 @@ export default function PricingManagementPage() {
     setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const errs = validate(form);
     if (Object.keys(errs).length) { setFormErrors(errs); return; }
     const vt = vehicleTypes.find((v) => String(v.id) === String(form.vehicleTypeId));
@@ -89,22 +97,20 @@ export default function PricingManagementPage() {
       effectiveFrom: form.effectiveFrom,
       status: form.status,
     };
-    if (editingRule) {
-      setRules((prev) => {
-        const updated = prev.map((r) => r.id === editingRule.id ? { ...r, ...payload } : r);
-        pricingService.savePricingRules(updated);
-        return updated;
-      });
-      showToast("Cập nhật bảng giá thành công!");
-    } else {
-      setRules((prev) => {
-        const updated = [...prev, { id: Date.now(), ...payload }];
-        pricingService.savePricingRules(updated);
-        return updated;
-      });
-      showToast("Tạo bảng giá thành công!");
+    try {
+      if (editingRule) {
+        await pricingService.updatePricingRule(editingRule.id, payload);
+        showToast("Cập nhật bảng giá thành công!");
+      } else {
+        await pricingService.addPricingRule(payload);
+        showToast("Tạo bảng giá thành công!");
+      }
+      const updatedRules = await pricingService.getPricingRules();
+      setRules(updatedRules);
+      setShowModal(false);
+    } catch (e) {
+      showToast(e.message || "Lưu bảng giá thất bại!", "error");
     }
-    setShowModal(false);
   };
 
   const MoneyField = ({ label, name }) => (

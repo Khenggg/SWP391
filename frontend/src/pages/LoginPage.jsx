@@ -16,32 +16,30 @@ export default function LoginPage({ onLoginSuccess }) {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
-    setTimeout(() => {
-      try {
-        const { token, user } = authService.login(username, password);
-        onLoginSuccess(token, user);
+    try {
+      const { token, user } = await authService.login(username, password);
+      onLoginSuccess(token, user);
 
-        // Điều hướng dựa trên vai trò (role) của tài khoản
-        if (user.role === "ADMIN") {
-          navigate("/admin/users");
-        } else if (user.role === "MANAGER") {
-          navigate("/manager/dashboard");
-        } else if (user.role === "DRIVER") {
-          navigate("/driver/profile");
-        } else {
-          navigate("/staff/entry");
-        }
-      } catch (err) {
-        setError(err.message || "Tên đăng nhập hoặc mật khẩu không chính xác.");
-      } finally {
-        setIsLoading(false);
+      // Điều hướng dựa trên vai trò (role) của tài khoản
+      if (user.role === "ADMIN") {
+        navigate("/admin/users");
+      } else if (user.role === "MANAGER") {
+        navigate("/manager/dashboard");
+      } else if (user.role === "DRIVER") {
+        navigate("/driver/profile");
+      } else {
+        navigate("/staff/entry");
       }
-    }, 600); // Tạo độ trễ nhẹ giả lập gọi API
+    } catch (err) {
+      setError(err.message || "Tên đăng nhập hoặc mật khẩu không chính xác.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleQuickLogin = (demoUsername) => {

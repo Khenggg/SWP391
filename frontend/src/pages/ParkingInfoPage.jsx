@@ -21,17 +21,17 @@ export default function ParkingInfoPage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Phase C: Thay bằng publicApi.getParkingInfo()
-    const timer = setTimeout(() => {
+    const fetchInfo = async () => {
       try {
-        setInfo(parkingService.getParkingInfo());
+        const data = await parkingService.getParkingInfo();
+        setInfo(data);
       } catch {
         setError("Không tải được thông tin bãi xe. Vui lòng thử lại.");
       } finally {
         setIsLoading(false);
       }
-    }, 600);
-    return () => clearTimeout(timer);
+    };
+    fetchInfo();
   }, []);
 
   const statusCfg = STATUS_CONFIG[info?.status] || STATUS_CONFIG["CLOSED"];

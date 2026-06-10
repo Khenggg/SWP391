@@ -54,8 +54,16 @@ export default function MonthlyPassManagementPage() {
   const [formErrors, setFormErrors] = useState({});
 
   React.useEffect(() => {
-    setPasses(vehicleService.getMonthlyPasses());
-    setVehicleTypes(parkingService.getVehicleTypes());
+    const fetchPasses = async () => {
+      try {
+        const passesData = await vehicleService.getMonthlyPasses();
+        setPasses(passesData);
+        setVehicleTypes(parkingService.getVehicleTypes());
+      } catch (e) {
+        console.error("Lỗi lấy danh sách vé tháng:", e);
+      }
+    };
+    fetchPasses();
   }, []);
 
   const showToast = (msg, type = "success") => setToast({ message: msg, type });
@@ -79,7 +87,7 @@ export default function MonthlyPassManagementPage() {
     return errs;
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     const errs = validate(form);
     if (Object.keys(errs).length) { setFormErrors(errs); return; }
     const vt = vehicleTypes.find((v) => String(v.id) === String(form.vehicleTypeId));
@@ -88,28 +96,43 @@ export default function MonthlyPassManagementPage() {
       vehicleTypeId: Number(form.vehicleTypeId), vehicleTypeName: vt?.name || "",
       startDate: form.startDate, endDate: form.endDate, status: "ACTIVE",
     };
-    vehicleService.addMonthlyPass(newPassData);
-    setPasses(vehicleService.getMonthlyPasses());
-    setShowCreate(false);
-    setForm(EMPTY_FORM);
-    setFormErrors({});
-    showToast("Tạo vé tháng thành công!");
+    try {
+      await vehicleService.addMonthlyPass(newPassData);
+      const passesData = await vehicleService.getMonthlyPasses();
+      setPasses(passesData);
+      setShowCreate(false);
+      setForm(EMPTY_FORM);
+      setFormErrors({});
+      showToast("Tạo vé tháng thành công!");
+    } catch (e) {
+      showToast(e.message || "Tạo vé tháng thất bại!", "error");
+    }
   };
 
-  const handleRenew = () => {
+  const handleRenew = async () => {
     if (!renewDate) return;
     if (renewDate <= selectedPass.endDate) { showToast("Ngày gia hạn phải sau ngày kết thúc hiện tại!", "error"); return; }
-    vehicleService.renewMonthlyPass(selectedPass.id, renewDate);
-    setPasses(vehicleService.getMonthlyPasses());
-    setShowRenew(false);
-    showToast(`Gia hạn vé ${selectedPass.plate} đến ${renewDate}`);
+    try {
+      await vehicleService.renewMonthlyPass(selectedPass.id, renewDate);
+      const passesData = await vehicleService.getMonthlyPasses();
+      setPasses(passesData);
+      setShowRenew(false);
+      showToast(`Gia hạn vé ${selectedPass.plate} đến ${renewDate}`);
+    } catch (e) {
+      showToast(e.message || "Gia hạn vé tháng thất bại!", "error");
+    }
   };
 
-  const handleStatus = () => {
-    vehicleService.updateMonthlyPassStatus(selectedPass.id, newStatus);
-    setPasses(vehicleService.getMonthlyPasses());
-    setShowStatusModal(false);
-    showToast("Cập nhật trạng thái thành công!");
+  const handleStatus = async () => {
+    try {
+      await vehicleService.updateMonthlyPassStatus(selectedPass.id, newStatus);
+      const passesData = await vehicleService.getMonthlyPasses();
+      setPasses(passesData);
+      setShowStatusModal(false);
+      showToast("Cập nhật trạng thái thành công!");
+    } catch (e) {
+      showToast(e.message || "Cập nhật trạng thái thất bại!", "error");
+    }
   };
 
   // Summary counts

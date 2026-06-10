@@ -48,6 +48,10 @@ export default function DriverBookingPage() {
   // Driver's eligible vehicles
   const [myVehicles, setMyVehicles] = useState([]);
   
+  // States for async data loading
+  const [areas, setAreas] = useState([]);
+  const [pricingRules, setPricingRules] = useState([]);
+
   // Form State: Areas
   const [selectedAreaCode, setSelectedAreaCode] = useState("B2-A");
   const [durationHours, setDurationHours] = useState(3);
@@ -59,42 +63,58 @@ export default function DriverBookingPage() {
 
   // Initializing page
   useEffect(() => {
-    // 1. Get logged in driver details
-    const savedUser = sessionStorage.getItem("currentUser");
-    let driverName = "Nguyễn Văn A";
-    let driverPhone = "0912345678";
-    let driverUsername = "driver01";
-    if (savedUser) {
-      try {
-        const parsed = JSON.parse(savedUser);
-        driverName = parsed.fullName || "Nguyễn Văn A";
-        driverPhone = parsed.phone || "0912345678";
-        driverUsername = parsed.username || "driver01";
-        setDriver({ username: driverUsername, fullName: driverName, phone: driverPhone });
-      } catch (e) {
-        console.error("Lỗi đọc user", e);
+    const initPage = async () => {
+      // 1. Get logged in driver details
+      const savedUser = sessionStorage.getItem("currentUser");
+      let driverName = "Nguyễn Văn A";
+      let driverPhone = "0912345678";
+      let driverUsername = "driver01";
+      if (savedUser) {
+        try {
+          const parsed = JSON.parse(savedUser);
+          driverName = parsed.fullName || "Nguyễn Văn A";
+          driverPhone = parsed.phone || "0912345678";
+          driverUsername = parsed.username || "driver01";
+          setDriver({ username: driverUsername, fullName: driverName, phone: driverPhone });
+        } catch (e) {
+          console.error("Lỗi đọc user", e);
+        }
       }
-    }
 
-    // 2. Load driver's vehicles
-    const vehicles = vehicleService.getVehiclesByOwner(driverName, driverPhone);
-    setMyVehicles(vehicles);
+      // 3. Load simulated time (default to current actual time if not present)
+      const savedSimTime = localStorage.getItem("driver_sim_time");
+      if (savedSimTime) {
+        setSimTime(savedSimTime);
+      } else {
+        const now = new Date().toISOString();
+        setSimTime(now);
+        localStorage.setItem("driver_sim_time", now);
+      }
 
-    // 3. Load simulated time (default to current actual time if not present)
-    const savedSimTime = localStorage.getItem("driver_sim_time");
-    if (savedSimTime) {
-      setSimTime(savedSimTime);
-    } else {
-      const now = new Date().toISOString();
-      setSimTime(now);
-      localStorage.setItem("driver_sim_time", now);
-    }
+      try {
+        // 2. Load driver's vehicles
+        const vehicles = await vehicleService.getVehiclesByOwner();
+        setMyVehicles(vehicles);
 
-    // 4. Load active booking using bookingService
-    const savedBooking = bookingService.getActiveBooking(driverUsername);
-    if (savedBooking) {
-      setActiveBooking(savedBooking);
-    }
+        // 4. Load active booking using bookingService
+        const savedBooking = await bookingService.getActiveBooking();
+        if (savedBooking) {
+          setActiveBooking(savedBooking);
+        }
+
+        // 5. Load areas
+        const areasData = await parkingService.getAreas();
+        setAreas(areasData);
+
+        // 6. Load pricing rules
+        const rulesData = await pricingService.getPricingRules();
+        setPricingRules(rulesData);
+      } catch (e) {
+        console.error("Lỗi khởi tạo dữ liệu bãi xe:", e);
+      }
+    };
+
+    initPage();
   }, []);
 
   // Time simulation engine runs whenever simulated time changes
@@ -102,40 +122,38 @@ export default function DriverBookingPage() {
     if (!simTime || !activeBooking) return;
 
     let updated = false;
-    const booking = { ...activeBooking };
+    let newStatus = activeBooking.status;
 
-    if (booking.status === "PENDING_PAYMENT") {
-      const diff = getMinutesDiff(booking.createdAt, simTime);
+    if (activeBooking.status === "PENDING_PAYMENT") {
+      const diff = getMinutesDiff(activeBooking.createdAt, simTime);
       if (diff > 15) {
-        booking.status = "EXPIRED_TIMEOUT";
+        newStatus = "EXPIRED_TIMEOUT";
         updated = true;
       }
-    } else if (booking.status === "PAID") {
-      const paidAtTime = booking.paidAt;
-      const durationMins = booking.hours * 60;
+    } else if (activeBooking.status === "PAID") {
+      const paidAtTime = activeBooking.paidAt;
+      const durationMins = activeBooking.hours * 60;
       const diff = getMinutesDiff(paidAtTime, simTime);
       
       // Total check-in window is duration + 15 minutes grace period
       if (diff > durationMins + 15) {
-        booking.status = "EXPIRED_CHECKIN";
+        newStatus = "EXPIRED_CHECKIN";
         updated = true;
       }
     }
 
     if (updated) {
-      setActiveBooking(booking);
-      bookingService.setActiveBooking(driver.username, booking);
-      saveToHistory(booking);
+      const expire = async () => {
+        try {
+          await bookingService.expireBooking(newStatus);
+          setActiveBooking(null);
+        } catch (e) {
+          console.error("Lỗi cập nhật hết hạn booking:", e);
+        }
+      };
+      expire();
     }
   }, [simTime, activeBooking]);
-
-  // Helper to save a completed or expired booking to history
-  const saveToHistory = (booking) => {
-    if (["EXPIRED_TIMEOUT", "EXPIRED_CHECKIN", "CANCELLED", "COMPLETED"].includes(booking.status)) {
-      bookingService.saveToHistory(driver.username, booking);
-      setActiveBooking(null);
-    }
-  };
 
   // Adjust time
   const handleAdjustTime = (amountMinutes) => {
@@ -154,58 +172,32 @@ export default function DriverBookingPage() {
 
   // Get pricing dynamically
   const getHourlyPrice = (vehicleType) => {
-    const rules = pricingService.getPricingRules();
-    const rule = rules.find(r => r.vehicleTypeName === vehicleType && r.status === "ACTIVE");
+    const rule = pricingRules.find(r => r.vehicleTypeName === vehicleType && r.status === "ACTIVE");
     if (rule) return rule.dayPrice;
     if (vehicleType === "Xe Máy") return 5000;
     return 20000; // default to Ô Tô / Xe Vận Chuyển
   };
 
   // Create Booking Action
-  const handleCreateBooking = (e) => {
+  const handleCreateBooking = async (e) => {
     e.preventDefault();
 
-    const areas = parkingService.getAreas();
     const area = areas.find(a => a.code === selectedAreaCode);
     if (!area || area.status !== "ACTIVE") {
       alert("Khu vực đỗ xe không khả dụng.");
       return;
     }
 
-    const pricePerHour = getHourlyPrice(area.vehicleTypeName);
-    const fee = durationHours * pricePerHour;
-
-    // Simulate backend logic: automatically scanning empty slots and allocating one internally
-    const allocatedSlotId = Math.floor(100 + Math.random() * 900); // Internal slot ID (e.g. 995)
-    const allocatedSlotCode = `${area.code}-0${Math.floor(10 + Math.random() * 89)}`;
-
-    const newBooking = {
-      id: "BK-" + Math.floor(100000 + Math.random() * 900000),
-      areaCode: area.code,
-      areaName: area.name,
-      floorCode: area.floorCode,
-      vehicleTypeName: area.vehicleTypeName,
-      hours: durationHours,
-      reservationFee: fee,
-      fee, // backward compatibility
-      actualParkingFee: 0,
-      actualHours: 0,
-      status: "PENDING_PAYMENT",
-      createdAt: simTime,
-      paidAt: null,
-      checkInTime: null,
-      checkOutTime: null,
-      plate: null,
-      internalSlotId: allocatedSlotId,
-      internalSlotCode: allocatedSlotCode
-    };
-
-    setActiveBooking(newBooking);
-    bookingService.setActiveBooking(driver.username, newBooking);
+    try {
+      const newBooking = await bookingService.createBooking(area.code, durationHours, simTime);
+      setActiveBooking(newBooking);
+    } catch (err) {
+      alert(err.message || "Đặt chỗ thất bại");
+    }
   };
 
   // Cancel Booking Action
-  const handleCancelBooking = () => {
+  const handleCancelBooking = async () => {
     if (!activeBooking) return;
 
     let confirmMsg = "Xác nhận hủy đặt chỗ?";
@@ -214,54 +206,49 @@ export default function DriverBookingPage() {
     }
 
     if (window.confirm(confirmMsg)) {
-      const booking = { 
-        ...activeBooking, 
-        status: "CANCELLED",
-        checkOutTime: simTime
-      };
-      setActiveBooking(null);
-      bookingService.deleteActiveBooking(driver.username);
-      saveToHistory(booking);
+      try {
+        await bookingService.cancelBooking(simTime);
+        setActiveBooking(null);
+      } catch (err) {
+        alert(err.message || "Hủy đặt chỗ thất bại");
+      }
     }
   };
 
   // Pay Booking Action
-  const handlePayBooking = () => {
+  const handlePayBooking = async () => {
     if (!activeBooking || activeBooking.status !== "PENDING_PAYMENT") return;
 
-    const booking = {
-      ...activeBooking,
-      status: "PAID",
-      paidAt: simTime
-    };
-
-    setActiveBooking(booking);
-    bookingService.setActiveBooking(driver.username, booking);
+    try {
+      const updated = await bookingService.payBooking(simTime);
+      setActiveBooking(updated);
+    } catch (err) {
+      alert(err.message || "Thanh toán thất bại");
+    }
   };
 
   // Check-In Form Submit
-  const handleCheckInSubmit = (e) => {
+  const handleCheckInSubmit = async (e) => {
     e.preventDefault();
     if (!checkInPlate) {
       alert("Vui lòng chọn biển số xe.");
       return;
     }
 
-    const booking = {
-      ...activeBooking,
-      status: "CHECKED_IN",
-      plate: checkInPlate,
-      checkInTime: simTime
-    };
-
-    setActiveBooking(booking);
-    bookingService.setActiveBooking(driver.username, booking);
-    parkingService.incrementAreaOccupancy(booking.areaCode);
-    setShowCheckInModal(false);
+    try {
+      const updated = await bookingService.checkIn(checkInPlate, simTime);
+      setActiveBooking(updated);
+      
+      const updatedAreas = await parkingService.getAreas();
+      setAreas(updatedAreas);
+      setShowCheckInModal(false);
+    } catch (err) {
+      alert(err.message || "Check-in thất bại");
+    }
   };
 
   // Check-Out Action
-  const handleCheckOut = () => {
+  const handleCheckOut = async () => {
     if (!activeBooking || activeBooking.status !== "CHECKED_IN") return;
 
     // Calculate actual parking duration
@@ -276,18 +263,15 @@ export default function DriverBookingPage() {
       `- Phí gửi xe thực tế tại bãi: ${actualParkingFee.toLocaleString()} VND (Cần thanh toán tại cổng ra)`;
 
     if (window.confirm(confirmMsg)) {
-      const booking = {
-        ...activeBooking,
-        status: "COMPLETED",
-        checkOutTime: simTime,
-        actualHours,
-        actualParkingFee
-      };
-
-      setActiveBooking(null);
-      bookingService.deleteActiveBooking(driver.username);
-      parkingService.decrementAreaOccupancy(activeBooking.areaCode);
-      saveToHistory(booking);
+      try {
+        await bookingService.checkOut(simTime);
+        setActiveBooking(null);
+        
+        const updatedAreas = await parkingService.getAreas();
+        setAreas(updatedAreas);
+      } catch (err) {
+        alert(err.message || "Check-out thất bại");
+      }
     }
   };
 
@@ -559,65 +543,48 @@ export default function DriverBookingPage() {
                   )}
 
                   {activeBooking.status === "PAID" && (
-                    <div className="flex flex-col gap-4 w-full">
-                      {/* Driver actions */}
-                      <div className="flex gap-3">
-                        <button 
-                          onClick={handleCancelBooking}
-                          className="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 px-4 rounded-xl text-sm transition cursor-pointer flex items-center justify-center gap-1.5"
-                        >
-                          <Trash2 className="w-4 h-4" /> Hủy đặt chỗ (Không hoàn phí)
-                        </button>
+                    <div className="flex flex-col items-center gap-6 w-full p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                      <div className="text-center space-y-2">
+                        <p className="text-xs font-black text-indigo-600 uppercase tracking-widest">
+                          MÃ VÉ ĐIỆN TỬ (QR CODE)
+                        </p>
+                        <p className="text-[11px] text-slate-500 max-w-sm">
+                          Trình diện mã QR này tại cổng vận hành hoặc thiết bị quét để nhân viên bãi xe xác nhận vào đỗ.
+                        </p>
                       </div>
 
-                      {/* Simulation of system/staff sync */}
-                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-2">
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
-                            Giả lập Cổng Vào (Staff thực hiện tại cổng)
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 leading-relaxed mb-3">
-                          * Thực tế: Tài xế không tự check-in trên App. Khi xe đi vào cổng, nhân viên (Staff) quét biển số, hệ thống backend tự động khớp với đặt chỗ đã thanh toán của tài xế này và cập nhật trạng thái.
-                        </p>
+                      {/* QR Image */}
+                      <div className="bg-white p-4 rounded-2xl shadow-md border border-slate-100 flex flex-col items-center">
+                        <img 
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${activeBooking.id}&color=0f172a`} 
+                          alt="Booking QR Code" 
+                          className="w-44 h-44 border border-slate-200 rounded-xl p-1 bg-white"
+                        />
+                        <span className="text-xs font-mono font-black text-slate-700 mt-3 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+                          {activeBooking.id}
+                        </span>
+                      </div>
+
+                      <div className="flex gap-3 w-full border-t border-slate-200 pt-4">
                         <button 
-                          onClick={() => {
-                            if (eligibleVehicles.length > 0) {
-                              setCheckInPlate(eligibleVehicles[0].plate);
-                              setIsManualPlate(false);
-                            } else {
-                              setCheckInPlate("");
-                              setIsManualPlate(true);
+                          type="button"
+                          onClick={async () => {
+                            const latest = await bookingService.getActiveBooking();
+                            setActiveBooking(latest);
+                            if (!latest) {
+                              alert("Đặt chỗ đã được staff quét xác nhận thành công!");
                             }
-                            setShowCheckInModal(true);
                           }}
-                          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2 px-3 rounded-lg text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow"
+                          className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition cursor-pointer flex items-center justify-center gap-1.5 shadow"
                         >
-                          <Play className="w-3.5 h-3.5" /> Giả lập Staff quét xe cho vào cổng
+                          <RefreshCw className="w-4 h-4" /> Kiểm tra/Đồng bộ trạng thái
                         </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeBooking.status === "CHECKED_IN" && (
-                    <div className="flex flex-col gap-4 w-full">
-                      {/* Simulation of system/staff check-out */}
-                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
-                            Giả lập Cổng Ra (Staff thực hiện tại cổng)
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 leading-relaxed mb-3">
-                          * Thực tế: Tài xế không tự check-out trên App. Khi xe ra cổng, nhân viên (Staff) quét biển số và xác nhận cho xe ra, hệ thống tự động hoàn tất phiên và lưu lịch sử.
-                        </p>
                         <button 
-                          onClick={handleCheckOut}
-                          className="w-full bg-rose-600 hover:bg-rose-700 text-white font-extrabold py-2 px-3 rounded-lg text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow"
+                          type="button"
+                          onClick={handleCancelBooking}
+                          className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 px-4 rounded-xl text-sm transition cursor-pointer flex items-center justify-center gap-1.5"
                         >
-                          <RefreshCw className="w-3.5 h-3.5" /> Giả lập Staff quét xe cho ra cổng
+                          <Trash2 className="w-4 h-4" /> Hủy đặt chỗ
                         </button>
                       </div>
                     </div>
@@ -642,7 +609,7 @@ export default function DriverBookingPage() {
                     Chọn khu vực đỗ xe gợi ý
                   </label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {parkingService.getAreas().filter(a => a.status === "ACTIVE" && (a.floorCode === "B1" || a.floorCode === "B2")).map(area => {
+                    {areas.filter(a => a.status === "ACTIVE" && (a.floorCode === "B1" || a.floorCode === "B2")).map(area => {
                       const maxCap = area.maxCapacity || area.totalSlots || 0;
                       const current = area.currentCount !== undefined ? area.currentCount : (maxCap - (area.availableSlots || 0));
                       const available = maxCap - current;

@@ -17,6 +17,7 @@ const getRoleFromToken = (token) => {
       manager01: "MANAGER",
       staff01: "STAFF",
       driver01: "DRIVER",
+      driver02: "DRIVER",
     };
     return mockRoles[username] || null;
   }

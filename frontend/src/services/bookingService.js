@@ -1,58 +1,66 @@
-const getActiveBookingKey = (username) => `driver_active_booking_${username}`;
-const getHistoryKey = (username) => `driver_history_${username}`;
+import coreAxiosClient from "../api/coreAxiosClient";
 
 export const bookingService = {
-  getActiveBooking: (username) => {
-    const stored = localStorage.getItem(getActiveBookingKey(username));
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch (e) {
-        console.error("Lỗi đọc thông tin đặt chỗ hoạt động", e);
-      }
-    }
-    return null;
+  getActiveBooking: async () => {
+    const res = await coreAxiosClient.get("/driver/bookings");
+    return res.success ? res.data : null;
   },
 
-  setActiveBooking: (username, booking) => {
-    localStorage.setItem(getActiveBookingKey(username), JSON.stringify(booking));
+  createBooking: async (areaCode, durationHours, simTime) => {
+    const res = await coreAxiosClient.post("/driver/bookings", { areaCode, durationHours, simTime });
+    if (res.success) return res.data;
+    throw new Error(res.message || "Đặt chỗ thất bại");
   },
 
-  deleteActiveBooking: (username) => {
-    localStorage.removeItem(getActiveBookingKey(username));
+  payBooking: async (simTime) => {
+    const res = await coreAxiosClient.post("/driver/bookings/pay", { simTime });
+    if (res.success) return res.data;
+    throw new Error(res.message || "Thanh toán thất bại");
   },
 
-  getHistory: (username) => {
-    const stored = localStorage.getItem(getHistoryKey(username));
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch (e) {
-        console.error("Lỗi đọc lịch sử gửi xe", e);
-      }
-    }
-    return [];
+  checkIn: async (plate, simTime) => {
+    const res = await coreAxiosClient.post("/driver/bookings/check-in", { plate, simTime });
+    if (res.success) return res.data;
+    throw new Error(res.message || "Check-in thất bại");
   },
 
-  saveToHistory: (username, booking) => {
-    if (["EXPIRED_TIMEOUT", "EXPIRED_CHECKIN", "CANCELLED", "COMPLETED"].includes(booking.status)) {
-      const enrichedBooking = {
-        ...booking,
-        reservationFee: booking.reservationFee !== undefined ? booking.reservationFee : (booking.fee || 0),
-        actualParkingFee: booking.actualParkingFee !== undefined ? booking.actualParkingFee : 0,
-        actualHours: booking.actualHours !== undefined ? booking.actualHours : 0
-      };
-      const historyKey = getHistoryKey(username);
-      const history = bookingService.getHistory(username);
-      if (!history.find(h => h.id === enrichedBooking.id)) {
-        history.unshift(enrichedBooking);
-        localStorage.setItem(historyKey, JSON.stringify(history));
-      }
-      bookingService.deleteActiveBooking(username);
-    }
+  checkOut: async (simTime) => {
+    const res = await coreAxiosClient.post("/driver/bookings/check-out", { simTime });
+    if (res.success) return res.data;
+    throw new Error(res.message || "Check-out thất bại");
   },
 
-  clearHistory: (username) => {
-    localStorage.removeItem(getHistoryKey(username));
+  cancelBooking: async (simTime) => {
+    const res = await coreAxiosClient.post("/driver/bookings/cancel", { simTime });
+    if (res.success) return res.data;
+    throw new Error(res.message || "Hủy đặt chỗ thất bại");
+  },
+
+  expireBooking: async (status) => {
+    const res = await coreAxiosClient.post("/driver/bookings/expire", { status });
+    if (res.success) return res.data;
+    throw new Error(res.message || "Cập nhật hết hạn đặt chỗ thất bại");
+  },
+
+  getHistory: async () => {
+    const res = await coreAxiosClient.get("/driver/bookings/history");
+    return res.success ? res.data : [];
+  },
+
+  clearHistory: async () => {
+    const res = await coreAxiosClient.delete("/driver/bookings/history");
+    if (res.success) return res.data;
+    throw new Error(res.message || "Xóa lịch sử thất bại");
+  },
+
+  getPaidBookingsForStaff: async () => {
+    const res = await coreAxiosClient.get("/staff/bookings/paid-list");
+    return res.success ? res.data : [];
+  },
+
+  confirmBookingScan: async (bookingId) => {
+    const res = await coreAxiosClient.post("/staff/bookings/scan-confirm", { bookingId });
+    if (res.success) return res.data;
+    throw new Error(res.message || "Xác nhận quét mã QR đặt trước thất bại");
   }
 };

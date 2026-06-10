@@ -18,15 +18,18 @@ export default function PublicPricingPage() {
   const [filterVehicle, setFilterVehicle] = useState("ALL");
   const [vehicleTypes, setVehicleTypes] = useState([]);
 
-  const load = () => {
+  const load = async () => {
     setIsLoading(true);
     setError(null);
-    // Phase C: Thay bằng publicApi.getPricing()
-    setTimeout(() => {
-      setRules(pricingService.getPricingRules());
+    try {
+      const data = await pricingService.getPricingRules();
+      setRules(data);
       setVehicleTypes(parkingService.getVehicleTypes());
+    } catch {
+      setError("Không tải được thông tin bảng giá. Vui lòng thử lại.");
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   useEffect(() => { load(); }, []);

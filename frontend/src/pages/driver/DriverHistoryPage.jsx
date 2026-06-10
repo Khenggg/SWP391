@@ -29,13 +29,25 @@ export default function DriverHistoryPage() {
       }
     }
 
-    setHistoryList(bookingService.getHistory(currentUsername));
+    const fetchHistory = async () => {
+      try {
+        const history = await bookingService.getHistory();
+        setHistoryList(history);
+      } catch (e) {
+        console.error("Lỗi lấy lịch sử gửi xe:", e);
+      }
+    };
+    fetchHistory();
   }, []);
 
-  const handleClearHistory = () => {
+  const handleClearHistory = async () => {
     if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử gửi xe trên trình duyệt?")) {
-      bookingService.clearHistory(username);
-      setHistoryList([]);
+      try {
+        await bookingService.clearHistory();
+        setHistoryList([]);
+      } catch (e) {
+        console.error("Lỗi xóa lịch sử:", e);
+      }
     }
   };
 

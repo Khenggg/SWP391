@@ -82,17 +82,21 @@ export default function AvailableSlotsPage() {
   const [floors, setFloors] = useState([]);
   const [vehicleTypes, setVehicleTypes] = useState([]);
 
-  const load = () => {
+  const load = async () => {
     setIsLoading(true);
     setError(null);
-    // Phase C: Thay bằng publicApi.getAvailableSlots(params)
-    setTimeout(() => {
-      setSlots(parkingService.getSlots());
-      setAreas(parkingService.getAreas());
-      setFloors(parkingService.getFloors());
-      setVehicleTypes(parkingService.getVehicleTypes());
+    try {
+      const data = await parkingService.getAvailableSlots();
+      setSlots(data.slots || []);
+      setAreas(data.areas || []);
+      setFloors(data.floors || []);
+      setVehicleTypes(data.vehicleTypes || []);
+    } catch (e) {
+      console.error(e);
+      setError("Không tải được dữ liệu bãi xe. Vui lòng thử lại.");
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   useEffect(() => { load(); }, []);

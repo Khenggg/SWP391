@@ -57,10 +57,17 @@ export default function CardManagementPage() {
   const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
-    setTimeout(() => {
-      setCards(cardService.getCards());
-      setIsLoading(false);
-    }, 500);
+    const fetchCards = async () => {
+      try {
+        const data = await cardService.getCards();
+        setCards(data);
+      } catch (e) {
+        console.error("Lỗi lấy danh sách thẻ:", e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchCards();
   }, []);
 
   const showToast = (message, type = "success") => setToast({ message, type });
@@ -71,11 +78,12 @@ export default function CardManagementPage() {
     return matchStatus && matchSearch;
   });
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!form.code.trim()) { setFormErrors({ code: "Mã thẻ bắt buộc" }); return; }
     try {
-      cardService.addCard(form.code.trim(), form.note);
-      setCards(cardService.getCards());
+      await cardService.addCard(form.code.trim(), form.note);
+      const data = await cardService.getCards();
+      setCards(data);
       setShowCreate(false);
       setForm({ code: "", note: "" });
       setFormErrors({});
@@ -95,11 +103,12 @@ export default function CardManagementPage() {
     setShowStatusModal(true);
   };
 
-  const handleStatusChange = () => {
+  const handleStatusChange = async () => {
     if (!window.confirm(`Xác nhận đổi trạng thái thẻ ${selectedCard.code} sang ${newStatus}?`)) return;
     try {
-      cardService.updateCardStatus(selectedCard.id, newStatus);
-      setCards(cardService.getCards());
+      await cardService.updateCardStatus(selectedCard.id, newStatus);
+      const data = await cardService.getCards();
+      setCards(data);
       setShowStatusModal(false);
       showToast(`Đã cập nhật trạng thái thẻ ${selectedCard.code}`);
     } catch (e) {

@@ -33,20 +33,29 @@ export default function DriverProfilePage() {
   }, []);
 
   useEffect(() => {
-    // 2. Đếm số xe của tài xế này từ vehicleService
-    const myPasses = vehicleService.getVehiclesByOwner(driver.fullName, driver.phone);
-    const active = myPasses.filter((p) => p.status === "ACTIVE").length;
-    const expired = myPasses.filter((p) => p.status === "EXPIRED").length;
-    setVehicleStats({
-      active,
-      expired,
-      total: myPasses.length,
-    });
+    const fetchStats = async () => {
+      try {
+        // 2. Đếm số xe của tài xế này từ vehicleService (lấy xe thuộc sở hữu dựa trên token)
+        const myPasses = await vehicleService.getVehiclesByOwner();
+        const active = myPasses.filter((p) => p.status === "ACTIVE").length;
+        const expired = myPasses.filter((p) => p.status === "EXPIRED").length;
+        setVehicleStats({
+          active,
+          expired,
+          total: myPasses.length,
+        });
 
-    // 3. Đếm số booking từ bookingService
-    const savedHistory = bookingService.getHistory(driver.username);
-    const hasActiveBooking = bookingService.getActiveBooking(driver.username) ? 1 : 0;
-    setBookingCount(savedHistory.length + hasActiveBooking);
+        // 3. Đếm số booking từ bookingService
+        const savedHistory = await bookingService.getHistory();
+        const activeBookingData = await bookingService.getActiveBooking();
+        const hasActiveBooking = activeBookingData ? 1 : 0;
+        setBookingCount(savedHistory.length + hasActiveBooking);
+      } catch (e) {
+        console.error("Lỗi lấy thông tin thống kê:", e);
+      }
+    };
+
+    fetchStats();
   }, [driver]);
 
   return (

@@ -1,103 +1,61 @@
-import { MOCK_PARKING_INFO, MOCK_FLOORS, MOCK_AREAS, MOCK_SLOTS, MOCK_GATES, MOCK_VEHICLE_TYPES } from "../constants/mockData";
-
-const INFO_KEY = "parking_info";
-const FLOORS_KEY = "parking_floors";
-const AREAS_KEY = "parking_areas";
-const SLOTS_KEY = "parking_slots";
-const GATES_KEY = "parking_gates";
-
-const initializeData = (key, seedData) => {
-  const stored = localStorage.getItem(key);
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch (e) {
-      console.error(`Lỗi phân tích cú pháp ${key}`, e);
-    }
-  }
-  localStorage.setItem(key, JSON.stringify(seedData));
-  return seedData;
-};
+import coreAxiosClient from "../api/coreAxiosClient";
+import publicAxiosClient from "../api/publicAxiosClient";
+import { MOCK_VEHICLE_TYPES } from "../constants/mockData";
 
 export const parkingService = {
-  getParkingInfo: () => {
-    return initializeData(INFO_KEY, MOCK_PARKING_INFO);
+  // Public APIs
+  getParkingInfo: async () => {
+    const res = await publicAxiosClient.get("/parking-info");
+    return res.success ? res.data : null;
   },
 
-  getFloors: () => {
-    return initializeData(FLOORS_KEY, MOCK_FLOORS);
+  getAvailableSlots: async () => {
+    const res = await publicAxiosClient.get("/available-slots");
+    return res.success ? res.data : { areas: [], slots: [], floors: [], vehicleTypes: [] };
   },
 
-  getAreas: () => {
-    return initializeData(AREAS_KEY, MOCK_AREAS);
+  // Manager/Common APIs
+  getFloors: async () => {
+    // For convenience and simplicity, retrieve from /available-slots
+    const res = await publicAxiosClient.get("/available-slots");
+    return res.success ? res.data.floors : [];
   },
 
-  getSlots: () => {
-    return initializeData(SLOTS_KEY, MOCK_SLOTS);
+  getAreas: async () => {
+    const res = await publicAxiosClient.get("/available-slots");
+    return res.success ? res.data.areas : [];
   },
 
-  getGates: () => {
-    return initializeData(GATES_KEY, MOCK_GATES);
+  getSlots: async () => {
+    const res = await publicAxiosClient.get("/available-slots");
+    return res.success ? res.data.slots : [];
+  },
+
+  getGates: async () => {
+    const res = await coreAxiosClient.get("/manager/structures/gates");
+    return res.success ? res.data : [];
   },
 
   getVehicleTypes: () => {
     return MOCK_VEHICLE_TYPES;
   },
 
-  saveFloors: (floors) => {
-    localStorage.setItem(FLOORS_KEY, JSON.stringify(floors));
+  // Add / Edit structures (Manager actions)
+  addFloor: async (floorData) => {
+    const res = await coreAxiosClient.post("/manager/structures/floors", floorData);
+    if (res.success) return res.data;
+    throw new Error(res.message || "Thêm tầng thất bại");
   },
 
-  saveAreas: (areas) => {
-    localStorage.setItem(AREAS_KEY, JSON.stringify(areas));
+  updateFloor: async (id, floorData) => {
+    const res = await coreAxiosClient.put(`/manager/structures/floors/${id}`, floorData);
+    if (res.success) return res.data;
+    throw new Error(res.message || "Cập nhật tầng thất bại");
   },
 
-  saveSlots: (slots) => {
-    localStorage.setItem(SLOTS_KEY, JSON.stringify(slots));
-  },
-
-  saveGates: (gates) => {
-    localStorage.setItem(GATES_KEY, JSON.stringify(gates));
-  },
-
-  incrementAreaOccupancy: (areaCode) => {
-    const areas = parkingService.getAreas();
-    const index = areas.findIndex(a => a.code === areaCode);
-    if (index !== -1) {
-      const area = areas[index];
-      if (area.currentCount !== undefined && area.maxCapacity) {
-        area.currentCount = Math.min(area.maxCapacity, area.currentCount + 1);
-      }
-      if (area.availableSlots !== undefined) {
-        area.availableSlots = Math.max(0, area.availableSlots - 1);
-      }
-      localStorage.setItem(AREAS_KEY, JSON.stringify(areas));
-      
-      // Đồng thời cập nhật availableSlots tổng quan trong Parking Info
-      const info = parkingService.getParkingInfo();
-      info.availableSlots = Math.max(0, info.availableSlots - 1);
-      localStorage.setItem(INFO_KEY, JSON.stringify(info));
-    }
-  },
-
-  decrementAreaOccupancy: (areaCode) => {
-    const areas = parkingService.getAreas();
-    const index = areas.findIndex(a => a.code === areaCode);
-    if (index !== -1) {
-      const area = areas[index];
-      if (area.currentCount !== undefined && area.currentCount > 0) {
-        area.currentCount = area.currentCount - 1;
-      }
-      if (area.availableSlots !== undefined && area.totalSlots) {
-        area.availableSlots = Math.min(area.totalSlots, area.availableSlots + 1);
-      }
-      localStorage.setItem(AREAS_KEY, JSON.stringify(areas));
-
-      // Đồng thời cập nhật availableSlots tổng quan trong Parking Info
-      const info = parkingService.getParkingInfo();
-      info.availableSlots = Math.min(info.totalSlots || 40, info.availableSlots + 1);
-      localStorage.setItem(INFO_KEY, JSON.stringify(info));
-    }
+  updateSlotStatus: async (id, status) => {
+    const res = await coreAxiosClient.put(`/manager/structures/slots/${id}/status`, { status });
+    if (res.success) return res.data;
+    throw new Error(res.message || "Cập nhật slot thất bại");
   }
 };
-

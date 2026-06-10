@@ -47,10 +47,23 @@ export default function StructureManagementPage() {
   const [gates, setGates] = useState([]);
 
   useEffect(() => {
-    setFloors(parkingService.getFloors());
-    setAreas(parkingService.getAreas());
-    setSlots(parkingService.getSlots());
-    setGates(parkingService.getGates());
+    const fetchStructure = async () => {
+      try {
+        const [floorsData, areasData, slotsData, gatesData] = await Promise.all([
+          parkingService.getFloors(),
+          parkingService.getAreas(),
+          parkingService.getSlots(),
+          parkingService.getGates(),
+        ]);
+        setFloors(floorsData);
+        setAreas(areasData);
+        setSlots(slotsData);
+        setGates(gatesData);
+      } catch (e) {
+        console.error("Lỗi tải thông tin cấu trúc bãi xe:", e);
+      }
+    };
+    fetchStructure();
   }, []);
 
   const [filterFloor, setFilterFloor] = useState("ALL");
@@ -67,33 +80,33 @@ export default function StructureManagementPage() {
   // Floor actions
   const openCreateFloor = () => { setEditingFloor(null); setForm({ code: "", name: "", status: "ACTIVE" }); setShowFloorModal(true); };
   const openEditFloor = (floor) => { setEditingFloor(floor); setForm({ code: floor.code, name: floor.name, status: floor.status }); setShowFloorModal(true); };
-  const handleFloorSave = () => {
+  const handleFloorSave = async () => {
     if (!form.code || !form.name) return;
-    if (editingFloor) {
-      setFloors((prev) => {
-        const updated = prev.map((f) => f.id === editingFloor.id ? { ...f, ...form } : f);
-        parkingService.saveFloors(updated);
-        return updated;
-      });
-    } else {
-      setFloors((prev) => {
-        const updated = [...prev, { id: Date.now(), ...form, totalAreas: 0, totalSlots: 0 }];
-        parkingService.saveFloors(updated);
-        return updated;
-      });
+    try {
+      if (editingFloor) {
+        await parkingService.updateFloor(editingFloor.id, form);
+      } else {
+        await parkingService.addFloor(form);
+      }
+      const updatedFloors = await parkingService.getFloors();
+      setFloors(updatedFloors);
+      setShowFloorModal(false);
+    } catch (e) {
+      alert(e.message || "Lưu thông tin tầng thất bại");
     }
-    setShowFloorModal(false);
   };
 
   // Slot status
   const openSlotStatus = (slot) => { setEditingSlot(slot); setForm({ status: slot.status }); setShowSlotStatusModal(true); };
-  const handleSlotStatus = () => {
-    setSlots((prev) => {
-      const updated = prev.map((s) => s.id === editingSlot.id ? { ...s, status: form.status } : s);
-      parkingService.saveSlots(updated);
-      return updated;
-    });
-    setShowSlotStatusModal(false);
+  const handleSlotStatus = async () => {
+    try {
+      await parkingService.updateSlotStatus(editingSlot.id, form.status);
+      const updatedSlots = await parkingService.getSlots();
+      setSlots(updatedSlots);
+      setShowSlotStatusModal(false);
+    } catch (e) {
+      alert(e.message || "Cập nhật slot thất bại");
+    }
   };
 
   // Filtered data

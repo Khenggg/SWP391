@@ -1,68 +1,32 @@
-import { MOCK_MONTHLY_PASSES } from "../constants/mockData";
-
-const STORAGE_KEY = "parking_monthly_passes";
-
-const initializePasses = () => {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch (e) {
-      console.error("Lỗi phân tích cú pháp vé tháng", e);
-    }
-  }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(MOCK_MONTHLY_PASSES));
-  return MOCK_MONTHLY_PASSES;
-};
+import coreAxiosClient from "../api/coreAxiosClient";
 
 export const vehicleService = {
-  getMonthlyPasses: () => {
-    return initializePasses();
+  getMonthlyPasses: async () => {
+    const response = await coreAxiosClient.get("/manager/monthly-passes");
+    return response.success ? response.data : [];
   },
 
-  getVehiclesByOwner: (fullName, phone) => {
-    const passes = initializePasses();
-    return passes.filter(
-      (pass) => pass.ownerName === fullName || pass.phone === phone
-    );
+  getVehiclesByOwner: async () => {
+    // Current logged in driver's vehicles
+    const response = await coreAxiosClient.get("/driver/vehicles");
+    return response.success ? response.data : [];
   },
 
-  addMonthlyPass: (passData) => {
-    const passes = initializePasses();
-    const newPass = {
-      id: Date.now(),
-      ...passData,
-      createdAt: new Date().toISOString()
-    };
-    const updated = [...passes, newPass];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    return newPass;
+  addMonthlyPass: async (passData) => {
+    const response = await coreAxiosClient.post("/manager/monthly-passes", passData);
+    if (response.success) return response.data;
+    throw new Error(response.message || "Thêm vé tháng thất bại");
   },
 
-  updateMonthlyPassStatus: (passId, newStatus) => {
-    const passes = initializePasses();
-    const index = passes.findIndex(p => p.id === passId);
-    if (index === -1) {
-      throw new Error("Không tìm thấy thông tin vé tháng!");
-    }
-    passes[index].status = newStatus;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(passes));
-    return passes[index];
+  updateMonthlyPassStatus: async (passId, newStatus) => {
+    const response = await coreAxiosClient.put(`/manager/monthly-passes/${passId}/status`, { status: newStatus });
+    if (response.success) return response.data;
+    throw new Error(response.message || "Cập nhật trạng thái vé tháng thất bại");
   },
 
-  renewMonthlyPass: (passId, newEndDate) => {
-    const passes = initializePasses();
-    const index = passes.findIndex(p => p.id === passId);
-    if (index === -1) {
-      throw new Error("Không tìm thấy thông tin vé tháng!");
-    }
-    passes[index].endDate = newEndDate;
-    passes[index].status = "ACTIVE";
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(passes));
-    return passes[index];
-  },
-
-  saveMonthlyPasses: (passes) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(passes));
+  renewMonthlyPass: async (passId, newEndDate) => {
+    const response = await coreAxiosClient.put(`/manager/monthly-passes/${passId}/renew`, { endDate: newEndDate });
+    if (response.success) return response.data;
+    throw new Error(response.message || "Gia hạn vé tháng thất bại");
   }
 };

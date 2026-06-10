@@ -26,9 +26,15 @@ export default function DriverVehiclesPage() {
   }, []);
 
   useEffect(() => {
-    // 2. Tìm các xe thuộc sở hữu của tài xế này từ vehicleService
-    const vehicles = vehicleService.getVehiclesByOwner(driver.fullName, driver.phone);
-    setMyVehicles(vehicles);
+    const fetchVehicles = async () => {
+      try {
+        const vehicles = await vehicleService.getVehiclesByOwner();
+        setMyVehicles(vehicles);
+      } catch (e) {
+        console.error("Lỗi lấy danh sách xe:", e);
+      }
+    };
+    fetchVehicles();
   }, [driver]);
 
   return (
