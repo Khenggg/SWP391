@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { MOCK_PARKING_INFO } from "../constants/mockData";
+import { parkingService } from "../services/parkingService";
 
 const STATUS_CONFIG = {
   OPEN: { label: "ĐANG MỞ CỬA", className: "bg-emerald-100 text-emerald-700 border border-emerald-300" },
@@ -24,7 +24,7 @@ export default function ParkingInfoPage() {
     // Phase C: Thay bằng publicApi.getParkingInfo()
     const timer = setTimeout(() => {
       try {
-        setInfo(MOCK_PARKING_INFO);
+        setInfo(parkingService.getParkingInfo());
       } catch {
         setError("Không tải được thông tin bãi xe. Vui lòng thử lại.");
       } finally {

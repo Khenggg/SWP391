@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { MOCK_PRICING_RULES, MOCK_VEHICLE_TYPES } from "../constants/mockData";
+import { pricingService } from "../services/pricingService";
+import { parkingService } from "../services/parkingService";
 
 function formatVND(amount) {
   return amount.toLocaleString("vi-VN") + "đ";
@@ -15,13 +16,15 @@ export default function PublicPricingPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filterVehicle, setFilterVehicle] = useState("ALL");
+  const [vehicleTypes, setVehicleTypes] = useState([]);
 
   const load = () => {
     setIsLoading(true);
     setError(null);
     // Phase C: Thay bằng publicApi.getPricing()
     setTimeout(() => {
-      setRules(MOCK_PRICING_RULES);
+      setRules(pricingService.getPricingRules());
+      setVehicleTypes(parkingService.getVehicleTypes());
       setIsLoading(false);
     }, 500);
   };
@@ -33,7 +36,7 @@ export default function PublicPricingPage() {
     ? activeRules
     : activeRules.filter((r) => r.vehicleTypeName === filterVehicle);
 
-  const vehicleOptions = ["ALL", ...MOCK_VEHICLE_TYPES.map((v) => v.name)];
+  const vehicleOptions = ["ALL", ...vehicleTypes.map((v) => v.name)];
 
   return (
     <div className="min-h-screen bg-slate-50">

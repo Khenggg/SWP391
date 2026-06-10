@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Car, Info, Calendar, ShieldCheck, ShieldAlert, Award } from "lucide-react";
-import { MOCK_MONTHLY_PASSES } from "../../constants/mockData";
+import { vehicleService } from "../../services/vehicleService";
 
 export default function DriverVehiclesPage() {
   const [driver, setDriver] = useState({
@@ -26,10 +26,8 @@ export default function DriverVehiclesPage() {
   }, []);
 
   useEffect(() => {
-    // 2. Tìm các xe thuộc sở hữu của tài xế này trong MOCK_MONTHLY_PASSES
-    const vehicles = MOCK_MONTHLY_PASSES.filter(
-      (pass) => pass.ownerName === driver.fullName || pass.phone === driver.phone
-    );
+    // 2. Tìm các xe thuộc sở hữu của tài xế này từ vehicleService
+    const vehicles = vehicleService.getVehiclesByOwner(driver.fullName, driver.phone);
     setMyVehicles(vehicles);
   }, [driver]);
 

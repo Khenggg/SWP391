@@ -3,7 +3,10 @@ import {
   Calendar, Clock, CreditCard, CheckCircle2, AlertTriangle, 
   Trash2, Play, RefreshCw, Layers, ShieldCheck, ShieldAlert, Users 
 } from "lucide-react";
-import { MOCK_MONTHLY_PASSES, MOCK_AREAS, MOCK_FLOORS } from "../../constants/mockData";
+import { vehicleService } from "../../services/vehicleService";
+import { parkingService } from "../../services/parkingService";
+import { bookingService } from "../../services/bookingService";
+import { pricingService } from "../../services/pricingService";
 
 // Helper functions for date/time manipulation
 const addMinutes = (dateStr, mins) => {
@@ -73,10 +76,8 @@ export default function DriverBookingPage() {
       }
     }
 
-    // 2. Load driver's vehicles from MOCK_MONTHLY_PASSES
-    const vehicles = MOCK_MONTHLY_PASSES.filter(
-      (pass) => pass.ownerName === driverName || pass.phone === driverPhone
-    );
+    // 2. Load driver's vehicles
+    const vehicles = vehicleService.getVehiclesByOwner(driverName, driverPhone);
     setMyVehicles(vehicles);
 
     // 3. Load simulated time (default to current actual time if not present)
@@ -89,14 +90,10 @@ export default function DriverBookingPage() {
       localStorage.setItem("driver_sim_time", now);
     }
 
-    // 4. Load active booking using the partitioned key
-    const savedBooking = localStorage.getItem(`driver_active_booking_${driverUsername}`);
+    // 4. Load active booking using bookingService
+    const savedBooking = bookingService.getActiveBooking(driverUsername);
     if (savedBooking) {
-      try {
-        setActiveBooking(JSON.parse(savedBooking));
-      } catch (e) {
-        console.error("Lỗi tải active booking", e);
-      }
+      setActiveBooking(savedBooking);
     }
   }, []);
 
@@ -127,7 +124,7 @@ export default function DriverBookingPage() {
 
     if (updated) {
       setActiveBooking(booking);
-      localStorage.setItem(`driver_active_booking_${driver.username}`, JSON.stringify(booking));
+      bookingService.setActiveBooking(driver.username, booking);
       saveToHistory(booking);
     }
   }, [simTime, activeBooking]);
@@ -135,19 +132,7 @@ export default function DriverBookingPage() {
   // Helper to save a completed or expired booking to history
   const saveToHistory = (booking) => {
     if (["EXPIRED_TIMEOUT", "EXPIRED_CHECKIN", "CANCELLED", "COMPLETED"].includes(booking.status)) {
-      const enrichedBooking = {
-        ...booking,
-        reservationFee: booking.reservationFee !== undefined ? booking.reservationFee : (booking.fee || 0),
-        actualParkingFee: booking.actualParkingFee !== undefined ? booking.actualParkingFee : 0,
-        actualHours: booking.actualHours !== undefined ? booking.actualHours : 0
-      };
-      const historyKey = `driver_history_${driver.username}`;
-      const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
-      if (!history.find(h => h.id === enrichedBooking.id)) {
-        history.unshift(enrichedBooking);
-        localStorage.setItem(historyKey, JSON.stringify(history));
-      }
-      localStorage.removeItem(`driver_active_booking_${driver.username}`);
+      bookingService.saveToHistory(driver.username, booking);
       setActiveBooking(null);
     }
   };
@@ -169,6 +154,9 @@ export default function DriverBookingPage() {
 
   // Get pricing dynamically
   const getHourlyPrice = (vehicleType) => {
+    const rules = pricingService.getPricingRules();
+    const rule = rules.find(r => r.vehicleTypeName === vehicleType && r.status === "ACTIVE");
+    if (rule) return rule.dayPrice;
     if (vehicleType === "Xe Máy") return 5000;
     return 20000; // default to Ô Tô / Xe Vận Chuyển
   };
@@ -177,7 +165,8 @@ export default function DriverBookingPage() {
   const handleCreateBooking = (e) => {
     e.preventDefault();
 
-    const area = MOCK_AREAS.find(a => a.code === selectedAreaCode);
+    const areas = parkingService.getAreas();
+    const area = areas.find(a => a.code === selectedAreaCode);
     if (!area || area.status !== "ACTIVE") {
       alert("Khu vực đỗ xe không khả dụng.");
       return;
@@ -212,7 +201,7 @@ export default function DriverBookingPage() {
     };
 
     setActiveBooking(newBooking);
-    localStorage.setItem(`driver_active_booking_${driver.username}`, JSON.stringify(newBooking));
+    bookingService.setActiveBooking(driver.username, newBooking);
   };
 
   // Cancel Booking Action
@@ -231,7 +220,7 @@ export default function DriverBookingPage() {
         checkOutTime: simTime
       };
       setActiveBooking(null);
-      localStorage.removeItem(`driver_active_booking_${driver.username}`);
+      bookingService.deleteActiveBooking(driver.username);
       saveToHistory(booking);
     }
   };
@@ -247,7 +236,7 @@ export default function DriverBookingPage() {
     };
 
     setActiveBooking(booking);
-    localStorage.setItem(`driver_active_booking_${driver.username}`, JSON.stringify(booking));
+    bookingService.setActiveBooking(driver.username, booking);
   };
 
   // Check-In Form Submit
@@ -266,7 +255,8 @@ export default function DriverBookingPage() {
     };
 
     setActiveBooking(booking);
-    localStorage.setItem(`driver_active_booking_${driver.username}`, JSON.stringify(booking));
+    bookingService.setActiveBooking(driver.username, booking);
+    parkingService.incrementAreaOccupancy(booking.areaCode);
     setShowCheckInModal(false);
   };
 
@@ -295,7 +285,8 @@ export default function DriverBookingPage() {
       };
 
       setActiveBooking(null);
-      localStorage.removeItem(`driver_active_booking_${driver.username}`);
+      bookingService.deleteActiveBooking(driver.username);
+      parkingService.decrementAreaOccupancy(activeBooking.areaCode);
       saveToHistory(booking);
     }
   };
@@ -651,111 +642,41 @@ export default function DriverBookingPage() {
                     Chọn khu vực đỗ xe gợi ý
                   </label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    
-                    {/* B2-A Option (Ô tô) */}
-                    <div 
-                      onClick={() => setSelectedAreaCode("B2-A")}
-                      className={`p-4.5 border rounded-2xl cursor-pointer transition flex flex-col justify-between ${
-                        selectedAreaCode === "B2-A" 
-                          ? "border-indigo-600 bg-indigo-50/30 text-indigo-900 ring-2 ring-indigo-600/20" 
-                          : "border-slate-200 hover:border-slate-300"
-                      }`}
-                    >
-                      <div>
-                        <span className="text-sm font-extrabold block text-slate-800">Khu A - Tầng B2</span>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mt-0.5">
-                          Đỗ Xe Ô Tô (Quản lý Slot nội bộ)
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center mt-6">
-                        <span className="bg-indigo-100 text-indigo-700 text-[10px] font-black px-2 py-0.5 rounded">
-                          Còn 13 chỗ trống
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold text-indigo-600">20k/h</span>
-                          <span className="text-lg">🚗</span>
-                        </div>
-                      </div>
-                    </div>
+                    {parkingService.getAreas().filter(a => a.status === "ACTIVE" && (a.floorCode === "B1" || a.floorCode === "B2")).map(area => {
+                      const maxCap = area.maxCapacity || area.totalSlots || 0;
+                      const current = area.currentCount !== undefined ? area.currentCount : (maxCap - (area.availableSlots || 0));
+                      const available = maxCap - current;
+                      const isCar = area.vehicleTypeName === "Ô Tô";
+                      const price = getHourlyPrice(area.vehicleTypeName);
 
-                    {/* B2-B Option (Ô tô) */}
-                    <div 
-                      onClick={() => setSelectedAreaCode("B2-B")}
-                      className={`p-4.5 border rounded-2xl cursor-pointer transition flex flex-col justify-between ${
-                        selectedAreaCode === "B2-B" 
-                          ? "border-indigo-600 bg-indigo-50/30 text-indigo-900 ring-2 ring-indigo-600/20" 
-                          : "border-slate-200 hover:border-slate-300"
-                      }`}
-                    >
-                      <div>
-                        <span className="text-sm font-extrabold block text-slate-800">Khu B - Tầng B2</span>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mt-0.5">
-                          Đỗ Xe Ô Tô (Quản lý Slot nội bộ)
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center mt-6">
-                        <span className="bg-indigo-100 text-indigo-700 text-[10px] font-black px-2 py-0.5 rounded">
-                          Còn 7 chỗ trống
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold text-indigo-600">20k/h</span>
-                          <span className="text-lg">🚗</span>
+                      return (
+                        <div 
+                          key={area.code}
+                          onClick={() => setSelectedAreaCode(area.code)}
+                          className={`p-4.5 border rounded-2xl cursor-pointer transition flex flex-col justify-between ${
+                            selectedAreaCode === area.code 
+                              ? "border-indigo-600 bg-indigo-50/30 text-indigo-900 ring-2 ring-indigo-600/20" 
+                              : "border-slate-200 hover:border-slate-300"
+                          }`}
+                        >
+                          <div>
+                            <span className="text-sm font-extrabold block text-slate-800">{area.name}</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mt-0.5">
+                              Đỗ {area.vehicleTypeName} (Quản lý {isCar ? "Slot" : "mật độ"} nội bộ)
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center mt-6">
+                            <span className="bg-indigo-100 text-indigo-700 text-[10px] font-black px-2 py-0.5 rounded">
+                              Còn {available} chỗ trống
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-indigo-600">{(price / 1000)}k/h</span>
+                              <span className="text-lg">{isCar ? "🚗" : "🏍️"}</span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-
-                    {/* B1-A Option (Xe máy) */}
-                    <div 
-                      onClick={() => setSelectedAreaCode("B1-A")}
-                      className={`p-4.5 border rounded-2xl cursor-pointer transition flex flex-col justify-between ${
-                        selectedAreaCode === "B1-A" 
-                          ? "border-indigo-600 bg-indigo-50/30 text-indigo-900 ring-2 ring-indigo-600/20" 
-                          : "border-slate-200 hover:border-slate-300"
-                      }`}
-                    >
-                      <div>
-                        <span className="text-sm font-extrabold block text-slate-800">Khu A - Tầng B1</span>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mt-0.5">
-                          Xe Máy Thường (Quản lý mật độ nội bộ)
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center mt-6">
-                        <span className="bg-indigo-100 text-indigo-700 text-[10px] font-black px-2 py-0.5 rounded">
-                          Còn 35 chỗ trống
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold text-indigo-600">5k/h</span>
-                          <span className="text-lg">🏍️</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* B1-B Option (Xe máy điện) */}
-                    <div 
-                      onClick={() => setSelectedAreaCode("B1-B")}
-                      className={`p-4.5 border rounded-2xl cursor-pointer transition flex flex-col justify-between ${
-                        selectedAreaCode === "B1-B" 
-                          ? "border-indigo-600 bg-indigo-50/30 text-indigo-900 ring-2 ring-indigo-600/20" 
-                          : "border-slate-200 hover:border-slate-300"
-                      }`}
-                    >
-                      <div>
-                        <span className="text-sm font-extrabold block text-slate-800">Khu B - Tầng B1</span>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mt-0.5">
-                          Xe Máy Điện (Quản lý mật độ nội bộ)
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center mt-6">
-                        <span className="bg-indigo-100 text-indigo-700 text-[10px] font-black px-2 py-0.5 rounded">
-                          Còn 19 chỗ trống
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold text-indigo-600">5k/h</span>
-                          <span className="text-lg">🏍️</span>
-                        </div>
-                      </div>
-                    </div>
-
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -787,7 +708,7 @@ export default function DriverBookingPage() {
                       Đơn giá đỗ xe
                     </span>
                     <span className="text-xs font-bold text-slate-600">
-                      {selectedAreaCode.startsWith("B2") ? "20.000 VND / giờ (Ô Tô)" : "5.000 VND / giờ (Xe Máy)"}
+                      {getHourlyPrice(selectedAreaCode.startsWith("B2") ? "Ô Tô" : "Xe Máy").toLocaleString()} VND / giờ ({selectedAreaCode.startsWith("B2") ? "Ô Tô" : "Xe Máy"})
                     </span>
                   </div>
                   <div className="text-right">
@@ -795,7 +716,7 @@ export default function DriverBookingPage() {
                       Tổng chi phí đặt trước
                     </span>
                     <span className="text-xl font-black text-indigo-600">
-                      {(durationHours * (selectedAreaCode.startsWith("B2") ? 20000 : 5000)).toLocaleString()} VND
+                      {(durationHours * getHourlyPrice(selectedAreaCode.startsWith("B2") ? "Ô Tô" : "Xe Máy")).toLocaleString()} VND
                     </span>
                   </div>
                 </div>
@@ -885,7 +806,7 @@ export default function DriverBookingPage() {
               <li className="flex gap-2">
                 <span className="text-indigo-500 font-bold shrink-0">6.</span>
                 <span>
-                  Chỉ check-in booking cho xe **hết hạn vé tháng (EXPIRED)**. Xe còn hạn (ACTIVE) được đỗ trực tiếp vào slot cố định của cư dân mà không cần đặt trước.
+                  Chỉ check-in booking cho xe chưa đăng kí vé tháng hoặc vé tháng hết hạn. Xe còn hạn (ACTIVE) được đỗ trực tiếp mà không cần đặt trước.
                 </span>
               </li>
             </ul>

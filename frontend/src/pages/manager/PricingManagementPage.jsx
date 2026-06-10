@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { MOCK_PRICING_RULES, MOCK_VEHICLE_TYPES } from "../../constants/mockData";
+import { pricingService } from "../../services/pricingService";
+import { parkingService } from "../../services/parkingService";
 
 function formatVND(amount) { return Number(amount).toLocaleString("vi-VN") + "đ"; }
 
@@ -16,7 +17,8 @@ function Toast({ message, type, onClose }) {
 const EMPTY_FORM = { vehicleTypeId: "", dayPrice: "", nightPrice: "", monthlyPrice: "", lostCardFee: "", effectiveFrom: "", status: "ACTIVE" };
 
 export default function PricingManagementPage() {
-  const [rules, setRules] = useState(MOCK_PRICING_RULES.map((r) => ({ ...r })));
+  const [rules, setRules] = useState([]);
+  const [vehicleTypes, setVehicleTypes] = useState([]);
   const [filterVehicle, setFilterVehicle] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [toast, setToast] = useState(null);
@@ -24,6 +26,11 @@ export default function PricingManagementPage() {
   const [editingRule, setEditingRule] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [formErrors, setFormErrors] = useState({});
+
+  React.useEffect(() => {
+    setRules(pricingService.getPricingRules());
+    setVehicleTypes(parkingService.getVehicleTypes());
+  }, []);
 
   const showToast = (message, type = "success") => setToast({ message, type });
   const setField = (name, value) => setForm((p) => ({ ...p, [name]: value }));
@@ -71,7 +78,7 @@ export default function PricingManagementPage() {
   const handleSave = () => {
     const errs = validate(form);
     if (Object.keys(errs).length) { setFormErrors(errs); return; }
-    const vt = MOCK_VEHICLE_TYPES.find((v) => String(v.id) === String(form.vehicleTypeId));
+    const vt = vehicleTypes.find((v) => String(v.id) === String(form.vehicleTypeId));
     const payload = {
       vehicleTypeId: Number(form.vehicleTypeId),
       vehicleTypeName: vt?.name || "",
@@ -83,10 +90,18 @@ export default function PricingManagementPage() {
       status: form.status,
     };
     if (editingRule) {
-      setRules((prev) => prev.map((r) => r.id === editingRule.id ? { ...r, ...payload } : r));
+      setRules((prev) => {
+        const updated = prev.map((r) => r.id === editingRule.id ? { ...r, ...payload } : r);
+        pricingService.savePricingRules(updated);
+        return updated;
+      });
       showToast("Cập nhật bảng giá thành công!");
     } else {
-      setRules((prev) => [...prev, { id: Date.now(), ...payload }]);
+      setRules((prev) => {
+        const updated = [...prev, { id: Date.now(), ...payload }];
+        pricingService.savePricingRules(updated);
+        return updated;
+      });
       showToast("Tạo bảng giá thành công!");
     }
     setShowModal(false);
@@ -122,7 +137,7 @@ export default function PricingManagementPage() {
         <select value={filterVehicle} onChange={(e) => setFilterVehicle(e.target.value)}
           className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
           <option value="ALL">Tất cả loại xe</option>
-          {MOCK_VEHICLE_TYPES.map((v) => <option key={v.id} value={v.name}>{v.name}</option>)}
+          {vehicleTypes.map((v) => <option key={v.id} value={v.name}>{v.name}</option>)}
         </select>
         <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
           className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
@@ -189,7 +204,7 @@ export default function PricingManagementPage() {
                 <select value={form.vehicleTypeId || ""} onChange={(e) => setField("vehicleTypeId", e.target.value)}
                   className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 ${formErrors.vehicleTypeId ? "border-red-400" : "border-slate-300"}`}>
                   <option value="">-- Chọn loại xe --</option>
-                  {MOCK_VEHICLE_TYPES.map((v) => <option key={v.id} value={String(v.id)}>{v.name}</option>)}
+                  {vehicleTypes.map((v) => <option key={v.id} value={String(v.id)}>{v.name}</option>)}
                 </select>
                 {formErrors.vehicleTypeId && <p className="text-red-500 text-xs mt-1">{formErrors.vehicleTypeId}</p>}
               </div>

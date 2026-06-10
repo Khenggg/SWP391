@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { History, Calendar, CreditCard, Layers, Tag, CheckCircle2, XCircle, AlertCircle, Clock } from "lucide-react";
+import { bookingService } from "../../services/bookingService";
 
 // Helper for rendering date format
 const formatDateTime = (dateStr) => {
@@ -28,23 +29,12 @@ export default function DriverHistoryPage() {
       }
     }
 
-    const historyKey = `driver_history_${currentUsername}`;
-    const savedHistory = localStorage.getItem(historyKey);
-    if (savedHistory) {
-      try {
-        setHistoryList(JSON.parse(savedHistory));
-      } catch (e) {
-        console.error("Lỗi đọc history", e);
-      }
-    } else {
-      localStorage.setItem(historyKey, "[]");
-      setHistoryList([]);
-    }
+    setHistoryList(bookingService.getHistory(currentUsername));
   }, []);
 
   const handleClearHistory = () => {
     if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử gửi xe trên trình duyệt?")) {
-      localStorage.removeItem(`driver_history_${username}`);
+      bookingService.clearHistory(username);
       setHistoryList([]);
     }
   };

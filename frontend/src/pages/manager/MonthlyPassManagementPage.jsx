@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { MOCK_MONTHLY_PASSES, MOCK_VEHICLE_TYPES } from "../../constants/mockData";
+import { vehicleService } from "../../services/vehicleService";
+import { parkingService } from "../../services/parkingService";
 
 const STATUS_BADGE = {
   ACTIVE: "bg-emerald-100 text-emerald-700 border border-emerald-300",
@@ -36,7 +37,8 @@ function Modal({ title, onClose, onConfirm, confirmLabel = "Lưu", confirmClass 
 const EMPTY_FORM = { ownerName: "", phone: "", plate: "", vehicleTypeId: "", startDate: "", endDate: "" };
 
 export default function MonthlyPassManagementPage() {
-  const [passes, setPasses] = useState(MOCK_MONTHLY_PASSES.map((p) => ({ ...p })));
+  const [passes, setPasses] = useState([]);
+  const [vehicleTypes, setVehicleTypes] = useState([]);
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [filterVehicle, setFilterVehicle] = useState("ALL");
   const [searchText, setSearchText] = useState("");
@@ -50,6 +52,11 @@ export default function MonthlyPassManagementPage() {
   const [renewDate, setRenewDate] = useState("");
   const [newStatus, setNewStatus] = useState("");
   const [formErrors, setFormErrors] = useState({});
+
+  React.useEffect(() => {
+    setPasses(vehicleService.getMonthlyPasses());
+    setVehicleTypes(parkingService.getVehicleTypes());
+  }, []);
 
   const showToast = (msg, type = "success") => setToast({ message: msg, type });
   const setField = (name, value) => setForm((p) => ({ ...p, [name]: value }));
@@ -75,31 +82,32 @@ export default function MonthlyPassManagementPage() {
   const handleCreate = () => {
     const errs = validate(form);
     if (Object.keys(errs).length) { setFormErrors(errs); return; }
-    const vt = MOCK_VEHICLE_TYPES.find((v) => String(v.id) === String(form.vehicleTypeId));
-    const newPass = {
-      id: Date.now(), ownerName: form.ownerName, phone: form.phone, plate: form.plate.toUpperCase(),
+    const vt = vehicleTypes.find((v) => String(v.id) === String(form.vehicleTypeId));
+    const newPassData = {
+      ownerName: form.ownerName, phone: form.phone, plate: form.plate.toUpperCase(),
       vehicleTypeId: Number(form.vehicleTypeId), vehicleTypeName: vt?.name || "",
       startDate: form.startDate, endDate: form.endDate, status: "ACTIVE",
     };
-    setPasses((prev) => [...prev, newPass]);
+    vehicleService.addMonthlyPass(newPassData);
+    setPasses(vehicleService.getMonthlyPasses());
     setShowCreate(false);
     setForm(EMPTY_FORM);
     setFormErrors({});
     showToast("Tạo vé tháng thành công!");
   };
 
-  const openRenew = (pass) => { setSelectedPass(pass); setRenewDate(""); setShowRenew(true); };
   const handleRenew = () => {
     if (!renewDate) return;
     if (renewDate <= selectedPass.endDate) { showToast("Ngày gia hạn phải sau ngày kết thúc hiện tại!", "error"); return; }
-    setPasses((prev) => prev.map((p) => p.id === selectedPass.id ? { ...p, endDate: renewDate, status: "ACTIVE" } : p));
+    vehicleService.renewMonthlyPass(selectedPass.id, renewDate);
+    setPasses(vehicleService.getMonthlyPasses());
     setShowRenew(false);
     showToast(`Gia hạn vé ${selectedPass.plate} đến ${renewDate}`);
   };
 
-  const openStatus = (pass) => { setSelectedPass(pass); setNewStatus(pass.status); setShowStatusModal(true); };
   const handleStatus = () => {
-    setPasses((prev) => prev.map((p) => p.id === selectedPass.id ? { ...p, status: newStatus } : p));
+    vehicleService.updateMonthlyPassStatus(selectedPass.id, newStatus);
+    setPasses(vehicleService.getMonthlyPasses());
     setShowStatusModal(false);
     showToast("Cập nhật trạng thái thành công!");
   };
@@ -154,7 +162,7 @@ export default function MonthlyPassManagementPage() {
         <select value={filterVehicle} onChange={(e) => setFilterVehicle(e.target.value)}
           className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
           <option value="ALL">Tất cả loại xe</option>
-          {MOCK_VEHICLE_TYPES.map((v) => <option key={v.id} value={v.name}>{v.name}</option>)}
+          {vehicleTypes.map((v) => <option key={v.id} value={v.name}>{v.name}</option>)}
         </select>
         <span className="text-xs text-slate-400 ml-auto">{filtered.length} vé</span>
       </div>
@@ -197,8 +205,8 @@ export default function MonthlyPassManagementPage() {
                     </td>
                     <td className="px-5 py-3 text-center">
                       <div className="flex justify-center gap-2">
-                        <button onClick={() => openRenew(pass)} className="text-xs font-bold text-emerald-600 hover:underline">Gia Hạn</button>
-                        <button onClick={() => openStatus(pass)} className="text-xs font-bold text-amber-600 hover:underline">Trạng Thái</button>
+                        <button onClick={() => { setSelectedPass(pass); setRenewDate(""); setShowRenew(true); }} className="text-xs font-bold text-emerald-600 hover:underline">Gia Hạn</button>
+                        <button onClick={() => { setSelectedPass(pass); setNewStatus(pass.status); setShowStatusModal(true); }} className="text-xs font-bold text-amber-600 hover:underline">Trạng Thái</button>
                       </div>
                     </td>
                   </tr>
@@ -220,7 +228,7 @@ export default function MonthlyPassManagementPage() {
             <select value={form.vehicleTypeId || ""} onChange={(e) => setField("vehicleTypeId", e.target.value)}
               className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 ${formErrors.vehicleTypeId ? "border-red-400" : "border-slate-300"}`}>
               <option value="">-- Chọn loại xe --</option>
-              {MOCK_VEHICLE_TYPES.map((v) => <option key={v.id} value={String(v.id)}>{v.name}</option>)}
+              {vehicleTypes.map((v) => <option key={v.id} value={String(v.id)}>{v.name}</option>)}
             </select>
             {formErrors.vehicleTypeId && <p className="text-red-500 text-xs mt-1">{formErrors.vehicleTypeId}</p>}
           </div>

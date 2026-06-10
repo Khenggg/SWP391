@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, Lock, Eye, EyeOff, ShieldAlert, CheckCircle2, ChevronRight } from "lucide-react";
 import bgImage from "../assets/parking_bg.png";
+import { authService } from "../services/authService";
 
 /**
  * LoginPage - Trang đăng nhập của hệ thống (FE-FND-05)
@@ -20,35 +21,26 @@ export default function LoginPage({ onLoginSuccess }) {
     setError("");
     setIsLoading(true);
 
-    // Kịch bản đăng nhập tài khoản Seed chạy offline (không cần backend)
-    const seedUsers = {
-      admin01: { username: "admin01", fullName: "Quản Trị Viên Hệ Thống", role: "ADMIN" },
-      manager01: { username: "manager01", fullName: "Quản Lý Bãi Xe", role: "MANAGER" },
-      staff01: { username: "staff01", fullName: "Nhân Viên Cổng Vận Hành", role: "STAFF" },
-      driver01: { username: "driver01", fullName: "Nguyễn Văn A", role: "DRIVER", phone: "0912345678", email: "driver01@parking.vn" },
-      driver02: { username: "driver02", fullName: "Trần Văn B", role: "DRIVER", phone: "0987654321", email: "driver02@booking.vn" },
-    };
-
     setTimeout(() => {
-      const userKey = username.trim().toLowerCase();
-      if (seedUsers[userKey]) {
-        const token = `mock-token-for-${userKey}`;
-        onLoginSuccess(token, seedUsers[userKey]);
+      try {
+        const { token, user } = authService.login(username, password);
+        onLoginSuccess(token, user);
 
         // Điều hướng dựa trên vai trò (role) của tài khoản
-        if (seedUsers[userKey].role === "ADMIN") {
+        if (user.role === "ADMIN") {
           navigate("/admin/users");
-        } else if (seedUsers[userKey].role === "MANAGER") {
+        } else if (user.role === "MANAGER") {
           navigate("/manager/dashboard");
-        } else if (seedUsers[userKey].role === "DRIVER") {
+        } else if (user.role === "DRIVER") {
           navigate("/driver/profile");
         } else {
           navigate("/staff/entry");
         }
-      } else {
-        setError("Tên đăng nhập hoặc mật khẩu không chính xác.");
+      } catch (err) {
+        setError(err.message || "Tên đăng nhập hoặc mật khẩu không chính xác.");
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     }, 600); // Tạo độ trễ nhẹ giả lập gọi API
   };
 
@@ -82,7 +74,7 @@ export default function LoginPage({ onLoginSuccess }) {
       <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl z-0 pointer-events-none"></div>
       <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl z-0 pointer-events-none"></div>
 
-      <div className="relative w-full max-w-[420px] rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-xl p-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-10 transition-all duration-300 hover:border-white/15">
+      <div className="relative w-full max-w-[420px] rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-xl p-6 sm:p-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-10 transition-all duration-300 hover:border-white/15">
         
         {/* Header/Logo */}
         <div 

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { User, Phone, Mail, Shield, Car, Calendar, History, ArrowRight } from "lucide-react";
-import { MOCK_MONTHLY_PASSES } from "../../constants/mockData";
+import { vehicleService } from "../../services/vehicleService";
+import { bookingService } from "../../services/bookingService";
 
 export default function DriverProfilePage() {
   const [driver, setDriver] = useState({
@@ -32,10 +33,8 @@ export default function DriverProfilePage() {
   }, []);
 
   useEffect(() => {
-    // 2. Đếm số xe từ MOCK_MONTHLY_PASSES của Nguyễn Văn A
-    const myPasses = MOCK_MONTHLY_PASSES.filter(
-      (pass) => pass.ownerName === driver.fullName || pass.phone === driver.phone
-    );
+    // 2. Đếm số xe của tài xế này từ vehicleService
+    const myPasses = vehicleService.getVehiclesByOwner(driver.fullName, driver.phone);
     const active = myPasses.filter((p) => p.status === "ACTIVE").length;
     const expired = myPasses.filter((p) => p.status === "EXPIRED").length;
     setVehicleStats({
@@ -44,12 +43,9 @@ export default function DriverProfilePage() {
       total: myPasses.length,
     });
 
-    // 3. Đếm số booking từ localStorage
-    const historyKey = `driver_history_${driver.username}`;
-    const activeKey = `driver_active_booking_${driver.username}`;
-    
-    const savedHistory = JSON.parse(localStorage.getItem(historyKey) || "[]");
-    const hasActiveBooking = localStorage.getItem(activeKey) ? 1 : 0;
+    // 3. Đếm số booking từ bookingService
+    const savedHistory = bookingService.getHistory(driver.username);
+    const hasActiveBooking = bookingService.getActiveBooking(driver.username) ? 1 : 0;
     setBookingCount(savedHistory.length + hasActiveBooking);
   }, [driver]);
 

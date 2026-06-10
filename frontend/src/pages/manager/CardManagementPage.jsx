@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { MOCK_CARDS } from "../../constants/mockData";
+import { cardService } from "../../services/cardService";
 
 const CARD_STATUS_BADGE = {
   AVAILABLE: "bg-emerald-100 text-emerald-700 border border-emerald-300",
@@ -58,7 +58,7 @@ export default function CardManagementPage() {
 
   useEffect(() => {
     setTimeout(() => {
-      setCards(MOCK_CARDS.map((c) => ({ ...c })));
+      setCards(cardService.getCards());
       setIsLoading(false);
     }, 500);
   }, []);
@@ -73,13 +73,16 @@ export default function CardManagementPage() {
 
   const handleCreate = () => {
     if (!form.code.trim()) { setFormErrors({ code: "Mã thẻ bắt buộc" }); return; }
-    if (cards.find((c) => c.code === form.code.trim())) { setFormErrors({ code: "Mã thẻ đã tồn tại" }); return; }
-    const newCard = { id: Date.now(), code: form.code.trim(), status: "AVAILABLE", note: form.note, updatedAt: new Date().toISOString(), activeSession: null };
-    setCards((prev) => [...prev, newCard]);
-    setShowCreate(false);
-    setForm({ code: "", note: "" });
-    setFormErrors({});
-    showToast("Tạo thẻ thành công!");
+    try {
+      cardService.addCard(form.code.trim(), form.note);
+      setCards(cardService.getCards());
+      setShowCreate(false);
+      setForm({ code: "", note: "" });
+      setFormErrors({});
+      showToast("Tạo thẻ thành công!");
+    } catch (e) {
+      setFormErrors({ code: e.message });
+    }
   };
 
   const openStatusModal = (card) => {
@@ -94,9 +97,14 @@ export default function CardManagementPage() {
 
   const handleStatusChange = () => {
     if (!window.confirm(`Xác nhận đổi trạng thái thẻ ${selectedCard.code} sang ${newStatus}?`)) return;
-    setCards((prev) => prev.map((c) => c.id === selectedCard.id ? { ...c, status: newStatus, updatedAt: new Date().toISOString() } : c));
-    setShowStatusModal(false);
-    showToast(`Đã cập nhật trạng thái thẻ ${selectedCard.code}`);
+    try {
+      cardService.updateCardStatus(selectedCard.id, newStatus);
+      setCards(cardService.getCards());
+      setShowStatusModal(false);
+      showToast(`Đã cập nhật trạng thái thẻ ${selectedCard.code}`);
+    } catch (e) {
+      showToast(e.message, "error");
+    }
   };
 
   // Summary counts

@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { MOCK_FLOORS, MOCK_AREAS, MOCK_SLOTS, MOCK_GATES } from "../../constants/mockData";
+import React, { useState, useEffect } from "react";
+import { parkingService } from "../../services/parkingService";
 
 const AREA_STATUS_BADGE = {
   ACTIVE: "bg-emerald-100 text-emerald-700 border border-emerald-300",
@@ -41,10 +41,17 @@ const TABS = ["Tầng (Floors)", "Khu Vực (Areas)", "Slot", "Cổng (Gates)"];
 
 export default function StructureManagementPage() {
   const [activeTab, setActiveTab] = useState(0);
-  const [floors, setFloors] = useState(MOCK_FLOORS.map((f) => ({ ...f })));
-  const [areas, setAreas] = useState(MOCK_AREAS.map((a) => ({ ...a })));
-  const [slots, setSlots] = useState(MOCK_SLOTS.map((s) => ({ ...s })));
-  const [gates] = useState(MOCK_GATES);
+  const [floors, setFloors] = useState([]);
+  const [areas, setAreas] = useState([]);
+  const [slots, setSlots] = useState([]);
+  const [gates, setGates] = useState([]);
+
+  useEffect(() => {
+    setFloors(parkingService.getFloors());
+    setAreas(parkingService.getAreas());
+    setSlots(parkingService.getSlots());
+    setGates(parkingService.getGates());
+  }, []);
 
   const [filterFloor, setFilterFloor] = useState("ALL");
   const [filterSlotStatus, setFilterSlotStatus] = useState("ALL");
@@ -63,9 +70,17 @@ export default function StructureManagementPage() {
   const handleFloorSave = () => {
     if (!form.code || !form.name) return;
     if (editingFloor) {
-      setFloors((prev) => prev.map((f) => f.id === editingFloor.id ? { ...f, ...form } : f));
+      setFloors((prev) => {
+        const updated = prev.map((f) => f.id === editingFloor.id ? { ...f, ...form } : f);
+        parkingService.saveFloors(updated);
+        return updated;
+      });
     } else {
-      setFloors((prev) => [...prev, { id: Date.now(), ...form, totalAreas: 0, totalSlots: 0 }]);
+      setFloors((prev) => {
+        const updated = [...prev, { id: Date.now(), ...form, totalAreas: 0, totalSlots: 0 }];
+        parkingService.saveFloors(updated);
+        return updated;
+      });
     }
     setShowFloorModal(false);
   };
@@ -73,7 +88,11 @@ export default function StructureManagementPage() {
   // Slot status
   const openSlotStatus = (slot) => { setEditingSlot(slot); setForm({ status: slot.status }); setShowSlotStatusModal(true); };
   const handleSlotStatus = () => {
-    setSlots((prev) => prev.map((s) => s.id === editingSlot.id ? { ...s, status: form.status } : s));
+    setSlots((prev) => {
+      const updated = prev.map((s) => s.id === editingSlot.id ? { ...s, status: form.status } : s);
+      parkingService.saveSlots(updated);
+      return updated;
+    });
     setShowSlotStatusModal(false);
   };
 

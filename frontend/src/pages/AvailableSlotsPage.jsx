@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { MOCK_SLOTS, MOCK_FLOORS, MOCK_VEHICLE_TYPES, MOCK_AREAS } from "../constants/mockData";
+import { parkingService } from "../services/parkingService";
 
 const SLOT_STATUS_BADGE = {
   AVAILABLE: "bg-emerald-100 text-emerald-700 border border-emerald-300",
@@ -78,13 +78,19 @@ export default function AvailableSlotsPage() {
   const [error, setError] = useState(null);
   const [filterVehicle, setFilterVehicle] = useState("ALL");
   const [filterFloor, setFilterFloor] = useState("ALL");
+  const [areas, setAreas] = useState([]);
+  const [floors, setFloors] = useState([]);
+  const [vehicleTypes, setVehicleTypes] = useState([]);
 
   const load = () => {
     setIsLoading(true);
     setError(null);
     // Phase C: Thay bằng publicApi.getAvailableSlots(params)
     setTimeout(() => {
-      setSlots(MOCK_SLOTS);
+      setSlots(parkingService.getSlots());
+      setAreas(parkingService.getAreas());
+      setFloors(parkingService.getFloors());
+      setVehicleTypes(parkingService.getVehicleTypes());
       setIsLoading(false);
     }, 500);
   };
@@ -101,26 +107,26 @@ export default function AvailableSlotsPage() {
   const availableCount = filteredSlots.filter((s) => s.status === "AVAILABLE").length;
   const totalCount = filteredSlots.length;
 
-  const vehicleOptions = ["ALL", ...MOCK_VEHICLE_TYPES.map((v) => v.name)];
-  const floorOptions = ["ALL", ...MOCK_FLOORS.map((f) => f.code)];
+  const vehicleOptions = ["ALL", ...vehicleTypes.map((v) => v.name)];
+  const floorOptions = ["ALL", ...floors.map((f) => f.code)];
 
   // Motorbike calculations (B1)
-  const mbAreas = MOCK_AREAS.filter((a) => a.floorCode === "B1");
+  const mbAreas = areas.filter((a) => a.floorCode === "B1");
   const mbTotalCapacity = mbAreas.reduce((sum, a) => sum + a.maxCapacity, 0);
   const mbTotalCurrent = mbAreas.reduce((sum, a) => sum + a.currentCount, 0);
-  const mbPercent = Math.round((mbTotalCurrent / mbTotalCapacity) * 100);
+  const mbPercent = mbTotalCapacity > 0 ? Math.round((mbTotalCurrent / mbTotalCapacity) * 100) : 0;
 
   // Transport calculations (B3)
-  const tsAreas = MOCK_AREAS.filter((a) => a.floorCode === "B3");
+  const tsAreas = areas.filter((a) => a.floorCode === "B3");
   const tsTotalCapacity = tsAreas.reduce((sum, a) => sum + a.maxCapacity, 0);
   const tsTotalCurrent = tsAreas.reduce((sum, a) => sum + a.currentCount, 0);
-  const tsPercent = Math.round((tsTotalCurrent / tsTotalCapacity) * 100);
+  const tsPercent = tsTotalCapacity > 0 ? Math.round((tsTotalCurrent / tsTotalCapacity) * 100) : 0;
 
   // Car calculations (B2)
-  const carAreas = MOCK_AREAS.filter((a) => a.floorCode === "B2");
+  const carAreas = areas.filter((a) => a.floorCode === "B2");
   const carTotalCapacity = carAreas.reduce((sum, a) => sum + (a.maxCapacity || a.totalSlots || 0), 0);
   const carTotalCurrent = carAreas.reduce((sum, a) => sum + (a.currentCount !== undefined ? a.currentCount : ((a.maxCapacity || a.totalSlots) - (a.availableSlots || 0))), 0);
-  const carPercent = Math.round((carTotalCurrent / carTotalCapacity) * 100);
+  const carPercent = carTotalCapacity > 0 ? Math.round((carTotalCurrent / carTotalCapacity) * 100) : 0;
 
   // Mismatch Error logic
   let infoMessage = null;
