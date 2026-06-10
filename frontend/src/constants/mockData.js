@@ -12,11 +12,11 @@ export const MOCK_PARKING_INFO = {
   address: "12 Tân Thắng, Phường Sơn Kỳ, Quận Tân Phú, TP.HCM",
   hotline: "1800 1234",
   openingHours: "06:00 - 22:00",
-  totalFloors: 5,
-  totalAreas: 10,
-  totalSlots: 250,
-  availableSlots: 87,
-  supportNote: "Hỗ trợ khách hàng từ 07:00 - 20:00 các ngày trong tuần.",
+  totalFloors: 3,
+  totalAreas: 4,
+  totalSlots: 40,
+  availableSlots: 20,
+  supportNote: "Hỗ trợ khách hàng từ 07:00 - 20:00 các ngày trong tuần. Hệ thống chỉ thực hiện giám sát & quản lý vị trí (slot) đỗ cho Xe Ô Tô tại Tầng B2. Xe Máy (Tầng B1) và Xe Vận Chuyển (Tầng B3) tự quản lý và đỗ theo điều phối.",
   lastUpdated: "2026-05-28T07:00:00Z",
 };
 
@@ -26,7 +26,7 @@ export const MOCK_PARKING_INFO = {
 export const MOCK_VEHICLE_TYPES = [
   { id: 1, code: "MOTORBIKE", name: "Xe Máy" },
   { id: 2, code: "CAR", name: "Ô Tô" },
-  { id: 3, code: "BICYCLE", name: "Xe Đạp" },
+  { id: 3, code: "TRANSPORT", name: "Xe Vận Chuyển" },
 ];
 
 // ===========================================================================
@@ -58,24 +58,13 @@ export const MOCK_PRICING_RULES = [
   {
     id: 3,
     vehicleTypeId: 3,
-    vehicleTypeName: "Xe Đạp",
-    dayPrice: 2000,
-    nightPrice: 3000,
-    monthlyPrice: 150000,
-    lostCardFee: 30000,
+    vehicleTypeName: "Xe Vận Chuyển",
+    dayPrice: 40000,
+    nightPrice: 60000,
+    monthlyPrice: 2000000,
+    lostCardFee: 150000,
     effectiveFrom: "2026-01-01",
     status: "ACTIVE",
-  },
-  {
-    id: 4,
-    vehicleTypeId: 1,
-    vehicleTypeName: "Xe Máy",
-    dayPrice: 4000,
-    nightPrice: 6000,
-    monthlyPrice: 250000,
-    lostCardFee: 50000,
-    effectiveFrom: "2025-01-01",
-    status: "INACTIVE",
   },
 ];
 
@@ -83,40 +72,75 @@ export const MOCK_PRICING_RULES = [
 // FLOORS
 // ===========================================================================
 export const MOCK_FLOORS = [
-  { id: 1, code: "B1", name: "Tầng Hầm 1", status: "ACTIVE", totalAreas: 3, totalSlots: 60 },
-  { id: 2, code: "B2", name: "Tầng Hầm 2", status: "ACTIVE", totalAreas: 3, totalSlots: 60 },
-  { id: 3, code: "F1", name: "Tầng 1", status: "ACTIVE", totalAreas: 2, totalSlots: 50 },
-  { id: 4, code: "F2", name: "Tầng 2", status: "ACTIVE", totalAreas: 2, totalSlots: 50 },
-  { id: 5, code: "F3", name: "Tầng 3 (Bảo Trì)", status: "MAINTENANCE", totalAreas: 0, totalSlots: 30 },
+  { id: 1, code: "B1", name: "Tầng B1 (Xe Máy)", status: "ACTIVE", totalAreas: 2, totalSlots: 150 },
+  { id: 2, code: "B2", name: "Tầng B2 (Ô Tô)", status: "ACTIVE", totalAreas: 2, totalSlots: 40 },
+  { id: 3, code: "B3", name: "Tầng B3 (Xe Vận Chuyển)", status: "ACTIVE", totalAreas: 2, totalSlots: 50 },
 ];
 
 // ===========================================================================
 // AREAS
 // ===========================================================================
 export const MOCK_AREAS = [
-  { id: 1, floorId: 1, floorCode: "B1", code: "B1-A", name: "Khu A - Xe Máy", vehicleTypeName: "Xe Máy", priority: 1, status: "ACTIVE", totalSlots: 30, availableSlots: 12 },
-  { id: 2, floorId: 1, floorCode: "B1", code: "B1-B", name: "Khu B - Ô Tô", vehicleTypeName: "Ô Tô", priority: 2, status: "ACTIVE", totalSlots: 20, availableSlots: 5 },
-  { id: 3, floorId: 1, floorCode: "B1", code: "B1-C", name: "Khu C - Xe Đạp", vehicleTypeName: "Xe Đạp", priority: 3, status: "ACTIVE", totalSlots: 10, availableSlots: 8 },
-  { id: 4, floorId: 2, floorCode: "B2", code: "B2-A", name: "Khu A - Xe Máy", vehicleTypeName: "Xe Máy", priority: 1, status: "ACTIVE", totalSlots: 30, availableSlots: 20 },
-  { id: 5, floorId: 2, floorCode: "B2", code: "B2-B", name: "Khu B - Ô Tô", vehicleTypeName: "Ô Tô", priority: 2, status: "LOCKED", totalSlots: 20, availableSlots: 0 },
-  { id: 6, floorId: 3, floorCode: "F1", code: "F1-A", name: "Khu A - Xe Máy", vehicleTypeName: "Xe Máy", priority: 1, status: "ACTIVE", totalSlots: 25, availableSlots: 25 },
-  { id: 7, floorId: 3, floorCode: "F1", code: "F1-B", name: "Khu B - Ô Tô", vehicleTypeName: "Ô Tô", priority: 2, status: "ACTIVE", totalSlots: 25, availableSlots: 17 },
+  // Tầng B1 (Xe Máy) - Quản lý bằng độ phủ
+  { id: 1, floorId: 1, floorCode: "B1", code: "B1-A", name: "Khu A - Xe Máy Thường", vehicleTypeName: "Xe Máy", priority: 1, status: "ACTIVE", maxCapacity: 100, currentCount: 65, isDensityManaged: true },
+  { id: 2, floorId: 1, floorCode: "B1", code: "B1-B", name: "Khu B - Xe Máy Điện", vehicleTypeName: "Xe Máy", priority: 2, status: "ACTIVE", maxCapacity: 50, currentCount: 31, isDensityManaged: true },
+  
+  // Tầng B2 (Xe Ô Tô) - Quản lý bằng Slot
+  { id: 3, floorId: 2, floorCode: "B2", code: "B2-A", name: "Khu A - Ô Tô", vehicleTypeName: "Ô Tô", priority: 1, status: "ACTIVE", totalSlots: 20, availableSlots: 13, isDensityManaged: false },
+  { id: 4, floorId: 2, floorCode: "B2", code: "B2-B", name: "Khu B - Ô Tô", vehicleTypeName: "Ô Tô", priority: 2, status: "ACTIVE", totalSlots: 20, availableSlots: 7, isDensityManaged: false },
+  
+  // Tầng B3 (Xe Vận Chuyển) - Quản lý bằng độ phủ
+  { id: 5, floorId: 3, floorCode: "B3", code: "B3-A", name: "Khu A - Xe Tải Nhẹ", vehicleTypeName: "Xe Vận Chuyển", priority: 1, status: "ACTIVE", maxCapacity: 30, currentCount: 12, isDensityManaged: true },
+  { id: 6, floorId: 3, floorCode: "B3", code: "B3-B", name: "Khu B - Xe Tải Nặng", vehicleTypeName: "Xe Vận Chuyển", priority: 2, status: "ACTIVE", maxCapacity: 20, currentCount: 12, isDensityManaged: true }
 ];
 
 // ===========================================================================
 // SLOTS
 // ===========================================================================
 export const MOCK_SLOTS = [
-  { id: 1, areaId: 1, areaCode: "B1-A", floorCode: "B1", code: "B1-A-001", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
-  { id: 2, areaId: 1, areaCode: "B1-A", floorCode: "B1", code: "B1-A-002", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
-  { id: 3, areaId: 1, areaCode: "B1-A", floorCode: "B1", code: "B1-A-003", vehicleTypeName: "Xe Máy", status: "OCCUPIED", sessionCode: "SE-20260528-001" },
-  { id: 4, areaId: 1, areaCode: "B1-A", floorCode: "B1", code: "B1-A-004", vehicleTypeName: "Xe Máy", status: "MAINTENANCE" },
-  { id: 5, areaId: 2, areaCode: "B1-B", floorCode: "B1", code: "B1-B-001", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
-  { id: 6, areaId: 2, areaCode: "B1-B", floorCode: "B1", code: "B1-B-002", vehicleTypeName: "Ô Tô", status: "OCCUPIED", sessionCode: "SE-20260528-002" },
-  { id: 7, areaId: 4, areaCode: "B2-A", floorCode: "B2", code: "B2-A-001", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
-  { id: 8, areaId: 4, areaCode: "B2-A", floorCode: "B2", code: "B2-A-002", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
-  { id: 9, areaId: 6, areaCode: "F1-A", floorCode: "F1", code: "F1-A-001", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
-  { id: 10, areaId: 7, areaCode: "F1-B", floorCode: "F1", code: "F1-B-001", vehicleTypeName: "Ô Tô", status: "LOCKED" },
+  // Khu B2-A (20 Slots)
+  { id: 1, areaId: 2, areaCode: "B2-A", floorCode: "B2", code: "B2-A-001", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
+  { id: 2, areaId: 2, areaCode: "B2-A", floorCode: "B2", code: "B2-A-002", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
+  { id: 3, areaId: 2, areaCode: "B2-A", floorCode: "B2", code: "B2-A-003", vehicleTypeName: "Ô Tô", status: "OCCUPIED", sessionCode: "SE-20260528-101" },
+  { id: 4, areaId: 2, areaCode: "B2-A", floorCode: "B2", code: "B2-A-004", vehicleTypeName: "Ô Tô", status: "OCCUPIED", sessionCode: "SE-20260528-102" },
+  { id: 5, areaId: 2, areaCode: "B2-A", floorCode: "B2", code: "B2-A-005", vehicleTypeName: "Ô Tô", status: "MAINTENANCE" },
+  { id: 6, areaId: 2, areaCode: "B2-A", floorCode: "B2", code: "B2-A-006", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
+  { id: 7, areaId: 2, areaCode: "B2-A", floorCode: "B2", code: "B2-A-007", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
+  { id: 8, areaId: 2, areaCode: "B2-A", floorCode: "B2", code: "B2-A-008", vehicleTypeName: "Ô Tô", status: "OCCUPIED", sessionCode: "SE-20260528-103" },
+  { id: 9, areaId: 2, areaCode: "B2-A", floorCode: "B2", code: "B2-A-009", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
+  { id: 10, areaId: 2, areaCode: "B2-A", floorCode: "B2", code: "B2-A-010", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
+  { id: 11, areaId: 2, areaCode: "B2-A", floorCode: "B2", code: "B2-A-011", vehicleTypeName: "Ô Tô", status: "OCCUPIED", sessionCode: "SE-20260528-104" },
+  { id: 12, areaId: 2, areaCode: "B2-A", floorCode: "B2", code: "B2-A-012", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
+  { id: 13, areaId: 2, areaCode: "B2-A", floorCode: "B2", code: "B2-A-013", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
+  { id: 14, areaId: 2, areaCode: "B2-A", floorCode: "B2", code: "B2-A-014", vehicleTypeName: "Ô Tô", status: "LOCKED" },
+  { id: 15, areaId: 2, areaCode: "B2-A", floorCode: "B2", code: "B2-A-015", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
+  { id: 16, areaId: 2, areaCode: "B2-A", floorCode: "B2", code: "B2-A-016", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
+  { id: 17, areaId: 2, areaCode: "B2-A", floorCode: "B2", code: "B2-A-017", vehicleTypeName: "Ô Tô", status: "OCCUPIED", sessionCode: "SE-20260528-105" },
+  { id: 18, areaId: 2, areaCode: "B2-A", floorCode: "B2", code: "B2-A-018", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
+  { id: 19, areaId: 2, areaCode: "B2-A", floorCode: "B2", code: "B2-A-019", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
+  { id: 20, areaId: 2, areaCode: "B2-A", floorCode: "B2", code: "B2-A-020", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
+
+  // Khu B2-B (20 Slots)
+  { id: 21, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-001", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
+  { id: 22, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-002", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
+  { id: 23, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-003", vehicleTypeName: "Ô Tô", status: "OCCUPIED", sessionCode: "SE-20260528-106" },
+  { id: 24, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-004", vehicleTypeName: "Ô Tô", status: "OCCUPIED", sessionCode: "SE-20260528-107" },
+  { id: 25, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-005", vehicleTypeName: "Ô Tô", status: "OCCUPIED", sessionCode: "SE-20260528-108" },
+  { id: 26, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-006", vehicleTypeName: "Ô Tô", status: "OCCUPIED", sessionCode: "SE-20260528-109" },
+  { id: 27, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-007", vehicleTypeName: "Ô Tô", status: "OCCUPIED", sessionCode: "SE-20260528-110" },
+  { id: 28, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-008", vehicleTypeName: "Ô Tô", status: "OCCUPIED", sessionCode: "SE-20260528-111" },
+  { id: 29, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-009", vehicleTypeName: "Ô Tô", status: "OCCUPIED", sessionCode: "SE-20260528-112" },
+  { id: 30, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-010", vehicleTypeName: "Ô Tô", status: "OCCUPIED", sessionCode: "SE-20260528-113" },
+  { id: 31, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-011", vehicleTypeName: "Ô Tô", status: "OCCUPIED", sessionCode: "SE-20260528-114" },
+  { id: 32, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-012", vehicleTypeName: "Ô Tô", status: "OCCUPIED", sessionCode: "SE-20260528-115" },
+  { id: 33, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-013", vehicleTypeName: "Ô Tô", status: "OCCUPIED", sessionCode: "SE-20260528-116" },
+  { id: 34, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-014", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
+  { id: 35, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-015", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
+  { id: 36, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-016", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
+  { id: 37, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-017", vehicleTypeName: "Ô Tô", status: "OCCUPIED", sessionCode: "SE-20260528-117" },
+  { id: 38, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-018", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
+  { id: 39, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-019", vehicleTypeName: "Ô Tô", status: "LOCKED" },
+  { id: 40, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-020", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
 ];
 
 // ===========================================================================
@@ -125,8 +149,8 @@ export const MOCK_SLOTS = [
 export const MOCK_GATES = [
   { id: 1, code: "GATE-IN-01", name: "Cổng Vào Chính", type: "ENTRY", floorCode: "B1", status: "ACTIVE" },
   { id: 2, code: "GATE-OUT-01", name: "Cổng Ra Chính", type: "EXIT", floorCode: "B1", status: "ACTIVE" },
-  { id: 3, code: "GATE-IN-02", name: "Cổng Vào Phụ", type: "ENTRY", floorCode: "F1", status: "ACTIVE" },
-  { id: 4, code: "GATE-OUT-02", name: "Cổng Ra Phụ", type: "EXIT", floorCode: "F1", status: "INACTIVE" },
+  { id: 3, code: "GATE-IN-02", name: "Cổng Vào Phụ", type: "ENTRY", floorCode: "B2", status: "ACTIVE" },
+  { id: 4, code: "GATE-OUT-02", name: "Cổng Ra Phụ", type: "EXIT", floorCode: "B2", status: "INACTIVE" },
 ];
 
 // ===========================================================================
@@ -203,6 +227,39 @@ export const MOCK_MONTHLY_PASSES = [
     endDate: "2026-06-14",
     status: "LOCKED",
   },
+  {
+    id: 5,
+    ownerName: "Nguyễn Văn A",
+    phone: "0912345678",
+    plate: "51A-888.88",
+    vehicleTypeId: 2,
+    vehicleTypeName: "Ô Tô",
+    startDate: "2026-05-01",
+    endDate: "2026-06-30",
+    status: "ACTIVE",
+  },
+  {
+    id: 6,
+    ownerName: "Nguyễn Văn A",
+    phone: "0912345678",
+    plate: "59B-666.66",
+    vehicleTypeId: 2,
+    vehicleTypeName: "Ô Tô",
+    startDate: "2026-04-01",
+    endDate: "2026-04-30",
+    status: "EXPIRED",
+  },
+  {
+    id: 7,
+    ownerName: "Nguyễn Văn A",
+    phone: "0912345678",
+    plate: "51C-777.77",
+    vehicleTypeId: 1,
+    vehicleTypeName: "Xe Máy",
+    startDate: "2026-05-01",
+    endDate: "2026-06-30",
+    status: "ACTIVE",
+  },
 ];
 
 // ===========================================================================
@@ -276,3 +333,13 @@ export const STATIC_RULES = [
     ],
   },
 ];
+
+// ===========================================================================
+// MOTORBIKE OCCUPANCY DENSITY
+// ===========================================================================
+export const MOCK_MOTORBIKE_OCCUPANCY = {
+  currentCount: 96,
+  maxCapacity: 150,
+  lastUpdated: "2026-06-03T08:00:00Z",
+};
+

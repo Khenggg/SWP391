@@ -35,6 +35,9 @@ import ManagerDashboardPage from "../pages/manager/ManagerDashboardPage";
 // =========================================================================
 import StaffEntryPage from "../pages/staff/StaffEntryPage";
 import DriverProfilePage from "../pages/driver/DriverProfilePage";
+import DriverVehiclesPage from "../pages/driver/DriverVehiclesPage";
+import DriverHistoryPage from "../pages/driver/DriverHistoryPage";
+import DriverBookingPage from "../pages/driver/DriverBookingPage";
 
 // =========================================================================
 // ROUTE GUARDS
@@ -119,6 +122,9 @@ export default function AppRoutes({ isAuthenticated, userRole, currentUser, onLo
           {/* DRIVER — các trang đã build */}
           <Route element={<RequireRole userRole={userRole} allowedRoles={["DRIVER"]} />}>
             <Route path="/driver/profile" element={<DriverProfilePage />} />
+            <Route path="/driver/vehicles" element={<DriverVehiclesPage />} />
+            <Route path="/driver/history" element={<DriverHistoryPage />} />
+            <Route path="/driver/booking" element={<DriverBookingPage />} />
           </Route>
 
         </Route>

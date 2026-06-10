@@ -44,6 +44,7 @@ export default function AppShell({ currentUser, onLogout }) {
     ],
     DRIVER: [
       { label: "Thông Tin Cá Nhân", path: "/driver/profile" },
+      { label: "Đặt Chỗ Trước (Booking)", path: "/driver/booking" },
       { label: "Xe Của Tôi", path: "/driver/vehicles" },
       { label: "Lịch Sử Gửi Xe", path: "/driver/history" },
     ],
@@ -80,16 +81,6 @@ export default function AppShell({ currentUser, onLogout }) {
             );
           })}
         </nav>
-
-        {/* Nút đăng xuất */}
-        <div className="p-4 border-t border-slate-800">
-          <button
-            onClick={handleLogout}
-            className="w-full rounded bg-red-950 text-red-400 hover:bg-red-900 px-3 py-2 text-sm font-bold transition-colors text-left"
-          >
-            Đăng Xuất
-          </button>
-        </div>
       </aside>
 
       {/* Vùng nội dung chính */}
@@ -100,14 +91,40 @@ export default function AppShell({ currentUser, onLogout }) {
             Hệ Thống Vận Hành Bãi Đỗ Xe Thông Minh
           </h2>
 
-          {/* User profile */}
-          <div className="flex items-center space-x-3 text-sm">
-            <span className="font-bold text-slate-700">
-              {currentUser?.fullName || currentUser?.username || "Nhân viên"}
-            </span>
-            <span className="rounded bg-blue-100 text-blue-800 px-2 py-0.5 text-xs font-black uppercase tracking-wider">
-              {role}
-            </span>
+          {/* User profile & Logout */}
+          <div className="flex items-center space-x-4 text-sm">
+            <div className="flex items-center space-x-2">
+              <span className="font-bold text-slate-700">
+                {currentUser?.fullName || currentUser?.username || "Nhân viên"}
+              </span>
+              <span className="rounded bg-blue-100 text-blue-800 px-2 py-0.5 text-xs font-black uppercase tracking-wider">
+                {role}
+              </span>
+            </div>
+
+            <span className="h-6 w-[1px] bg-slate-200" aria-hidden="true" />
+
+            <button
+              onClick={handleLogout}
+              title="Đăng xuất hệ thống"
+              className="flex items-center gap-1.5 rounded-lg bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 text-xs font-bold hover:bg-red-600 hover:text-white hover:border-red-600 transition-all cursor-pointer shadow-sm"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2.5}
+                stroke="currentColor"
+                className="w-3.5 h-3.5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75"
+                />
+              </svg>
+              Đăng Xuất
+            </button>
           </div>
         </header>
 
