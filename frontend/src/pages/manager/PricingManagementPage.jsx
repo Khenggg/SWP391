@@ -32,7 +32,8 @@ export default function PricingManagementPage() {
       try {
         const rulesData = await pricingService.getPricingRules();
         setRules(rulesData);
-        setVehicleTypes(parkingService.getVehicleTypes());
+        const types = await parkingService.getVehicleTypes();
+        setVehicleTypes(types);
       } catch (e) {
         console.error("Lỗi lấy cấu hình giá:", e);
       }

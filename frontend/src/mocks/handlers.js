@@ -3,7 +3,7 @@ import { API_BASE_URLS, isMockEnabled, MOCK_FLAGS } from "./mockConfig";
 import { 
   MOCK_PARKING_INFO, MOCK_FLOORS, MOCK_AREAS, MOCK_SLOTS, 
   MOCK_GATES, MOCK_PRICING_RULES, MOCK_MONTHLY_PASSES, MOCK_CARDS,
-  MOCK_VEHICLE_TYPES
+  MOCK_VEHICLE_TYPES, MOCK_USERS
 } from "../constants/mockData";
 
 // Helper responses
@@ -26,6 +26,8 @@ let inMemoryPricingRules = MOCK_PRICING_RULES.map(p => ({ ...p }));
 let inMemoryPasses = MOCK_MONTHLY_PASSES.map(p => ({ ...p }));
 let inMemoryCards = MOCK_CARDS.map(c => ({ ...c }));
 let inMemoryParkingInfo = { ...MOCK_PARKING_INFO };
+let inMemoryUsers = MOCK_USERS.map(u => ({ ...u }));
+
 
 let inMemoryBookings = [
   {
@@ -198,6 +200,14 @@ export const handlers = [
         floors: inMemoryFloors,
         vehicleTypes: MOCK_VEHICLE_TYPES 
       });
+    })
+  ),
+
+  ...enabled(
+    MOCK_FLAGS.PUBLIC_AVAILABLE_SLOTS,
+    http.get(`${API_BASE_URLS.public}/vehicle-types`, async () => {
+      await delay(150);
+      return ok(MOCK_VEHICLE_TYPES);
     })
   ),
 
@@ -718,6 +728,121 @@ export const handlers = [
       inMemoryBookings = inMemoryBookings.filter(b => b.id !== bookingId);
       
       return ok(booking, "Xác nhận đỗ xe thành công!");
+    })
+  ),
+
+  // =========================================================================
+  // ADMIN USER MANAGEMENT
+  // =========================================================================
+  ...enabled(
+    MOCK_FLAGS.ADMIN_USERS,
+    http.get(`${API_BASE_URLS.core}/admin/users`, async () => {
+      await delay(250);
+      return ok(inMemoryUsers);
+    })
+  ),
+
+  ...enabled(
+    MOCK_FLAGS.ADMIN_USERS,
+    http.post(`${API_BASE_URLS.core}/admin/users`, async ({ request }) => {
+      await delay(250);
+      const userData = await request.json();
+      
+      // check if username exists
+      if (inMemoryUsers.some(u => u.username.toLowerCase() === userData.username.toLowerCase())) {
+        return badRequest("Tên đăng nhập này đã tồn tại trên hệ thống!");
+      }
+
+      const newUser = {
+        id: Date.now(),
+        username: userData.username.trim(),
+        fullName: userData.fullName.trim(),
+        email: userData.email?.trim() || "",
+        phone: userData.phone?.trim() || "",
+        role: userData.role || "STAFF",
+        status: "ACTIVE",
+        createdAt: new Date().toISOString()
+      };
+      
+      inMemoryUsers.push(newUser);
+      return ok(newUser);
+    })
+  ),
+
+  ...enabled(
+    MOCK_FLAGS.ADMIN_USERS,
+    http.put(`${API_BASE_URLS.core}/admin/users/:id`, async ({ params, request }) => {
+      await delay(250);
+      const userId = Number(params.id);
+      const { fullName, email, phone } = await request.json();
+
+      const index = inMemoryUsers.findIndex(u => u.id === userId);
+      if (index === -1) return notFound("Không tìm thấy người dùng.");
+
+      inMemoryUsers[index].fullName = fullName.trim();
+      inMemoryUsers[index].email = email?.trim() || "";
+      inMemoryUsers[index].phone = phone?.trim() || "";
+      
+      return ok(inMemoryUsers[index]);
+    })
+  ),
+
+  ...enabled(
+    MOCK_FLAGS.ADMIN_USERS,
+    http.put(`${API_BASE_URLS.core}/admin/users/:id/role`, async ({ params, request }) => {
+      await delay(250);
+      const userId = Number(params.id);
+      const { role } = await request.json();
+
+      const index = inMemoryUsers.findIndex(u => u.id === userId);
+      if (index === -1) return notFound("Không tìm thấy người dùng.");
+
+      inMemoryUsers[index].role = role;
+      return ok(inMemoryUsers[index]);
+    })
+  ),
+
+  ...enabled(
+    MOCK_FLAGS.ADMIN_USERS,
+    http.put(`${API_BASE_URLS.core}/admin/users/:id/status`, async ({ params, request }) => {
+      await delay(250);
+      const userId = Number(params.id);
+      const { status } = await request.json();
+
+      const index = inMemoryUsers.findIndex(u => u.id === userId);
+      if (index === -1) return notFound("Không tìm thấy người dùng.");
+
+      inMemoryUsers[index].status = status;
+      return ok(inMemoryUsers[index]);
+    })
+  ),
+
+  // =========================================================================
+  // MANAGER DASHBOARD STATS
+  // =========================================================================
+  ...enabled(
+    MOCK_FLAGS.MANAGER_DASHBOARD,
+    http.get(`${API_BASE_URLS.core}/manager/dashboard/stats`, async () => {
+      await delay(200);
+      return ok({
+        revenueToday: 12540000,
+        entriesToday: 854,
+        exitsToday: 721,
+        incidents: 3
+      });
+    })
+  ),
+
+  ...enabled(
+    MOCK_FLAGS.MANAGER_DASHBOARD,
+    http.get(`${API_BASE_URLS.core}/manager/dashboard/recent-activities`, async () => {
+      await delay(200);
+      return ok([
+        { plate: "51A-12345", time: "1 phút trước", type: "Ô Tô", gate: "Cổng Vào Chính" },
+        { plate: "59B-98765", time: "3 phút trước", type: "Xe Máy", gate: "Cổng Vào Phụ" },
+        { plate: "60C-55555", time: "10 phút trước", type: "Ô Tô", gate: "Cổng Vào Chính" },
+        { plate: "51F-11111", time: "15 phút trước", type: "Xe Máy", gate: "Cổng Vào Phụ" },
+      ]);
     })
   ),
 ];

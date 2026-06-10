@@ -58,7 +58,8 @@ export default function MonthlyPassManagementPage() {
       try {
         const passesData = await vehicleService.getMonthlyPasses();
         setPasses(passesData);
-        setVehicleTypes(parkingService.getVehicleTypes());
+        const types = await parkingService.getVehicleTypes();
+        setVehicleTypes(types);
       } catch (e) {
         console.error("Lỗi lấy danh sách vé tháng:", e);
       }

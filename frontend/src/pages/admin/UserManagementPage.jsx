@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { MOCK_USERS } from "../../constants/mockData";
+import { userService } from "../../services/userService";
 
 const ROLE_BADGE = {
   ADMIN: "bg-red-100 text-red-700 border border-red-300",
@@ -48,14 +48,23 @@ export default function UserManagementPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [formErrors, setFormErrors] = useState({});
 
-  useEffect(() => {
-    setTimeout(() => {
-      setUsers(MOCK_USERS.map((u) => ({ ...u })));
-      setIsLoading(false);
-    }, 500);
-  }, []);
-
   const showToast = (message, type = "success") => setToast({ message, type });
+
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      const data = await userService.getUsers();
+      setUsers(data);
+    } catch (err) {
+      showToast(err.message || "Không thể tải danh sách người dùng", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const filtered = users.filter((u) => {
     const matchRole = filterRole === "ALL" || u.role === filterRole;
@@ -76,41 +85,60 @@ export default function UserManagementPage() {
   };
 
   // Create
-  const handleCreate = () => {
+  const handleCreate = async () => {
     const errs = validate(form, true);
     if (Object.keys(errs).length) { setFormErrors(errs); return; }
-    const newUser = { ...form, id: Date.now(), status: "ACTIVE" };
-    setUsers((prev) => [...prev, newUser]);
-    setShowCreateModal(false);
-    setForm(EMPTY_FORM);
-    setFormErrors({});
-    showToast("Tạo người dùng thành công!");
+    try {
+      const newUser = await userService.addUser(form);
+      setUsers((prev) => [...prev, newUser]);
+      setShowCreateModal(false);
+      setForm(EMPTY_FORM);
+      setFormErrors({});
+      showToast("Tạo người dùng thành công!");
+    } catch (err) {
+      showToast(err.message || "Tạo người dùng thất bại", "error");
+    }
   };
 
   // Edit
   const openEdit = (user) => { setSelectedUser(user); setForm({ fullName: user.fullName, email: user.email, phone: user.phone }); setFormErrors({}); setShowEditModal(true); };
-  const handleEdit = () => {
+  const handleEdit = async () => {
     const errs = validate(form, false);
     if (Object.keys(errs).length) { setFormErrors(errs); return; }
-    setUsers((prev) => prev.map((u) => u.id === selectedUser.id ? { ...u, ...form } : u));
-    setShowEditModal(false);
-    showToast("Cập nhật thông tin thành công!");
+    try {
+      const updated = await userService.updateUser(selectedUser.id, form);
+      setUsers((prev) => prev.map((u) => u.id === selectedUser.id ? updated : u));
+      setShowEditModal(false);
+      showToast("Cập nhật thông tin thành công!");
+    } catch (err) {
+      showToast(err.message || "Cập nhật thất bại", "error");
+    }
   };
 
   // Change role
   const openRole = (user) => { setSelectedUser(user); setForm({ role: user.role }); setFormErrors({}); setShowRoleModal(true); };
-  const handleRole = () => {
-    setUsers((prev) => prev.map((u) => u.id === selectedUser.id ? { ...u, role: form.role } : u));
-    setShowRoleModal(false);
-    showToast(`Đã đổi vai trò thành ${form.role}`);
+  const handleRole = async () => {
+    try {
+      const updated = await userService.updateUserRole(selectedUser.id, form.role);
+      setUsers((prev) => prev.map((u) => u.id === selectedUser.id ? updated : u));
+      setShowRoleModal(false);
+      showToast(`Đã đổi vai trò thành ${form.role}`);
+    } catch (err) {
+      showToast(err.message || "Đổi vai trò thất bại", "error");
+    }
   };
 
   // Change status
   const openStatus = (user) => { setSelectedUser(user); setForm({ status: user.status }); setShowStatusModal(true); };
-  const handleStatus = () => {
-    setUsers((prev) => prev.map((u) => u.id === selectedUser.id ? { ...u, status: form.status } : u));
-    setShowStatusModal(false);
-    showToast(`Đã cập nhật trạng thái thành ${form.status}`);
+  const handleStatus = async () => {
+    try {
+      const updated = await userService.updateUserStatus(selectedUser.id, form.status);
+      setUsers((prev) => prev.map((u) => u.id === selectedUser.id ? updated : u));
+      setShowStatusModal(false);
+      showToast(`Đã cập nhật trạng thái thành ${form.status}`);
+    } catch (err) {
+      showToast(err.message || "Cập nhật trạng thái thất bại", "error");
+    }
   };
 
   const Field = ({ label, name, type = "text", placeholder, required, value, onChange, error }) => (

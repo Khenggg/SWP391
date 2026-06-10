@@ -24,7 +24,8 @@ export default function PublicPricingPage() {
     try {
       const data = await pricingService.getPricingRules();
       setRules(data);
-      setVehicleTypes(parkingService.getVehicleTypes());
+      const types = await parkingService.getVehicleTypes();
+      setVehicleTypes(types);
     } catch {
       setError("Không tải được thông tin bảng giá. Vui lòng thử lại.");
     } finally {

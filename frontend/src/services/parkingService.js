@@ -1,6 +1,5 @@
 import coreAxiosClient from "../api/coreAxiosClient";
 import publicAxiosClient from "../api/publicAxiosClient";
-import { MOCK_VEHICLE_TYPES } from "../constants/mockData";
 
 export const parkingService = {
   // Public APIs
@@ -36,8 +35,9 @@ export const parkingService = {
     return res.success ? res.data : [];
   },
 
-  getVehicleTypes: () => {
-    return MOCK_VEHICLE_TYPES;
+  getVehicleTypes: async () => {
+    const res = await publicAxiosClient.get("/vehicle-types");
+    return res.success ? res.data : [];
   },
 
   // Add / Edit structures (Manager actions)

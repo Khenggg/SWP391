@@ -1,6 +1,41 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { dashboardService } from "../../services/dashboardService";
+
+function formatVND(amount) {
+  return Number(amount).toLocaleString("vi-VN") + "đ";
+}
 
 export default function ManagerDashboardPage() {
+  const [stats, setStats] = useState({ revenueToday: 0, entriesToday: 0, exitsToday: 0, incidents: 0 });
+  const [recentActivities, setRecentActivities] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        setIsLoading(true);
+        const [statsData, activitiesData] = await Promise.all([
+          dashboardService.getDashboardStats(),
+          dashboardService.getRecentActivities()
+        ]);
+        setStats(statsData);
+        setRecentActivities(activitiesData);
+      } catch (err) {
+        console.error("Lỗi tải thông tin Dashboard:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchDashboard();
+  }, []);
+
+  const statsList = [
+    { label: "Doanh Thu Hôm Nay", value: formatVND(stats.revenueToday), icon: "💰", color: "text-blue-600" },
+    { label: "Lượt Xe Vào", value: stats.entriesToday.toString(), icon: "📥", color: "text-emerald-600" },
+    { label: "Lượt Xe Ra", value: stats.exitsToday.toString(), icon: "📤", color: "text-amber-600" },
+    { label: "Sự Cố (Cần Duyệt)", value: stats.incidents.toString(), icon: "⚠️", color: "text-red-600" },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -13,23 +48,26 @@ export default function ManagerDashboardPage() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: "Doanh Thu Hôm Nay", value: "12,540,000đ", icon: "💰", color: "text-blue-600" },
-          { label: "Lượt Xe Vào", value: "854", icon: "📥", color: "text-emerald-600" },
-          { label: "Lượt Xe Ra", value: "721", icon: "📤", color: "text-amber-600" },
-          { label: "Sự Cố (Cần Duyệt)", value: "3", icon: "⚠️", color: "text-red-600" },
-        ].map((stat, idx) => (
-          <div key={idx} className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex items-center gap-4">
-            <div className={`text-3xl ${stat.color} bg-slate-50 p-3 rounded-lg`}>{stat.icon}</div>
-            <div>
-              <p className="text-xs font-black text-slate-400 uppercase tracking-wide">{stat.label}</p>
-              <p className={`text-2xl font-black mt-1 ${stat.color}`}>{stat.value}</p>
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-pulse">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white rounded-xl p-5 border border-slate-200 h-24 shadow-sm" />
+          ))}
+        </div>
+      ) : (
+        /* Stats Cards */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {statsList.map((stat, idx) => (
+            <div key={idx} className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex items-center gap-4">
+              <div className={`text-3xl ${stat.color} bg-slate-50 p-3 rounded-lg`}>{stat.icon}</div>
+              <div>
+                <p className="text-xs font-black text-slate-400 uppercase tracking-wide">{stat.label}</p>
+                <p className={`text-2xl font-black mt-1 ${stat.color}`}>{stat.value}</p>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Biểu đồ giả lập */}
@@ -59,27 +97,36 @@ export default function ManagerDashboardPage() {
             <h3 className="font-black text-slate-700 uppercase tracking-wide text-sm">Xe Vừa Vào Bãi</h3>
             <span className="text-xs text-blue-600 font-bold hover:underline cursor-pointer">Xem tất cả</span>
           </div>
-          <div className="space-y-3">
-            {[
-              { plate: "51A-12345", time: "1 phút trước", type: "Ô Tô", gate: "Cổng Vào Chính" },
-              { plate: "59B-98765", time: "3 phút trước", type: "Xe Máy", gate: "Cổng Vào Phụ" },
-              { plate: "60C-55555", time: "10 phút trước", type: "Ô Tô", gate: "Cổng Vào Chính" },
-              { plate: "51F-11111", time: "15 phút trước", type: "Xe Máy", gate: "Cổng Vào Phụ" },
-            ].map((v, i) => (
-              <div key={i} className="flex justify-between items-center p-3 hover:bg-slate-50 rounded-lg border border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded text-xs font-bold ${v.type === "Ô Tô" ? "bg-indigo-100 text-indigo-700" : "bg-emerald-100 text-emerald-700"}`}>
-                    {v.type}
+          
+          {isLoading ? (
+            <div className="space-y-3 animate-pulse">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-16 bg-slate-100 rounded-lg border border-slate-100" />
+              ))}
+            </div>
+          ) : recentActivities.length === 0 ? (
+            <div className="p-12 text-center text-slate-400">
+              <p className="text-4xl mb-3">🚗</p>
+              <p className="font-semibold">Không có hoạt động gần đây</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recentActivities.map((v, i) => (
+                <div key={i} className="flex justify-between items-center p-3 hover:bg-slate-50 rounded-lg border border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded text-xs font-bold ${v.type === "Ô Tô" ? "bg-indigo-100 text-indigo-700" : "bg-emerald-100 text-emerald-700"}`}>
+                      {v.type}
+                    </div>
+                    <div>
+                      <p className="font-mono font-bold text-slate-800">{v.plate}</p>
+                      <p className="text-xs text-slate-500">{v.gate}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-mono font-bold text-slate-800">{v.plate}</p>
-                    <p className="text-xs text-slate-500">{v.gate}</p>
-                  </div>
+                  <span className="text-xs font-bold text-slate-400">{v.time}</span>
                 </div>
-                <span className="text-xs font-bold text-slate-400">{v.time}</span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
