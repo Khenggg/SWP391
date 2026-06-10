@@ -1,6 +1,8 @@
+using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ParkingBuilding.CoreApi.Domain.Entities;
+using ParkingBuilding.CoreApi.Domain.Enums;
 
 namespace ParkingBuilding.Persistence.Configurations
 {
@@ -49,6 +51,7 @@ namespace ParkingBuilding.Persistence.Configurations
                    .HasMaxLength(30)
                    .HasConversion<string>()
                    .IsRequired();
+
 
             builder.Property(u => u.Status)
                    .HasColumnName("status")

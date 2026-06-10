@@ -128,12 +128,22 @@ public sealed class DbCheckController(
 
         bool isMappingSuccessful = userMappingError == null && auditMappingError == null;
 
+        var claims = new List<object>();
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            foreach (var claim in User.Claims)
+            {
+                claims.Add(new { Type = claim.Type, Value = claim.Value });
+            }
+        }
+
         var responseData = new
         {
             provider = "Supabase PostgreSQL",
             result.DatabaseName,
             result.UserName,
             result.PostgreSqlVersion,
+            claims,
             efCoreVerification = new
             {
                 success = isMappingSuccessful,

@@ -82,6 +82,10 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    })
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>
@@ -96,9 +100,31 @@ builder.Services.AddControllers()
         };
     });
 
+builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
+{
+    options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+});
+
 // 3. Kich hoat dich vu OpenAPI va Swagger UI cho .NET 10
 builder.Services.AddOpenApi(options =>
 {
+    options.AddSchemaTransformer((schema, context, cancellationToken) =>
+    {
+        if (context.JsonTypeInfo.Type == typeof(int) || context.JsonTypeInfo.Type == typeof(int?) || schema.Format == "int32")
+        {
+            schema.Type = Microsoft.OpenApi.JsonSchemaType.Integer;
+            schema.Format = "int32";
+            schema.Pattern = null;
+        }
+        else if (context.JsonTypeInfo.Type == typeof(long) || context.JsonTypeInfo.Type == typeof(long?) || schema.Format == "int64")
+        {
+            schema.Type = Microsoft.OpenApi.JsonSchemaType.Integer;
+            schema.Format = "int64";
+            schema.Pattern = null;
+        }
+        return Task.CompletedTask;
+    });
+
     options.AddDocumentTransformer((document, context, cancellationToken) =>
     {
         if (document == null) return Task.CompletedTask;
@@ -192,7 +218,8 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
     app.UseSwaggerUI(options =>
     {
         // Cau hinh endpoint Swagger UI tro dung file JSON dac ta cua OpenAPI
-        options.SwaggerEndpoint("/openapi/v1.json", "ParkingBuilding Core API v1");
+        options.SwaggerEndpoint("/openapi/v1.json", "ParkingBuilding OpenAPI v3.1 (Recommended)");
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "ParkingBuilding Swashbuckle v1");
         options.RoutePrefix = "swagger"; // Duong dan truy cap se la /swagger
     });
 }
