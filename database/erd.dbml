@@ -1,0 +1,851 @@
+Project parking_building_management_system {
+  database_type: 'PostgreSQL'
+  Note: 'ERD source: database/01_schema.sql and database/03_indexes_constraints.sql. PostgreSQL partial index WHERE clauses and DEFERRABLE flags are represented with notes because DBML has no native syntax for them.'
+}
+
+Enum user_role {
+  ADMIN
+  MANAGER
+  STAFF
+  DRIVER
+}
+
+Enum account_status {
+  ACTIVE
+  LOCKED
+  INACTIVE
+}
+
+Enum vehicle_status {
+  ACTIVE
+  INACTIVE
+}
+
+Enum parking_card_status {
+  AVAILABLE
+  IN_USE
+  LOST
+  DAMAGED
+  INACTIVE
+}
+
+Enum facility_status {
+  ACTIVE
+  LOCKED
+  MAINTENANCE
+}
+
+Enum slot_status {
+  AVAILABLE
+  RESERVED
+  OCCUPIED
+  LOCKED
+  MAINTENANCE
+}
+
+Enum gate_type {
+  ENTRY
+  EXIT
+}
+
+Enum pricing_status {
+  ACTIVE
+  INACTIVE
+}
+
+Enum monthly_pass_status {
+  ACTIVE
+  EXPIRED
+  LOCKED
+}
+
+Enum reservation_status {
+  PENDING
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+Enum session_customer_type {
+  CASUAL
+  MONTHLY
+}
+
+Enum session_claim_method {
+  CARD_QR
+  STAFF_ASSIGN
+}
+
+Enum parking_session_status {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  LOST_CARD_PENDING
+  MISMATCH_PENDING
+}
+
+Enum session_image_type {
+  ENTRY_PLATE
+  ENTRY_VEHICLE
+  EXIT_PLATE
+  EXIT_VEHICLE
+}
+
+Enum payment_status {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  WAIVED
+  NOT_REQUIRED
+}
+
+Enum payment_method {
+  CASH
+  BANK_TRANSFER
+  NONE
+}
+
+Enum payment_attempt_status {
+  PENDING
+  PAID
+  EXPIRED
+  FAILED
+  CANCELLED
+}
+
+Enum lost_card_case_status {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+Enum lost_card_refund_status {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+  CANCELLED
+}
+
+Enum plate_mismatch_case_status {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+Enum audit_source_service {
+  CORE_API
+  SUPPORT_API
+}
+
+Table users {
+  id bigserial [pk, increment, not null]
+  full_name varchar(150) [not null]
+  username varchar(100) [not null]
+  email varchar(150) [null]
+  phone varchar(30) [null]
+  password_hash varchar(255) [not null]
+  role user_role [not null]
+  status account_status [not null, default: 'ACTIVE']
+  last_login_at timestamptz [null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`, note: 'Maintained by set_updated_at trigger']
+
+  indexes {
+    username [unique, name: 'ux_users_username']
+    email [unique, name: 'ux_users_email', note: 'Partial unique: email IS NOT NULL']
+    phone [unique, name: 'ux_users_phone', note: 'Partial unique: phone IS NOT NULL']
+    role [name: 'ix_users_role']
+    status [name: 'ix_users_status']
+  }
+
+}
+
+Table driver_profiles {
+  id bigserial [pk, increment, not null]
+  user_id bigint [null, note: 'Nullable one-to-one user profile']
+  full_name varchar(150) [not null]
+  phone varchar(30) [null]
+  email varchar(150) [null]
+  status account_status [not null, default: 'ACTIVE']
+  driver_type varchar(30) [not null, default: 'VISITOR']
+  apartment_number varchar(50) [null]
+  cccd_number varchar(50) [null]
+  cccd_image_url varchar(500) [null]
+  resident_verified boolean [not null, default: false]
+  resident_verified_at timestamptz [null]
+  resident_verified_by bigint [null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`, note: 'Maintained by set_updated_at trigger']
+
+  indexes {
+    user_id [unique, name: 'ux_driver_profiles_user_id', note: 'Partial unique: user_id IS NOT NULL']
+    phone [unique, name: 'ux_driver_profiles_phone', note: 'Partial unique: phone IS NOT NULL']
+    email [unique, name: 'ux_driver_profiles_email', note: 'Partial unique: email IS NOT NULL']
+    driver_type [name: 'ix_driver_profiles_type']
+  }
+
+  Note: 'CHECK ck_driver_profiles_resident_fields: driver_type != RESIDENT OR (apartment_number IS NOT NULL AND cccd_number IS NOT NULL)'
+}
+
+Table vehicle_types {
+  id bigserial [pk, increment, not null]
+  name varchar(100) [not null]
+  description text [null]
+  is_active boolean [not null, default: true]
+  requires_slot boolean [not null, default: true]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`, note: 'Maintained by set_updated_at trigger']
+
+  indexes {
+    name [unique, name: 'ux_vehicle_types_name']
+    is_active [name: 'ix_vehicle_types_is_active']
+  }
+}
+
+Table vehicles {
+  id bigserial [pk, increment, not null]
+  driver_id bigint [null]
+  plate_number varchar(30) [null]
+  normalized_plate_number varchar(30) [null]
+  vehicle_type_id bigint [not null]
+  description text [null]
+  status vehicle_status [not null, default: 'ACTIVE']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`, note: 'Maintained by set_updated_at trigger']
+
+  indexes {
+    driver_id [name: 'ix_vehicles_driver_id']
+    normalized_plate_number [name: 'ix_vehicles_plate']
+    vehicle_type_id [name: 'ix_vehicles_type']
+    status [name: 'ix_vehicles_status']
+  }
+
+  Note: 'Registered/managed vehicle records only, such as monthly-pass or resident-managed vehicles. If driver_id is present, it must point to a resident driver profile. Visitor app users do not create vehicles; they claim active parking_sessions by scanning the QR on the parking card.'
+
+}
+
+Table parking_cards {
+  id bigserial [pk, increment, not null]
+  card_code varchar(50) [not null]
+  qr_token varchar(120) [not null]
+  status parking_card_status [not null, default: 'AVAILABLE']
+  current_session_id bigint [null, note: 'Late circular FK to parking_sessions.id; DEFERRABLE INITIALLY IMMEDIATE in SQL']
+  note text [null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`, note: 'Maintained by set_updated_at trigger']
+
+  indexes {
+    card_code [unique, name: 'ux_cards_card_code']
+    qr_token [unique, name: 'ux_cards_qr_token']
+    current_session_id [unique, name: 'ux_cards_current_session', note: 'Partial unique: current_session_id IS NOT NULL']
+    status [name: 'ix_cards_status']
+    current_session_id [name: 'ix_cards_current_session']
+  }
+
+  Note: 'CHECK ck_parking_cards_current_session_status: IN_USE requires current_session_id; AVAILABLE, DAMAGED, and INACTIVE require current_session_id NULL; LOST is allowed.'
+}
+
+Table floors {
+  id bigserial [pk, increment, not null]
+  floor_code varchar(30) [not null]
+  floor_name varchar(100) [not null]
+  status facility_status [not null, default: 'ACTIVE']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`, note: 'Maintained by set_updated_at trigger']
+
+  indexes {
+    floor_code [unique, name: 'ux_floors_code']
+    status [name: 'ix_floors_status']
+  }
+
+}
+
+Table areas {
+  id bigserial [pk, increment, not null]
+  floor_id bigint [not null]
+  area_code varchar(30) [not null]
+  area_name varchar(100) [not null]
+  priority_order int [not null, default: 0]
+  status facility_status [not null, default: 'ACTIVE']
+  total_capacity int [not null, default: 0]
+  current_real_occupancy int [not null, default: 0]
+  current_booked_slots int [not null, default: 0]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`, note: 'Maintained by set_updated_at trigger']
+
+  indexes {
+    (floor_id, area_code) [unique, name: 'ux_areas_floor_code']
+    status [name: 'ix_areas_status']
+    priority_order [name: 'ix_areas_priority']
+  }
+
+  Note: 'CHECKS: total_capacity, current_real_occupancy, and current_booked_slots must be non-negative; current_real_occupancy + current_booked_slots must not exceed total_capacity.'
+
+}
+
+Table area_vehicle_types {
+  area_id bigint [not null]
+  vehicle_type_id bigint [not null]
+
+  indexes {
+    (area_id, vehicle_type_id) [pk, name: 'pk_area_vehicle_types']
+    vehicle_type_id [name: 'ix_area_vehicle_types_vehicle_type']
+  }
+}
+
+Table slots {
+  id bigserial [pk, increment, not null]
+  area_id bigint [not null]
+  slot_code varchar(50) [not null]
+  allowed_vehicle_type_id bigint [not null]
+  status slot_status [not null, default: 'AVAILABLE']
+  current_session_id bigint [null, note: 'Late circular FK to parking_sessions.id; DEFERRABLE INITIALLY IMMEDIATE in SQL']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`, note: 'Maintained by set_updated_at trigger']
+
+  indexes {
+    (area_id, slot_code) [unique, name: 'ux_slots_area_code']
+    current_session_id [unique, name: 'ux_slots_current_session', note: 'Partial unique: current_session_id IS NOT NULL']
+    status [name: 'ix_slots_status']
+    allowed_vehicle_type_id [name: 'ix_slots_vehicle_type']
+    current_session_id [name: 'ix_slots_current_session']
+  }
+
+  Note: 'CHECK ck_slots_current_session_status: OCCUPIED requires current_session_id; AVAILABLE, RESERVED, LOCKED, and MAINTENANCE require current_session_id NULL.'
+}
+
+Table gates {
+  id bigserial [pk, increment, not null]
+  floor_id bigint [not null]
+  gate_code varchar(50) [not null]
+  gate_type gate_type [not null]
+  status facility_status [not null, default: 'ACTIVE']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`, note: 'Maintained by set_updated_at trigger']
+
+  indexes {
+    (floor_id, gate_code) [unique, name: 'ux_gates_floor_code']
+    gate_type [name: 'ix_gates_type']
+    status [name: 'ix_gates_status']
+  }
+
+}
+
+Table pricing_rules {
+  id bigserial [pk, increment, not null]
+  vehicle_type_id bigint [not null]
+  day_price numeric(12,2) [not null]
+  night_price numeric(12,2) [not null]
+  monthly_price numeric(12,2) [not null]
+  reservation_hourly_price numeric(12,2) [not null, default: 0]
+  lost_card_fee numeric(12,2) [not null, default: 0]
+  effective_from timestamptz [not null, default: `now()`]
+  status pricing_status [not null, default: 'ACTIVE']
+  created_by bigint [not null]
+  updated_by bigint [null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`, note: 'Maintained by set_updated_at trigger']
+
+  indexes {
+    vehicle_type_id [name: 'ix_pricing_rules_vehicle_type']
+    status [name: 'ix_pricing_rules_status']
+    effective_from [name: 'ix_pricing_rules_effective_from']
+    vehicle_type_id [unique, name: 'ux_active_pricing_rule_by_vehicle_type', note: 'Partial unique: status = ACTIVE']
+  }
+
+  Note: 'CHECK ck_pricing_rules_amounts: day_price, night_price, monthly_price, reservation_hourly_price, and lost_card_fee must be non-negative.'
+}
+
+Table monthly_passes {
+  id bigserial [pk, increment, not null]
+  driver_id bigint [null]
+  card_id bigint [not null]
+  owner_name varchar(150) [not null]
+  phone varchar(30) [null]
+  plate_number varchar(30) [not null]
+  normalized_plate_number varchar(30) [not null]
+  vehicle_type_id bigint [not null]
+  start_date date [not null]
+  end_date date [not null]
+  status monthly_pass_status [not null, default: 'ACTIVE']
+  created_by bigint [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`, note: 'Maintained by set_updated_at trigger']
+
+  indexes {
+    normalized_plate_number [name: 'ix_monthly_pass_plate']
+    status [name: 'ix_monthly_pass_status']
+    (start_date, end_date) [name: 'ix_monthly_pass_dates']
+    (normalized_plate_number, vehicle_type_id) [unique, name: 'ux_active_monthly_pass_by_plate_type', note: 'Partial unique: status = ACTIVE']
+    card_id [unique, name: 'ux_active_monthly_pass_by_card', note: 'Partial unique: status = ACTIVE']
+  }
+
+  Note: 'CHECK ck_monthly_passes_dates: end_date >= start_date.'
+}
+
+Table reservations {
+  id bigserial [pk, increment, not null]
+  reservation_code varchar(50) [not null]
+  driver_id bigint [null]
+  vehicle_id bigint [null]
+  plate_number varchar(30) [not null]
+  normalized_plate_number varchar(30) [not null]
+  vehicle_type_id bigint [not null]
+  floor_id bigint [not null]
+  area_id bigint [not null]
+  slot_id bigint [null]
+  pricing_rule_id bigint [null]
+  snapshot_reservation_hourly_price numeric(12,2) [not null, default: 0]
+  reserved_duration_minutes int [not null, default: 0]
+  booking_amount numeric(12,2) [not null, default: 0]
+  payment_status payment_status [not null, default: 'PENDING']
+  reserved_at timestamptz [not null, default: `now()`]
+  expires_at timestamptz [not null]
+  checked_in_at timestamptz [null]
+  checked_in_by bigint [null, note: 'Staff who verified the reservation QR/app check-in']
+  cancelled_at timestamptz [null]
+  status reservation_status [not null, default: 'PENDING']
+  created_by bigint [null]
+  cancelled_by bigint [null]
+  cancellation_reason text [null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`, note: 'Maintained by set_updated_at trigger']
+
+  indexes {
+    reservation_code [unique, name: 'ux_reservations_code']
+    driver_id [name: 'ix_reservations_driver']
+    vehicle_id [name: 'ix_reservations_vehicle']
+    normalized_plate_number [name: 'ix_reservations_plate']
+    status [name: 'ix_reservations_status']
+    slot_id [name: 'ix_reservations_slot']
+    expires_at [name: 'ix_reservations_expires_at']
+    pricing_rule_id [name: 'ix_reservations_pricing_rule']
+    payment_status [name: 'ix_reservations_payment_status']
+    checked_in_by [name: 'ix_reservations_checked_in_by']
+    slot_id [unique, name: 'ux_pending_reservation_by_slot', note: 'Partial unique: status = PENDING']
+    vehicle_id [unique, name: 'ux_pending_reservation_by_vehicle', note: 'Partial unique: vehicle_id IS NOT NULL and status = PENDING']
+    (normalized_plate_number, vehicle_type_id) [unique, name: 'ux_pending_reservation_by_plate_type', note: 'Partial unique: status = PENDING']
+  }
+
+  Note: 'CHECKS: plate_number and normalized_plate_number are required and non-blank; booking amount fields must be non-negative; expires_at > reserved_at; checked_in_at/cancelled_at must be NULL or >= reserved_at. Trigger validates slot_id by vehicle_types.requires_slot: car-like vehicle types require a slot; area-managed vehicle types must not have a slot.'
+}
+
+Table parking_sessions {
+  id bigserial [pk, increment, not null]
+  session_code varchar(50) [not null]
+  card_id bigint [not null]
+  driver_id bigint [null]
+  vehicle_id bigint [null]
+  plate_number varchar(30) [null]
+  normalized_plate_number varchar(30) [null]
+  no_plate boolean [not null, default: false]
+  vehicle_description text [null]
+  vehicle_type_id bigint [not null]
+  customer_type session_customer_type [not null, default: 'CASUAL']
+  claimed_by_user_id bigint [null, note: 'App user who claimed this active session by scanning the parking card QR']
+  claimed_at timestamptz [null]
+  claim_method session_claim_method [null]
+  monthly_pass_id bigint [null]
+  reservation_id bigint [null]
+  floor_id bigint [not null]
+  area_id bigint [not null]
+  slot_id bigint [null]
+  entry_gate_id bigint [not null]
+  exit_gate_id bigint [null]
+  entry_staff_id bigint [not null]
+  exit_staff_id bigint [null]
+  entry_time timestamptz [not null, default: `now()`]
+  exit_time timestamptz [null]
+  billable_start_time timestamptz [not null, default: `now()`, note: 'Fee calculation starts here; for early reservation check-in this can be reservation expires_at']
+  status parking_session_status [not null, default: 'ACTIVE']
+  payment_required boolean [not null, default: true]
+  payment_status payment_status [not null, default: 'PENDING']
+  pricing_rule_id bigint [null]
+  snapshot_day_price numeric(12,2) [null]
+  snapshot_night_price numeric(12,2) [null]
+  snapshot_monthly_price numeric(12,2) [null]
+  snapshot_lost_card_fee numeric(12,2) [null]
+  suggested_area_id bigint [null]
+  suggested_slot_id bigint [null]
+  override_area_id bigint [null]
+  override_slot_id bigint [null]
+  override_by bigint [null, note: 'Staff responsible for overriding suggested area/slot']
+  override_at timestamptz [null]
+  override_reason text [null]
+  plate_corrected_by bigint [null, note: 'Staff who corrected OCR plate result']
+  plate_corrected_at timestamptz [null]
+  cancellation_reason text [null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`, note: 'Maintained by set_updated_at trigger']
+
+  indexes {
+    session_code [unique, name: 'ux_sessions_session_code']
+    card_id [name: 'ix_sessions_card_id']
+    normalized_plate_number [name: 'ix_sessions_plate']
+    status [name: 'ix_sessions_status']
+    entry_time [name: 'ix_sessions_entry_time']
+    exit_time [name: 'ix_sessions_exit_time']
+    vehicle_type_id [name: 'ix_sessions_vehicle_type']
+    slot_id [name: 'ix_sessions_slot']
+    reservation_id [name: 'ix_sessions_reservation']
+    billable_start_time [name: 'ix_sessions_billable_start_time']
+    claimed_by_user_id [name: 'ix_sessions_claimed_by_user']
+    claimed_at [name: 'ix_sessions_claimed_at']
+    override_by [name: 'ix_sessions_override_by']
+    plate_corrected_by [name: 'ix_sessions_plate_corrected_by']
+    reservation_id [unique, name: 'ux_sessions_reservation', note: 'Partial unique: reservation_id IS NOT NULL']
+    card_id [unique, name: 'ux_active_session_by_card', note: 'Partial unique: status IN ACTIVE, LOST_CARD_PENDING, MISMATCH_PENDING']
+    normalized_plate_number [unique, name: 'ux_active_session_by_plate', note: 'Partial unique: normalized_plate_number IS NOT NULL and status is active or pending']
+    slot_id [unique, name: 'ux_active_session_by_slot', note: 'Partial unique: status IN ACTIVE, LOST_CARD_PENDING, MISMATCH_PENDING']
+  }
+
+  Note: 'CHECKS: normalized_plate_number is required unless no_plate is true; vehicle_description is required when no_plate is true; billable_start_time >= entry_time; exit_time must be NULL or >= entry_time. Claim fields are null until an app user scans the active card QR; if claimed, driver_id, claimed_by_user_id, claimed_at, and claim_method are required, driver_id must belong to claimed_by_user_id, and the claim cannot be reassigned. Visitor/resident casual vehicles use session plate snapshots rather than vehicles rows. Override and plate correction audit fields require both user and timestamp. Trigger validates slot_id by vehicle_types.requires_slot.'
+}
+
+Table parking_session_images {
+  id bigserial [pk, increment, not null]
+  session_id bigint [not null]
+  image_type session_image_type [not null]
+  image_url varchar(500) [not null]
+  thumbnail_url varchar(500) [null]
+  detected_plate_number varchar(30) [null]
+  detected_normalized_plate_number varchar(30) [null]
+  confidence numeric(5,2) [null]
+  is_primary boolean [not null, default: false]
+  captured_at timestamptz [not null, default: `now()`]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`, note: 'Maintained by set_updated_at trigger']
+
+  indexes {
+    session_id [name: 'ix_session_images_session']
+    (session_id, image_type) [name: 'ix_session_images_session_type']
+    detected_normalized_plate_number [name: 'ix_session_images_plate', note: 'Partial index: detected_normalized_plate_number IS NOT NULL']
+    captured_at [name: 'ix_session_images_captured_at']
+    (session_id, image_type) [unique, name: 'ux_session_images_primary_type', note: 'Partial unique: is_primary = true']
+  }
+
+  Note: 'CHECKS: image_url must be non-blank; thumbnail_url must be NULL or non-blank; confidence must be NULL or between 0 and 100. Stores image metadata only; actual image files live in storage.'
+}
+
+Table payments {
+  id bigserial [pk, increment, not null]
+  session_id bigint [null]
+  reservation_id bigint [null]
+  monthly_pass_id bigint [null]
+  amount numeric(12,2) [not null, default: 0]
+  lost_card_fee numeric(12,2) [not null, default: 0]
+  total_amount numeric(12,2) [not null, default: 0]
+  purpose varchar(40) [not null, default: 'PARKING_FEE']
+  method payment_method [not null, default: 'CASH']
+  status payment_status [not null, default: 'PENDING']
+  provider varchar(50) [null, note: 'Payment provider, e.g. VIETQR for online bank transfer']
+  provider_transaction_id varchar(120) [null, note: 'Provider/bank transaction reference for reconciliation']
+  payment_url varchar(500) [null, note: 'Checkout URL or generated QR URL/payload reference']
+  expired_at timestamptz [null, note: 'Payment request expiry time']
+  gateway_payload jsonb [null, note: 'Raw provider request/response metadata']
+  paid_by_user_id bigint [null, note: 'App user who initiated/paid online payment']
+  received_amount numeric(12,2) [not null, default: 0, note: 'Actual amount received from bank/gateway for reconciliation']
+  fee_calculated_at timestamptz [null, note: 'When the payable amount was calculated']
+  payment_valid_until timestamptz [null, note: 'For online parking payment, vehicle must exit before this time; business rule is 15 minutes after payment']
+  paid_at timestamptz [null]
+  collected_by bigint [null]
+  waive_reason varchar(100) [null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`, note: 'Maintained by set_updated_at trigger']
+
+  indexes {
+    session_id [name: 'ix_payments_session']
+    reservation_id [name: 'ix_payments_reservation']
+    status [name: 'ix_payments_status']
+    paid_at [name: 'ix_payments_paid_at']
+    monthly_pass_id [name: 'ix_payments_monthly_pass']
+    purpose [name: 'ix_payments_purpose']
+    provider [name: 'ix_payments_provider']
+    expired_at [name: 'ix_payments_expired_at']
+    paid_by_user_id [name: 'ix_payments_paid_by_user']
+    fee_calculated_at [name: 'ix_payments_fee_calculated_at']
+    payment_valid_until [name: 'ix_payments_valid_until']
+    (provider, provider_transaction_id) [unique, name: 'ux_payments_provider_transaction', note: 'Partial unique: provider IS NOT NULL and provider_transaction_id IS NOT NULL']
+    (session_id, purpose, status, paid_at) [name: 'ix_final_parking_payments_by_session', note: 'Partial index: purpose IN PARKING_FEE, LOST_CARD_FEE and status IN PAID, WAIVED, NOT_REQUIRED. Not unique because online payment can expire after 15 minutes and require another payment cycle.']
+  }
+
+  Note: 'CHECKS: amount, lost_card_fee, total_amount, and received_amount must be non-negative; total_amount = amount + lost_card_fee. Purpose IN PARKING_FEE, LOST_CARD_FEE, MONTHLY_PASS_RENEWAL, RESERVATION_FEE, RESERVATION_EXTENSION, LOST_CARD_REFUND. Source check: monthly renewal uses monthly_pass_id only; reservation fee/extension uses reservation_id only; parking/lost-card/refund uses session_id only. Online metadata fields require method = BANK_TRANSFER; for VietQR use provider = VIETQR.'
+}
+
+Table payment_attempts {
+  id bigserial [pk, increment, not null]
+  payment_id bigint [not null]
+  provider varchar(50) [not null, default: 'VIETQR']
+  attempt_no int [not null, default: 1]
+  amount numeric(12,2) [not null]
+  received_amount numeric(12,2) [not null, default: 0]
+  payment_url varchar(500) [null]
+  qr_payload text [null]
+  provider_transaction_id varchar(120) [null]
+  status payment_attempt_status [not null, default: 'PENDING']
+  requested_at timestamptz [not null, default: `now()`]
+  expired_at timestamptz [not null]
+  paid_at timestamptz [null]
+  gateway_payload jsonb [null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`, note: 'Maintained by set_updated_at trigger']
+
+  indexes {
+    payment_id [name: 'ix_payment_attempts_payment']
+    status [name: 'ix_payment_attempts_status']
+    expired_at [name: 'ix_payment_attempts_expired_at']
+    (payment_id, attempt_no) [unique, name: 'ux_payment_attempts_payment_attempt_no']
+    (provider, provider_transaction_id) [unique, name: 'ux_payment_attempts_provider_transaction', note: 'Partial unique: provider_transaction_id IS NOT NULL']
+  }
+
+  Note: 'Stores each VietQR/payment QR generation attempt. Allows regenerating QR when an attempt expires. CHECKS: attempt_no > 0; amount and received_amount non-negative; expired_at > requested_at; paid_at NULL or >= requested_at.'
+}
+
+Table reservation_extensions {
+  id bigserial [pk, increment, not null]
+  reservation_id bigint [not null]
+  old_expires_at timestamptz [not null]
+  new_expires_at timestamptz [not null]
+  added_minutes int [not null]
+  pricing_rule_id bigint [null]
+  snapshot_reservation_hourly_price numeric(12,2) [not null]
+  amount numeric(12,2) [not null, default: 0]
+  payment_id bigint [null]
+  requested_by bigint [null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`, note: 'Maintained by set_updated_at trigger']
+
+  indexes {
+    reservation_id [name: 'ix_reservation_extensions_reservation']
+    payment_id [name: 'ix_reservation_extensions_payment']
+    created_at [name: 'ix_reservation_extensions_created_at']
+  }
+
+  Note: 'CHECKS: new_expires_at > old_expires_at; added_minutes > 0; snapshot_reservation_hourly_price and amount must be non-negative.'
+}
+
+Table receipts {
+  id bigserial [pk, increment, not null]
+  receipt_code varchar(50) [not null]
+  session_id bigint [null]
+  payment_id bigint [null]
+  card_code varchar(50) [not null, note: 'Snapshot value']
+  plate_number varchar(30) [null, note: 'Snapshot value']
+  vehicle_type_name varchar(100) [not null, note: 'Snapshot value']
+  entry_time timestamptz [null, note: 'Snapshot value']
+  exit_time timestamptz [null, note: 'Snapshot value']
+  amount numeric(12,2) [not null, default: 0]
+  lost_card_fee numeric(12,2) [not null, default: 0]
+  total_amount numeric(12,2) [not null, default: 0]
+  payment_method payment_method [not null, default: 'CASH']
+  printed_count int [not null, default: 0]
+  created_by bigint [null]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    receipt_code [unique, name: 'ux_receipts_code']
+    session_id [unique, name: 'ux_receipts_session']
+    session_id [name: 'ix_receipts_session']
+    payment_id [name: 'ix_receipts_payment']
+  }
+
+  Note: 'CHECKS: amount, lost_card_fee, total_amount, and printed_count must be non-negative; total_amount = amount + lost_card_fee. CHECK ck_receipts_source: (session_id IS NOT NULL AND entry_time IS NOT NULL AND exit_time IS NOT NULL) OR (session_id IS NULL AND entry_time IS NULL AND exit_time IS NULL AND payment_id IS NOT NULL).'
+}
+
+Table lost_card_cases {
+  id bigserial [pk, increment, not null]
+  session_id bigint [not null]
+  card_id bigint [null]
+  reporter_name varchar(150) [not null]
+  phone varchar(30) [null]
+  verification_note text [not null]
+  reason text [not null]
+  lost_card_fee numeric(12,2) [not null, default: 0]
+  status lost_card_case_status [not null, default: 'PENDING']
+  created_by bigint [not null]
+  approved_by bigint [null]
+  approved_at timestamptz [null]
+  rejection_reason text [null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`, note: 'Maintained by set_updated_at trigger']
+
+  indexes {
+    session_id [name: 'ix_lost_card_cases_session']
+    status [name: 'ix_lost_card_cases_status']
+    session_id [unique, name: 'ux_pending_lost_card_case_by_session', note: 'Partial unique: status = PENDING']
+  }
+
+  Note: 'CHECK ck_lost_card_cases_fee: lost_card_fee must be non-negative.'
+}
+
+Table lost_card_refunds {
+  id bigserial [pk, increment, not null]
+  lost_card_case_id bigint [not null]
+  session_id bigint [not null]
+  recovered_card_id bigint [null]
+  replacement_card_id bigint [null]
+  refund_percent numeric(5,2) [not null]
+  refund_amount numeric(12,2) [not null]
+  reason text [not null]
+  status lost_card_refund_status [not null, default: 'PENDING']
+  requested_at timestamptz [not null, default: `now()`]
+  approved_by bigint [null]
+  approved_at timestamptz [null]
+  rejected_reason text [null]
+  paid_at timestamptz [null]
+  payment_id bigint [null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`, note: 'Maintained by set_updated_at trigger']
+
+  indexes {
+    lost_card_case_id [name: 'ix_lost_card_refunds_case']
+    session_id [name: 'ix_lost_card_refunds_session']
+    status [name: 'ix_lost_card_refunds_status']
+    payment_id [name: 'ix_lost_card_refunds_payment']
+    lost_card_case_id [unique, name: 'ux_lost_card_refund_by_case']
+  }
+
+  Note: 'CHECKS: refund_percent must be between 0 and 100; refund_amount must be non-negative; reason must be non-blank. Backend enforces 3-day refund window and 50% casual / 80% resident replacement policies.'
+}
+
+Table plate_mismatch_cases {
+  id bigserial [pk, increment, not null]
+  session_id bigint [not null]
+  entry_plate_number varchar(30) [null]
+  exit_plate_number varchar(30) [not null]
+  reason text [null]
+  status plate_mismatch_case_status [not null, default: 'PENDING']
+  created_by bigint [not null]
+  confirmed_by bigint [null]
+  confirmed_at timestamptz [null]
+  rejection_reason text [null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`, note: 'Maintained by set_updated_at trigger']
+
+  indexes {
+    session_id [name: 'ix_plate_mismatch_cases_session']
+    status [name: 'ix_plate_mismatch_cases_status']
+    session_id [unique, name: 'ux_pending_plate_mismatch_case_by_session', note: 'Partial unique: status = PENDING']
+  }
+
+}
+
+Table audit_logs {
+  id bigserial [pk, increment, not null]
+  actor_user_id bigint [null]
+  source_service audit_source_service [not null]
+  action varchar(100) [not null]
+  target_type varchar(100) [not null]
+  target_id varchar(100) [not null]
+  old_value jsonb [null]
+  new_value jsonb [null]
+  reason text [null]
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'Append-only table enforced by trg_audit_logs_append_only in SQL.'
+
+  indexes {
+    actor_user_id [name: 'ix_audit_logs_actor']
+    action [name: 'ix_audit_logs_action']
+    (target_type, target_id) [name: 'ix_audit_logs_target']
+    created_at [name: 'ix_audit_logs_created_at']
+    source_service [name: 'ix_audit_logs_source_service']
+  }
+
+}
+
+Ref fk_driver_profiles_user: users.id - driver_profiles.user_id
+Ref fk_vehicles_driver: driver_profiles.id < vehicles.driver_id
+Ref fk_vehicles_vehicle_type: vehicle_types.id < vehicles.vehicle_type_id
+
+Ref fk_areas_floor: floors.id < areas.floor_id
+Ref fk_area_vehicle_types_area: areas.id < area_vehicle_types.area_id [delete: cascade]
+Ref fk_area_vehicle_types_vehicle_type: vehicle_types.id < area_vehicle_types.vehicle_type_id [delete: cascade]
+Ref fk_slots_area: areas.id < slots.area_id
+Ref fk_slots_allowed_vehicle_type: vehicle_types.id < slots.allowed_vehicle_type_id
+Ref fk_gates_floor: floors.id < gates.floor_id
+
+Ref fk_pricing_rules_vehicle_type: vehicle_types.id < pricing_rules.vehicle_type_id
+Ref fk_pricing_rules_created_by: users.id < pricing_rules.created_by
+Ref fk_pricing_rules_updated_by: users.id < pricing_rules.updated_by
+
+Ref fk_monthly_passes_driver: driver_profiles.id < monthly_passes.driver_id
+Ref fk_monthly_passes_vehicle_type: vehicle_types.id < monthly_passes.vehicle_type_id
+Ref fk_monthly_passes_created_by: users.id < monthly_passes.created_by
+
+Ref fk_reservations_driver: driver_profiles.id < reservations.driver_id
+Ref fk_reservations_vehicle: vehicles.id < reservations.vehicle_id
+Ref fk_reservations_vehicle_type: vehicle_types.id < reservations.vehicle_type_id
+Ref fk_reservations_floor: floors.id < reservations.floor_id
+Ref fk_reservations_area: areas.id < reservations.area_id
+Ref fk_reservations_slot: slots.id < reservations.slot_id
+Ref fk_reservations_pricing_rule: pricing_rules.id < reservations.pricing_rule_id
+Ref fk_reservations_created_by: users.id < reservations.created_by
+Ref fk_reservations_checked_in_by: users.id < reservations.checked_in_by
+Ref fk_reservations_cancelled_by: users.id < reservations.cancelled_by
+
+Ref fk_sessions_card: parking_cards.id < parking_sessions.card_id
+Ref fk_parking_cards_current_session: parking_sessions.id - parking_cards.current_session_id
+Ref fk_sessions_driver: driver_profiles.id < parking_sessions.driver_id
+Ref fk_sessions_vehicle: vehicles.id < parking_sessions.vehicle_id
+Ref fk_sessions_vehicle_type: vehicle_types.id < parking_sessions.vehicle_type_id
+Ref fk_sessions_monthly_pass: monthly_passes.id < parking_sessions.monthly_pass_id
+Ref fk_sessions_reservation: reservations.id < parking_sessions.reservation_id
+Ref fk_sessions_floor: floors.id < parking_sessions.floor_id
+Ref fk_sessions_area: areas.id < parking_sessions.area_id
+Ref fk_sessions_slot: slots.id < parking_sessions.slot_id
+Ref fk_slots_current_session: parking_sessions.id - slots.current_session_id
+Ref fk_sessions_entry_gate: gates.id < parking_sessions.entry_gate_id
+Ref fk_sessions_exit_gate: gates.id < parking_sessions.exit_gate_id
+Ref fk_sessions_entry_staff: users.id < parking_sessions.entry_staff_id
+Ref fk_sessions_exit_staff: users.id < parking_sessions.exit_staff_id
+Ref fk_sessions_claimed_by_user: users.id < parking_sessions.claimed_by_user_id
+Ref fk_sessions_pricing_rule: pricing_rules.id < parking_sessions.pricing_rule_id
+Ref fk_sessions_suggested_area: areas.id < parking_sessions.suggested_area_id
+Ref fk_sessions_suggested_slot: slots.id < parking_sessions.suggested_slot_id
+Ref fk_sessions_override_area: areas.id < parking_sessions.override_area_id
+Ref fk_sessions_override_slot: slots.id < parking_sessions.override_slot_id
+Ref fk_sessions_override_by: users.id < parking_sessions.override_by
+Ref fk_sessions_plate_corrected_by: users.id < parking_sessions.plate_corrected_by
+
+Ref fk_session_images_session: parking_sessions.id < parking_session_images.session_id
+
+Ref fk_payments_session: parking_sessions.id < payments.session_id
+Ref fk_payments_reservation: reservations.id < payments.reservation_id
+Ref fk_payments_paid_by_user: users.id < payments.paid_by_user_id
+Ref fk_payments_collected_by: users.id < payments.collected_by
+Ref fk_payments_monthly_pass: monthly_passes.id < payments.monthly_pass_id
+
+Ref fk_payment_attempts_payment: payments.id < payment_attempts.payment_id
+
+Ref fk_reservation_extensions_reservation: reservations.id < reservation_extensions.reservation_id
+Ref fk_reservation_extensions_pricing_rule: pricing_rules.id < reservation_extensions.pricing_rule_id
+Ref fk_reservation_extensions_payment: payments.id < reservation_extensions.payment_id
+Ref fk_reservation_extensions_requested_by: users.id < reservation_extensions.requested_by
+
+Ref fk_receipts_session: parking_sessions.id - receipts.session_id
+Ref fk_receipts_payment: payments.id < receipts.payment_id
+Ref fk_receipts_created_by: users.id < receipts.created_by
+
+Ref fk_lost_card_cases_session: parking_sessions.id < lost_card_cases.session_id
+Ref fk_lost_card_cases_card: parking_cards.id < lost_card_cases.card_id
+Ref fk_lost_card_cases_created_by: users.id < lost_card_cases.created_by
+Ref fk_lost_card_cases_approved_by: users.id < lost_card_cases.approved_by
+
+Ref fk_lost_card_refunds_case: lost_card_cases.id - lost_card_refunds.lost_card_case_id
+Ref fk_lost_card_refunds_session: parking_sessions.id < lost_card_refunds.session_id
+Ref fk_lost_card_refunds_recovered_card: parking_cards.id < lost_card_refunds.recovered_card_id
+Ref fk_lost_card_refunds_replacement_card: parking_cards.id < lost_card_refunds.replacement_card_id
+Ref fk_lost_card_refunds_approved_by: users.id < lost_card_refunds.approved_by
+Ref fk_lost_card_refunds_payment: payments.id < lost_card_refunds.payment_id
+
+Ref fk_plate_mismatch_cases_session: parking_sessions.id < plate_mismatch_cases.session_id
+Ref fk_plate_mismatch_cases_created_by: users.id < plate_mismatch_cases.created_by
+Ref fk_plate_mismatch_cases_confirmed_by: users.id < plate_mismatch_cases.confirmed_by
+
+Ref fk_audit_logs_actor: users.id < audit_logs.actor_user_id
+
+Ref fk_driver_profiles_verified_by: users.id < driver_profiles.resident_verified_by
+Ref fk_monthly_passes_card: parking_cards.id < monthly_passes.card_id
