@@ -87,7 +87,7 @@ export default function DriverVehiclesPage() {
         <EmptyState 
           icon="🚗"
           title={driver.username === "driver01" ? "Chưa tìm thấy xe nào đăng ký vé tháng" : "Không có xe vé tháng cố định"}
-          description={driver.username === "driver01" 
+          description={driver.username === "driver01"
             ? "Vui lòng liên hệ Manager để khai báo vé tháng cho biển số xe của bạn." 
             : "Tài khoản của bạn thuộc nhóm Tài Xế Đặt Trước (không phải cư dân). Bạn hãy sử dụng mục Đặt Chỗ Trước và khai báo biển số xe khi check-in."}
         />
