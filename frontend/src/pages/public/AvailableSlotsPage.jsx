@@ -4,20 +4,6 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-const SLOT_STATUS_BADGE = {
-  AVAILABLE: "bg-emerald-100 text-emerald-700 border border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800",
-  OCCUPIED: "bg-red-100 text-red-700 border border-red-300 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
-  MAINTENANCE: "bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
-  LOCKED: "bg-slate-100 text-slate-500 border border-slate-300 dark:bg-slate-900/30 dark:text-slate-400 dark:border-slate-800",
-};
-
-const SLOT_STATUS_LABEL = {
-  AVAILABLE: "Trống",
-  OCCUPIED: "Đã Đỗ",
-  MAINTENANCE: "Bảo Trì",
-  LOCKED: "Khóa",
-};
-
 function AreaDensityGauge({ area }) {
   const maxCap = area.maxCapacity || area.totalSlots || 0;
   const current = area.currentCount !== undefined ? area.currentCount : (maxCap - (area.availableSlots || 0));

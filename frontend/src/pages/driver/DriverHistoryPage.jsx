@@ -26,16 +26,27 @@ const formatDateTime = (dateStr) => {
 
 export default function DriverHistoryPage() {
   const [historyList, setHistoryList] = useState([]);
-  const [username, setUsername] = useState("driver01");
+  const [username, setUsername] = useState(() => {
+    const savedUser = sessionStorage.getItem("currentUser");
+    if (savedUser) {
+      try {
+        const parsed = JSON.parse(savedUser);
+        return parsed.username || "";
+      } catch (e) {
+        console.error("Lỗi đọc user", e);
+      }
+    }
+    return "";
+  });
 
   useEffect(() => {
     // 1. Get logged in driver details
     const savedUser = sessionStorage.getItem("currentUser");
-    let currentUsername = "driver01";
+    let currentUsername = "";
     if (savedUser) {
       try {
         const parsed = JSON.parse(savedUser);
-        currentUsername = parsed.username || "driver01";
+        currentUsername = parsed.username || "";
         setUsername(currentUsername);
       } catch (e) {
         console.error("Lỗi đọc user", e);

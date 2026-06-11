@@ -8,9 +8,20 @@ import EmptyState from "@/components/ui/empty-state";
 import { PASS_STATUS } from "@/constants";
 
 export default function DriverVehiclesPage() {
-  const [driver, setDriver] = useState({
-    fullName: "Nguyễn Văn A",
-    phone: "0912345678",
+  const [driver, setDriver] = useState(() => {
+    const savedUser = sessionStorage.getItem("currentUser");
+    if (savedUser) {
+      try {
+        return JSON.parse(savedUser);
+      } catch (e) {
+        console.error("Lỗi đọc thông tin user", e);
+      }
+    }
+    return {
+      username: "",
+      fullName: "",
+      phone: "",
+    };
   });
   const [myVehicles, setMyVehicles] = useState([]);
 
@@ -20,10 +31,7 @@ export default function DriverVehiclesPage() {
     if (savedUser) {
       try {
         const parsed = JSON.parse(savedUser);
-        setDriver({
-          fullName: parsed.fullName || "Nguyễn Văn A",
-          phone: parsed.phone || "0912345678",
-        });
+        setDriver(parsed);
       } catch (e) {
         console.error("Lỗi đọc thông tin user", e);
       }
@@ -56,7 +64,7 @@ export default function DriverVehiclesPage() {
         </div>
         <Badge variant="outline" className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl text-xs font-bold border border-indigo-100">
           <Award className="w-4 h-4 shrink-0" />
-          <span>{driver.fullName === "Nguyễn Văn A" ? "Tài khoản Cư dân" : "Tài khoản Đặt trước"}</span>
+          <span>{driver.username === "driver01" ? "Tài khoản Cư dân" : "Tài khoản Đặt trước"}</span>
         </Badge>
       </div>
 
@@ -78,8 +86,8 @@ export default function DriverVehiclesPage() {
       {myVehicles.length === 0 ? (
         <EmptyState 
           icon="🚗"
-          title={driver.fullName === "Nguyễn Văn A" ? "Chưa tìm thấy xe nào đăng ký vé tháng" : "Không có xe vé tháng cố định"}
-          description={driver.fullName === "Nguyễn Văn A" 
+          title={driver.username === "driver01" ? "Chưa tìm thấy xe nào đăng ký vé tháng" : "Không có xe vé tháng cố định"}
+          description={driver.username === "driver01" 
             ? "Vui lòng liên hệ Manager để khai báo vé tháng cho biển số xe của bạn." 
             : "Tài khoản của bạn thuộc nhóm Tài Xế Đặt Trước (không phải cư dân). Bạn hãy sử dụng mục Đặt Chỗ Trước và khai báo biển số xe khi check-in."}
         />

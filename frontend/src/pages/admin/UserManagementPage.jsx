@@ -27,23 +27,25 @@ import {
 } from "@/components/ui/table";
 import { toast } from "sonner";
 
+import { USER_ROLES, USER_STATUS } from "@/constants";
+
 const ROLE_BADGE = {
-  ADMIN: "bg-red-100 text-red-700 border border-red-300 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
-  MANAGER: "bg-purple-100 text-purple-700 border border-purple-300 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800",
-  STAFF: "bg-blue-100 text-blue-700 border border-blue-300 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
-  DRIVER: "bg-slate-100 text-slate-600 border border-slate-300 dark:bg-slate-900/30 dark:text-slate-400 dark:border-slate-800",
+  [USER_ROLES.ADMIN]: "bg-red-100 text-red-700 border border-red-300 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+  [USER_ROLES.MANAGER]: "bg-purple-100 text-purple-700 border border-purple-300 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800",
+  [USER_ROLES.STAFF]: "bg-blue-100 text-blue-700 border border-blue-300 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+  [USER_ROLES.DRIVER]: "bg-slate-100 text-slate-600 border border-slate-300 dark:bg-slate-900/30 dark:text-slate-400 dark:border-slate-800",
 };
 
 const STATUS_BADGE = {
-  ACTIVE: "bg-emerald-100 text-emerald-700 border border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800",
-  LOCKED: "bg-red-100 text-red-700 border border-red-300 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
-  INACTIVE: "bg-slate-100 text-slate-500 border border-slate-300 dark:bg-slate-900/30 dark:text-slate-400 dark:border-slate-800",
+  [USER_STATUS.ACTIVE]: "bg-emerald-100 text-emerald-700 border border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800",
+  [USER_STATUS.LOCKED]: "bg-red-100 text-red-700 border border-red-300 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+  [USER_STATUS.INACTIVE]: "bg-slate-100 text-slate-500 border border-slate-300 dark:bg-slate-900/30 dark:text-slate-400 dark:border-slate-800",
 };
 
-const ROLES = ["ADMIN", "MANAGER", "STAFF", "DRIVER"];
-const STATUSES = ["ACTIVE", "LOCKED", "INACTIVE"];
+const ROLES = Object.values(USER_ROLES);
+const STATUSES = Object.values(USER_STATUS);
 
-const EMPTY_FORM = { username: "", fullName: "", email: "", phone: "", role: "STAFF", password: "" };
+const EMPTY_FORM = { username: "", fullName: "", email: "", phone: "", role: USER_ROLES.STAFF, password: "" };
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState([]);

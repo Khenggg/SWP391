@@ -56,10 +56,25 @@ const formatDateTime = (dateStr) => {
 };
 
 export default function DriverBookingPage() {
-  const [driver, setDriver] = useState({
-    username: "driver01",
-    fullName: "Nguyễn Văn A",
-    phone: "0912345678",
+  const [driver, setDriver] = useState(() => {
+    const savedUser = sessionStorage.getItem("currentUser");
+    if (savedUser) {
+      try {
+        const parsed = JSON.parse(savedUser);
+        return {
+          username: parsed.username || "",
+          fullName: parsed.fullName || "",
+          phone: parsed.phone || "",
+        };
+      } catch (e) {
+        console.error("Lỗi đọc user", e);
+      }
+    }
+    return {
+      username: "",
+      fullName: "",
+      phone: "",
+    };
   });
 
   // Simulated Time
@@ -87,15 +102,15 @@ export default function DriverBookingPage() {
     const initPage = async () => {
       // 1. Get logged in driver details
       const savedUser = sessionStorage.getItem("currentUser");
-      let driverName = "Nguyễn Văn A";
-      let driverPhone = "0912345678";
-      let driverUsername = "driver01";
+      let driverName = "";
+      let driverPhone = "";
+      let driverUsername = "";
       if (savedUser) {
         try {
           const parsed = JSON.parse(savedUser);
-          driverName = parsed.fullName || "Nguyễn Văn A";
-          driverPhone = parsed.phone || "0912345678";
-          driverUsername = parsed.username || "driver01";
+          driverName = parsed.fullName || "";
+          driverPhone = parsed.phone || "";
+          driverUsername = parsed.username || "";
           setDriver({ username: driverUsername, fullName: driverName, phone: driverPhone });
         } catch (e) {
           console.error("Lỗi đọc user", e);

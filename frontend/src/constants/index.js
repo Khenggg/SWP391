@@ -62,3 +62,10 @@ export const COMMON_STATUS = {
   ACTIVE: "ACTIVE",
   INACTIVE: "INACTIVE",
 };
+
+// Trạng thái tài khoản người dùng (User Status)
+export const USER_STATUS = {
+  ACTIVE: "ACTIVE",
+  LOCKED: "LOCKED",
+  INACTIVE: "INACTIVE",
+};

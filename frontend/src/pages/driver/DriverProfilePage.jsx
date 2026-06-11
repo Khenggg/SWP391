@@ -5,14 +5,25 @@ import { vehicleService } from "../../services/vehicleService";
 import { bookingService } from "../../services/bookingService";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PASS_STATUS, USER_ROLES } from "@/constants";
 
 export default function DriverProfilePage() {
-  const [driver, setDriver] = useState({
-    username: "driver01",
-    fullName: "Nguyễn Văn A",
-    email: "driver01@parking.vn",
-    phone: "0912345678",
-    role: "DRIVER",
+  const [driver, setDriver] = useState(() => {
+    const savedUser = sessionStorage.getItem("currentUser");
+    if (savedUser) {
+      try {
+        return JSON.parse(savedUser);
+      } catch (e) {
+        console.error("Lỗi đọc thông tin user", e);
+      }
+    }
+    return {
+      username: "",
+      fullName: "",
+      email: "",
+      phone: "",
+      role: USER_ROLES.DRIVER,
+    };
   });
 
   const [vehicleStats, setVehicleStats] = useState({ active: 0, expired: 0, total: 0 });
@@ -39,8 +50,8 @@ export default function DriverProfilePage() {
       try {
         // 2. Đếm số xe của tài xế này từ vehicleService (lấy xe thuộc sở hữu dựa trên token)
         const myPasses = await vehicleService.getVehiclesByOwner();
-        const active = myPasses.filter((p) => p.status === "ACTIVE").length;
-        const expired = myPasses.filter((p) => p.status === "EXPIRED").length;
+        const active = myPasses.filter((p) => p.status === PASS_STATUS.ACTIVE).length;
+        const expired = myPasses.filter((p) => p.status === PASS_STATUS.EXPIRED).length;
         setVehicleStats({
           active,
           expired,
