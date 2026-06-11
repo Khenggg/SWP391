@@ -1,27 +1,49 @@
 import React, { useState } from "react";
 import { pricingService } from "../../services/pricingService";
 import { parkingService } from "../../services/parkingService";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import { toast } from "sonner";
 
 function formatVND(amount) { return Number(amount).toLocaleString("vi-VN") + "đ"; }
 
+import { COMMON_STATUS } from "@/constants";
+
 const STATUS_BADGE = {
-  ACTIVE: "bg-emerald-100 text-emerald-700 border border-emerald-300",
-  INACTIVE: "bg-slate-100 text-slate-500 border border-slate-300",
+  [COMMON_STATUS.ACTIVE]: "bg-emerald-100 text-emerald-700 border border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800",
+  [COMMON_STATUS.INACTIVE]: "bg-slate-100 text-slate-500 border border-slate-300 dark:bg-slate-900/30 dark:text-slate-400 dark:border-slate-800",
 };
 
-function Toast({ message, type, onClose }) {
-  React.useEffect(() => { const t = setTimeout(onClose, 2500); return () => clearTimeout(t); }, [onClose]);
-  return <div className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-bold ${type === "success" ? "bg-emerald-600 text-white" : "bg-red-600 text-white"}`}>{message}</div>;
-}
-
-const EMPTY_FORM = { vehicleTypeId: "", dayPrice: "", nightPrice: "", monthlyPrice: "", lostCardFee: "", effectiveFrom: "", status: "ACTIVE" };
+const EMPTY_FORM = { vehicleTypeId: "", dayPrice: "", nightPrice: "", monthlyPrice: "", lostCardFee: "", effectiveFrom: "", status: COMMON_STATUS.ACTIVE };
 
 export default function PricingManagementPage() {
   const [rules, setRules] = useState([]);
   const [vehicleTypes, setVehicleTypes] = useState([]);
   const [filterVehicle, setFilterVehicle] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
-  const [toast, setToast] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editingRule, setEditingRule] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -41,7 +63,6 @@ export default function PricingManagementPage() {
     fetchPricing();
   }, []);
 
-  const showToast = (message, type = "success") => setToast({ message, type });
   const setField = (name, value) => setForm((p) => ({ ...p, [name]: value }));
 
   const filtered = rules.filter((r) => {
@@ -101,151 +122,158 @@ export default function PricingManagementPage() {
     try {
       if (editingRule) {
         await pricingService.updatePricingRule(editingRule.id, payload);
-        showToast("Cập nhật bảng giá thành công!");
+        toast.success("Cập nhật bảng giá thành công!");
       } else {
         await pricingService.addPricingRule(payload);
-        showToast("Tạo bảng giá thành công!");
+        toast.success("Tạo bảng giá thành công!");
       }
       const updatedRules = await pricingService.getPricingRules();
       setRules(updatedRules);
       setShowModal(false);
     } catch (e) {
-      showToast(e.message || "Lưu bảng giá thất bại!", "error");
+      toast.error(e.message || "Lưu bảng giá thất bại!");
     }
   };
 
   const MoneyField = ({ label, name }) => (
-    <div>
-      <label className="block text-xs font-bold text-slate-600 uppercase mb-1">{label} <span className="text-red-500">*</span></label>
+    <div className="space-y-1">
+      <label className="block text-xs font-bold text-slate-600 uppercase">{label} <span className="text-red-500">*</span></label>
       <div className="relative">
-        <input type="number" min="0" value={form[name] || ""} onChange={(e) => setField(name, e.target.value)}
-          className={`w-full rounded-lg border px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 ${formErrors[name] ? "border-red-400 bg-red-50" : "border-slate-300"}`} />
+        <Input type="number" min="0" value={form[name] || ""} onChange={(e) => setField(name, e.target.value)}
+          className={`pr-8 ${formErrors[name] ? "border-red-400 bg-red-50 focus-visible:ring-red-400" : ""}`} />
         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold">đ</span>
       </div>
-      {formErrors[name] && <p className="text-red-500 text-xs mt-1">{formErrors[name]}</p>}
-      {form[name] && !formErrors[name] && <p className="text-slate-400 text-xs mt-1">{formatVND(Number(form[name]))}</p>}
+      {formErrors[name] && <p className="text-red-500 text-xs">{formErrors[name]}</p>}
+      {form[name] && !formErrors[name] && <p className="text-slate-400 text-xs">{formatVND(Number(form[name]))}</p>}
     </div>
   );
 
   return (
     <div className="space-y-6">
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-black text-slate-800">Quản Lý Bảng Giá</h2>
           <p className="text-sm text-slate-500 mt-0.5">Cấu hình biểu phí gửi xe theo loại xe</p>
         </div>
-        <button onClick={openCreate} className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow transition">+ Tạo Bảng Giá</button>
+        <Button onClick={openCreate}>+ Tạo Bảng Giá</Button>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center bg-white rounded-xl border border-slate-200 px-5 py-3 shadow-sm">
-        <select value={filterVehicle} onChange={(e) => setFilterVehicle(e.target.value)}
-          className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-          <option value="ALL">Tất cả loại xe</option>
-          {vehicleTypes.map((v) => <option key={v.id} value={v.name}>{v.name}</option>)}
-        </select>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
-          className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-          <option value="ALL">Tất cả trạng thái</option>
-          <option value="ACTIVE">ACTIVE</option>
-          <option value="INACTIVE">INACTIVE</option>
-        </select>
+        <Select value={filterVehicle} onValueChange={setFilterVehicle}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Tất cả loại xe" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Tất cả loại xe</SelectItem>
+            {vehicleTypes.map((v) => <SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Tất cả trạng thái" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
+            <SelectItem value={COMMON_STATUS.ACTIVE}>ACTIVE</SelectItem>
+            <SelectItem value={COMMON_STATUS.INACTIVE}>INACTIVE</SelectItem>
+          </SelectContent>
+        </Select>
         <span className="text-xs text-slate-400 ml-auto">{filtered.length} bảng giá</span>
       </div>
 
       {/* Table */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-xs font-black text-slate-500 uppercase tracking-wider">
-              <th className="px-5 py-3 text-left">Loại Xe</th>
-              <th className="px-5 py-3 text-right">Giá Ban Ngày</th>
-              <th className="px-5 py-3 text-right">Giá Ban Đêm</th>
-              <th className="px-5 py-3 text-right">Vé Tháng</th>
-              <th className="px-5 py-3 text-right">Phí Mất Thẻ</th>
-              <th className="px-5 py-3 text-center">Hiệu Lực Từ</th>
-              <th className="px-5 py-3 text-center">Trạng Thái</th>
-              <th className="px-5 py-3 text-center">Thao Tác</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-slate-50 border-b border-slate-200 text-xs font-black text-slate-500 uppercase tracking-wider">
+              <TableHead className="px-5 py-3 text-left">Loại Xe</TableHead>
+              <TableHead className="px-5 py-3 text-right">Giá Ban Ngày</TableHead>
+              <TableHead className="px-5 py-3 text-right">Giá Ban Đêm</TableHead>
+              <TableHead className="px-5 py-3 text-right">Vé Tháng</TableHead>
+              <TableHead className="px-5 py-3 text-right">Phí Mất Thẻ</TableHead>
+              <TableHead className="px-5 py-3 text-center">Hiệu Lực Từ</TableHead>
+              <TableHead className="px-5 py-3 text-center">Trạng Thái</TableHead>
+              <TableHead className="px-5 py-3 text-center">Thao Tác</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="divide-y divide-slate-100">
             {filtered.length === 0 ? (
-              <tr><td colSpan={8} className="px-5 py-12 text-center text-slate-400 font-semibold">Chưa có bảng giá</td></tr>
+              <TableRow><TableCell colSpan={8} className="px-5 py-12 text-center text-slate-400 font-semibold">Chưa có bảng giá</TableCell></TableRow>
             ) : filtered.map((rule) => (
-              <tr key={rule.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-5 py-3 font-bold text-slate-800">{rule.vehicleTypeName}</td>
-                <td className="px-5 py-3 text-right font-semibold text-slate-700">{formatVND(rule.dayPrice)}</td>
-                <td className="px-5 py-3 text-right font-semibold text-slate-700">{formatVND(rule.nightPrice)}</td>
-                <td className="px-5 py-3 text-right font-bold text-emerald-700">{formatVND(rule.monthlyPrice)}</td>
-                <td className="px-5 py-3 text-right font-semibold text-red-600">{formatVND(rule.lostCardFee)}</td>
-                <td className="px-5 py-3 text-center text-slate-500">{rule.effectiveFrom}</td>
-                <td className="px-5 py-3 text-center">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-black ${STATUS_BADGE[rule.status]}`}>{rule.status}</span>
-                </td>
-                <td className="px-5 py-3 text-center">
-                  <button onClick={() => openEdit(rule)} className="text-xs font-bold text-blue-600 hover:underline">Sửa</button>
-                </td>
-              </tr>
+              <TableRow key={rule.id} className="hover:bg-slate-50 transition-colors">
+                <TableCell className="px-5 py-3 font-bold text-slate-800">{rule.vehicleTypeName}</TableCell>
+                <TableCell className="px-5 py-3 text-right font-semibold text-slate-700">{formatVND(rule.dayPrice)}</TableCell>
+                <TableCell className="px-5 py-3 text-right font-semibold text-slate-700">{formatVND(rule.nightPrice)}</TableCell>
+                <TableCell className="px-5 py-3 text-right font-bold text-emerald-700">{formatVND(rule.monthlyPrice)}</TableCell>
+                <TableCell className="px-5 py-3 text-right font-semibold text-red-600">{formatVND(rule.lostCardFee)}</TableCell>
+                <TableCell className="px-5 py-3 text-center text-slate-500">{rule.effectiveFrom}</TableCell>
+                <TableCell className="px-5 py-3 text-center">
+                  <Badge variant="outline" className={`px-2 py-0.5 rounded-full text-xs font-black border ${STATUS_BADGE[rule.status]}`}>{rule.status}</Badge>
+                </TableCell>
+                <TableCell className="px-5 py-3 text-center">
+                  <Button variant="ghost" size="sm" onClick={() => openEdit(rule)} className="text-xs font-bold text-blue-600 hover:text-blue-700">Sửa</Button>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800 font-semibold">
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800 font-semibold dark:bg-amber-900/10 dark:text-amber-400 dark:border-amber-900/30">
         ⚠️ Phiên gửi xe đang hoạt động dùng bảng giá tại thời điểm xe vào (pricing snapshot). Thay đổi bảng giá không ảnh hưởng đến phiên đang chạy.
       </div>
 
       {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 sticky top-0 bg-white">
-              <h3 className="font-black text-slate-800">{editingRule ? "Sửa Bảng Giá" : "Tạo Bảng Giá Mới"}</h3>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-700 text-xl font-bold">×</button>
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingRule ? "Sửa Bảng Giá" : "Tạo Bảng Giá Mới"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-slate-600 uppercase">Loại Xe <span className="text-red-500">*</span></label>
+              <Select value={form.vehicleTypeId || ""} onValueChange={(val) => setField("vehicleTypeId", val)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Chọn loại xe" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vehicleTypes.map((v) => <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {formErrors.vehicleTypeId && <p className="text-red-500 text-xs">{formErrors.vehicleTypeId}</p>}
             </div>
-            <div className="px-6 py-5 space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Loại Xe <span className="text-red-500">*</span></label>
-                <select value={form.vehicleTypeId || ""} onChange={(e) => setField("vehicleTypeId", e.target.value)}
-                  className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 ${formErrors.vehicleTypeId ? "border-red-400" : "border-slate-300"}`}>
-                  <option value="">-- Chọn loại xe --</option>
-                  {vehicleTypes.map((v) => <option key={v.id} value={String(v.id)}>{v.name}</option>)}
-                </select>
-                {formErrors.vehicleTypeId && <p className="text-red-500 text-xs mt-1">{formErrors.vehicleTypeId}</p>}
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <MoneyField label="Giá Ban Ngày" name="dayPrice" />
-                <MoneyField label="Giá Ban Đêm" name="nightPrice" />
-                <MoneyField label="Vé Tháng" name="monthlyPrice" />
-                <MoneyField label="Phí Mất Thẻ" name="lostCardFee" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Hiệu Lực Từ <span className="text-red-500">*</span></label>
-                <input type="date" value={form.effectiveFrom || ""} onChange={(e) => setField("effectiveFrom", e.target.value)}
-                  className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 ${formErrors.effectiveFrom ? "border-red-400" : "border-slate-300"}`} />
-                {formErrors.effectiveFrom && <p className="text-red-500 text-xs mt-1">{formErrors.effectiveFrom}</p>}
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Trạng Thái</label>
-                <div className="flex gap-4">
-                  {["ACTIVE", "INACTIVE"].map((s) => (
-                    <label key={s} className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" name="pricingStatus" value={s} checked={form.status === s} onChange={() => setField("status", s)} className="accent-blue-600" />
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-black ${STATUS_BADGE[s]}`}>{s}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+            <div className="grid grid-cols-2 gap-4">
+              <MoneyField label="Giá Ban Ngày" name="dayPrice" />
+              <MoneyField label="Giá Ban Đêm" name="nightPrice" />
+              <MoneyField label="Vé Tháng" name="monthlyPrice" />
+              <MoneyField label="Phí Mất Thẻ" name="lostCardFee" />
             </div>
-            <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 sticky bottom-0">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-lg text-sm font-bold text-slate-600 border border-slate-300 hover:bg-slate-100">Hủy</button>
-              <button onClick={handleSave} className="px-5 py-2 rounded-lg text-sm font-bold text-white bg-blue-600 hover:bg-blue-700">{editingRule ? "Cập Nhật" : "Tạo Bảng Giá"}</button>
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-slate-600 uppercase">Hiệu Lực Từ <span className="text-red-500">*</span></label>
+              <Input type="date" value={form.effectiveFrom || ""} onChange={(e) => setField("effectiveFrom", e.target.value)}
+                className={formErrors.effectiveFrom ? "border-red-400 bg-red-50 focus-visible:ring-red-400" : ""} />
+              {formErrors.effectiveFrom && <p className="text-red-500 text-xs">{formErrors.effectiveFrom}</p>}
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Trạng Thái</label>
+              <div className="flex gap-4">
+                {[COMMON_STATUS.ACTIVE, COMMON_STATUS.INACTIVE].map((s) => (
+                  <label key={s} className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="pricingStatus" value={s} checked={form.status === s} onChange={() => setField("status", s)} className="accent-blue-600" />
+                    <Badge variant="outline" className={`px-2 py-0.5 rounded-full text-xs font-black border ${STATUS_BADGE[s]}`}>{s}</Badge>
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowModal(false)}>Hủy</Button>
+            <Button onClick={handleSave}>{editingRule ? "Cập Nhật" : "Tạo Bảng Giá"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

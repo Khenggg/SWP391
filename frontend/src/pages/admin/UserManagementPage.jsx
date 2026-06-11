@@ -1,17 +1,43 @@
 import React, { useState, useEffect } from "react";
 import { userService } from "../../services/userService";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import { toast } from "sonner";
 
 const ROLE_BADGE = {
-  ADMIN: "bg-red-100 text-red-700 border border-red-300",
-  MANAGER: "bg-purple-100 text-purple-700 border border-purple-300",
-  STAFF: "bg-blue-100 text-blue-700 border border-blue-300",
-  DRIVER: "bg-slate-100 text-slate-600 border border-slate-300",
+  ADMIN: "bg-red-100 text-red-700 border border-red-300 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+  MANAGER: "bg-purple-100 text-purple-700 border border-purple-300 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800",
+  STAFF: "bg-blue-100 text-blue-700 border border-blue-300 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+  DRIVER: "bg-slate-100 text-slate-600 border border-slate-300 dark:bg-slate-900/30 dark:text-slate-400 dark:border-slate-800",
 };
 
 const STATUS_BADGE = {
-  ACTIVE: "bg-emerald-100 text-emerald-700 border border-emerald-300",
-  LOCKED: "bg-red-100 text-red-700 border border-red-300",
-  INACTIVE: "bg-slate-100 text-slate-500 border border-slate-300",
+  ACTIVE: "bg-emerald-100 text-emerald-700 border border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800",
+  LOCKED: "bg-red-100 text-red-700 border border-red-300 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+  INACTIVE: "bg-slate-100 text-slate-500 border border-slate-300 dark:bg-slate-900/30 dark:text-slate-400 dark:border-slate-800",
 };
 
 const ROLES = ["ADMIN", "MANAGER", "STAFF", "DRIVER"];
@@ -19,25 +45,12 @@ const STATUSES = ["ACTIVE", "LOCKED", "INACTIVE"];
 
 const EMPTY_FORM = { username: "", fullName: "", email: "", phone: "", role: "STAFF", password: "" };
 
-function Toast({ message, type, onClose }) {
-  useEffect(() => {
-    const t = setTimeout(onClose, 2500);
-    return () => clearTimeout(t);
-  }, [onClose]);
-  return (
-    <div className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-bold transition-all ${type === "success" ? "bg-emerald-600 text-white" : "bg-red-600 text-white"}`}>
-      {message}
-    </div>
-  );
-}
-
 export default function UserManagementPage() {
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterRole, setFilterRole] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [searchText, setSearchText] = useState("");
-  const [toast, setToast] = useState(null);
 
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -48,15 +61,13 @@ export default function UserManagementPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [formErrors, setFormErrors] = useState({});
 
-  const showToast = (message, type = "success") => setToast({ message, type });
-
   const fetchUsers = async () => {
     try {
       setIsLoading(true);
       const data = await userService.getUsers();
       setUsers(data);
     } catch (err) {
-      showToast(err.message || "Không thể tải danh sách người dùng", "error");
+      toast.error(err.message || "Không thể tải danh sách người dùng");
     } finally {
       setIsLoading(false);
     }
@@ -94,9 +105,9 @@ export default function UserManagementPage() {
       setShowCreateModal(false);
       setForm(EMPTY_FORM);
       setFormErrors({});
-      showToast("Tạo người dùng thành công!");
+      toast.success("Tạo người dùng thành công!");
     } catch (err) {
-      showToast(err.message || "Tạo người dùng thất bại", "error");
+      toast.error(err.message || "Tạo người dùng thất bại");
     }
   };
 
@@ -109,9 +120,9 @@ export default function UserManagementPage() {
       const updated = await userService.updateUser(selectedUser.id, form);
       setUsers((prev) => prev.map((u) => u.id === selectedUser.id ? updated : u));
       setShowEditModal(false);
-      showToast("Cập nhật thông tin thành công!");
+      toast.success("Cập nhật thông tin thành công!");
     } catch (err) {
-      showToast(err.message || "Cập nhật thất bại", "error");
+      toast.error(err.message || "Cập nhật thất bại");
     }
   };
 
@@ -122,9 +133,9 @@ export default function UserManagementPage() {
       const updated = await userService.updateUserRole(selectedUser.id, form.role);
       setUsers((prev) => prev.map((u) => u.id === selectedUser.id ? updated : u));
       setShowRoleModal(false);
-      showToast(`Đã đổi vai trò thành ${form.role}`);
+      toast.success(`Đã đổi vai trò thành ${form.role}`);
     } catch (err) {
-      showToast(err.message || "Đổi vai trò thất bại", "error");
+      toast.error(err.message || "Đổi vai trò thất bại");
     }
   };
 
@@ -135,70 +146,65 @@ export default function UserManagementPage() {
       const updated = await userService.updateUserStatus(selectedUser.id, form.status);
       setUsers((prev) => prev.map((u) => u.id === selectedUser.id ? updated : u));
       setShowStatusModal(false);
-      showToast(`Đã cập nhật trạng thái thành ${form.status}`);
+      toast.success(`Đã cập nhật trạng thái thành ${form.status}`);
     } catch (err) {
-      showToast(err.message || "Cập nhật trạng thái thất bại", "error");
+      toast.error(err.message || "Cập nhật trạng thái thất bại");
     }
   };
 
-  const Field = ({ label, name, type = "text", placeholder, required, value, onChange, error }) => (
-    <div>
-      <label className="block text-xs font-bold text-slate-600 uppercase mb-1">{label}{required && <span className="text-red-500 ml-1">*</span>}</label>
-      <input type={type} value={value} onChange={(e) => onChange(name, e.target.value)} placeholder={placeholder}
-        className={`w-full rounded-lg border px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400 ${error ? "border-red-400 bg-red-50" : "border-slate-300"}`}
-      />
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-    </div>
-  );
-
-  const Modal = ({ title, onClose, onConfirm, confirmLabel = "Lưu", confirmClass = "bg-blue-600 hover:bg-blue-700", children }) => (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-          <h3 className="font-black text-slate-800">{title}</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 text-xl font-bold">×</button>
-        </div>
-        <div className="px-6 py-5 space-y-4">{children}</div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-bold text-slate-600 border border-slate-300 hover:bg-slate-100">Hủy</button>
-          <button onClick={onConfirm} className={`px-5 py-2 rounded-lg text-sm font-bold text-white ${confirmClass}`}>{confirmLabel}</button>
-        </div>
-      </div>
-    </div>
-  );
-
   const setField = (name, value) => setForm((p) => ({ ...p, [name]: value }));
+
+  const Field = ({ label, name, type = "text", placeholder, required, value, onChange, error }) => (
+    <div className="space-y-1">
+      <label className="block text-xs font-bold text-slate-600 uppercase">{label}{required && <span className="text-red-500 ml-1">*</span>}</label>
+      <Input type={type} value={value} onChange={(e) => onChange(name, e.target.value)} placeholder={placeholder}
+        className={error ? "border-red-400 bg-red-50 focus-visible:ring-red-400" : ""}
+      />
+      {error && <p className="text-red-500 text-xs">{error}</p>}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-black text-slate-800">Quản Lý Người Dùng</h2>
           <p className="text-sm text-slate-500 mt-0.5">Quản lý tài khoản nội bộ: Admin, Manager, Staff</p>
         </div>
-        <button onClick={() => { setForm(EMPTY_FORM); setFormErrors({}); setShowCreateModal(true); }}
-          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow transition">
+        <Button onClick={() => { setForm(EMPTY_FORM); setFormErrors({}); setShowCreateModal(true); }}>
           + Tạo người dùng
-        </button>
+        </Button>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center bg-white rounded-xl border border-slate-200 px-5 py-3 shadow-sm">
-        <input type="text" placeholder="🔍 Tìm username, họ tên..." value={searchText} onChange={(e) => setSearchText(e.target.value)}
-          className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 min-w-[200px]" />
-        <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)}
-          className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-          <option value="ALL">Tất cả vai trò</option>
-          {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-        </select>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
-          className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-          <option value="ALL">Tất cả trạng thái</option>
-          {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
+        <Input 
+          type="text" 
+          placeholder="🔍 Tìm username, họ tên..." 
+          value={searchText} 
+          onChange={(e) => setSearchText(e.target.value)}
+          className="max-w-[240px]" 
+        />
+        <Select value={filterRole} onValueChange={setFilterRole}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Tất cả vai trò" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Tất cả vai trò</SelectItem>
+            {ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+          </SelectContent>
+        </Select>
+
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Tất cả trạng thái" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
+            {STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+          </SelectContent>
+        </Select>
         <span className="text-xs text-slate-400 ml-auto">{filtered.length} người dùng</span>
       </div>
 
@@ -209,101 +215,141 @@ export default function UserManagementPage() {
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center text-slate-400"><p className="text-4xl mb-3">👤</p><p className="font-semibold">Không có người dùng phù hợp</p></div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-xs font-black text-slate-500 uppercase tracking-wider">
-                <th className="px-5 py-3 text-left">Username</th>
-                <th className="px-5 py-3 text-left">Họ & Tên</th>
-                <th className="px-5 py-3 text-left">Email</th>
-                <th className="px-5 py-3 text-left">Điện Thoại</th>
-                <th className="px-5 py-3 text-center">Vai Trò</th>
-                <th className="px-5 py-3 text-center">Trạng Thái</th>
-                <th className="px-5 py-3 text-center">Thao Tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50 border-b border-slate-200 text-xs font-black text-slate-500 uppercase tracking-wider">
+                <TableHead className="px-5 py-3 text-left">Username</TableHead>
+                <TableHead className="px-5 py-3 text-left">Họ & Tên</TableHead>
+                <TableHead className="px-5 py-3 text-left">Email</TableHead>
+                <TableHead className="px-5 py-3 text-left">Điện Thoại</TableHead>
+                <TableHead className="px-5 py-3 text-center">Vai Trò</TableHead>
+                <TableHead className="px-5 py-3 text-center">Trạng Thái</TableHead>
+                <TableHead className="px-5 py-3 text-center">Thao Tác</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-slate-100">
               {filtered.map((user) => (
-                <tr key={user.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-5 py-3 font-mono font-bold text-slate-800">{user.username}</td>
-                  <td className="px-5 py-3 font-semibold text-slate-700">{user.fullName}</td>
-                  <td className="px-5 py-3 text-slate-500">{user.email || "—"}</td>
-                  <td className="px-5 py-3 text-slate-500">{user.phone || "—"}</td>
-                  <td className="px-5 py-3 text-center">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-black ${ROLE_BADGE[user.role]}`}>{user.role}</span>
-                  </td>
-                  <td className="px-5 py-3 text-center">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-black ${STATUS_BADGE[user.status]}`}>{user.status}</span>
-                  </td>
-                  <td className="px-5 py-3 text-center">
+                <TableRow key={user.id} className="hover:bg-slate-50 transition-colors">
+                  <TableCell className="px-5 py-3 font-mono font-bold text-slate-800">{user.username}</TableCell>
+                  <TableCell className="px-5 py-3 font-semibold text-slate-700">{user.fullName}</TableCell>
+                  <TableCell className="px-5 py-3 text-slate-500">{user.email || "—"}</TableCell>
+                  <TableCell className="px-5 py-3 text-slate-500">{user.phone || "—"}</TableCell>
+                  <TableCell className="px-5 py-3 text-center">
+                    <Badge variant="outline" className={`px-2 py-0.5 rounded-full text-xs font-black border ${ROLE_BADGE[user.role]}`}>{user.role}</Badge>
+                  </TableCell>
+                  <TableCell className="px-5 py-3 text-center">
+                    <Badge variant="outline" className={`px-2 py-0.5 rounded-full text-xs font-black border ${STATUS_BADGE[user.status]}`}>{user.status}</Badge>
+                  </TableCell>
+                  <TableCell className="px-5 py-3 text-center">
                     <div className="flex justify-center gap-2">
-                      <button onClick={() => openEdit(user)} className="text-xs font-bold text-blue-600 hover:underline">Sửa</button>
-                      <button onClick={() => openRole(user)} className="text-xs font-bold text-purple-600 hover:underline">Vai Trò</button>
-                      <button onClick={() => openStatus(user)} className="text-xs font-bold text-amber-600 hover:underline">Trạng Thái</button>
+                      <Button variant="ghost" size="sm" onClick={() => openEdit(user)} className="text-xs font-bold text-blue-600 hover:text-blue-700">Sửa</Button>
+                      <Button variant="ghost" size="sm" onClick={() => openRole(user)} className="text-xs font-bold text-purple-600 hover:text-purple-700">Vai Trò</Button>
+                      <Button variant="ghost" size="sm" onClick={() => openStatus(user)} className="text-xs font-bold text-amber-600 hover:text-amber-700">Trạng Thái</Button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
       </div>
 
       {/* Create Modal */}
-      {showCreateModal && (
-        <Modal title="Tạo Người Dùng Mới" onClose={() => setShowCreateModal(false)} onConfirm={handleCreate} confirmLabel="Tạo Tài Khoản" confirmClass="bg-blue-600 hover:bg-blue-700">
-          <Field label="Username" name="username" placeholder="vd: staff03" required value={form.username || ""} onChange={setField} error={formErrors.username} />
-          <Field label="Họ & Tên" name="fullName" placeholder="Nguyễn Văn A" required value={form.fullName || ""} onChange={setField} error={formErrors.fullName} />
-          <Field label="Email" name="email" type="email" placeholder="abc@parking.vn" value={form.email || ""} onChange={setField} error={formErrors.email} />
-          <Field label="Điện Thoại" name="phone" placeholder="09xxxxxxxx" value={form.phone || ""} onChange={setField} />
-          <div>
-            <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Vai Trò <span className="text-red-500">*</span></label>
-            <select value={form.role || "STAFF"} onChange={(e) => setField("role", e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-              {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Tạo Người Dùng Mới</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Field label="Username" name="username" placeholder="vd: staff03" required value={form.username || ""} onChange={setField} error={formErrors.username} />
+            <Field label="Họ & Tên" name="fullName" placeholder="Nguyễn Văn A" required value={form.fullName || ""} onChange={setField} error={formErrors.fullName} />
+            <Field label="Email" name="email" type="email" placeholder="abc@parking.vn" value={form.email || ""} onChange={setField} error={formErrors.email} />
+            <Field label="Điện Thoại" name="phone" placeholder="09xxxxxxxx" value={form.phone || ""} onChange={setField} />
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-slate-600 uppercase">Vai Trò <span className="text-red-500">*</span></label>
+              <Select value={form.role || "STAFF"} onValueChange={(val) => setField("role", val)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Chọn vai trò" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <Field label="Mật Khẩu" name="password" type="password" placeholder="••••••••" required value={form.password || ""} onChange={setField} error={formErrors.password} />
           </div>
-          <Field label="Mật Khẩu" name="password" type="password" placeholder="••••••••" required value={form.password || ""} onChange={setField} error={formErrors.password} />
-        </Modal>
-      )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateModal(false)}>Hủy</Button>
+            <Button onClick={handleCreate}>Tạo Tài Khoản</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Modal */}
-      {showEditModal && selectedUser && (
-        <Modal title={`Sửa Thông Tin: ${selectedUser.username}`} onClose={() => setShowEditModal(false)} onConfirm={handleEdit}>
-          <Field label="Họ & Tên" name="fullName" required value={form.fullName || ""} onChange={setField} error={formErrors.fullName} />
-          <Field label="Email" name="email" type="email" value={form.email || ""} onChange={setField} error={formErrors.email} />
-          <Field label="Điện Thoại" name="phone" value={form.phone || ""} onChange={setField} />
-        </Modal>
-      )}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sửa Thông Tin: {selectedUser?.username}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Field label="Họ & Tên" name="fullName" required value={form.fullName || ""} onChange={setField} error={formErrors.fullName} />
+            <Field label="Email" name="email" type="email" value={form.email || ""} onChange={setField} error={formErrors.email} />
+            <Field label="Điện Thoại" name="phone" value={form.phone || ""} onChange={setField} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditModal(false)}>Hủy</Button>
+            <Button onClick={handleEdit}>Lưu</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Role Modal */}
-      {showRoleModal && selectedUser && (
-        <Modal title={`Đổi Vai Trò: ${selectedUser.username}`} onClose={() => setShowRoleModal(false)} onConfirm={handleRole} confirmClass="bg-purple-600 hover:bg-purple-700">
-          <div>
+      <Dialog open={showRoleModal} onOpenChange={setShowRoleModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Đổi Vai Trò: {selectedUser?.username}</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
             <label className="block text-xs font-bold text-slate-600 uppercase mb-2">Vai Trò Mới</label>
-            {ROLES.map((r) => (
-              <label key={r} className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-slate-50 mb-1">
-                <input type="radio" name="role" value={r} checked={form.role === r} onChange={() => setField("role", r)} className="accent-purple-600"/>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-black ${ROLE_BADGE[r]}`}>{r}</span>
-              </label>
-            ))}
+            <div className="space-y-2">
+              {ROLES.map((r) => (
+                <label key={r} className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-slate-50 border border-transparent hover:border-slate-200 transition">
+                  <input type="radio" name="role" value={r} checked={form.role === r} onChange={() => setField("role", r)} className="accent-purple-600"/>
+                  <Badge variant="outline" className={`px-2 py-0.5 rounded-full text-xs font-black border ${ROLE_BADGE[r]}`}>{r}</Badge>
+                </label>
+              ))}
+            </div>
           </div>
-        </Modal>
-      )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRoleModal(false)}>Hủy</Button>
+            <Button onClick={handleRole} className="bg-purple-600 hover:bg-purple-700 text-white">Đổi Vai Trò</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Status Modal */}
-      {showStatusModal && selectedUser && (
-        <Modal title={`Đổi Trạng Thái: ${selectedUser.username}`} onClose={() => setShowStatusModal(false)} onConfirm={handleStatus} confirmClass="bg-amber-600 hover:bg-amber-700" confirmLabel="Cập nhật">
-          <div>
+      <Dialog open={showStatusModal} onOpenChange={setShowStatusModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Đổi Trạng Thái: {selectedUser?.username}</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
             <label className="block text-xs font-bold text-slate-600 uppercase mb-2">Trạng Thái Mới</label>
-            {STATUSES.map((s) => (
-              <label key={s} className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-slate-50 mb-1">
-                <input type="radio" name="status" value={s} checked={form.status === s} onChange={() => setField("status", s)} className="accent-amber-600"/>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-black ${STATUS_BADGE[s]}`}>{s}</span>
-              </label>
-            ))}
+            <div className="space-y-2">
+              {STATUSES.map((s) => (
+                <label key={s} className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-slate-50 border border-transparent hover:border-slate-200 transition">
+                  <input type="radio" name="status" value={s} checked={form.status === s} onChange={() => setField("status", s)} className="accent-amber-600"/>
+                  <Badge variant="outline" className={`px-2 py-0.5 rounded-full text-xs font-black border ${STATUS_BADGE[s]}`}>{s}</Badge>
+                </label>
+              ))}
+            </div>
           </div>
-        </Modal>
-      )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowStatusModal(false)}>Hủy</Button>
+            <Button onClick={handleStatus} className="bg-amber-600 hover:bg-amber-700 text-white">Cập nhật</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

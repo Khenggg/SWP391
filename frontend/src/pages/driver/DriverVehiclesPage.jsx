@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Car, Info, Calendar, ShieldCheck, ShieldAlert, Award } from "lucide-react";
+import { Info, Calendar, ShieldCheck, ShieldAlert, Award } from "lucide-react";
 import { vehicleService } from "../../services/vehicleService";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import LicensePlate from "@/components/ui/license-plate";
+import EmptyState from "@/components/ui/empty-state";
+import { PASS_STATUS } from "@/constants";
 
 export default function DriverVehiclesPage() {
   const [driver, setDriver] = useState({
@@ -49,14 +54,14 @@ export default function DriverVehiclesPage() {
             Quản lý thông tin xe có vé tháng (Active & Expired) thuộc sở hữu của bạn
           </p>
         </div>
-        <div className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl text-xs font-bold border border-indigo-100">
+        <Badge variant="outline" className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl text-xs font-bold border border-indigo-100">
           <Award className="w-4 h-4 shrink-0" />
           <span>{driver.fullName === "Nguyễn Văn A" ? "Tài khoản Cư dân" : "Tài khoản Đặt trước"}</span>
-        </div>
+        </Badge>
       </div>
 
       {/* Thông tin cảnh báo nghiệp vụ */}
-      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4.5 flex gap-3 text-xs text-slate-600 font-medium">
+      <Card className="bg-slate-50 border border-slate-200 rounded-xl p-4.5 flex gap-3 text-xs text-slate-600 font-medium">
         <Info className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
         <div className="space-y-1">
           <p className="font-extrabold text-slate-800">Thông báo về việc Quản lý Phương tiện:</p>
@@ -67,63 +72,53 @@ export default function DriverVehiclesPage() {
             Nếu có thay đổi về biển số xe hoặc gia hạn vé tháng, vui lòng liên hệ Ban Quản Lý tại quầy hỗ trợ Tầng B1.
           </p>
         </div>
-      </div>
+      </Card>
 
       {/* Danh sách xe */}
       {myVehicles.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-          <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
-            🚗
-          </div>
-          <p className="text-slate-800 font-bold">
-            {driver.fullName === "Nguyễn Văn A" 
-              ? "Chưa tìm thấy xe nào đăng ký vé tháng" 
-              : "Không có xe vé tháng cố định"}
-          </p>
-          <p className="text-xs text-slate-500 mt-1 font-semibold">
-            {driver.fullName === "Nguyễn Văn A" 
-              ? "Vui lòng liên hệ Manager để khai báo vé tháng cho biển số xe của bạn." 
-              : "Tài khoản của bạn thuộc nhóm Tài Xế Đặt Trước (không phải cư dân). Bạn hãy sử dụng mục Đặt Chỗ Trước và khai báo biển số xe khi check-in."}
-          </p>
-        </div>
+        <EmptyState 
+          icon="🚗"
+          title={driver.fullName === "Nguyễn Văn A" ? "Chưa tìm thấy xe nào đăng ký vé tháng" : "Không có xe vé tháng cố định"}
+          description={driver.fullName === "Nguyễn Văn A" 
+            ? "Vui lòng liên hệ Manager để khai báo vé tháng cho biển số xe của bạn." 
+            : "Tài khoản của bạn thuộc nhóm Tài Xế Đặt Trước (không phải cư dân). Bạn hãy sử dụng mục Đặt Chỗ Trước và khai báo biển số xe khi check-in."}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {myVehicles.map((vehicle) => {
-            const isActive = vehicle.status === "ACTIVE";
+            const isActive = vehicle.status === PASS_STATUS.ACTIVE;
             return (
-              <div 
+              <Card 
                 key={vehicle.id} 
                 className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md hover:border-slate-300 transition duration-200 flex flex-col justify-between"
               >
                 {/* Plate Header */}
                 <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">{vehicle.vehicleTypeName === "Ô Tô" ? "🚗" : "🏍️"}</span>
+                    <span className="text-2xl select-none">{vehicle.vehicleTypeName === "Ô Tô" ? "🚗" : "🏍️"}</span>
                     <div>
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
                         Biển số xe
                       </span>
                       {/* Real License Plate Design */}
-                      <span className="font-black text-slate-800 text-lg font-mono tracking-wider border-2 border-slate-800 bg-white px-2.5 py-0.5 rounded shadow-sm inline-block min-w-[120px] text-center mt-1">
-                        {vehicle.plate}
-                      </span>
+                      <LicensePlate plate={vehicle.plate} size="lg" />
                     </div>
                   </div>
 
                   {/* Status Badge */}
                   {isActive ? (
-                    <span className="flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase px-2.5 py-1 rounded-full border border-emerald-100">
+                    <Badge variant="outline" className="flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase px-2.5 py-1 rounded-full border border-emerald-100">
                       <ShieldCheck className="w-3.5 h-3.5" /> Vé Tháng Còn Hạn
-                    </span>
+                    </Badge>
                   ) : (
-                    <span className="flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] font-black uppercase px-2.5 py-1 rounded-full border border-amber-100">
+                    <Badge variant="outline" className="flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] font-black uppercase px-2.5 py-1 rounded-full border border-amber-100">
                       <ShieldAlert className="w-3.5 h-3.5" /> Vé Tháng Hết Hạn
-                    </span>
+                    </Badge>
                   )}
                 </div>
 
                 {/* Details Body */}
-                <div className="p-6 space-y-4 flex-grow">
+                <CardContent className="p-6 space-y-4 flex-grow">
                   <div className="grid grid-cols-2 gap-4 text-xs font-semibold">
                     <div>
                       <p className="text-slate-400 mb-1">Loại phương tiện</p>
@@ -144,16 +139,16 @@ export default function DriverVehiclesPage() {
                       {vehicle.startDate} → {vehicle.endDate}
                     </span>
                   </div>
-                </div>
+                </CardContent>
 
                 {/* Action Footer */}
-                <div className="p-4 bg-slate-50 border-t border-slate-100 text-center text-[11px] font-bold text-slate-500">
+                <div className="p-4 bg-slate-50 border-t border-slate-100 text-center text-[11px] font-bold text-slate-500 font-sans">
                   {isActive 
                     ? "🟢 Vé tháng đang có hiệu lực. Phương tiện được phép ra vào đỗ xe trực tiếp." 
                     : "🔴 Vé tháng đã hết hạn. Hãy thực hiện đặt chỗ trước (Booking) nếu muốn gửi xe."
                   }
                 </div>
-              </div>
+              </Card>
             );
           })}
         </div>

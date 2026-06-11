@@ -1,20 +1,21 @@
 import React from "react";
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { USER_ROLES } from "../constants";
 
 // Nhập các Bố cục (Layouts) và trang lỗi
 import PublicLayout from "../components/layout/PublicLayout";
 import AppShell from "../components/layout/AppShell";
-import NotFoundPage from "../pages/NotFoundPage";
-import UnauthorizedPage from "../pages/UnauthorizedPage";
-import LoginPage from "../pages/LoginPage";
+import NotFoundPage from "../pages/error/NotFoundPage";
+import UnauthorizedPage from "../pages/error/UnauthorizedPage";
+import LoginPage from "../pages/public/LoginPage";
 
 // =========================================================================
 // PUBLIC PAGES - Đã xây dựng Phase A + B (Sprint 1 FE)
 // =========================================================================
-import ParkingInfoPage from "../pages/ParkingInfoPage";
-import RulesPage from "../pages/RulesPage";
-import PublicPricingPage from "../pages/PublicPricingPage";
-import AvailableSlotsPage from "../pages/AvailableSlotsPage";
+import ParkingInfoPage from "../pages/public/ParkingInfoPage";
+import RulesPage from "../pages/public/RulesPage";
+import PublicPricingPage from "../pages/public/PublicPricingPage";
+import AvailableSlotsPage from "../pages/public/AvailableSlotsPage";
 
 // =========================================================================
 // ADMIN PAGES - Đã xây dựng Phase A + B (Sprint 1 FE)
@@ -76,13 +77,13 @@ export default function AppRoutes({ isAuthenticated, userRole, currentUser, onLo
         element={
           isAuthenticated ? (
             // Đã đăng nhập → redirect đến trang đầu tiên của từng role (chỉ trang đã build)
-            userRole === "ADMIN" ? (
+            userRole === USER_ROLES.ADMIN ? (
               <Navigate to="/admin/users" replace />
-            ) : userRole === "MANAGER" ? (
+            ) : userRole === USER_ROLES.MANAGER ? (
               <Navigate to="/manager/dashboard" replace />
-            ) : userRole === "STAFF" ? (
+            ) : userRole === USER_ROLES.STAFF ? (
               <Navigate to="/staff/entry" replace />
-            ) : userRole === "DRIVER" ? (
+            ) : userRole === USER_ROLES.DRIVER ? (
               <Navigate to="/driver/profile" replace />
             ) : (
               <Navigate to="/" replace />
@@ -98,7 +99,7 @@ export default function AppRoutes({ isAuthenticated, userRole, currentUser, onLo
         <Route element={<AppShell currentUser={currentUser} onLogout={onLogout} />}>
 
           {/* MANAGER — các trang đã build */}
-          <Route element={<RequireRole userRole={userRole} allowedRoles={["MANAGER"]} />}>
+          <Route element={<RequireRole userRole={userRole} allowedRoles={[USER_ROLES.MANAGER]} />}>
             <Route path="/manager/dashboard" element={<ManagerDashboardPage />} />
             <Route path="/manager/cards" element={<CardManagementPage />} />
             <Route path="/manager/structures" element={<StructureManagementPage />} />
@@ -109,18 +110,18 @@ export default function AppRoutes({ isAuthenticated, userRole, currentUser, onLo
           </Route>
 
           {/* ADMIN — các trang đã build */}
-          <Route element={<RequireRole userRole={userRole} allowedRoles={["ADMIN"]} />}>
+          <Route element={<RequireRole userRole={userRole} allowedRoles={[USER_ROLES.ADMIN]} />}>
             <Route path="/admin/users" element={<UserManagementPage />} />
             {/* Chưa build: /admin/audit-logs, /admin/sessions-administration — Sprint 4/5 */}
           </Route>
 
           {/* STAFF — các trang đã build */}
-          <Route element={<RequireRole userRole={userRole} allowedRoles={["STAFF", "MANAGER"]} />}>
+          <Route element={<RequireRole userRole={userRole} allowedRoles={[USER_ROLES.STAFF, USER_ROLES.MANAGER]} />}>
             <Route path="/staff/entry" element={<StaffEntryPage />} />
           </Route>
 
           {/* DRIVER — các trang đã build */}
-          <Route element={<RequireRole userRole={userRole} allowedRoles={["DRIVER"]} />}>
+          <Route element={<RequireRole userRole={userRole} allowedRoles={[USER_ROLES.DRIVER]} />}>
             <Route path="/driver/profile" element={<DriverProfilePage />} />
             <Route path="/driver/vehicles" element={<DriverVehiclesPage />} />
             <Route path="/driver/history" element={<DriverHistoryPage />} />

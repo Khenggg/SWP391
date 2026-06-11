@@ -8,6 +8,27 @@ import { parkingService } from "../../services/parkingService";
 import { bookingService } from "../../services/bookingService";
 import { pricingService } from "../../services/pricingService";
 
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { BOOKING_STATUS } from "@/constants";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import LicensePlate from "@/components/ui/license-plate";
+
 // Helper functions for date/time manipulation
 const addMinutes = (dateStr, mins) => {
   const d = new Date(dateStr);
@@ -124,20 +145,20 @@ export default function DriverBookingPage() {
     let updated = false;
     let newStatus = activeBooking.status;
 
-    if (activeBooking.status === "PENDING_PAYMENT") {
+    if (activeBooking.status === BOOKING_STATUS.PENDING) {
       const diff = getMinutesDiff(activeBooking.createdAt, simTime);
       if (diff > 15) {
-        newStatus = "EXPIRED_TIMEOUT";
+        newStatus = BOOKING_STATUS.EXPIRED_TIMEOUT;
         updated = true;
       }
-    } else if (activeBooking.status === "PAID") {
+    } else if (activeBooking.status === BOOKING_STATUS.PAID) {
       const paidAtTime = activeBooking.paidAt;
       const durationMins = activeBooking.hours * 60;
       const diff = getMinutesDiff(paidAtTime, simTime);
       
       // Total check-in window is duration + 15 minutes grace period
       if (diff > durationMins + 15) {
-        newStatus = "EXPIRED_CHECKIN";
+        newStatus = BOOKING_STATUS.EXPIRED_CHECKIN;
         updated = true;
       }
     }
@@ -201,7 +222,7 @@ export default function DriverBookingPage() {
     if (!activeBooking) return;
 
     let confirmMsg = "Xác nhận hủy đặt chỗ?";
-    if (activeBooking.status === "PAID") {
+    if (activeBooking.status === BOOKING_STATUS.PAID) {
       confirmMsg = "Xác nhận hủy đặt chỗ? Phí đặt chỗ trước sẽ KHÔNG được hoàn lại.";
     }
 
@@ -217,7 +238,7 @@ export default function DriverBookingPage() {
 
   // Pay Booking Action
   const handlePayBooking = async () => {
-    if (!activeBooking || activeBooking.status !== "PENDING_PAYMENT") return;
+    if (!activeBooking || activeBooking.status !== BOOKING_STATUS.PENDING) return;
 
     try {
       const updated = await bookingService.payBooking(simTime);
@@ -227,11 +248,24 @@ export default function DriverBookingPage() {
     }
   };
 
+  // Open check-in modal safely pre-selecting plate
+  const handleOpenCheckInModal = () => {
+    const ev = getEligibleVehicles();
+    if (ev.length > 0) {
+      setCheckInPlate(ev[0].plate);
+      setIsManualPlate(false);
+    } else {
+      setCheckInPlate("");
+      setIsManualPlate(true);
+    }
+    setShowCheckInModal(true);
+  };
+
   // Check-In Form Submit
   const handleCheckInSubmit = async (e) => {
     e.preventDefault();
     if (!checkInPlate) {
-      alert("Vui lòng chọn biển số xe.");
+      alert("Vui lòng chọn hoặc nhập biển số xe.");
       return;
     }
 
@@ -249,7 +283,7 @@ export default function DriverBookingPage() {
 
   // Check-Out Action
   const handleCheckOut = async () => {
-    if (!activeBooking || activeBooking.status !== "CHECKED_IN") return;
+    if (!activeBooking || activeBooking.status !== BOOKING_STATUS.CHECKED_IN) return;
 
     // Calculate actual parking duration
     const actualDurationMins = getMinutesDiff(activeBooking.checkInTime, simTime);
@@ -286,11 +320,11 @@ export default function DriverBookingPage() {
       timeLeftMins: 0
     };
 
-    if (activeBooking.status === "PENDING_PAYMENT") {
+    if (activeBooking.status === BOOKING_STATUS.PENDING) {
       const diff = getMinutesDiff(activeBooking.createdAt, simTime);
       details.timeLeftMins = Math.max(0, 15 - diff);
       details.msg = `Vui lòng hoàn tất thanh toán trong: ${details.timeLeftMins} phút`;
-    } else if (activeBooking.status === "PAID") {
+    } else if (activeBooking.status === BOOKING_STATUS.PAID) {
       const paidAtTime = activeBooking.paidAt;
       const durationMins = activeBooking.hours * 60;
       const diff = getMinutesDiff(paidAtTime, simTime);
@@ -330,7 +364,7 @@ export default function DriverBookingPage() {
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-12">
       {/* 1. Time Simulator Bar */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <Card className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="animate-ping w-2.5 h-2.5 bg-cyan-400 rounded-full inline-block"></span>
@@ -344,44 +378,56 @@ export default function DriverBookingPage() {
         </div>
         
         <div className="flex flex-wrap gap-2">
-          <button 
+          <Button 
+            variant="outline" 
+            size="sm"
             onClick={() => handleAdjustTime(1)} 
-            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+            className="bg-slate-800 hover:bg-slate-700 border-slate-700 text-white text-xs font-bold"
           >
             +1p
-          </button>
-          <button 
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
             onClick={() => handleAdjustTime(5)} 
-            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+            className="bg-slate-800 hover:bg-slate-700 border-slate-700 text-white text-xs font-bold"
           >
             +5p
-          </button>
-          <button 
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
             onClick={() => handleAdjustTime(15)} 
-            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+            className="bg-slate-800 hover:bg-slate-700 border-slate-700 text-white text-xs font-bold"
           >
             +15p
-          </button>
-          <button 
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
             onClick={() => handleAdjustTime(60)} 
-            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+            className="bg-slate-800 hover:bg-slate-700 border-slate-700 text-white text-xs font-bold"
           >
             +1h
-          </button>
-          <button 
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
             onClick={() => handleAdjustTime(180)} 
-            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+            className="bg-slate-800 hover:bg-slate-700 border-slate-700 text-white text-xs font-bold"
           >
             +3h
-          </button>
-          <button 
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
             onClick={handleResetTime} 
-            className="bg-cyan-950 text-cyan-400 hover:bg-cyan-900 border border-cyan-800 px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1 cursor-pointer"
+            className="bg-cyan-950 text-cyan-400 hover:bg-cyan-900 border-cyan-800 text-xs font-black transition flex items-center gap-1"
           >
             <RefreshCw className="w-3.5 h-3.5" /> Khôi phục thời gian thực
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
 
       {/* Main Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -390,13 +436,13 @@ export default function DriverBookingPage() {
         <div className="lg:col-span-2 space-y-6">
           
           {activeBooking ? (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-fadeIn">
+            <Card className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-fadeIn">
               
               {/* Card Header */}
               <div className={`p-6 border-b text-white flex justify-between items-center ${
-                activeBooking.status === "PENDING_PAYMENT" 
+                activeBooking.status === BOOKING_STATUS.PENDING 
                   ? "bg-gradient-to-r from-amber-500 to-orange-600 border-amber-600" 
-                  : activeBooking.status === "PAID" 
+                  : activeBooking.status === BOOKING_STATUS.PAID 
                   ? "bg-gradient-to-r from-blue-600 to-indigo-700 border-blue-700"
                   : "bg-gradient-to-r from-emerald-600 to-teal-700 border-emerald-700"
               }`}>
@@ -405,16 +451,16 @@ export default function DriverBookingPage() {
                     Mã đặt chỗ: {activeBooking.id}
                   </span>
                   <h3 className="text-xl font-black mt-1">
-                    {activeBooking.status === "PENDING_PAYMENT" && "Chờ Thanh Toán Phí Đặt Trước"}
-                    {activeBooking.status === "PAID" && "Đã Thanh Toán - Chờ Check-in"}
-                    {activeBooking.status === "CHECKED_IN" && "Xe Đang Đỗ Tại Bãi"}
+                    {activeBooking.status === BOOKING_STATUS.PENDING && "Chờ Thanh Toán Phí Đặt Trước"}
+                    {activeBooking.status === BOOKING_STATUS.PAID && "Đã Thanh Toán - Chờ Check-in"}
+                    {activeBooking.status === BOOKING_STATUS.CHECKED_IN && "Xe Đang Đỗ Tại Bãi"}
                   </h3>
                 </div>
                 
                 <span className="text-3xl">
-                  {activeBooking.status === "PENDING_PAYMENT" && "⏳"}
-                  {activeBooking.status === "PAID" && "🎫"}
-                  {activeBooking.status === "CHECKED_IN" && "🚗"}
+                  {activeBooking.status === BOOKING_STATUS.PENDING && "⏳"}
+                  {activeBooking.status === BOOKING_STATUS.PAID && "🎫"}
+                  {activeBooking.status === BOOKING_STATUS.CHECKED_IN && "🚗"}
                 </span>
               </div>
 
@@ -431,7 +477,7 @@ export default function DriverBookingPage() {
               )}
 
               {/* Details Body */}
-              <div className="p-6 space-y-6">
+              <CardContent className="p-6 space-y-6">
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-semibold">
                   <div>
@@ -471,7 +517,7 @@ export default function DriverBookingPage() {
                     <span className="text-slate-800 font-bold">{formatDateTime(activeBooking.createdAt)}</span>
                   </div>
 
-                  {activeBooking.status === "PENDING_PAYMENT" && timerDetails && (
+                  {activeBooking.status === BOOKING_STATUS.PENDING && timerDetails && (
                     <div className="bg-amber-50 text-amber-800 rounded-xl p-4 flex gap-3 text-xs font-bold border border-amber-100 animate-pulse">
                       <Clock className="w-5 h-5 shrink-0 text-amber-600" />
                       <div>
@@ -483,7 +529,7 @@ export default function DriverBookingPage() {
                     </div>
                   )}
 
-                  {activeBooking.status === "PAID" && (
+                  {activeBooking.status === BOOKING_STATUS.PAID && (
                     <div className="space-y-2 bg-slate-50 rounded-xl p-4 border border-slate-100">
                       <div className="flex justify-between items-center text-xs font-semibold text-slate-500">
                         <span>Thời điểm thanh toán:</span>
@@ -505,11 +551,11 @@ export default function DriverBookingPage() {
                     </div>
                   )}
 
-                  {activeBooking.status === "CHECKED_IN" && (
-                    <div className="space-y-2 bg-emerald-50 text-emerald-900 rounded-xl p-4 border border-emerald-100">
+                  {activeBooking.status === BOOKING_STATUS.CHECKED_IN && (
+                    <div className="space-y-3 bg-emerald-50 text-emerald-900 rounded-xl p-4 border border-emerald-100">
                       <div className="flex justify-between items-center text-xs font-bold">
                         <span>Biển số xe đỗ thực tế:</span>
-                        <span className="font-mono text-sm bg-white px-2 py-0.5 border border-emerald-200 rounded">{activeBooking.plate}</span>
+                        <LicensePlate plate={activeBooking.plate} size="md" />
                       </div>
                       <div className="flex justify-between items-center text-xs font-bold">
                         <span>Vị trí khu vực:</span>
@@ -519,30 +565,40 @@ export default function DriverBookingPage() {
                         <span>Thời điểm xe vào (Check-in):</span>
                         <span>{formatDateTime(activeBooking.checkInTime)}</span>
                       </div>
+                      <div className="border-t border-emerald-200 pt-3 mt-1">
+                        <Button 
+                          type="button"
+                          onClick={handleCheckOut}
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-sm shadow transition"
+                        >
+                          Giả lập Xe Ra (Check-out & Thanh Toán tại Cổng)
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
 
                 {/* Actions Footer */}
                 <div className="flex gap-3 border-t border-slate-100 pt-6">
-                  {activeBooking.status === "PENDING_PAYMENT" && (
+                  {activeBooking.status === BOOKING_STATUS.PENDING && (
                     <>
-                      <button 
+                      <Button 
                         onClick={handlePayBooking}
-                        className="flex-1 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold py-2.5 px-4 rounded-xl text-sm shadow-md transition cursor-pointer flex items-center justify-center gap-1.5"
+                        className="flex-1 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold py-2.5 px-4 rounded-xl text-sm shadow-md transition flex items-center justify-center gap-1.5"
                       >
                         <CreditCard className="w-4 h-4" /> Giả lập Thanh Toán Thành Công
-                      </button>
-                      <button 
+                      </Button>
+                      <Button 
                         onClick={handleCancelBooking}
-                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-sm transition cursor-pointer"
+                        variant="secondary"
+                        className="py-2.5 px-4 rounded-xl text-sm transition"
                       >
                         Hủy Đặt
-                      </button>
+                      </Button>
                     </>
                   )}
 
-                  {activeBooking.status === "PAID" && (
+                  {activeBooking.status === BOOKING_STATUS.PAID && (
                     <div className="flex flex-col items-center gap-6 w-full p-4 bg-slate-50 rounded-2xl border border-slate-200">
                       <div className="text-center space-y-2">
                         <p className="text-xs font-black text-indigo-600 uppercase tracking-widest">
@@ -565,38 +621,49 @@ export default function DriverBookingPage() {
                         </span>
                       </div>
 
-                      <div className="flex gap-3 w-full border-t border-slate-200 pt-4">
-                        <button 
+                      <div className="flex flex-col gap-3 w-full border-t border-slate-200 pt-4">
+                        <Button 
                           type="button"
-                          onClick={async () => {
-                            const latest = await bookingService.getActiveBooking();
-                            setActiveBooking(latest);
-                            if (!latest) {
-                              alert("Đặt chỗ đã được staff quét xác nhận thành công!");
-                            }
-                          }}
-                          className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition cursor-pointer flex items-center justify-center gap-1.5 shadow"
+                          onClick={handleOpenCheckInModal}
+                          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-2.5 px-4 rounded-xl text-sm shadow transition flex items-center justify-center gap-1.5"
                         >
-                          <RefreshCw className="w-4 h-4" /> Kiểm tra/Đồng bộ trạng thái
-                        </button>
-                        <button 
-                          type="button"
-                          onClick={handleCancelBooking}
-                          className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 px-4 rounded-xl text-sm transition cursor-pointer flex items-center justify-center gap-1.5"
-                        >
-                          <Trash2 className="w-4 h-4" /> Hủy đặt chỗ
-                        </button>
+                          <Play className="w-4 h-4" /> Giả lập Quét QR (Cổng Vào Check-in)
+                        </Button>
+                        <div className="flex gap-3 w-full">
+                          <Button 
+                            type="button"
+                            variant="outline"
+                            onClick={async () => {
+                              const latest = await bookingService.getActiveBooking();
+                              setActiveBooking(latest);
+                              if (!latest) {
+                                alert("Đặt chỗ đã được staff quét xác nhận thành công!");
+                              }
+                            }}
+                            className="flex-1 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-sm transition flex items-center justify-center gap-1.5 shadow-sm"
+                          >
+                            <RefreshCw className="w-4 h-4" /> Đồng bộ trạng thái
+                          </Button>
+                          <Button 
+                            type="button"
+                            variant="destructive"
+                            onClick={handleCancelBooking}
+                            className="flex-1 font-bold py-2.5 px-4 rounded-xl text-sm transition flex items-center justify-center gap-1.5"
+                          >
+                            <Trash2 className="w-4 h-4" /> Hủy đặt chỗ
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   )}
                 </div>
 
-              </div>
+              </CardContent>
 
-            </div>
+            </Card>
           ) : (
             // Form Đặt Chỗ
-            <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
+            <Card className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
               <h3 className="text-xl font-black text-slate-800 uppercase tracking-wide mb-6">
                 Đặt Giữ Chỗ Đặt Trước (Booking)
               </h3>
@@ -652,20 +719,24 @@ export default function DriverBookingPage() {
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
                     Số giờ đặt trước
                   </label>
-                  <select 
-                    value={durationHours}
-                    onChange={(e) => setDurationHours(parseInt(e.target.value))}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 font-semibold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20"
+                  <Select 
+                    value={String(durationHours)} 
+                    onValueChange={(val) => setDurationHours(parseInt(val))}
                   >
-                    <option value={1}>1 Giờ</option>
-                    <option value={2}>2 Giờ</option>
-                    <option value={3}>3 Giờ (Mặc định)</option>
-                    <option value={4}>4 Giờ</option>
-                    <option value={6}>6 Giờ</option>
-                    <option value={8}>8 Giờ</option>
-                    <option value={12}>12 Giờ</option>
-                    <option value={24}>24 Giờ</option>
-                  </select>
+                    <SelectTrigger className="w-full bg-white border-slate-200">
+                      <SelectValue placeholder="Chọn số giờ" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 Giờ</SelectItem>
+                      <SelectItem value="2">2 Giờ</SelectItem>
+                      <SelectItem value="3">3 Giờ (Mặc định)</SelectItem>
+                      <SelectItem value="4">4 Giờ</SelectItem>
+                      <SelectItem value="6">6 Giờ</SelectItem>
+                      <SelectItem value="8">8 Giờ</SelectItem>
+                      <SelectItem value="12">12 Giờ</SelectItem>
+                      <SelectItem value="24">24 Giờ</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* 3. Dynamic Price info */}
@@ -689,14 +760,14 @@ export default function DriverBookingPage() {
                 </div>
 
                 {/* Submit */}
-                <button
+                <Button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-700 hover:from-blue-500 hover:via-indigo-500 hover:to-violet-600 text-white font-bold py-3 px-4 rounded-xl text-sm shadow-md transition cursor-pointer"
+                  className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-700 hover:from-blue-500 hover:via-indigo-500 hover:to-violet-600 text-white font-bold py-3 px-4 rounded-xl text-sm shadow-md transition"
                 >
                   Xác nhận đặt giữ chỗ đỗ xe
-                </button>
+                </Button>
               </form>
-            </div>
+            </Card>
           )}
 
         </div>
@@ -705,7 +776,7 @@ export default function DriverBookingPage() {
         <div className="space-y-6">
           
           {/* Categorization Info Box */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <Card className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
             <h4 className="font-extrabold text-slate-800 text-sm uppercase tracking-wider border-b border-slate-100 pb-3 mb-4 flex items-center gap-1.5">
               <Users className="w-4 h-4 text-indigo-500" />
               Phân loại người dùng
@@ -733,10 +804,10 @@ export default function DriverBookingPage() {
                 </p>
               </div>
             </div>
-          </div>
+          </Card>
 
           {/* Rules / Business Logic Widget */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <Card className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
             <h4 className="font-extrabold text-slate-800 text-sm uppercase tracking-wider border-b border-slate-100 pb-3 mb-4">
               Nghiệp Vụ Đặt Chỗ
             </h4>
@@ -777,110 +848,112 @@ export default function DriverBookingPage() {
                 </span>
               </li>
             </ul>
-          </div>
+          </Card>
 
         </div>
 
       </div>
 
       {/* 2. Check-In Modal for selecting vehicle */}
-      {showCheckInModal && activeBooking && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
-            
-            <div className="p-6 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-md font-black text-slate-800 uppercase tracking-wide">
-                Giả Lập Cổng Kiểm Soát (Staff Cổng Vào)
-              </h3>
-              <p className="text-xs text-slate-500 mt-1 font-semibold">
-                Nhân viên (Staff) quét hoặc nhập biển số xe thực tế khi xe đi vào cổng (loại: {activeBooking.vehicleTypeName})
-              </p>
-            </div>
+      <Dialog open={showCheckInModal} onOpenChange={setShowCheckInModal}>
+        <DialogContent className="sm:max-w-md bg-white rounded-2xl border border-slate-200 p-0 overflow-hidden">
+          <div className="p-6 border-b border-slate-100 bg-slate-50">
+            <DialogTitle className="text-md font-black text-slate-800 uppercase tracking-wide">
+              Giả Lập Cổng Kiểm Soát (Staff Cổng Vào)
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 mt-1 font-semibold">
+              Nhân viên (Staff) quét hoặc nhập biển số xe thực tế khi xe đi vào cổng (loại: {activeBooking?.vehicleTypeName})
+            </DialogDescription>
+          </div>
 
-            <form onSubmit={handleCheckInSubmit} className="p-6 space-y-4">
-              
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    {isManualPlate ? "Nhập biển số xe đỗ thực tế" : "Chọn biển số xe đỗ"}
-                  </label>
-                  {myVehicles.length > 0 && eligibleVehicles.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const nextManual = !isManualPlate;
-                        setIsManualPlate(nextManual);
-                        setCheckInPlate(nextManual ? "" : eligibleVehicles[0].plate);
-                      }}
-                      className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold underline cursor-pointer"
-                    >
-                      {isManualPlate ? "Chọn từ danh sách xe của bạn" : "Nhập biển số xe khác"}
-                    </button>
-                  )}
-                </div>
-                
-                {isManualPlate ? (
-                  <div>
-                    <input 
-                      type="text"
-                      required
-                      value={checkInPlate}
-                      onChange={(e) => setCheckInPlate(e.target.value.toUpperCase())}
-                      placeholder="Ví dụ: 30H-123.45"
-                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 font-bold font-mono tracking-wider outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20"
-                    />
-                    {myVehicles.length > 0 && eligibleVehicles.length === 0 && (
-                      <p className="text-[10px] text-amber-600 font-medium leading-relaxed font-sans mt-1">
-                        ⚠️ Bạn không có xe vé tháng hết hạn nào thuộc loại này. Vui lòng nhập biển số xe khác để check-in đỗ theo phiên đặt trước này. (Xe còn hạn sẽ tự động đỗ trực tiếp vào slot riêng không cần booking).
-                      </p>
-                    )}
-                    {myVehicles.length > 0 && eligibleVehicles.length > 0 && (
-                      <p className="text-[10px] text-indigo-600 font-medium leading-relaxed font-sans mt-1">
-                        💡 Nhập biển số xe khác không có sẵn trong danh sách vé tháng để gửi theo phiên đặt chỗ này.
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <select 
-                    value={checkInPlate}
-                    onChange={(e) => setCheckInPlate(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 font-semibold outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20"
+          <form onSubmit={handleCheckInSubmit} className="p-6 space-y-4">
+            
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  {isManualPlate ? "Nhập biển số xe đỗ thực tế" : "Chọn biển số xe đỗ"}
+                </label>
+                {myVehicles.length > 0 && eligibleVehicles.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="link"
+                    onClick={() => {
+                      const nextManual = !isManualPlate;
+                      setIsManualPlate(nextManual);
+                      setCheckInPlate(nextManual ? "" : eligibleVehicles[0].plate);
+                    }}
+                    className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold underline p-0 h-auto cursor-pointer"
                   >
-                    {eligibleVehicles.map(v => (
-                      <option key={v.id} value={v.plate}>
-                        {v.plate} (Vé Tháng Hết Hạn)
-                      </option>
-                    ))}
-                  </select>
+                    {isManualPlate ? "Chọn từ danh sách xe của bạn" : "Nhập biển số xe khác"}
+                  </Button>
                 )}
               </div>
-
-              <div className="bg-slate-50 p-3 rounded-lg text-[11px] text-slate-500 font-medium">
-                🔔 Hệ thống ghi nhận xe đi vào cổng và tự động khớp biển số với mã Slot nội bộ <strong>{activeBooking.internalSlotCode}</strong> đã được khóa cứng trước đó tại <strong>{activeBooking.areaName}</strong>.
-              </div>
-
-              <div className="flex gap-3 border-t border-slate-100 pt-4">
-                <button
-                  type="submit"
-                  disabled={!checkInPlate.trim()}
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-xl text-xs shadow transition cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
+              
+              {isManualPlate ? (
+                <div>
+                  <Input 
+                    type="text"
+                    required
+                    value={checkInPlate}
+                    onChange={(e) => setCheckInPlate(e.target.value.toUpperCase())}
+                    placeholder="Ví dụ: 30H-123.45"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 font-bold font-mono tracking-wider outline-none"
+                  />
+                  {myVehicles.length > 0 && eligibleVehicles.length === 0 && (
+                    <p className="text-[10px] text-amber-600 font-medium leading-relaxed font-sans mt-1">
+                      ⚠️ Bạn không có xe vé tháng hết hạn nào thuộc loại này. Vui lòng nhập biển số xe khác để check-in đỗ theo phiên đặt trước này. (Xe còn hạn sẽ tự động đỗ trực tiếp vào slot riêng không cần booking).
+                    </p>
+                  )}
+                  {myVehicles.length > 0 && eligibleVehicles.length > 0 && (
+                    <p className="text-[10px] text-indigo-600 font-medium leading-relaxed font-sans mt-1">
+                      💡 Nhập biển số xe khác không có sẵn trong danh sách vé tháng để gửi theo phiên đặt chỗ này.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <Select 
+                  value={checkInPlate} 
+                  onValueChange={setCheckInPlate}
                 >
-                  Xác nhận cho xe vào (Đồng bộ Check-in)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowCheckInModal(false)}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded-xl text-xs transition cursor-pointer"
-                >
-                  Đóng
-                </button>
-              </div>
+                  <SelectTrigger className="w-full bg-white border-slate-200">
+                    <SelectValue placeholder="Chọn biển số xe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {eligibleVehicles.map(v => (
+                      <SelectItem key={v.id} value={v.plate}>
+                        {v.plate} (Vé Tháng Hết Hạn)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
 
-            </form>
+            <div className="bg-slate-50 p-3 rounded-lg text-[11px] text-slate-500 font-medium">
+              🔔 Hệ thống ghi nhận xe đi vào cổng và tự động khớp biển số với mã Slot nội bộ <strong>{activeBooking?.internalSlotCode}</strong> đã được khóa cứng trước đó tại <strong>{activeBooking?.areaName}</strong>.
+            </div>
 
-          </div>
-        </div>
-      )}
+            <div className="flex gap-3 border-t border-slate-100 pt-4 justify-end">
+              <Button
+                type="submit"
+                disabled={!checkInPlate.trim()}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold"
+              >
+                Xác nhận cho xe vào (Đồng bộ Check-in)
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowCheckInModal(false)}
+                className="font-bold text-slate-700"
+              >
+                Đóng
+              </Button>
+            </div>
+
+          </form>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

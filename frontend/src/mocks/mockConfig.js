@@ -24,7 +24,11 @@ export function isMockEnabled(flagName) {
 }
 
 export function hasEnabledMocks() {
+  if (import.meta.env.VITE_USE_MOCK !== "true") {
+    return false;
+  }
   return Object.entries(import.meta.env).some(
     ([key, value]) => key.startsWith("VITE_MOCK_") && value === "true"
   );
 }
+

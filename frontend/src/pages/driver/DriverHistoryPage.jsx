@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { History, Calendar, CreditCard, Layers, Tag, CheckCircle2, XCircle, AlertCircle, Clock } from "lucide-react";
+import { History, Layers, Tag, CheckCircle2, XCircle, AlertCircle, Clock } from "lucide-react";
 import { bookingService } from "../../services/bookingService";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import { BOOKING_STATUS } from "@/constants";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import LicensePlate from "@/components/ui/license-plate";
+import EmptyState from "@/components/ui/empty-state";
 
 // Helper for rendering date format
 const formatDateTime = (dateStr) => {
@@ -12,7 +26,6 @@ const formatDateTime = (dateStr) => {
 
 export default function DriverHistoryPage() {
   const [historyList, setHistoryList] = useState([]);
-
   const [username, setUsername] = useState("driver01");
 
   useEffect(() => {
@@ -53,35 +66,35 @@ export default function DriverHistoryPage() {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case "COMPLETED":
+      case BOOKING_STATUS.COMPLETED:
         return (
-          <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase px-2.5 py-1 rounded-full border border-emerald-100">
+          <Badge variant="outline" className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase px-2.5 py-1 rounded-full border border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800">
             <CheckCircle2 className="w-3.5 h-3.5" /> Thành Công
-          </span>
+          </Badge>
         );
-      case "CANCELLED":
+      case BOOKING_STATUS.CANCELLED:
         return (
-          <span className="flex items-center gap-1.5 bg-slate-100 text-slate-600 text-[10px] font-black uppercase px-2.5 py-1 rounded-full border border-slate-200">
+          <Badge variant="outline" className="flex items-center gap-1.5 bg-slate-100 text-slate-600 text-[10px] font-black uppercase px-2.5 py-1 rounded-full border border-slate-200 dark:bg-slate-900/30 dark:text-slate-400 dark:border-slate-800">
             <XCircle className="w-3.5 h-3.5" /> Đã Hủy (Không hoàn phí)
-          </span>
+          </Badge>
         );
-      case "EXPIRED_CHECKIN":
+      case BOOKING_STATUS.EXPIRED_CHECKIN:
         return (
-          <span className="flex items-center gap-1.5 bg-rose-50 text-rose-700 text-[10px] font-black uppercase px-2.5 py-1 rounded-full border border-rose-100">
+          <Badge variant="outline" className="flex items-center gap-1.5 bg-rose-50 text-rose-700 text-[10px] font-black uppercase px-2.5 py-1 rounded-full border border-rose-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800">
             <AlertCircle className="w-3.5 h-3.5" /> Quá hạn Check-in
-          </span>
+          </Badge>
         );
-      case "EXPIRED_TIMEOUT":
+      case BOOKING_STATUS.EXPIRED_TIMEOUT:
         return (
-          <span className="flex items-center gap-1.5 bg-amber-50 text-amber-700 text-[10px] font-black uppercase px-2.5 py-1 rounded-full border border-amber-100">
+          <Badge variant="outline" className="flex items-center gap-1.5 bg-amber-50 text-amber-700 text-[10px] font-black uppercase px-2.5 py-1 rounded-full border border-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">
             <Clock className="w-3.5 h-3.5" /> Hết Hạn Thanh Toán
-          </span>
+          </Badge>
         );
       default:
         return (
-          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+          <Badge variant="outline" className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400 dark:border-slate-800">
             {status}
-          </span>
+          </Badge>
         );
     }
   };
@@ -100,130 +113,120 @@ export default function DriverHistoryPage() {
           </p>
         </div>
         {historyList.length > 0 && (
-          <button 
+          <Button 
             onClick={handleClearHistory}
-            className="text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 px-4.5 py-2 rounded-xl transition-all border border-rose-200 shrink-0 cursor-pointer"
+            variant="destructive"
+            className="text-xs font-bold"
           >
             Xóa Lịch Sử
-          </button>
+          </Button>
         )}
       </div>
 
       {/* History List */}
       {historyList.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm animate-fadeIn">
-          <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
-            ⏱️
-          </div>
-          <p className="text-slate-800 font-bold">Chưa ghi nhận lịch sử gửi xe nào</p>
-          <p className="text-xs text-slate-500 mt-1 font-semibold">
-            Thực hiện đặt chỗ và hoàn tất phiên gửi xe để hiển thị lịch sử đỗ xe ở đây.
-          </p>
-        </div>
+        <EmptyState 
+          icon="⏱️"
+          title="Chưa ghi nhận lịch sử gửi xe nào"
+          description="Thực hiện đặt chỗ và hoàn tất phiên gửi xe để hiển thị lịch sử đỗ xe ở đây."
+          className="animate-fadeIn"
+        />
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-fadeIn">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                  <th className="py-4.5 px-6">Mã Đặt Chỗ / Loại Xe</th>
-                  <th className="py-4.5 px-6">Biển Số Xe</th>
-                  <th className="py-4.5 px-6">Khu Vực Gửi Xe</th>
-                  <th className="py-4.5 px-6">Thời Gian Gửi Xe (Check-in/out)</th>
-                  <th className="py-4.5 px-6 text-right">Phí Đặt Chỗ (Hạn giữ)</th>
-                  <th className="py-4.5 px-6 text-right">Phí Gửi Xe (Thời gian đỗ)</th>
-                  <th className="py-4.5 px-6 text-center">Trạng Thái</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-600">
-                {historyList.map((session) => (
-                  <tr key={session.id} className="hover:bg-slate-50/50 transition">
-                    {/* ID & Vehicle Type */}
-                    <td className="py-4 px-6">
-                      <div className="space-y-0.5">
-                        <span className="font-extrabold text-slate-800">{session.id}</span>
-                        <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wide">
-                          {session.vehicleTypeName}
-                        </span>
-                      </div>
-                    </td>
+        <Card className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-fadeIn">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                <TableHead className="py-4.5 px-6">Mã Đặt Chỗ / Loại Xe</TableHead>
+                <TableHead className="py-4.5 px-6">Biển Số Xe</TableHead>
+                <TableHead className="py-4.5 px-6">Khu Vực Gửi Xe</TableHead>
+                <TableHead className="py-4.5 px-6">Thời Gian Gửi Xe (Check-in/out)</TableHead>
+                <TableHead className="py-4.5 px-6 text-right">Phí Đặt Chỗ (Hạn giữ)</TableHead>
+                <TableHead className="py-4.5 px-6 text-right">Phí Gửi Xe (Thời gian đỗ)</TableHead>
+                <TableHead className="py-4.5 px-6 text-center">Trạng Thái</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-slate-100 text-xs font-semibold text-slate-600">
+              {historyList.map((session) => (
+                <TableRow key={session.id} className="hover:bg-slate-50/50 transition">
+                  {/* ID & Vehicle Type */}
+                  <TableCell className="py-4 px-6">
+                    <div className="space-y-0.5">
+                      <span className="font-extrabold text-slate-800">{session.id}</span>
+                      <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wide">
+                        {session.vehicleTypeName}
+                      </span>
+                    </div>
+                  </TableCell>
 
-                    {/* License Plate */}
-                    <td className="py-4 px-6">
-                      {session.plate ? (
-                        <span className="font-mono font-black text-slate-800 border border-slate-800 bg-white px-2 py-0.5 rounded shadow-sm inline-block tracking-wide">
-                          {session.plate}
+                  {/* License Plate */}
+                  <TableCell className="py-4 px-6">
+                    <LicensePlate plate={session.plate} size="md" />
+                  </TableCell>
+
+                  {/* Area Name / Slot Code */}
+                  <TableCell className="py-4 px-6">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-1 text-slate-800">
+                        <Layers className="w-3.5 h-3.5 text-indigo-500" />
+                        <span className="font-extrabold">{session.areaName || `Khu ${session.areaCode}`}</span>
+                      </div>
+                      {session.slotCode && (
+                        <span className="text-[10px] text-slate-400 block font-mono">
+                          (Nội bộ: {session.slotCode})
                         </span>
-                      ) : (
-                        <span className="text-slate-400 italic">N/A</span>
                       )}
-                    </td>
+                    </div>
+                  </TableCell>
 
-                    {/* Area Name / Slot Code */}
-                    <td className="py-4 px-6">
+                  {/* Date Time Check-in/out */}
+                  <TableCell className="py-4 px-6 space-y-1">
+                    <div className="flex items-center gap-1.5 text-slate-500">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase w-7">Vào:</span>
+                      <span className="text-slate-700 font-bold">{formatDateTime(session.checkInTime)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-slate-500">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase w-7">Ra:</span>
+                      <span className="text-slate-700 font-bold">{formatDateTime(session.checkOutTime)}</span>
+                    </div>
+                  </TableCell>
+
+                  {/* Reservation Fee (Hạn giữ) */}
+                  <TableCell className="py-4 px-6 text-right">
+                    <div className="space-y-0.5">
+                      <span className="font-bold text-slate-700 block">{session.hours} giờ giữ</span>
+                      <span className="font-black text-amber-600">
+                        {((session.reservationFee !== undefined ? session.reservationFee : session.fee) || 0).toLocaleString()} VND
+                      </span>
+                    </div>
+                  </TableCell>
+
+                  {/* Actual Parking Fee (Thời gian đỗ) */}
+                  <TableCell className="py-4 px-6 text-right">
+                    {session.status === BOOKING_STATUS.COMPLETED ? (
                       <div className="space-y-0.5">
-                        <div className="flex items-center gap-1 text-slate-800">
-                          <Layers className="w-3.5 h-3.5 text-indigo-500" />
-                          <span className="font-extrabold">{session.areaName || `Khu ${session.areaCode}`}</span>
-                        </div>
-                        {session.slotCode && (
-                          <span className="text-[10px] text-slate-400 block font-mono">
-                            (Nội bộ: {session.slotCode})
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Date Time Check-in/out */}
-                    <td className="py-4 px-6 space-y-1">
-                      <div className="flex items-center gap-1.5 text-slate-500">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase w-7">Vào:</span>
-                        <span className="text-slate-700 font-bold">{formatDateTime(session.checkInTime)}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-slate-500">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase w-7">Ra:</span>
-                        <span className="text-slate-700 font-bold">{formatDateTime(session.checkOutTime)}</span>
-                      </div>
-                    </td>
-
-                    {/* Reservation Fee (Hạn giữ) */}
-                    <td className="py-4 px-6 text-right">
-                      <div className="space-y-0.5">
-                        <span className="font-bold text-slate-700 block">{session.hours} giờ giữ</span>
-                        <span className="font-black text-amber-600">
-                          {((session.reservationFee !== undefined ? session.reservationFee : session.fee) || 0).toLocaleString()} VND
+                        <span className="font-bold text-slate-700 block">{(session.actualHours || 0)} giờ đỗ</span>
+                        <span className="font-black text-indigo-600">
+                          {((session.actualParkingFee || 0)).toLocaleString()} VND
                         </span>
                       </div>
-                    </td>
+                    ) : (
+                      <span className="text-slate-400 font-medium italic">Không đỗ xe</span>
+                    )}
+                  </TableCell>
 
-                    {/* Actual Parking Fee (Thời gian đỗ) */}
-                    <td className="py-4 px-6 text-right">
-                      {session.status === "COMPLETED" ? (
-                        <div className="space-y-0.5">
-                          <span className="font-bold text-slate-700 block">{(session.actualHours || 0)} giờ đỗ</span>
-                          <span className="font-black text-indigo-600">
-                            {((session.actualParkingFee || 0)).toLocaleString()} VND
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 font-medium italic">Không đỗ xe</span>
-                      )}
-                    </td>
-
-                    {/* Status badge */}
-                    <td className="py-4 px-6 text-center">
-                      {getStatusBadge(session.status)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                  {/* Status badge */}
+                  <TableCell className="py-4 px-6 text-center">
+                    {getStatusBadge(session.status)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
           <div className="bg-slate-50 border-t border-slate-100 px-6 py-4.5 text-[11px] text-slate-500 font-medium flex items-center gap-2">
             <Tag className="w-4 h-4 text-slate-400" />
             <span>Biển số xe được ghi nhận trực tiếp thông qua hệ thống cảm biến check-in/out của từng phiên gửi xe của tài xế.</span>
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { BrowserRouter } from "react-router-dom";
 import AppRoutes from "./AppRoutes";
+import { Toaster } from "@/components/ui/sonner";
+
 
 /**
  * Hàm giải mã và lấy vai trò (role) từ token
@@ -129,6 +131,7 @@ export default function App() {
         onLoginSuccess={handleLoginSuccess}
         onLogout={handleLogout}
       />
+      <Toaster />
     </BrowserRouter>
   );
 }
