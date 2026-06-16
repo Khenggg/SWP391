@@ -18,6 +18,9 @@ const INITIAL_SESSIONS = [
     status: "ACTIVE",
     entryGateCode: "GATE-IN-02",
     exitGateCode: null,
+    entryPlateImageDataUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='180'><rect width='100%' height='100%' fill='%23f8fafc'/><rect x='40' y='50' width='240' height='80' rx='4' fill='white' stroke='%23cbd5e1' stroke-width='2'/><text x='50%' y='95' dominant-baseline='middle' text-anchor='middle' font-family='monospace' font-size='28' font-weight='bold' fill='%231e293b'>51A-123.45</text></svg>",
+    entryVehicleImageDataUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='180'><rect width='100%' height='100%' fill='%23e2e8f0'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14' font-weight='bold' fill='%23475569'>Ảnh xe lúc vào (Ô tô xanh)</text></svg>",
+    entryDriverImageDataUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='180'><rect width='100%' height='100%' fill='%23f1f5f9'/><circle cx='160' cy='80' r='30' fill='%2394a3b8'/><path d='M120 140c0-20 15-30 40-30s40 10 40 30' fill='%2394a3b8'/><text x='50%' y='160' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='12' fill='%2364748b'>Tài xế 51A-12345</text></svg>"
   },
   {
     id: 1002,
@@ -36,6 +39,9 @@ const INITIAL_SESSIONS = [
     status: "ACTIVE",
     entryGateCode: "GATE-IN-02",
     exitGateCode: null,
+    entryPlateImageDataUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='180'><rect width='100%' height='100%' fill='%23f8fafc'/><rect x='40' y='50' width='240' height='80' rx='4' fill='white' stroke='%23cbd5e1' stroke-width='2'/><text x='50%' y='95' dominant-baseline='middle' text-anchor='middle' font-family='monospace' font-size='28' font-weight='bold' fill='%231e293b'>59B-999.99</text></svg>",
+    entryVehicleImageDataUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='180'><rect width='100%' height='100%' fill='%23e2e8f0'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14' font-weight='bold' fill='%23475569'>Ảnh xe lúc vào (Ô tô trắng)</text></svg>",
+    entryDriverImageDataUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='180'><rect width='100%' height='100%' fill='%23f1f5f9'/><circle cx='160' cy='80' r='30' fill='%2394a3b8'/><path d='M120 140c0-20 15-30 40-30s40 10 40 30' fill='%2394a3b8'/><text x='50%' y='160' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='12' fill='%2364748b'>Tài xế 59B-99999</text></svg>"
   },
   {
     id: 1003,
@@ -54,7 +60,10 @@ const INITIAL_SESSIONS = [
     status: "ACTIVE",
     entryGateCode: "GATE-IN-01",
     exitGateCode: null,
-  },
+    entryPlateImageDataUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='180'><rect width='100%' height='100%' fill='%23f8fafc'/><rect x='40' y='50' width='240' height='80' rx='4' fill='white' stroke='%23cbd5e1' stroke-width='2'/><text x='50%' y='95' dominant-baseline='middle' text-anchor='middle' font-family='monospace' font-size='28' font-weight='bold' fill='%231e293b'>51C-778.88</text></svg>",
+    entryVehicleImageDataUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='180'><rect width='100%' height='100%' fill='%23e2e8f0'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14' font-weight='bold' fill='%23475569'>Ảnh xe lúc vào (Xe máy đen)</text></svg>",
+    entryDriverImageDataUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='180'><rect width='100%' height='100%' fill='%23f1f5f9'/><circle cx='160' cy='80' r='30' fill='%2394a3b8'/><path d='M120 140c0-20 15-30 40-30s40 10 40 30' fill='%2394a3b8'/><text x='50%' y='160' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='12' fill='%2364748b'>Tài xế 51C-77888</text></svg>"
+  }
 ];
 
 const INITIAL_MISMATCH = [
