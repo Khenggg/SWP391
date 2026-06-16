@@ -36,8 +36,8 @@ public class UserReadEntity {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
-    @Column(name = "role_id")
-    private Long role;
+    @Column(name = "role", nullable = false)
+    private String role; // ADMIN, MANAGER, STAFF, DRIVER
 
     @Column(name = "status")
     private String status; // ACTIVE, LOCKED, INACTIVE
@@ -50,5 +50,6 @@ public class UserReadEntity {
 
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
+
 
 }
