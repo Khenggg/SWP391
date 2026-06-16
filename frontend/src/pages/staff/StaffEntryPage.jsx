@@ -127,11 +127,26 @@ export default function StaffEntryPage() {
 
   const handleConfirmScan = async () => {
     if (!selectedBookingId) return;
+    if (!deviceDraft.cardCode.trim()) {
+      toast.error("Vui lòng quét hoặc nhập mã thẻ NFC để gán cho lượt đặt chỗ này.");
+      return;
+    }
+    if (!deviceDraft.plate.trim()) {
+      toast.error("Vui lòng nhập biển số xe thực tế.");
+      return;
+    }
+
     setIsLoading(true);
     setSuccessMsg("");
     try {
-      await bookingService.confirmBookingScan(selectedBookingId);
-      setSuccessMsg(`Đã quét và xác nhận vào bãi thành công cho đặt giữ chỗ ${selectedBookingId}!`);
+      await bookingService.confirmBookingScan(selectedBookingId, {
+        cardCode: deviceDraft.cardCode.trim(),
+        plate: deviceDraft.plate.trim(),
+        vehicleTypeName: deviceDraft.vehicleTypeName,
+      });
+      setSuccessMsg(`Đã gán thẻ ${deviceDraft.cardCode} và xác nhận xe vào bãi thành công cho booking ${selectedBookingId}!`);
+      setDeviceDraft(emptyDeviceDraft);
+      setLastDeviceEvent(null);
       await loadPaidBookings();
     } catch (error) {
       toast.error(error.message || "Xác nhận quét mã QR thất bại.");
@@ -354,13 +369,54 @@ export default function StaffEntryPage() {
                 </Field>
 
                 {selectedBooking && (
-                  <div className="space-y-3 rounded-xl border bg-muted/40 p-4 text-xs font-semibold">
-                    <DetailLine label="Người đặt chỗ" value={selectedBooking.username} />
-                    <DetailLine label="Loại xe" value={selectedBooking.vehicleTypeName} />
-                    <DetailLine label="Khu vực" value={selectedBooking.areaName} />
-                    <DetailLine label="Slot khóa cứng" value={selectedBooking.internalSlotCode} mono />
-                    <DetailLine label="Phí đã thanh toán" value={`${selectedBooking.reservationFee.toLocaleString()} đ`} />
-                  </div>
+                  <>
+                    <div className="space-y-3 rounded-xl border bg-muted/40 p-4 text-xs font-semibold">
+                      <DetailLine label="Người đặt chỗ" value={selectedBooking.username} />
+                      <DetailLine label="Loại xe đăng ký" value={selectedBooking.vehicleTypeName} />
+                      <DetailLine label="Khu vực" value={selectedBooking.areaName} />
+                      <DetailLine label="Slot khóa cứng" value={selectedBooking.internalSlotCode} mono />
+                      <DetailLine label="Phí đã thanh toán" value={`${selectedBooking.reservationFee.toLocaleString()} đ`} />
+                    </div>
+
+                    <div className="border-t pt-4 space-y-4">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground">Thông tin vào bãi thực tế</h4>
+                      
+                      <Field label="Mã thẻ NFC liên kết">
+                        <Input
+                          value={deviceDraft.cardCode}
+                          onChange={(event) => setDeviceDraft((current) => ({ ...current, cardCode: event.target.value.toUpperCase() }))}
+                          placeholder="Quét thẻ hoặc nhập tay..."
+                          className="font-mono font-bold"
+                        />
+                      </Field>
+
+                      <Field label="Biển số xe vào">
+                        <Input
+                          value={deviceDraft.plate}
+                          onChange={(event) => setDeviceDraft((current) => ({ ...current, plate: event.target.value.toUpperCase() }))}
+                          placeholder="Nhập biển số thực tế..."
+                          className="font-mono font-bold"
+                        />
+                      </Field>
+
+                      <Field label="Loại xe thực tế">
+                        <Select
+                          value={deviceDraft.vehicleTypeName}
+                          onValueChange={(value) => setDeviceDraft((current) => ({ ...current, vehicleTypeName: value }))}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Xe Máy">Xe Máy</SelectItem>
+                            <SelectItem value="Ô Tô">Ô Tô</SelectItem>
+                            <SelectItem value="Xe Đạp">Xe Đạp</SelectItem>
+                            <SelectItem value="Xe Vận Chuyển">Xe Vận Chuyển</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </div>
+                  </>
                 )}
 
                 {lastDeviceEvent?.scanType === "BOOKING_QR" && !selectedBooking && (

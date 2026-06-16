@@ -2,6 +2,7 @@ import { delay, http } from "msw";
 import { API_BASE_URLS } from "../mockConfig";
 import { ok, badRequest, notFound } from "./helpers";
 import { sessionDb } from "./sessionUtils";
+import { db } from "./db";
 
 function normalizePlate(value) {
   return String(value || "").replace(/[^a-z0-9]/gi, "").toUpperCase();
@@ -260,6 +261,35 @@ export const adminHandlers = [
     session.paymentStatus = "PAID";
     sessionDb.saveSessions(sessions);
     sessionDb.addAuditLog("staff01", "PARKING_SESSION_EXIT_COMPLETED", `Hoàn tất lượt gửi ${session.sessionCode}`, "INFO", "STAFF");
+
+    // Complete linked booking if any
+    if (session.qrToken && session.qrToken.startsWith("booking-")) {
+      const bookingId = session.qrToken.split("booking-")[1];
+      let inMemoryBookings = db.getBookings();
+      const bookingIndex = inMemoryBookings.findIndex(b => b.id === bookingId);
+      if (bookingIndex !== -1) {
+        const booking = inMemoryBookings[bookingIndex];
+        booking.status = "COMPLETED";
+        booking.checkOutTime = session.exitTime;
+        const getMinutesDiff = (d1, d2) => Math.round((new Date(d2) - new Date(d1)) / 60000);
+        const durationMins = getMinutesDiff(booking.checkInTime, booking.checkOutTime);
+        booking.actualHours = Math.max(1, Math.ceil(durationMins / 60));
+        booking.actualParkingFee = booking.reservationFee;
+
+        // Move to history of that driver
+        const username = booking.username || "driver01";
+        let inMemoryHistory = db.getHistory();
+        if (!inMemoryHistory[username]) {
+          inMemoryHistory[username] = [];
+        }
+        inMemoryHistory[username].unshift({ ...booking });
+        db.saveHistory(inMemoryHistory);
+
+        // Remove from active bookings
+        inMemoryBookings = inMemoryBookings.filter(b => b.id !== bookingId);
+        db.saveBookings(inMemoryBookings);
+      }
+    }
 
     return ok({
       session,
