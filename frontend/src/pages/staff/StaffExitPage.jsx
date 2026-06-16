@@ -240,12 +240,12 @@ export default function StaffExitPage() {
       <div className="grid gap-4 lg:grid-cols-[1.35fr_0.65fr] mt-4">
         {/* Left Column - Real-time camera feeds and snapshot comparison */}
         <div className="flex flex-col gap-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <ComparisonCard
-              title="Toàn cảnh phương tiện"
-              entryImage={session?.entryVehicleImageDataUrl}
-              exitImage={deviceEvent?.vehicleImageDataUrl}
-            />
+          <CameraComparisonFeed
+            entryImage={session?.entryVehicleImageDataUrl}
+            exitImage={deviceEvent?.vehicleImageDataUrl}
+          />
+
+          <div className="grid gap-3 md:grid-cols-2">
             <ComparisonCard
               title="Ảnh chụp biển số"
               entryImage={session?.entryPlateImageDataUrl}
@@ -407,6 +407,52 @@ function DeviceBanner({ event }) {
   );
 }
 
+function CameraComparisonFeed({ entryImage, exitImage }) {
+  return (
+    <Card className="app-card">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2">
+          <Camera aria-hidden="true" className="size-4" />
+          Camera làn xe (Đối chiếu toàn cảnh)
+        </CardTitle>
+        <CardDescription>So sánh xe lúc vào bãi và lúc ra bãi để kiểm tra màu sắc, kiểu dáng.</CardDescription>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* Entry Feed */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">Ảnh lúc vào bãi</span>
+              {entryImage && <Badge variant="outline" className="text-[10px] border-emerald-200 bg-emerald-50 text-emerald-800">Đã lưu</Badge>}
+            </div>
+            <div className="flex aspect-[2/1] items-center justify-center overflow-hidden rounded-lg border bg-slate-950 text-slate-400">
+              {entryImage ? (
+                <img src={entryImage} alt="Camera làn vào" width="480" height="240" className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-xs font-bold text-slate-500">Không có dữ liệu ảnh xe vào…</span>
+              )}
+            </div>
+          </div>
+          {/* Exit Feed */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">Ảnh lúc ra bãi (Hiện tại)</span>
+              {exitImage && <Badge variant="outline" className="text-[10px] border-sky-200 bg-sky-50 text-sky-800 animate-pulse">Live</Badge>}
+            </div>
+            <div className="flex aspect-[2/1] items-center justify-center overflow-hidden rounded-lg border bg-slate-950 text-slate-400">
+              {exitImage ? (
+                <img src={exitImage} alt="Camera làn ra" width="480" height="240" className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-xs font-bold text-slate-500 animate-pulse">Chờ tín hiệu từ camera exit…</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function ComparisonCard({ title, entryImage, exitImage }) {
   return (
     <Card className="app-card">
@@ -418,9 +464,9 @@ function ComparisonCard({ title, entryImage, exitImage }) {
           {/* Entry column */}
           <div className="flex flex-col gap-1">
             <span className="text-[9px] font-black uppercase tracking-wide text-muted-foreground">Lúc vào</span>
-            <div className="flex aspect-video items-center justify-center overflow-hidden rounded-lg border bg-slate-950 text-slate-400">
+            <div className="flex aspect-[2/1] items-center justify-center overflow-hidden rounded-lg border bg-slate-950 text-slate-400">
               {entryImage ? (
-                <img src={entryImage} alt={`${title} lúc vào`} width="240" height="135" className="h-full w-full object-cover" />
+                <img src={entryImage} alt={`${title} lúc vào`} width="240" height="120" className="h-full w-full object-cover" />
               ) : (
                 <span className="text-[9px] font-bold text-slate-500">Không có ảnh</span>
               )}
@@ -429,9 +475,9 @@ function ComparisonCard({ title, entryImage, exitImage }) {
           {/* Exit column */}
           <div className="flex flex-col gap-1">
             <span className="text-[9px] font-black uppercase tracking-wide text-muted-foreground">Lúc ra</span>
-            <div className="flex aspect-video items-center justify-center overflow-hidden rounded-lg border bg-slate-950 text-slate-400">
+            <div className="flex aspect-[2/1] items-center justify-center overflow-hidden rounded-lg border bg-slate-950 text-slate-400">
               {exitImage ? (
-                <img src={exitImage} alt={`${title} lúc ra`} width="240" height="135" className="h-full w-full object-cover" />
+                <img src={exitImage} alt={`${title} lúc ra`} width="240" height="120" className="h-full w-full object-cover" />
               ) : (
                 <span className="text-[9px] font-bold text-slate-500">Chờ thiết bị</span>
               )}
