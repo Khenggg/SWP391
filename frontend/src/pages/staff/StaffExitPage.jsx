@@ -258,6 +258,7 @@ export default function StaffExitPage() {
             <OCRComparisonCard
               entryPlate={session.plateNumber}
               exitPlate={plate}
+              setExitPlate={setPlate}
               hasMismatch={hasMismatch}
               confidence={deviceEvent?.plateConfidence}
             />
@@ -269,7 +270,7 @@ export default function StaffExitPage() {
           <Card className="app-card">
             <CardHeader>
               <CardTitle>Tra cứu phiên đỗ xe</CardTitle>
-              <CardDescription>Quét thẻ NFC lúc ra hoặc nhập biển số để đối soát thông tin.</CardDescription>
+              <CardDescription>Quét thẻ NFC lúc ra hoặc nhập mã thẻ để đối soát thông tin.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-4">
@@ -282,18 +283,6 @@ export default function StaffExitPage() {
                     value={cardCode}
                     onChange={(event) => setCardCode(event.target.value.toUpperCase())}
                     placeholder="CARD-0002…"
-                    className="font-mono font-bold"
-                  />
-                </label>
-                <label className="flex flex-col gap-1.5">
-                  <span className="app-field-label">Biển số xe</span>
-                  <Input
-                    name="exit-plate"
-                    autoComplete="off"
-                    spellCheck={false}
-                    value={plate}
-                    onChange={(event) => setPlate(event.target.value.toUpperCase())}
-                    placeholder="51A-12345…"
                     className="font-mono font-bold"
                   />
                 </label>
@@ -470,7 +459,7 @@ function ComparisonCard({ title, entryImage, exitImage }) {
   );
 }
 
-function OCRComparisonCard({ entryPlate, exitPlate, hasMismatch, confidence }) {
+function OCRComparisonCard({ entryPlate, exitPlate, setExitPlate, hasMismatch, confidence }) {
   return (
     <Card className="app-card">
       <CardHeader className="pb-3">
@@ -491,9 +480,19 @@ function OCRComparisonCard({ entryPlate, exitPlate, hasMismatch, confidence }) {
               <span>Biển số ra</span>
               <span className="font-mono tabular-nums">{confidence ? `OCR ${confidence}%` : "Nhập tay"}</span>
             </div>
-            <div className={`font-mono text-xl font-black text-center py-2 border rounded ${hasMismatch ? "bg-red-50 text-red-700 border-red-200" : "bg-emerald-50 text-emerald-800 border-emerald-200"}`}>
-              {exitPlate || "-- --"}
-            </div>
+            <Input
+              name="exit-plate-correction"
+              value={exitPlate}
+              onChange={(event) => setExitPlate(event.target.value.toUpperCase())}
+              placeholder="Chờ quét / Nhập tay…"
+              autoComplete="off"
+              spellCheck={false}
+              className={`font-mono text-xl font-black text-center h-11 border rounded focus-visible:ring-2 ${
+                hasMismatch
+                  ? "bg-red-50 text-red-700 border-red-200 focus-visible:ring-red-300"
+                  : "bg-emerald-50 text-emerald-800 border-emerald-200 focus-visible:ring-emerald-300"
+              }`}
+            />
           </div>
         </div>
       </CardContent>
