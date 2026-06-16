@@ -237,15 +237,15 @@ export default function StaffExitPage() {
 
       {deviceEvent && <DeviceBanner event={deviceEvent} />}
 
-      <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr] mt-6">
+      <div className="grid gap-4 lg:grid-cols-[1.35fr_0.65fr] mt-4">
         {/* Left Column - Real-time camera feeds and snapshot comparison */}
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4">
           <CameraComparisonFeed
             entryImage={session?.entryVehicleImageDataUrl}
             exitImage={deviceEvent?.vehicleImageDataUrl}
           />
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2">
             <ComparisonCard
               title="Ảnh chụp biển số"
               entryImage={session?.entryPlateImageDataUrl}
@@ -270,7 +270,7 @@ export default function StaffExitPage() {
         </div>
 
         {/* Right Column - Controls and Details */}
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4">
           <Card className="app-card">
             <CardHeader>
               <CardTitle>Tra cứu phiên đỗ xe</CardTitle>
@@ -425,7 +425,7 @@ function CameraComparisonFeed({ entryImage, exitImage }) {
               <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">Ảnh lúc vào bãi</span>
               {entryImage && <Badge variant="outline" className="text-[10px] border-emerald-200 bg-emerald-50 text-emerald-800">Đã lưu</Badge>}
             </div>
-            <div className="flex aspect-video items-center justify-center overflow-hidden rounded-lg border bg-slate-950 text-slate-400">
+            <div className="flex h-28 sm:h-32 lg:h-36 items-center justify-center overflow-hidden rounded-lg border bg-slate-950 text-slate-400">
               {entryImage ? (
                 <img src={entryImage} alt="Camera làn vào" width="480" height="270" className="h-full w-full object-cover" />
               ) : (
@@ -439,7 +439,7 @@ function CameraComparisonFeed({ entryImage, exitImage }) {
               <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">Ảnh lúc ra bãi (Hiện tại)</span>
               {exitImage && <Badge variant="outline" className="text-[10px] border-sky-200 bg-sky-50 text-sky-800 animate-pulse">Live</Badge>}
             </div>
-            <div className="flex aspect-video items-center justify-center overflow-hidden rounded-lg border bg-slate-950 text-slate-400">
+            <div className="flex h-28 sm:h-32 lg:h-36 items-center justify-center overflow-hidden rounded-lg border bg-slate-950 text-slate-400">
               {exitImage ? (
                 <img src={exitImage} alt="Camera làn ra" width="480" height="270" className="h-full w-full object-cover" />
               ) : (
@@ -464,7 +464,7 @@ function ComparisonCard({ title, entryImage, exitImage }) {
           {/* Entry column */}
           <div className="flex flex-col gap-1.5">
             <span className="text-[10px] font-black uppercase tracking-wide text-muted-foreground">Lúc vào</span>
-            <div className="flex aspect-video items-center justify-center overflow-hidden rounded-lg border bg-background">
+            <div className="flex h-16 sm:h-20 lg:h-24 items-center justify-center overflow-hidden rounded-lg border bg-background">
               {entryImage ? (
                 <img src={entryImage} alt={`${title} lúc vào`} width="240" height="135" className="h-full w-full object-cover" />
               ) : (
@@ -475,7 +475,7 @@ function ComparisonCard({ title, entryImage, exitImage }) {
           {/* Exit column */}
           <div className="flex flex-col gap-1.5">
             <span className="text-[10px] font-black uppercase tracking-wide text-muted-foreground">Lúc ra</span>
-            <div className="flex aspect-video items-center justify-center overflow-hidden rounded-lg border bg-background">
+            <div className="flex h-16 sm:h-20 lg:h-24 items-center justify-center overflow-hidden rounded-lg border bg-background">
               {exitImage ? (
                 <img src={exitImage} alt={`${title} lúc ra`} width="240" height="135" className="h-full w-full object-cover" />
               ) : (
