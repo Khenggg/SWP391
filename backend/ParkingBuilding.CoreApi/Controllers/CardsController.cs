@@ -241,6 +241,71 @@ namespace ParkingBuilding.CoreApi.Controllers
             return Success(newDto, "Parking card details updated successfully.");
         }
 
+        /// <summary>
+        /// Update status of a parking card (Admin/Manager only).
+        /// </summary>
+        [Authorize(Roles = "ADMIN,MANAGER")]
+        [HttpPatch("{id}/status")]
+        public async Task<IActionResult> UpdateCardStatus([FromRoute] long id, [FromBody] UpdateCardStatusRequest request)
+        {
+            if (request == null)
+            {
+                return Fail("Update status failed", "Request payload cannot be empty.");
+            }
+
+            var card = await _context.ParkingCards.FirstOrDefaultAsync(c => c.Id == id);
+            if (card == null)
+            {
+                return StatusCodeResponse(404, "Card not found", $"No parking card with ID {id} was found.");
+            }
+
+            var oldStatus = card.Status;
+            var targetStatus = request.Status;
+
+            // Validate status transitions
+            if (targetStatus == ParkingCardStatus.IN_USE && card.CurrentSessionId == null)
+            {
+                return Fail("Status validation failed", "Card status cannot be set to IN_USE without a current session ID.");
+            }
+
+            if (card.CurrentSessionId != null)
+            {
+                if (targetStatus == ParkingCardStatus.AVAILABLE || targetStatus == ParkingCardStatus.DAMAGED || targetStatus == ParkingCardStatus.INACTIVE)
+                {
+                    return Fail("Status validation failed", $"Card status cannot be set to {targetStatus} because it is currently associated with an active session (Session ID {card.CurrentSessionId}).");
+                }
+            }
+
+            var actorUserId = GetCurrentUserId();
+            var oldDto = ToCardDto(card);
+            var serializedOld = System.Text.Json.JsonSerializer.Serialize(oldDto);
+
+            card.Status = targetStatus;
+            card.UpdatedAt = DateTimeOffset.UtcNow;
+
+            _context.ParkingCards.Update(card);
+            await _context.SaveChangesAsync();
+
+            var newDto = ToCardDto(card);
+            var serializedNew = System.Text.Json.JsonSerializer.Serialize(newDto);
+
+            var auditReason = !string.IsNullOrWhiteSpace(request.Reason)
+                ? request.Reason.Trim()
+                : $"Parking card '{card.CardCode}' status updated from {oldStatus} to {targetStatus} by Admin/Manager.";
+
+            await _auditWriterService.WriteAuditLogAsync(
+                action: "CARD_STATUS_CHANGED",
+                targetType: "parking_cards",
+                targetId: card.Id.ToString(),
+                actorUserId: actorUserId,
+                oldValue: serializedOld,
+                newValue: serializedNew,
+                reason: auditReason
+            );
+
+            return Success(newDto, $"Parking card status updated to {targetStatus} successfully.");
+        }
+
         private long? GetCurrentUserId()
         {
             var userIdClaim = User.FindFirst("user_id")?.Value;
