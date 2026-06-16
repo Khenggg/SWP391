@@ -17,6 +17,7 @@ import {
   subscribeGateScanEvents,
 } from "@/services/gateSimulatorBus";
 import { formatDateTime, formatVND } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { DetailTile, PageShell, PageHeader } from "@/components/layout/PageScaffold";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ export default function StaffExitPage() {
   const [deviceEvent, setDeviceEvent] = useState(null);
   const [mismatchCase, setMismatchCase] = useState(null);
   const [isCreatingMismatch, setIsCreatingMismatch] = useState(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const processedEventRef = useRef("");
 
   const loadFee = useCallback(async (targetSession) => {
@@ -92,6 +94,7 @@ export default function StaffExitPage() {
         }
 
         toast.success(`Đã tìm thấy phiên ${found.sessionCode}`);
+        setIsCheckoutOpen(true);
       } catch (error) {
         setSession(null);
         setFee(null);
@@ -215,6 +218,7 @@ export default function StaffExitPage() {
       setSession(null);
       setFee(null);
       setDeviceEvent(null);
+      setIsCheckoutOpen(false);
       toast.success("Đã hoàn tất lượt xe ra và giải phóng slot đỗ.");
     } catch (error) {
       toast.error(error.message || "Không thể xác nhận hoàn tất lượt xe ra.");
@@ -295,63 +299,89 @@ export default function StaffExitPage() {
           </Card>
 
           {session && (
-            <Card className="app-card">
-              <CardHeader>
-                <CardTitle>Thông tin phiên vào</CardTitle>
+            <Card className="app-card border-slate-300 animate-in fade-in duration-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center justify-between text-base">
+                  <span>Phiên đang xử lý</span>
+                  <Badge variant="outline" className={cn(
+                    "rounded-md text-[10px] uppercase font-bold",
+                    hasMismatch
+                      ? "border-amber-200 bg-amber-50 text-amber-800"
+                      : session.paymentStatus === "PAID"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                      : "border-sky-200 bg-sky-50 text-sky-800"
+                  )}>
+                    {hasMismatch ? "Lệch biển số" : session.paymentStatus === "PAID" ? "Đã thanh toán" : "Chờ thanh toán"}
+                  </Badge>
+                </CardTitle>
                 <CardDescription className="font-mono tabular-nums">{session.sessionCode}</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <DetailTile label="Biển số vào" value={session.plateNumber} mono />
-                  <DetailTile label="Thẻ NFC" value={session.cardCode} mono />
-                  <DetailTile label="Loại xe" value={session.vehicleTypeName} />
-                  <DetailTile label="Khách hàng" value={session.customerType === "MONTHLY" ? "Vé tháng" : "Vãng lai"} />
-                  <DetailTile className="col-span-2" label="Thời điểm vào bãi" value={formatDateTime(session.entryTime)} />
-                  <DetailTile className="col-span-2" label="Vị trí đỗ" value={`${session.floorCode} / ${session.areaCode} / ${session.slotCode}`} />
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {hasMismatch && (
-            <Card className="status-warning border-amber-200 bg-amber-50">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-amber-900">
-                  <ShieldAlert aria-hidden="true" className="size-4 text-amber-700" />
-                  Cảnh báo lệch biển số
-                </CardTitle>
-                <CardDescription className="text-amber-800 text-xs">
-                  Biển số lúc ra không khớp với dữ liệu lúc vào. Cần tạo hồ sơ chờ Manager duyệt hoặc tự xác thực nếu nhân viên kiểm chứng.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {mismatchCase ? (
-                  <div className="rounded-lg border border-amber-300 bg-white/70 p-3 text-xs font-semibold text-amber-900 font-mono">
-                    Đã tạo hồ sơ: {mismatchCase.caseCode} (PENDING)
+              <CardContent className="space-y-4">
+                <div className="grid gap-2 text-xs font-semibold">
+                  <div className="flex justify-between border-b pb-1">
+                    <span className="text-muted-foreground">Thẻ NFC:</span>
+                    <span className="font-mono">{session.cardCode}</span>
                   </div>
-                ) : (
-                  <Button variant="outline" onClick={handleCreateMismatchCase} disabled={isCreatingMismatch} className="w-full border-amber-300 hover:bg-amber-100 text-amber-900">
-                    <AlertTriangle aria-hidden="true" data-icon="inline-start" />
-                    Tạo hồ sơ sự cố lệch biển
-                  </Button>
+                  <div className="flex justify-between border-b pb-1">
+                    <span className="text-muted-foreground">Biển số vào:</span>
+                    <span className="font-mono">{session.plateNumber}</span>
+                  </div>
+                  <div className="flex justify-between border-b pb-1">
+                    <span className="text-muted-foreground">Biển số ra:</span>
+                    <span className="font-mono">{plate || "-- --"}</span>
+                  </div>
+                </div>
+
+                {hasMismatch && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-2.5 text-xs text-amber-900">
+                    <p className="font-bold flex items-center gap-1.5 mb-1.5">
+                      <ShieldAlert aria-hidden="true" className="size-3.5 text-amber-700" />
+                      Lệch biển số ra và biển số vào
+                    </p>
+                    {mismatchCase ? (
+                      <span className="font-mono text-[10px] font-bold bg-white/80 px-1.5 py-0.5 rounded border border-amber-300 block text-center">
+                        Đã tạo hồ sơ: {mismatchCase.caseCode} ({mismatchCase.status})
+                      </span>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCreateMismatchCase}
+                        disabled={isCreatingMismatch}
+                        className="w-full h-8 text-[11px] font-bold border-amber-300 bg-white hover:bg-amber-100 text-amber-900"
+                      >
+                        <AlertTriangle aria-hidden="true" className="size-3 mr-1" />
+                        Tạo hồ sơ sự cố lệch biển
+                      </Button>
+                    )}
+                  </div>
                 )}
+
+                <Button onClick={() => setIsCheckoutOpen(true)} className="w-full h-11 text-sm font-bold shadow-sm">
+                  <CreditCard aria-hidden="true" className="size-4 mr-1.5" />
+                  Tiến hành thanh toán & Xe ra
+                </Button>
               </CardContent>
             </Card>
-          )}
-
-          {session && fee && (
-            <PaymentCard
-              fee={fee}
-              hasMismatch={hasMismatch}
-              receivedAmount={receivedAmount}
-              setReceivedAmount={setReceivedAmount}
-              handlePayCash={handlePayCash}
-              handleCompleteExit={handleCompleteExit}
-              canExit={canExit}
-            />
           )}
         </div>
       </div>
+
+      <CheckoutDialog
+        open={isCheckoutOpen}
+        onOpenChange={setIsCheckoutOpen}
+        session={session}
+        fee={fee}
+        hasMismatch={hasMismatch}
+        mismatchCase={mismatchCase}
+        isCreatingMismatch={isCreatingMismatch}
+        handleCreateMismatchCase={handleCreateMismatchCase}
+        receivedAmount={receivedAmount}
+        setReceivedAmount={setReceivedAmount}
+        handlePayCash={handlePayCash}
+        handleCompleteExit={handleCompleteExit}
+        canExit={canExit}
+      />
 
       <ReceiptDialog receipt={receipt} setReceipt={setReceipt} />
     </PageShell>
@@ -500,66 +530,137 @@ function OCRComparisonCard({ entryPlate, exitPlate, setExitPlate, hasMismatch, c
   );
 }
 
-function PaymentCard({ fee, hasMismatch, receivedAmount, setReceivedAmount, handlePayCash, handleCompleteExit, canExit }) {
+function CheckoutDialog({
+  open,
+  onOpenChange,
+  session,
+  fee,
+  hasMismatch,
+  mismatchCase,
+  isCreatingMismatch,
+  handleCreateMismatchCase,
+  receivedAmount,
+  setReceivedAmount,
+  handlePayCash,
+  handleCompleteExit,
+  canExit,
+}) {
+  if (!session || !fee) return null;
+
   return (
-    <Card className="app-card">
-      <CardHeader>
-        <CardTitle>Thanh toán và biên lai</CardTitle>
-        <CardDescription>{fee.rateLabel}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col gap-4">
-          <div className="rounded-lg border bg-muted/40 p-4 font-mono text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Thời lượng gửi</span>
-              <strong className="tabular-nums">{fee.durationHours} giờ</strong>
-            </div>
-            <div className="mt-2 flex items-center justify-between">
-              <span className="text-muted-foreground">Đơn giá</span>
-              <strong className="tabular-nums">{formatVND(fee.rate)}</strong>
-            </div>
-            <div className="mt-3 flex items-center justify-between border-t pt-3 text-base">
-              <span className="font-bold">Tổng thu</span>
-              <span className="text-2xl font-black text-primary tabular-nums">{formatVND(fee.totalAmount)}</span>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-black flex items-center gap-2">
+            <CreditCard aria-hidden="true" className="size-5 text-primary" />
+            Thanh toán & Hoàn tất lượt xe ra
+          </DialogTitle>
+          <DialogDescription className="font-mono text-xs">
+            Mã phiên: {session.sessionCode}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-6 md:grid-cols-2 py-2">
+          {/* Left Side: Session Entry Details */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground">Thông tin xe vào</h4>
+            <div className="grid gap-2.5 rounded-lg border bg-muted/20 p-3.5 text-xs font-semibold">
+              <DetailTile label="Biển số vào" value={session.plateNumber} mono />
+              <DetailTile label="Thẻ NFC" value={session.cardCode} mono />
+              <DetailTile label="Loại xe" value={session.vehicleTypeName} />
+              <DetailTile label="Khách hàng" value={session.customerType === "MONTHLY" ? "Vé tháng" : "Vãng lai"} />
+              <div className="col-span-2 border-t pt-2 mt-1">
+                <p className="text-[10px] text-muted-foreground mb-0.5">Thời điểm vào bãi</p>
+                <p className="font-mono text-foreground">{formatDateTime(session.entryTime)}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-[10px] text-muted-foreground mb-0.5">Vị trí đỗ xe</p>
+                <p className="text-foreground">{session.floorCode} / {session.areaCode} / {session.slotCode}</p>
+              </div>
             </div>
           </div>
 
-          {!fee.paymentRequired ? (
-            <Badge variant="secondary" className="justify-center rounded-md py-2.5 border border-emerald-100 bg-emerald-50 text-emerald-800 font-bold text-sm">
-              <ShieldCheck aria-hidden="true" data-icon="inline-start" className="size-4 mr-1 text-emerald-700" />
-              {fee.waiveReason || "Không cần thanh toán"}
-            </Badge>
-          ) : (
-            <label className="flex flex-col gap-2">
-              <span className="app-field-label">Số tiền khách đưa</span>
-              <Input
-                name="exit-received-amount"
-                autoComplete="off"
-                value={receivedAmount}
-                onChange={(event) => setReceivedAmount(event.target.value)}
-                inputMode="numeric"
-                className="font-mono text-lg font-bold"
-              />
-              <Button variant="outline" onClick={handlePayCash} className="h-10 border-slate-300">
-                <CreditCard aria-hidden="true" data-icon="inline-start" />
-                Xác nhận thu tiền mặt
-              </Button>
-            </label>
-          )}
+          {/* Right Side: Payment and exit action */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground">Thanh toán & Phí đỗ xe</h4>
+            <div className="flex flex-col gap-4">
+              <div className="rounded-lg border bg-muted/40 p-4 font-mono text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground text-xs">Thời lượng đỗ</span>
+                  <strong className="tabular-nums">{fee.durationHours} giờ</strong>
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-muted-foreground text-xs">Đơn giá áp dụng</span>
+                  <strong className="tabular-nums">{formatVND(fee.rate)}</strong>
+                </div>
+                <div className="mt-3 flex items-center justify-between border-t pt-3 text-sm font-bold">
+                  <span>Tổng tiền thu</span>
+                  <span className="text-xl font-black text-primary tabular-nums">{formatVND(fee.totalAmount)}</span>
+                </div>
+              </div>
 
-          {hasMismatch && (
-            <div className="rounded-lg border status-warning p-3 text-xs font-semibold text-amber-800 bg-amber-50 border-amber-100">
-              Đang lệch biển số. Yêu cầu xử lý báo cáo sự cố hoặc chờ Quản lý duyệt trước khi cho xe ra.
+              {!fee.paymentRequired ? (
+                <Badge variant="secondary" className="justify-center rounded-md py-2.5 border border-emerald-100 bg-emerald-50 text-emerald-800 font-bold text-sm">
+                  <ShieldCheck aria-hidden="true" data-icon="inline-start" className="size-4 mr-1 text-emerald-700" />
+                  {fee.waiveReason || "Không cần thanh toán"}
+                </Badge>
+              ) : (
+                <label className="flex flex-col gap-2">
+                  <span className="app-field-label text-xs">Số tiền khách đưa (VND)</span>
+                  <Input
+                    name="modal-received-amount"
+                    autoComplete="off"
+                    value={receivedAmount}
+                    onChange={(event) => setReceivedAmount(event.target.value)}
+                    inputMode="numeric"
+                    className="font-mono text-lg font-bold"
+                  />
+                  <Button variant="outline" onClick={handlePayCash} className="h-10 border-slate-300">
+                    <CreditCard aria-hidden="true" className="size-4 mr-1.5" />
+                    Xác nhận thu tiền mặt
+                  </Button>
+                </label>
+              )}
+
+              {hasMismatch && (
+                <div className="rounded-lg border status-warning p-3 text-[11px] font-semibold text-amber-800 bg-amber-50 border-amber-100">
+                  <p className="flex items-center gap-1 mb-1 font-bold">
+                    <ShieldAlert aria-hidden="true" className="size-3.5 text-amber-700" />
+                    Cảnh báo: Biển số bị lệch
+                  </p>
+                  {mismatchCase ? (
+                    <span>Hồ sơ sự cố: {mismatchCase.caseCode} ({mismatchCase.status}). Cần Quản lý duyệt trước khi cho ra.</span>
+                  ) : (
+                    <div className="space-y-2">
+                      <p>Biển số ra không khớp biển số vào. Vui lòng đóng modal đối soát hình ảnh hoặc bấm bên dưới để tạo sự cố.</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCreateMismatchCase}
+                        disabled={isCreatingMismatch}
+                        className="w-full h-8 text-[11px] font-bold border-amber-300 hover:bg-amber-100 text-amber-900 bg-white"
+                      >
+                        Tạo hồ sơ sự cố lệch biển
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          )}
+          </div>
+        </div>
 
-          <Button onClick={handleCompleteExit} disabled={!canExit} className="h-11">
-            <ReceiptText aria-hidden="true" data-icon="inline-start" />
+        <DialogFooter className="border-t pt-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
+            Quay lại đối soát
+          </Button>
+          <Button onClick={handleCompleteExit} disabled={!canExit} className="w-full sm:w-auto">
+            <ReceiptText aria-hidden="true" className="size-4 mr-1.5" />
             Xác nhận xe ra bãi
           </Button>
-        </div>
-      </CardContent>
-    </Card>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
