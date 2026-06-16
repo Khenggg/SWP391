@@ -3,6 +3,7 @@ import { API_BASE_URLS, MOCK_FLAGS } from "../mockConfig";
 import { MOCK_VEHICLE_TYPES } from "../mockData";
 import { ok, badRequest, notFound, enabled, getUsernameFromHeader } from "./helpers";
 import { db } from "./db";
+import { sessionDb } from "./sessionUtils";
 
 // Help helpers for density update
 const incrementAreaOccupancy = (areaCode) => {
@@ -207,6 +208,38 @@ export const driverHandlers = [
       // Occupy slot in bãi
       incrementAreaOccupancy(booking.areaCode);
 
+      // Create an active session in sessionDb to keep it in sync
+      const sessions = sessionDb.getSessions();
+      const cardCode = `CARD-BK-${booking.id.split("-")[1] || "0000"}`;
+      
+      // Remove any existing active session for this card to prevent duplicate active cards
+      const filteredSessions = sessions.filter(s => !(s.status === "ACTIVE" && s.cardCode === cardCode));
+      
+      const newSession = {
+        id: Date.now(),
+        sessionCode: `SE-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${filteredSessions.length + 1}`,
+        plateNumber: plate.trim().toUpperCase(),
+        cardCode: cardCode,
+        qrToken: `booking-${booking.id}`,
+        vehicleTypeName: booking.vehicleTypeName || "Ô Tô",
+        customerType: "CASUAL",
+        entryTime: booking.checkInTime,
+        exitTime: null,
+        floorCode: "B2",
+        areaCode: booking.areaCode || "B2-A",
+        slotCode: booking.internalSlotCode || "B2-A-005",
+        paymentStatus: "PAID",
+        status: "ACTIVE",
+        entryGateCode: "GATE-IN-02",
+        exitGateCode: null,
+        entryPlateImageDataUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='180'><rect width='100%' height='100%' fill='%23f8fafc'/><rect x='40' y='50' width='240' height='80' rx='4' fill='white' stroke='%23cbd5e1' stroke-width='2'/><text x='50%' y='95' dominant-baseline='middle' text-anchor='middle' font-family='monospace' font-size='28' font-weight='bold' fill='%231e293b'>" + plate.trim().toUpperCase() + "</text></svg>",
+        entryVehicleImageDataUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='180'><rect width='100%' height='100%' fill='%23e2e8f0'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14' font-weight='bold' fill='%23475569'>Ảnh xe booking lúc vào</text></svg>",
+        entryDriverImageDataUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='180'><rect width='100%' height='100%' fill='%23f1f5f9'/><circle cx='160' cy='80' r='30' fill='%2394a3b8'/><path d='M120 140c0-20 15-30 40-30s40 10 40 30' fill='%2394a3b8'/><text x='50%' y='160' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='12' fill='%2364748b'>Tài xế xe booking</text></svg>"
+      };
+
+      filteredSessions.push(newSession);
+      sessionDb.saveSessions(filteredSessions);
+
       db.saveBookings(inMemoryBookings);
       return ok(booking);
     })
@@ -240,6 +273,17 @@ export const driverHandlers = [
 
       // Free slot in bãi
       decrementAreaOccupancy(booking.areaCode);
+
+      // Complete active session in sessionDb
+      const sessions = sessionDb.getSessions();
+      const sessionIndex = sessions.findIndex(s => s.status === "ACTIVE" && s.qrToken === `booking-${booking.id}`);
+      if (sessionIndex !== -1) {
+        sessions[sessionIndex].status = "COMPLETED";
+        sessions[sessionIndex].exitTime = booking.checkOutTime;
+        sessions[sessionIndex].exitGateCode = "GATE-OUT-02";
+        sessions[sessionIndex].paymentStatus = "PAID";
+        sessionDb.saveSessions(sessions);
+      }
 
       // Move to history
       let inMemoryHistory = db.getHistory();
