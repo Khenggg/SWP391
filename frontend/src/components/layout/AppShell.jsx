@@ -1,17 +1,90 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import {
+  ArrowRightFromLine,
+  BarChart3,
+  BellDot,
+  BookOpenCheck,
+  CalendarClock,
+  CarFront,
+  ClipboardCheck,
+  CreditCard,
+  FileClock,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  MoreHorizontal,
+  ParkingCircle,
+  RadioTower,
+  Search,
+  Settings,
+  ShieldAlert,
+  UserRoundCog,
+  UsersRound,
+  X,
+} from "lucide-react";
+import { USER_ROLES } from "@/constants";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
-/**
- * AppShell - Bố cục nội bộ (Layout Portal) cho Staff, Manager, Admin, Driver
- * Hỗ trợ giao diện Responsive (Mobile Friendly)
- */
+const MENUS = {
+  [USER_ROLES.STAFF]: [
+    { label: "Cho xe vào", path: "/staff/entry", icon: ParkingCircle },
+    { label: "Cho xe ra", path: "/staff/exit", icon: ArrowRightFromLine },
+    { label: "Giả lập cổng", path: "/simulator/gate", icon: RadioTower },
+    { label: "Báo mất thẻ", path: "/staff/lost-card", icon: ShieldAlert },
+    { label: "Tìm phiên gửi", path: "/staff/sessions", icon: Search },
+  ],
+  [USER_ROLES.MANAGER]: [
+    { label: "Bảng vận hành", path: "/manager/dashboard", icon: LayoutDashboard },
+    { label: "Báo cáo", path: "/manager/reports", icon: BarChart3 },
+    { label: "Duyệt mất thẻ", path: "/manager/lost-card-approvals", icon: ClipboardCheck },
+    { label: "Lệch biển số", path: "/manager/mismatch-approvals", icon: BellDot },
+    { label: "Quản lý thẻ", path: "/manager/cards", icon: CreditCard },
+    { label: "Sơ đồ bãi xe", path: "/manager/structures", icon: CarFront },
+    { label: "Cấu hình giá", path: "/manager/pricing", icon: Settings },
+    { label: "Vé tháng", path: "/manager/monthly-passes", icon: CalendarClock },
+    { label: "Nhật ký", path: "/manager/audit-logs", icon: FileClock },
+    { label: "Cổng ra Staff", path: "/staff/exit", icon: ArrowRightFromLine },
+    { label: "Giả lập cổng", path: "/simulator/gate", icon: RadioTower },
+  ],
+  [USER_ROLES.ADMIN]: [
+    { label: "Người dùng", path: "/admin/users", icon: UsersRound },
+    { label: "Quản trị phiên", path: "/admin/sessions-administration", icon: UserRoundCog },
+    { label: "Nhật ký", path: "/admin/audit-logs", icon: FileClock },
+    { label: "Giả lập cổng", path: "/simulator/gate", icon: RadioTower },
+  ],
+  [USER_ROLES.DRIVER]: [
+    { label: "Hồ sơ", path: "/driver/profile", icon: UserRoundCog },
+    { label: "Đặt chỗ", path: "/driver/booking", icon: CalendarClock },
+    { label: "Xe của tôi", path: "/driver/vehicles", icon: CarFront },
+    { label: "Lịch sử", path: "/driver/history", icon: BookOpenCheck },
+  ],
+};
+
+const ROLE_META = {
+  [USER_ROLES.STAFF]: { label: "Staff", tone: "bg-emerald-100 text-emerald-900" },
+  [USER_ROLES.MANAGER]: { label: "Manager", tone: "bg-sky-100 text-sky-900" },
+  [USER_ROLES.ADMIN]: { label: "Admin", tone: "bg-amber-100 text-amber-900" },
+  [USER_ROLES.DRIVER]: { label: "Driver", tone: "bg-slate-100 text-slate-900" },
+};
+
+function isActivePath(currentPath, itemPath) {
+  return currentPath === itemPath;
+}
+
 export default function AppShell({ currentUser, onLogout }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  const role = currentUser?.role || "STAFF";
+  const role = currentUser?.role || USER_ROLES.STAFF;
+  const activeMenu = MENUS[role] || [];
+  const mobileItems = activeMenu.slice(0, 4);
+  const activeItem = useMemo(
+    () => activeMenu.find((item) => isActivePath(location.pathname, item.path)) || activeMenu[0],
+    [activeMenu, location.pathname]
+  );
+  const roleMeta = ROLE_META[role] || ROLE_META[USER_ROLES.STAFF];
 
   const handleLogout = () => {
     if (window.confirm("Xác nhận đăng xuất khỏi hệ thống?")) {
@@ -20,151 +93,175 @@ export default function AppShell({ currentUser, onLogout }) {
     }
   };
 
-  // Cấu hình menu động theo vai trò của người dùng
-  const menus = {
-    STAFF: [
-      { label: "Cho Xe Vào (Entry)", path: "/staff/entry" },
-      { label: "Cho Xe Ra (Exit)", path: "/staff/exit" },
-      { label: "Báo Mất Thẻ", path: "/staff/lost-card" },
-      { label: "Tìm Kiếm Phiên Gửi", path: "/staff/sessions" },
-    ],
-    MANAGER: [
-      { label: "Bảng Vận Hành (Dashboard)", path: "/manager/dashboard" },
-      { label: "Báo Cáo Thống Kê", path: "/manager/reports" },
-      { label: "Duyệt Mất Thẻ", path: "/manager/lost-card-approvals" },
-      { label: "Duyệt Sai Biển Số", path: "/manager/mismatch-approvals" },
-      { label: "Quản Lý Thẻ", path: "/manager/cards" },
-      { label: "Sơ Đồ Bãi Xe", path: "/manager/structures" },
-      { label: "Cấu Hình Giá", path: "/manager/pricing" },
-      { label: "Quản Lý Vé Tháng", path: "/manager/monthly-passes" },
-      { label: "Nhật Ký Kiểm Toán (Audit)", path: "/manager/audit-logs" },
-    ],
-    ADMIN: [
-      { label: "Quản Lý Người Dùng", path: "/admin/users" },
-      { label: "Nhật Ký Hệ Thống", path: "/admin/audit-logs" },
-      { label: "Quản Trị Phiên Gửi", path: "/admin/sessions-administration" },
-    ],
-    DRIVER: [
-      { label: "Thông Tin Cá Nhân", path: "/driver/profile" },
-      { label: "Đặt Chỗ Trước (Booking)", path: "/driver/booking" },
-      { label: "Xe Của Tôi", path: "/driver/vehicles" },
-      { label: "Lịch Sử Gửi Xe", path: "/driver/history" },
-    ],
-  };
-
-  const activeMenu = menus[role] || [];
-
   return (
-    <div className="flex min-h-screen bg-slate-100 text-slate-800 relative">
-      
-      {/* Mobile Drawer Overlay Backdrop */}
+    <div className="relative flex min-h-dvh bg-[color:var(--app-canvas)] text-foreground md:h-dvh md:overflow-hidden">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:rounded-lg focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:font-black focus:text-foreground focus:shadow-lg focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        Bỏ qua đến nội dung chính
+      </a>
+
       {isSidebarOpen && (
-        <div 
+        <button
+          type="button"
+          aria-label="Đóng menu"
           onClick={() => setIsSidebarOpen(false)}
-          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 z-30 bg-foreground/35 backdrop-blur-sm focus-visible:ring-3 focus-visible:ring-ring/50 md:hidden"
         />
       )}
 
-      {/* Sidebar (Responsive off-canvas) */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white flex flex-col transform transition-transform duration-300 ease-in-out md:static md:translate-x-0 md:flex md:w-64 md:shrink-0 md:border-r md:border-slate-800 ${
-        isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-      }`}>
-        {/* Tiêu đề & Nút đóng trên Mobile */}
-        <div className="flex h-16 items-center justify-between px-6 border-b border-slate-800 font-black tracking-wider text-sm">
-          <span>PORTAL QUẢN TRỊ</span>
-          <button 
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 flex w-[min(21rem,calc(100vw-1.5rem))] flex-col border-r bg-[color:var(--nav-bg)] text-[color:var(--nav-foreground)] shadow-2xl transition-transform duration-300 md:sticky md:top-0 md:h-dvh md:max-h-dvh md:w-72 md:shrink-0 md:translate-x-0 md:self-start md:overflow-hidden md:shadow-none",
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        <div className="flex h-20 items-center justify-between border-b border-[color:var(--nav-border)] px-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="relative flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[color:var(--nav-active-strong)] font-black text-white shadow-sm">
+              <span className="absolute inset-x-0 bottom-0 h-1.5 bg-[color:var(--nav-warm)]" />
+              PB
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-black">Parking Building</p>
+              <p className="truncate text-xs font-semibold text-[color:var(--nav-muted)]">Operations Console</p>
+            </div>
+          </div>
+          <button
+            type="button"
             onClick={() => setIsSidebarOpen(false)}
-            className="md:hidden p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+            className="rounded-lg p-1 text-[color:var(--nav-muted)] transition-colors hover:bg-[color:var(--nav-hover)] hover:text-[color:var(--nav-foreground)] md:hidden"
             aria-label="Đóng menu"
           >
-            <X className="w-5 h-5" />
+            <X aria-hidden="true" />
           </button>
         </div>
 
-        {/* Menu liên kết */}
-        <nav className="flex-grow p-4 space-y-1 overflow-y-auto">
-          {activeMenu.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setIsSidebarOpen(false)}
-                className={`block rounded px-3 py-2 text-sm font-bold transition-colors ${
-                  isActive
-                    ? "bg-blue-600 text-white"
-                    : "text-slate-300 hover:bg-slate-800 hover:text-white"
-                }`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3" aria-label="Điều hướng chính">
+          {activeMenu.map((item) => (
+            <NavItem
+              key={item.path}
+              item={item}
+              isActive={isActivePath(location.pathname, item.path)}
+              onNavigate={() => setIsSidebarOpen(false)}
+            />
+          ))}
         </nav>
+
+        <div className="border-t border-[color:var(--nav-border)] p-4">
+          <div className="rounded-xl border border-[color:var(--nav-border)] bg-white p-3 shadow-sm">
+            <p className="truncate text-sm font-black">{currentUser?.fullName || currentUser?.username || "Nhân viên"}</p>
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <span className="truncate text-xs font-semibold text-[color:var(--nav-muted)]">{currentUser?.username || "operator"}</span>
+              <span className={cn("rounded-md px-2 py-1 text-xs font-black uppercase", roleMeta.tone)}>{roleMeta.label}</span>
+            </div>
+          </div>
+        </div>
       </aside>
 
-      {/* Vùng nội dung chính */}
-      <div className="flex-1 flex flex-col min-h-screen min-w-0">
-        {/* Header trên cùng */}
-        <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 md:px-8">
-          <div className="flex items-center gap-3">
-            {/* Hamburger button on mobile */}
+      <div className="flex min-h-dvh min-w-0 flex-1 flex-col md:h-dvh md:min-h-0">
+        <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between border-b bg-background/90 px-4 backdrop-blur md:px-6">
+          <div className="flex min-w-0 items-center gap-3">
             <button
+              type="button"
               onClick={() => setIsSidebarOpen(true)}
-              className="md:hidden p-2 -ml-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition focus:outline-none cursor-pointer"
+              className="rounded-lg border bg-card p-2 text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground md:hidden"
               aria-label="Mở menu"
             >
-              <Menu className="h-5 w-5" />
+              <Menu aria-hidden="true" />
             </button>
-            
-            <h2 className="text-xs sm:text-sm md:text-md font-extrabold text-slate-700 truncate max-w-[140px] sm:max-w-none">
-              Hệ Thống Vận Hành Bãi Đỗ Xe Thông Minh
-            </h2>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-black text-foreground md:text-base">
+                {activeItem?.label || "Hệ thống vận hành"}
+              </p>
+              <p className="hidden truncate text-xs font-semibold text-muted-foreground sm:block">
+                Bãi đỗ xe thông minh · giám sát, xử lý, kiểm soát ngoại lệ
+              </p>
+            </div>
           </div>
 
-          {/* User profile & Logout */}
-          <div className="flex items-center space-x-2 sm:space-x-4 text-xs sm:text-sm">
-            <div className="flex items-center space-x-1.5 sm:space-x-2">
-              <span className="font-bold text-slate-700 max-w-[70px] sm:max-w-none truncate">
+          <div className="flex shrink-0 items-center gap-2">
+            <div className="hidden min-w-0 items-center gap-2 rounded-lg border bg-card px-3 py-2 shadow-sm sm:flex">
+              <span className="max-w-44 truncate text-sm font-bold">
                 {currentUser?.fullName || currentUser?.username || "Nhân viên"}
               </span>
-              <span className="rounded bg-blue-100 text-blue-800 px-1.5 py-0.5 text-[10px] sm:text-xs font-black uppercase tracking-wider shrink-0">
-                {role}
-              </span>
+              <span className={cn("rounded-md px-2 py-1 text-xs font-black uppercase", roleMeta.tone)}>{roleMeta.label}</span>
             </div>
-
-            <span className="h-5 w-[1px] bg-slate-200 shrink-0" aria-hidden="true" />
-
-            <button
-              onClick={handleLogout}
-              title="Đăng xuất hệ thống"
-              className="flex items-center gap-1 rounded-lg bg-red-50 text-red-600 border border-red-200 px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-bold hover:bg-red-600 hover:text-white hover:border-red-600 transition-all cursor-pointer shadow-sm shrink-0"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={2.5}
-                stroke="currentColor"
-                className="w-3.5 h-3.5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75"
-                />
-              </svg>
-              <span className="hidden sm:inline">Đăng Xuất</span>
-            </button>
+            <Button variant="outline" onClick={handleLogout} aria-label="Đăng xuất">
+              <LogOut data-icon="inline-start" />
+              <span className="hidden sm:inline">Đăng xuất</span>
+            </Button>
           </div>
         </header>
 
-        {/* Thân trang chứa subpage */}
-        <main className="flex-grow p-4 md:p-6 overflow-y-auto">
+        <main id="main-content" className="flex-1 p-4 pb-24 md:min-h-0 md:overflow-y-auto md:p-6">
           <Outlet />
         </main>
       </div>
 
+      <nav className={cn("fixed inset-x-3 bottom-3 z-20 rounded-2xl border bg-background/95 p-2 shadow-2xl backdrop-blur md:hidden", isSidebarOpen && "hidden")} aria-label="Điều hướng nhanh">
+        <div className="grid grid-cols-5 gap-1">
+          {mobileItems.map((item) => (
+            <MobileNavItem key={item.path} item={item} isActive={isActivePath(location.pathname, item.path)} />
+          ))}
+          <button
+            type="button"
+            onClick={() => setIsSidebarOpen(true)}
+            className="flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-2 text-xs font-bold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <MoreHorizontal aria-hidden="true" />
+            <span className="max-w-full truncate">Thêm</span>
+          </button>
+        </div>
+      </nav>
     </div>
+  );
+}
+
+function NavItem({ item, isActive, onNavigate }) {
+  const Icon = item.icon;
+
+  return (
+    <Link
+      to={item.path}
+      onClick={onNavigate}
+      aria-current={isActive ? "page" : undefined}
+      className={cn(
+        "group relative flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm font-bold transition-colors",
+        isActive
+          ? "bg-[color:var(--nav-active)] text-[color:var(--nav-foreground)] shadow-sm ring-1 ring-[color:var(--nav-active-strong)]/20"
+          : "text-[color:var(--nav-muted)] hover:bg-[color:var(--nav-hover)] hover:text-[color:var(--nav-foreground)]"
+      )}
+    >
+      {isActive && <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-[color:var(--nav-active-strong)]" />}
+      <span
+        className={cn(
+          "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
+          isActive ? "bg-[color:var(--nav-active-strong)] text-white" : "bg-[color:var(--nav-hover)] text-[color:var(--nav-muted)] group-hover:text-[color:var(--nav-foreground)]"
+        )}
+      >
+        <Icon aria-hidden="true" />
+      </span>
+      <span className="truncate">{item.label}</span>
+    </Link>
+  );
+}
+
+function MobileNavItem({ item, isActive }) {
+  const Icon = item.icon;
+
+  return (
+    <Link
+      to={item.path}
+      aria-current={isActive ? "page" : undefined}
+      className={cn(
+        "flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-2 text-xs font-bold transition-colors",
+        isActive ? "bg-[color:var(--nav-active)] text-[color:var(--nav-foreground)]" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+      )}
+    >
+      <Icon aria-hidden="true" />
+      <span className="max-w-full truncate">{item.label}</span>
+    </Link>
   );
 }

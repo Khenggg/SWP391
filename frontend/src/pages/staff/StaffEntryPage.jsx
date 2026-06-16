@@ -1,10 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  AlertTriangle,
+  Camera,
+  CheckCircle2,
+  CreditCard,
+  QrCode,
+  RadioTower,
+  RefreshCw,
+} from "lucide-react";
+import { toast } from "sonner";
 import { bookingService } from "../../services/bookingService";
-import { CheckCircle2, QrCode, RefreshCw } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -12,42 +21,109 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  getLastGateScanEvent,
+  subscribeGateScanEvents,
+} from "@/services/gateSimulatorBus";
+
+const emptyDeviceDraft = {
+  cardCode: "",
+  plate: "",
+  vehicleTypeName: "Xe Máy",
+  gateCode: "GATE-IN-01",
+  plateConfidence: 0,
+  plateImageDataUrl: "",
+  vehicleImageDataUrl: "",
+  driverImageDataUrl: "",
+};
 
 export default function StaffEntryPage() {
-  const [activeTab, setActiveTab] = useState("nfc"); // "nfc" | "qr"
+  const [activeTab, setActiveTab] = useState("nfc");
   const [paidBookings, setPaidBookings] = useState([]);
   const [selectedBookingId, setSelectedBookingId] = useState("");
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+  const [deviceDraft, setDeviceDraft] = useState(emptyDeviceDraft);
+  const [lastDeviceEvent, setLastDeviceEvent] = useState(null);
+  const processedEventRef = useRef("");
 
-  // Load paid bookings for QR mock scan
-  const loadPaidBookings = async () => {
+  const loadPaidBookings = useCallback(async (preferredBookingId = "") => {
     try {
       const data = await bookingService.getPaidBookingsForStaff();
-      setPaidBookings(data);
-      if (data.length > 0) {
-        setSelectedBookingId(data[0].id);
-        setSelectedBooking(data[0]);
-      } else {
-        setSelectedBookingId("");
-        setSelectedBooking(null);
-      }
-    } catch (e) {
-      console.error("Lỗi lấy danh sách đặt giữ chỗ:", e);
-    }
-  };
+      const matchedBooking = preferredBookingId
+        ? data.find((booking) => booking.id === preferredBookingId)
+        : null;
+      const nextBooking = matchedBooking || data[0] || null;
 
-  useEffect(() => {
-    if (activeTab === "qr") {
-      loadPaidBookings();
+      setPaidBookings(data);
+      setSelectedBookingId(nextBooking?.id || "");
+      setSelectedBooking(nextBooking);
+      return data;
+    } catch (error) {
+      console.error("Lỗi lấy danh sách đặt giữ chỗ:", error);
+      toast.error("Không tải được danh sách booking đã thanh toán.");
+      return [];
     }
-  }, [activeTab]);
+  }, []);
 
   const handleBookingChange = (id) => {
     setSelectedBookingId(id);
-    setSelectedBooking(paidBookings.find(b => b.id === id) || null);
+    setSelectedBooking(paidBookings.find((booking) => booking.id === id) || null);
   };
+
+  const applyEntryDeviceEvent = useCallback(
+    async (event) => {
+      if (event.gateType !== "ENTRY" || processedEventRef.current === event.id) return;
+
+      processedEventRef.current = event.id;
+      setLastDeviceEvent(event);
+      setSuccessMsg("");
+      setDeviceDraft({
+        cardCode: event.cardCode || "",
+        plate: event.detectedPlate || "",
+        vehicleTypeName: event.vehicleTypeName || "Xe Máy",
+        gateCode: event.gateCode || "GATE-IN-01",
+        plateConfidence: event.plateConfidence || 0,
+        plateImageDataUrl: event.plateImageDataUrl || "",
+        vehicleImageDataUrl: event.vehicleImageDataUrl || "",
+        driverImageDataUrl: event.driverImageDataUrl || "",
+      });
+
+      if (event.scanType === "BOOKING_QR") {
+        const requestedBookingId = event.bookingId || event.qrToken || "";
+        setActiveTab("qr");
+        const bookings = await loadPaidBookings(requestedBookingId);
+        const foundBooking = bookings.find((booking) => booking.id === requestedBookingId);
+
+        if (requestedBookingId && !foundBooking) {
+          toast.warning(`Thiết bị gửi QR ${requestedBookingId}, nhưng booking này không còn trong danh sách chờ.`);
+        } else {
+          toast.success(`Đã nhận QR booking ${requestedBookingId || foundBooking?.id || ""}.`);
+        }
+        return;
+      }
+
+      setActiveTab("nfc");
+      toast.success(`Đã nhận dữ liệu thẻ ${event.cardCode || "N/A"} từ thiết bị.`);
+    },
+    [loadPaidBookings]
+  );
+
+  useEffect(() => {
+    if (activeTab === "qr" && paidBookings.length === 0) {
+      loadPaidBookings();
+    }
+  }, [activeTab, loadPaidBookings, paidBookings.length]);
+
+  useEffect(() => {
+    const lastEvent = getLastGateScanEvent();
+    if (lastEvent) {
+      applyEntryDeviceEvent(lastEvent);
+    }
+
+    return subscribeGateScanEvents(applyEntryDeviceEvent);
+  }, [applyEntryDeviceEvent]);
 
   const handleConfirmScan = async () => {
     if (!selectedBookingId) return;
@@ -55,274 +131,357 @@ export default function StaffEntryPage() {
     setSuccessMsg("");
     try {
       await bookingService.confirmBookingScan(selectedBookingId);
-      setSuccessMsg(`Đã quét & xác nhận vào bãi thành công cho đặt giữ chỗ ${selectedBookingId}!`);
+      setSuccessMsg(`Đã quét và xác nhận vào bãi thành công cho đặt giữ chỗ ${selectedBookingId}!`);
       await loadPaidBookings();
-    } catch (e) {
-      alert(e.message || "Xác nhận quét mã QR thất bại.");
+    } catch (error) {
+      toast.error(error.message || "Xác nhận quét mã QR thất bại.");
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleConfirmNfc = () => {
+    if (!deviceDraft.cardCode) {
+      toast.error("Chưa có mã thẻ từ thiết bị hoặc nhập tay.");
+      return;
+    }
+    toast.info("Dữ liệu thẻ đã sẵn sàng. Bước ghi phiên vào bãi sẽ nối API backend thật ở phase tiếp theo.");
+  };
+
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-12">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-5">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 pb-12">
+      <div className="flex flex-col gap-3 border-b pb-5 md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="text-2xl font-black text-slate-800 uppercase tracking-wide">
-            Cổng Vận Hành Kiểm Soát Vào (Entry)
-          </h2>
-          <p className="text-sm text-slate-500 font-semibold mt-0.5">
-            Xử lý xe vào bãi bằng Thẻ Từ (NFC) hoặc quét Vé Đặt Trước (QR Code)
+          <h1 className="text-2xl font-black text-foreground">Cổng vào bãi xe</h1>
+          <p className="mt-1 text-sm font-medium text-muted-foreground">
+            Xử lý xe vào bằng thẻ NFC hoặc QR đặt chỗ. Dữ liệu thiết bị giả lập chỉ prefill để Staff xác nhận.
           </p>
         </div>
+        {lastDeviceEvent && (
+          <Badge variant="secondary" className="w-fit rounded-lg px-3 py-1 font-mono">
+            {lastDeviceEvent.gateCode} / {lastDeviceEvent.scanType}
+          </Badge>
+        )}
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-slate-200">
-        <button 
-          onClick={() => { setActiveTab("nfc"); setSuccessMsg(""); }}
-          className={`px-5 py-3 text-sm font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === "nfc" 
-              ? "border-blue-600 text-blue-600 font-black" 
-              : "border-transparent text-slate-500 hover:text-slate-800 font-semibold"
-          }`}
-        >
-          💳 Quét Thẻ Từ (NFC)
-        </button>
-        <button 
-          onClick={() => { setActiveTab("qr"); setSuccessMsg(""); }}
-          className={`px-5 py-3 text-sm font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === "qr" 
-              ? "border-blue-600 text-blue-600 font-black" 
-              : "border-transparent text-slate-500 hover:text-slate-800 font-semibold"
-          }`}
-        >
-          <QrCode className="w-4 h-4" /> Quét Vé Đặt Trước (QR Code)
-        </button>
+      {lastDeviceEvent && <DeviceBanner event={lastDeviceEvent} />}
+
+      <div className="flex border-b">
+        <TabButton active={activeTab === "nfc"} onClick={() => { setActiveTab("nfc"); setSuccessMsg(""); }}>
+          <CreditCard className="size-4" />
+          Quét thẻ NFC
+        </TabButton>
+        <TabButton active={activeTab === "qr"} onClick={() => { setActiveTab("qr"); setSuccessMsg(""); }}>
+          <QrCode className="size-4" />
+          Quét QR đặt chỗ
+        </TabButton>
       </div>
 
       {activeTab === "nfc" ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fadeIn">
-          {/* Camera / Biển số */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card className="bg-slate-900 rounded-2xl aspect-video flex items-center justify-center relative overflow-hidden shadow-lg border-4 border-slate-800">
-              <p className="text-slate-500 font-mono text-sm tracking-widest">[ CAMERA FEED STREAM ]</p>
-              <div className="absolute top-4 left-4 flex gap-2">
-                <span className="flex h-3 w-3 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                </span>
-                <span className="text-xs font-bold text-red-500">REC</span>
-              </div>
-            </Card>
-
-            <div className="grid grid-cols-2 gap-4">
-              <Card className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm text-center">
-                <p className="text-xs font-black text-slate-400 uppercase mb-2">Ảnh Biển Số</p>
-                <div className="h-24 bg-slate-100 rounded-lg border-2 border-dashed border-slate-300 flex items-center justify-center">
-                  <span className="text-slate-400 text-sm font-semibold">Chưa có ảnh</span>
-                </div>
-              </Card>
-              <Card className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm text-center">
-                <p className="text-xs font-black text-slate-400 uppercase mb-2">Biển Số Nhận Diện</p>
-                <div className="h-24 flex items-center justify-center bg-slate-50 rounded-lg border border-slate-200">
-                  <span className="text-3xl font-black text-slate-800 font-mono">-- --</span>
-                </div>
+        <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
+          <div className="flex flex-col gap-6">
+            <CameraFeed title="Camera làn vào" image={deviceDraft.vehicleImageDataUrl} />
+            <div className="grid gap-4 md:grid-cols-3">
+              <SnapshotCard title="Ảnh biển số" image={deviceDraft.plateImageDataUrl} />
+              <SnapshotCard title="Ảnh người lái" image={deviceDraft.driverImageDataUrl} />
+              <Card>
+                <CardHeader>
+                  <CardTitle>OCR biển số</CardTitle>
+                  <CardDescription>Staff có thể chỉnh lại trước khi xác nhận.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="rounded-xl border bg-muted/40 p-4 text-center">
+                    <div className="font-mono text-2xl font-black">{deviceDraft.plate || "-- --"}</div>
+                    <div className="mt-2 text-xs font-bold text-muted-foreground">
+                      Confidence {deviceDraft.plateConfidence || 0}%
+                    </div>
+                  </div>
+                </CardContent>
               </Card>
             </div>
           </div>
 
-          {/* Form nhập liệu */}
-          <Card className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col h-full justify-between">
-            <div className="space-y-6">
-              <h3 className="font-black text-slate-800 border-b pb-4 text-base uppercase tracking-wide">
-                Thông Tin Phiên Gửi
-              </h3>
-              <div className="space-y-5">
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-500 uppercase">Mã Thẻ (Quét NFC)</label>
-                  <Input type="text" placeholder="Chờ quét thẻ..." disabled className="w-full bg-slate-50 font-mono font-bold text-blue-600 cursor-not-allowed" />
-                </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Thông tin phiên gửi</CardTitle>
+              <CardDescription>Dữ liệu được điền từ đầu đọc thẻ/camera.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-4">
+                <Field label="Mã thẻ NFC">
+                  <Input
+                    value={deviceDraft.cardCode}
+                    onChange={(event) => setDeviceDraft((current) => ({ ...current, cardCode: event.target.value.toUpperCase() }))}
+                    placeholder="Chờ quét thẻ..."
+                    className="font-mono font-bold"
+                  />
+                </Field>
 
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-500 uppercase">Biển Số Xe</label>
-                  <Input type="text" placeholder="Nhập thủ công nếu AI sai..." className="w-full bg-white font-mono font-bold" />
-                </div>
+                <Field label="Biển số xe">
+                  <Input
+                    value={deviceDraft.plate}
+                    onChange={(event) => setDeviceDraft((current) => ({ ...current, plate: event.target.value.toUpperCase() }))}
+                    placeholder="Nhập thủ công nếu OCR sai"
+                    className="font-mono font-bold"
+                  />
+                </Field>
 
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-500 uppercase">Loại Xe (Tự động/Chỉnh tay)</label>
-                  <Select defaultValue="Xe Máy">
-                    <SelectTrigger className="w-full bg-white border-slate-200">
-                      <SelectValue placeholder="Chọn loại xe" />
+                <Field label="Loại xe">
+                  <Select
+                    value={deviceDraft.vehicleTypeName}
+                    onValueChange={(value) => setDeviceDraft((current) => ({ ...current, vehicleTypeName: value }))}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Xe Máy">Xe Máy</SelectItem>
                       <SelectItem value="Ô Tô">Ô Tô</SelectItem>
                       <SelectItem value="Xe Đạp">Xe Đạp</SelectItem>
+                      <SelectItem value="Xe Vận Chuyển">Xe Vận Chuyển</SelectItem>
                     </SelectContent>
                   </Select>
+                </Field>
+
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                  <p className="text-xs font-black uppercase text-emerald-700">Gợi ý chỗ đỗ</p>
+                  <p className="mt-1 font-mono text-xl font-black text-emerald-800">TẦNG B1 - KHU A</p>
+                  <p className="mt-1 text-xs font-semibold text-emerald-700">Còn 25 slot trống, làn {deviceDraft.gateCode}</p>
                 </div>
 
-                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
-                  <p className="text-xs font-black text-emerald-600 uppercase mb-1">Gợi Ý Chỗ Đỗ</p>
-                  <p className="text-2xl font-black text-emerald-700 font-mono">TẦNG 1 - KHU A</p>
-                  <p className="text-xs text-emerald-600 mt-1 font-semibold">Còn 25 slot trống</p>
-                </div>
+                <Button onClick={handleConfirmNfc} className="h-11">
+                  <CheckCircle2 data-icon="inline-start" />
+                  Xác nhận vào bãi
+                </Button>
               </div>
-            </div>
-
-            <Button className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-black py-6 rounded-xl shadow-lg transition-colors cursor-pointer text-sm">
-              XÁC NHẬN VÀO BÃI (ENTER)
-            </Button>
+            </CardContent>
           </Card>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fadeIn">
-          {/* Mock Scanner Device Simulation */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card className="bg-slate-900 rounded-2xl aspect-video flex flex-col items-center justify-center p-8 relative overflow-hidden shadow-lg border-4 border-slate-800">
-              <div className="absolute top-4 left-4 flex gap-2">
-                <span className="flex h-3 w-3 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
-                </span>
-                <span className="text-xs font-bold text-cyan-400">SCANNER ONLINE</span>
-              </div>
-
-              {selectedBooking ? (
-                <div className="text-center space-y-4 text-white z-10 flex flex-col items-center justify-center">
-                  <div className="mx-auto w-24 h-24 bg-white p-2 rounded-xl flex items-center justify-center border-4 border-cyan-400/50 shadow-[0_0_15px_rgba(34,211,238,0.3)]">
-                    <img 
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${selectedBooking.id}&color=0f172a`} 
-                      alt="Scanned QR"
-                      className="w-20 h-20 bg-white"
-                    />
+        <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
+          <div className="flex flex-col gap-6">
+            <Card className="bg-foreground text-background">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <QrCode className="size-4" />
+                  Scanner QR online
+                </CardTitle>
+                <CardDescription className="text-background/70">
+                  Chọn booking từ danh sách paid hoặc nhận tự động từ simulator.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {selectedBooking ? (
+                  <div className="flex flex-col items-center gap-4 py-6 text-center">
+                    <div className="rounded-xl border-4 border-cyan-400/50 bg-white p-3 shadow-[0_0_18px_rgba(34,211,238,0.35)]">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${selectedBooking.id}&color=0f172a`}
+                        alt="Scanned QR"
+                        className="size-32 bg-white"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-widest text-cyan-300">Đã phát hiện mã đặt chỗ</p>
+                      <p className="mt-1 font-mono text-2xl font-black">{selectedBooking.id}</p>
+                      <p className="mt-1 text-xs font-semibold text-background/65">
+                        Khu vực: <span className="text-background">{selectedBooking.areaName}</span>
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-black text-cyan-400 uppercase tracking-widest">ĐÃ PHÁT HIỆN MÃ ĐẶT CHỖ</p>
-                    <p className="text-2xl font-black font-mono text-white tracking-wider">{selectedBooking.id}</p>
-                    <p className="text-xs text-slate-400 font-semibold">
-                      Khu vực: <span className="text-white font-bold">{selectedBooking.areaName}</span>
+                ) : (
+                  <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-center text-background/45">
+                    <QrCode className="size-16" />
+                    <p className="max-w-sm text-xs font-bold uppercase tracking-wide">
+                      Đang chờ thiết bị hoặc tài xế trình mã QR booking.
                     </p>
                   </div>
-                </div>
-              ) : (
-                <div className="text-center text-slate-500 space-y-3 flex flex-col items-center justify-center">
-                  <QrCode className="w-16 h-16 mx-auto text-slate-700 animate-pulse" />
-                  <p className="font-mono text-xs uppercase tracking-wider">ĐANG CHỜ THIẾT BỊ HOẶC TÀI XẾ TRÌNH MÃ QR...</p>
-                  <p className="text-[10px] text-slate-600 font-sans max-w-sm mx-auto font-semibold">
-                    (Vui lòng thực hiện đặt chỗ và thanh toán trên cổng Driver để có mã QR chờ xác nhận)
-                  </p>
-                </div>
-              )}
+                )}
+              </CardContent>
             </Card>
 
+            <div className="grid gap-4 md:grid-cols-3">
+              <SnapshotCard title="Ảnh biển số" image={deviceDraft.plateImageDataUrl} />
+              <SnapshotCard title="Ảnh toàn xe" image={deviceDraft.vehicleImageDataUrl} />
+              <SnapshotCard title="Ảnh người lái" image={deviceDraft.driverImageDataUrl} />
+            </div>
+
             {successMsg && (
-              <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl flex items-center gap-2 animate-bounce">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
+                <CheckCircle2 className="size-4 shrink-0" />
                 <span>{successMsg}</span>
               </div>
             )}
           </div>
 
-          {/* Form Confirm QR Scan */}
-          <Card className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col h-full justify-between">
-            <div className="space-y-6">
-              <div className="flex items-center justify-between border-b pb-4">
-                <h3 className="font-black text-slate-800 text-base uppercase tracking-wide">
-                  Xác Nhận Booking QR
-                </h3>
-                <Button 
-                  onClick={loadPaidBookings}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <CardTitle>Xác nhận booking QR</CardTitle>
+                  <CardDescription>Danh sách booking đã thanh toán, chờ vào cổng.</CardDescription>
+                </div>
+                <Button
+                  onClick={() => loadPaidBookings(selectedBookingId)}
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition"
                   title="Tải lại danh sách đặt chỗ"
                 >
-                  <RefreshCw className="w-4 h-4" />
+                  <RefreshCw className="size-4" />
                 </Button>
               </div>
-
-              <div className="space-y-5">
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-500 uppercase">
-                    Chọn mã đặt chỗ QR (Mô phỏng quét mã)
-                  </label>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-4">
+                <Field label="Mã đặt chỗ QR">
                   {paidBookings.length === 0 ? (
-                    <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs text-slate-400 italic font-semibold">
-                      Không có đặt giữ chỗ nào đang chờ quét mã...
+                    <div className="rounded-xl border bg-muted/40 px-4 py-3 text-xs font-semibold text-muted-foreground">
+                      Không có booking nào đang chờ quét mã.
                     </div>
                   ) : (
-                    <Select 
-                      value={selectedBookingId} 
-                      onValueChange={handleBookingChange}
-                    >
-                      <SelectTrigger className="w-full bg-white border-slate-300 font-mono font-bold text-xs">
-                        <SelectValue placeholder="Chọn mã đặt chỗ QR..." />
+                    <Select value={selectedBookingId} onValueChange={handleBookingChange}>
+                      <SelectTrigger className="w-full font-mono">
+                        <SelectValue placeholder="Chọn mã đặt chỗ QR" />
                       </SelectTrigger>
                       <SelectContent>
-                        {paidBookings.map((b) => (
-                          <SelectItem key={b.id} value={b.id} className="font-mono font-bold text-xs">
-                            {b.id} ({b.username} - {b.vehicleTypeName})
+                        {paidBookings.map((booking) => (
+                          <SelectItem key={booking.id} value={booking.id}>
+                            {booking.id} ({booking.username} - {booking.vehicleTypeName})
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   )}
-                </div>
+                </Field>
 
                 {selectedBooking && (
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4.5 space-y-3.5 text-xs font-semibold text-slate-600">
-                    <div className="flex justify-between items-center">
-                      <span>Người đặt chỗ:</span>
-                      <span className="text-slate-800 font-bold">{selectedBooking.username}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Loại xe gửi:</span>
-                      <Badge variant="secondary" className="font-bold uppercase text-[10px] bg-slate-200 text-slate-800 border-0 rounded px-2 py-0.5">
-                        {selectedBooking.vehicleTypeName}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Khu vực đỗ xe:</span>
-                      <span className="text-indigo-600 font-bold text-sm">{selectedBooking.areaName}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Vị trí slot (Khóa cứng):</span>
-                      <span className="text-slate-800 font-mono font-bold bg-white px-2 py-0.5 border rounded shadow-sm">
-                        {selectedBooking.internalSlotCode}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Phí đã thanh toán:</span>
-                      <span className="text-emerald-600 font-black">{selectedBooking.reservationFee.toLocaleString()} đ</span>
-                    </div>
+                  <div className="space-y-3 rounded-xl border bg-muted/40 p-4 text-xs font-semibold">
+                    <DetailLine label="Người đặt chỗ" value={selectedBooking.username} />
+                    <DetailLine label="Loại xe" value={selectedBooking.vehicleTypeName} />
+                    <DetailLine label="Khu vực" value={selectedBooking.areaName} />
+                    <DetailLine label="Slot khóa cứng" value={selectedBooking.internalSlotCode} mono />
+                    <DetailLine label="Phí đã thanh toán" value={`${selectedBooking.reservationFee.toLocaleString()} đ`} />
                   </div>
                 )}
-              </div>
-            </div>
 
-            <Button 
-              onClick={handleConfirmScan}
-              disabled={!selectedBookingId || isLoading}
-              className="w-full mt-6 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black py-6 rounded-xl shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer text-sm"
-            >
-              {isLoading ? (
-                <>
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  <span>ĐANG XÁC NHẬN...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>XÁC NHẬN ĐỖ XE (SCAN CONFIRM)</span>
-                </>
-              )}
-            </Button>
+                {lastDeviceEvent?.scanType === "BOOKING_QR" && !selectedBooking && (
+                  <div className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-800">
+                    <AlertTriangle className="size-4 shrink-0" />
+                    QR simulator gửi chưa khớp booking paid-list hiện tại.
+                  </div>
+                )}
+
+                <Button onClick={handleConfirmScan} disabled={!selectedBookingId || isLoading} className="h-11">
+                  {isLoading ? (
+                    <>
+                      <div className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Đang xác nhận...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 data-icon="inline-start" />
+                      Xác nhận đỗ xe
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
           </Card>
         </div>
       )}
+    </div>
+  );
+}
+
+function TabButton({ active, children, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-black transition-colors",
+        active ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
+}
+
+function DeviceBanner({ event }) {
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-cyan-200 bg-cyan-50 p-4 text-sm text-cyan-950 md:flex-row md:items-center md:justify-between">
+      <div className="flex items-start gap-3">
+        <RadioTower className="mt-0.5 size-4 shrink-0" />
+        <div>
+          <p className="font-black">Dữ liệu từ thiết bị giả lập</p>
+          <p className="text-xs font-semibold text-cyan-800">
+            {event.gateCode} gửi {event.scanType} lúc {new Date(event.capturedAt).toLocaleTimeString("vi-VN")}
+          </p>
+        </div>
+      </div>
+      <div className="font-mono text-xs font-black">
+        {event.cardCode || event.bookingId || event.qrToken || event.detectedPlate || "--"}
+      </div>
+    </div>
+  );
+}
+
+function CameraFeed({ title, image }) {
+  return (
+    <Card className="bg-slate-950 text-white">
+      <CardContent className="p-0">
+        <div className="relative flex aspect-video items-center justify-center overflow-hidden">
+          {image ? (
+            <img src={image} alt={title} className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex flex-col items-center gap-3 text-slate-500">
+              <Camera className="size-12" />
+              <p className="font-mono text-xs font-bold uppercase tracking-widest">Camera feed stream</p>
+            </div>
+          )}
+          <div className="absolute left-4 top-4 flex items-center gap-2 rounded-md bg-black/55 px-2 py-1 text-xs font-black">
+            <span className="size-2 rounded-full bg-red-500" />
+            REC
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SnapshotCard({ title, image }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex aspect-video items-center justify-center overflow-hidden rounded-xl border bg-muted/40">
+          {image ? (
+            <img src={image} alt={title} className="h-full w-full object-cover" />
+          ) : (
+            <span className="text-xs font-bold text-muted-foreground">Chưa có ảnh</span>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className="text-xs font-black uppercase tracking-wide text-muted-foreground">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function DetailLine({ label, value, mono }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-muted-foreground">{label}</span>
+      <span className={mono ? "font-mono font-black" : "font-bold"}>{value || "--"}</span>
     </div>
   );
 }
