@@ -1,6 +1,6 @@
 import { delay, http } from "msw";
-import { API_BASE_URLS } from "../mockConfig";
-import { ok, badRequest, notFound } from "./helpers";
+import { API_BASE_URLS, MOCK_FLAGS } from "../mockConfig";
+import { ok, badRequest, notFound, enabled } from "./helpers";
 import { sessionDb } from "./sessionUtils";
 import { db } from "./db";
 
@@ -381,4 +381,92 @@ export const adminHandlers = [
       { label: "B3-B", occupancy: 58 },
     ]);
   }),
+
+  // =========================================================================
+  // ADMIN USER MANAGEMENT
+  // =========================================================================
+  ...enabled(
+    MOCK_FLAGS.ADMIN_USERS,
+    http.get(`${API_BASE_URLS.core}/admin/users`, async () => {
+      await delay(200);
+      return ok(db.getUsers());
+    })
+  ),
+
+  ...enabled(
+    MOCK_FLAGS.ADMIN_USERS,
+    http.post(`${API_BASE_URLS.core}/admin/users`, async ({ request }) => {
+      await delay(250);
+      const data = await request.json();
+      let users = db.getUsers();
+      if (users.some(u => u.username.trim().toLowerCase() === data.username.trim().toLowerCase())) {
+        return badRequest("Tên đăng nhập này đã tồn tại!");
+      }
+      const newUser = {
+        id: Date.now(),
+        username: data.username.trim(),
+        fullName: data.fullName.trim(),
+        email: data.email || "",
+        phone: data.phone || "",
+        role: data.role || "STAFF",
+        status: "ACTIVE",
+      };
+      users.push(newUser);
+      db.saveUsers(users);
+      return ok(newUser);
+    })
+  ),
+
+  ...enabled(
+    MOCK_FLAGS.ADMIN_USERS,
+    http.put(`${API_BASE_URLS.core}/admin/users/:id`, async ({ params, request }) => {
+      await delay(250);
+      const userId = Number(params.id);
+      const data = await request.json();
+      let users = db.getUsers();
+      const index = users.findIndex(u => u.id === userId);
+      if (index === -1) return notFound("Không tìm thấy người dùng.");
+
+      users[index] = {
+        ...users[index],
+        fullName: data.fullName.trim(),
+        email: data.email || "",
+        phone: data.phone || "",
+      };
+      db.saveUsers(users);
+      return ok(users[index]);
+    })
+  ),
+
+  ...enabled(
+    MOCK_FLAGS.ADMIN_USERS,
+    http.put(`${API_BASE_URLS.core}/admin/users/:id/role`, async ({ params, request }) => {
+      await delay(250);
+      const userId = Number(params.id);
+      const { role } = await request.json();
+      let users = db.getUsers();
+      const index = users.findIndex(u => u.id === userId);
+      if (index === -1) return notFound("Không tìm thấy người dùng.");
+
+      users[index].role = role;
+      db.saveUsers(users);
+      return ok(users[index]);
+    })
+  ),
+
+  ...enabled(
+    MOCK_FLAGS.ADMIN_USERS,
+    http.put(`${API_BASE_URLS.core}/admin/users/:id/status`, async ({ params, request }) => {
+      await delay(250);
+      const userId = Number(params.id);
+      const { status } = await request.json();
+      let users = db.getUsers();
+      const index = users.findIndex(u => u.id === userId);
+      if (index === -1) return notFound("Không tìm thấy người dùng.");
+
+      users[index].status = status;
+      db.saveUsers(users);
+      return ok(users[index]);
+    })
+  ),
 ];

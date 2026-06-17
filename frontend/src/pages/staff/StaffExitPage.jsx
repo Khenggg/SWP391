@@ -49,6 +49,18 @@ export default function StaffExitPage() {
   const [isCreatingMismatch, setIsCreatingMismatch] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const processedEventRef = useRef("");
+  const mainContentRef = useRef(null);
+
+  useEffect(() => {
+    const scroll = () => {
+      if (mainContentRef.current) {
+        mainContentRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    };
+    scroll();
+    const timer = setTimeout(scroll, 150);
+    return () => clearTimeout(timer);
+  }, []);
 
   const loadFee = useCallback(async (targetSession) => {
     if (!targetSession?.id) return null;
@@ -237,7 +249,7 @@ export default function StaffExitPage() {
 
       {deviceEvent && <DeviceBanner event={deviceEvent} />}
 
-      <div className="grid gap-4 lg:grid-cols-[1.35fr_0.65fr] mt-4">
+      <div ref={mainContentRef} className="grid gap-4 lg:grid-cols-[1.35fr_0.65fr] mt-4">
         {/* Left Column - Real-time camera feeds and snapshot comparison */}
         <div className="flex flex-col gap-4">
           <CameraComparisonFeed
@@ -258,15 +270,13 @@ export default function StaffExitPage() {
             />
           </div>
 
-          {session && (
-            <OCRComparisonCard
-              entryPlate={session.plateNumber}
-              exitPlate={plate}
-              setExitPlate={setPlate}
-              hasMismatch={hasMismatch}
-              confidence={deviceEvent?.plateConfidence}
-            />
-          )}
+          <OCRComparisonCard
+            entryPlate={session?.plateNumber || ""}
+            exitPlate={plate}
+            setExitPlate={setPlate}
+            hasMismatch={hasMismatch}
+            confidence={deviceEvent?.plateConfidence}
+          />
         </div>
 
         {/* Right Column - Controls and Details */}

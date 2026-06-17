@@ -47,6 +47,18 @@ export default function StaffEntryPage() {
   const [deviceDraft, setDeviceDraft] = useState(emptyDeviceDraft);
   const [lastDeviceEvent, setLastDeviceEvent] = useState(null);
   const processedEventRef = useRef("");
+  const mainContentRef = useRef(null);
+
+  useEffect(() => {
+    const scroll = () => {
+      if (mainContentRef.current) {
+        mainContentRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    };
+    scroll();
+    const timer = setTimeout(scroll, 150);
+    return () => clearTimeout(timer);
+  }, []);
 
   const loadPaidBookings = useCallback(async (preferredBookingId = "") => {
     try {
@@ -192,7 +204,8 @@ export default function StaffEntryPage() {
         </TabButton>
       </div>
 
-      {activeTab === "nfc" ? (
+      <div ref={mainContentRef}>
+        {activeTab === "nfc" ? (
         <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
           <div className="flex flex-col gap-6">
             <CameraFeed title="Camera làn vào" image={deviceDraft.vehicleImageDataUrl} />
@@ -444,6 +457,7 @@ export default function StaffEntryPage() {
           </Card>
         </div>
       )}
+      </div>
     </div>
   );
 }

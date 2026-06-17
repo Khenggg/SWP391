@@ -114,7 +114,7 @@ export default function UserManagementPage() {
   };
 
   // Edit
-  const openEdit = (user) => { setSelectedUser(user); setForm({ fullName: user.fullName, email: user.email, phone: user.phone }); setFormErrors({}); setShowEditModal(true); };
+  const openEdit = (user) => { setSelectedUser(user); setForm({ fullName: user.fullName, email: user.email, phone: user.phone, role: user.role }); setFormErrors({}); setShowEditModal(true); };
   const handleEdit = async () => {
     const errs = validate(form, false);
     if (Object.keys(errs).length) { setFormErrors(errs); return; }

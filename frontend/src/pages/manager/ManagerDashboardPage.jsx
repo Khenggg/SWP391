@@ -1,12 +1,36 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, memo } from "react";
 import { dashboardService } from "../../services/dashboardService";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 function formatVND(amount) {
-  return Number(amount).toLocaleString("vi-VN") + "đ";
+  return Number(amount || 0).toLocaleString("vi-VN") + "đ";
 }
+
+const StatCard = memo(({ label, value, icon, color, isLoading }) => {
+  const parts = color.split(" ");
+  const textColor = parts[0];
+  const bgColor = parts[1];
+  return (
+    <Card className="shadow-sm flex flex-col items-center text-center gap-4 p-5 transition-all hover:shadow-md">
+      <div className={`text-3xl p-3 rounded-lg ${bgColor}`}>{icon}</div>
+      <div className="flex flex-col items-center">
+        <CardDescription className="text-xs font-black text-slate-400 uppercase tracking-wide">{label}</CardDescription>
+        {isLoading ? (
+          <div className="h-7 w-20 bg-slate-200/80 animate-pulse rounded mt-1" />
+        ) : (
+          <CardTitle className={`text-2xl font-black mt-1 ${textColor}`}>
+            <span key={value} className="inline-block animate-in fade-in zoom-in-95 duration-300">
+              {value}
+            </span>
+          </CardTitle>
+        )}
+      </div>
+    </Card>
+  );
+});
+StatCard.displayName = "StatCard";
 
 export default function ManagerDashboardPage() {
   const [stats, setStats] = useState({ revenueToday: 0, entriesToday: 0, exitsToday: 0, incidents: 0 });
@@ -14,30 +38,52 @@ export default function ManagerDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchDashboard = async () => {
+    let isMounted = true;
+    let pollInterval = null;
+
+    const fetchDashboard = async (isFirstLoad = false) => {
       try {
-        setIsLoading(true);
+        if (isFirstLoad) {
+          setIsLoading(true);
+        }
         const [statsData, activitiesData] = await Promise.all([
           dashboardService.getDashboardStats(),
           dashboardService.getRecentActivities()
         ]);
-        setStats(statsData);
-        setRecentActivities(activitiesData);
+        if (isMounted) {
+          setStats(statsData);
+          setRecentActivities(activitiesData);
+        }
       } catch (err) {
         console.error("Lỗi tải thông tin Dashboard:", err);
       } finally {
-        setIsLoading(false);
+        if (isFirstLoad && isMounted) {
+          setIsLoading(false);
+        }
       }
     };
-    fetchDashboard();
+
+    fetchDashboard(true);
+
+    // Live update polling every 10 seconds to keep stats real-time
+    pollInterval = setInterval(() => {
+      fetchDashboard(false);
+    }, 10000);
+
+    return () => {
+      isMounted = false;
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+    };
   }, []);
 
-  const statsList = [
+  const statsList = useMemo(() => [
     { label: "Doanh Thu Hôm Nay", value: formatVND(stats.revenueToday), icon: "💰", color: "text-blue-600 bg-blue-50 border-blue-100" },
     { label: "Lượt Xe Vào", value: stats.entriesToday.toString(), icon: "📥", color: "text-emerald-600 bg-emerald-50 border-emerald-100" },
     { label: "Lượt Xe Ra", value: stats.exitsToday.toString(), icon: "📤", color: "text-amber-600 bg-amber-50 border-amber-100" },
     { label: "Sự Cố (Cần Duyệt)", value: stats.incidents.toString(), icon: "⚠️", color: "text-red-600 bg-red-50 border-red-100" },
-  ];
+  ], [stats]);
 
   return (
     <div className="space-y-6">
@@ -51,26 +97,19 @@ export default function ManagerDashboardPage() {
         </Badge>
       </div>
 
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-pulse">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="h-24 shadow-sm" />
-          ))}
-        </div>
-      ) : (
-        /* Stats Cards */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {statsList.map((stat, idx) => (
-            <Card key={idx} className="shadow-sm flex items-center gap-4 p-5">
-              <div className={`text-3xl p-3 rounded-lg ${stat.color.split(" ")[1]}`}>{stat.icon}</div>
-              <div>
-                <CardDescription className="text-xs font-black text-slate-400 uppercase tracking-wide">{stat.label}</CardDescription>
-                <CardTitle className={`text-2xl font-black mt-1 ${stat.color.split(" ")[0]}`}>{stat.value}</CardTitle>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {statsList.map((stat, idx) => (
+          <StatCard
+            key={idx}
+            label={stat.label}
+            value={stat.value}
+            icon={stat.icon}
+            color={stat.color}
+            isLoading={isLoading}
+          />
+        ))}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Hour Traffic chart simulator */}
@@ -109,7 +148,16 @@ export default function ManagerDashboardPage() {
             {isLoading ? (
               <div className="space-y-3 animate-pulse">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-16 bg-slate-100 rounded-lg border border-slate-100" />
+                  <div key={i} className="flex justify-between items-center p-3 rounded-lg border border-slate-100 h-16">
+                    <div className="flex items-center gap-3">
+                      <div className="h-6 w-12 rounded bg-slate-200" />
+                      <div className="space-y-1.5">
+                        <div className="h-4 w-20 rounded bg-slate-200" />
+                        <div className="h-3 w-16 rounded bg-slate-200" />
+                      </div>
+                    </div>
+                    <div className="h-3 w-10 rounded bg-slate-200" />
+                  </div>
                 ))}
               </div>
             ) : recentActivities.length === 0 ? (
@@ -119,8 +167,8 @@ export default function ManagerDashboardPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {recentActivities.map((v, i) => (
-                  <div key={i} className="flex justify-between items-center p-3 hover:bg-slate-50 rounded-lg border border-slate-100 transition-colors">
+                {recentActivities.map((v) => (
+                  <div key={v.plate + "-" + v.time} className="flex justify-between items-center p-3 hover:bg-slate-50 rounded-lg border border-slate-100 transition-colors animate-in slide-in-from-top-2 duration-300">
                     <div className="flex items-center gap-3">
                       <Badge variant="outline" className={`px-2 py-0.5 rounded text-xs font-bold border ${v.type === "Ô Tô" ? "bg-indigo-100 text-indigo-700 border-indigo-200" : "bg-emerald-100 text-emerald-700 border-emerald-200"}`}>
                         {v.type}

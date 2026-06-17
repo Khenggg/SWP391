@@ -2,6 +2,16 @@ import { delay, http } from "msw";
 import { API_BASE_URLS, MOCK_FLAGS } from "../mockConfig";
 import { ok, badRequest, notFound, enabled } from "./helpers";
 import { db } from "./db";
+let mockDashboardRevenue = 3980000;
+let mockDashboardEntries = 187;
+let mockDashboardExits = 172;
+let mockDashboardIncidents = 2;
+let mockRecentActivities = [
+  { type: "Ô Tô", plate: "30F-888.88", gate: "GATE-IN-01", time: "22:40:15" },
+  { type: "Xe Máy", plate: "29H1-123.45", gate: "GATE-IN-02", time: "22:38:10" },
+  { type: "Ô Tô", plate: "51K-999.99", gate: "GATE-IN-01", time: "22:35:45" },
+  { type: "Xe Máy", plate: "43C1-567.89", gate: "GATE-IN-02", time: "22:32:00" },
+];
 
 export const managerHandlers = [
   // =========================================================================
@@ -257,6 +267,61 @@ export const managerHandlers = [
       };
       db.savePricingRules(inMemoryPricingRules);
       return ok(inMemoryPricingRules[index]);
+    })
+  ),
+
+  // =========================================================================
+  // MANAGER DASHBOARD (LIVE SIMULATION)
+  // =========================================================================
+  ...enabled(
+    MOCK_FLAGS.MANAGER_DASHBOARD,
+    http.get(`${API_BASE_URLS.core}/manager/dashboard/stats`, async () => {
+      await delay(250);
+      // Simulate real-time increment on some requests
+      if (Math.random() > 0.4) {
+        mockDashboardRevenue += Math.floor(Math.random() * 4) * 5000; // Increment 0đ - 15,000đ
+        mockDashboardEntries += Math.random() > 0.6 ? 1 : 0;
+        mockDashboardExits += Math.random() > 0.65 ? 1 : 0;
+        if (Math.random() > 0.95) {
+          mockDashboardIncidents += 1;
+        }
+      }
+      return ok({
+        revenueToday: mockDashboardRevenue,
+        entriesToday: mockDashboardEntries,
+        exitsToday: mockDashboardExits,
+        incidents: mockDashboardIncidents
+      });
+    })
+  ),
+
+  ...enabled(
+    MOCK_FLAGS.MANAGER_DASHBOARD,
+    http.get(`${API_BASE_URLS.core}/manager/dashboard/recent-activities`, async () => {
+      await delay(200);
+      // Occasionally simulate a new vehicle entering the building
+      if (Math.random() > 0.7) {
+        const plates = ["51K-777.77", "30G-654.32", "43A-999.88", "14A-123.45", "99A-555.55", "30F-555.55", "51H-123.45"];
+        const types = ["Ô Tô", "Xe Máy"];
+        const gates = ["GATE-IN-01", "GATE-IN-02"];
+        const newPlate = plates[Math.floor(Math.random() * plates.length)];
+        const newType = types[Math.floor(Math.random() * types.length)];
+        const newGate = gates[Math.floor(Math.random() * gates.length)];
+        const now = new Date();
+        const newTime = now.toTimeString().split(" ")[0];
+
+        mockRecentActivities.unshift({
+          type: newType,
+          plate: newPlate,
+          gate: newGate,
+          time: newTime
+        });
+
+        if (mockRecentActivities.length > 5) {
+          mockRecentActivities.pop();
+        }
+      }
+      return ok(mockRecentActivities);
     })
   ),
 ];

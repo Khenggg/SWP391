@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowRightFromLine,
@@ -78,6 +78,14 @@ function isActivePath(currentPath, itemPath) {
 export default function AppShell({ currentUser, onLogout }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const mainRef = useRef(null);
+
+  useEffect(() => {
+    if (mainRef.current) {
+      mainRef.current.scrollTop = 0;
+    }
+  }, [location.pathname]);
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(() => {
     return localStorage.getItem("sidebar-collapsed") === "true";
@@ -241,7 +249,11 @@ export default function AppShell({ currentUser, onLogout }) {
           </div>
         </header>
 
-        <main id="main-content" className="flex-1 p-4 pb-24 md:min-h-0 md:overflow-y-auto md:p-6">
+        <main
+          ref={mainRef}
+          id="main-content"
+          className="flex-1 p-4 pb-24 md:min-h-0 md:overflow-y-auto md:p-6"
+        >
           <Outlet />
         </main>
       </div>

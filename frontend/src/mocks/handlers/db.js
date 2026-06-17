@@ -1,7 +1,8 @@
 import { getMockData, saveMockData } from "../mockStorage";
 import { 
   MOCK_PARKING_INFO, MOCK_FLOORS, MOCK_AREAS, MOCK_SLOTS, 
-  MOCK_GATES, MOCK_PRICING_RULES, MOCK_MONTHLY_PASSES, MOCK_CARDS 
+  MOCK_GATES, MOCK_PRICING_RULES, MOCK_MONTHLY_PASSES, MOCK_CARDS,
+  MOCK_USERS
 } from "../mockData";
 
 export const db = {
@@ -28,6 +29,9 @@ export const db = {
 
   getParkingInfo: () => getMockData("parking_info", MOCK_PARKING_INFO),
   saveParkingInfo: (data) => saveMockData("parking_info", data),
+
+  getUsers: () => getMockData("users", MOCK_USERS),
+  saveUsers: (data) => saveMockData("users", data),
 
   getBookings: () => getMockData("bookings", [
     {
