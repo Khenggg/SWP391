@@ -54,4 +54,7 @@ public class PricingRuleReadEntity {
 
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
+
+    @Column(name = "reservation_hourly_price")
+    private BigDecimal reservationHourlyPrice;
 }

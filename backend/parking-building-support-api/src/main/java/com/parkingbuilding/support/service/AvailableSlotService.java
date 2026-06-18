@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
+
 public class AvailableSlotService {
 
     private final SlotReadRepository slotReadRepository;
