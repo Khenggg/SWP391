@@ -184,7 +184,7 @@ export default function StaffExitPage() {
   const canExit = useMemo(() => {
     if (!paymentReady) return false;
     // Can exit if plates match, OR if the mismatch has been approved by the manager
-    return !hasMismatch || mismatchCase?.status === "APPROVE";
+    return !hasMismatch || mismatchCase?.status === "APPROVED";
   }, [paymentReady, hasMismatch, mismatchCase]);
 
   const handleSearch = () => runSearch();

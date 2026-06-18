@@ -58,8 +58,20 @@ export const bookingService = {
     return res.success ? res.data : [];
   },
 
-  confirmBookingScan: async (bookingId, { cardCode, plate, vehicleTypeName } = {}) => {
-    const res = await coreAxiosClient.post("/staff/bookings/scan-confirm", { bookingId, cardCode, plate, vehicleTypeName });
+  getBookingForStaff: async (bookingId) => {
+    const res = await coreAxiosClient.get(`/staff/bookings/${encodeURIComponent(bookingId)}`);
+    if (res.success) return res.data;
+    throw new Error(res.message || "Không tìm thấy booking.");
+  },
+
+  createCasualEntry: async (entryData = {}) => {
+    const res = await coreAxiosClient.post("/staff/sessions/entry", entryData);
+    if (res.success) return res.data;
+    throw new Error(res.message || "Táº¡o phiÃªn xe vÃ o vÃ£ng lai tháº¥t báº¡i");
+  },
+
+  confirmBookingScan: async (bookingId, entryData = {}) => {
+    const res = await coreAxiosClient.post("/staff/bookings/scan-confirm", { bookingId, ...entryData });
     if (res.success) return res.data;
     throw new Error(res.message || "Xác nhận quét mã QR đặt trước thất bại");
   }

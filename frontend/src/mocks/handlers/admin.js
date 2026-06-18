@@ -8,12 +8,37 @@ function normalizePlate(value) {
   return String(value || "").replace(/[^a-z0-9]/gi, "").toUpperCase();
 }
 
+function isCarType(vehicleTypeName) {
+  return ["Ã” TÃ´", "Ãƒâ€ TÃƒÂ´", "O To", "Ô Tô"].includes(String(vehicleTypeName || "").trim());
+}
+
+function releaseSessionResources(session) {
+  const cards = db.getCards();
+  const card = cards.find((item) => String(item.code || "").toUpperCase() === String(session.cardCode || "").toUpperCase());
+  if (card) {
+    card.status = "AVAILABLE";
+    card.activeSession = null;
+    card.updatedAt = new Date().toISOString();
+    db.saveCards(cards);
+  }
+
+  if (session.slotCode && !session.slotCode.includes("AUTO")) {
+    const slots = db.getSlots();
+    const slot = slots.find((item) => item.code === session.slotCode);
+    if (slot) {
+      slot.status = "AVAILABLE";
+      delete slot.sessionCode;
+      db.saveSlots(slots);
+    }
+  }
+}
+
 function calculateFeePreview(session, exitTime = new Date().toISOString()) {
   const startedAt = new Date(session.entryTime).getTime();
   const endedAt = new Date(exitTime).getTime();
   const durationHours = Math.max(1, Math.ceil(Math.max(0, endedAt - startedAt) / (1000 * 60 * 60)));
   const isCar = session.vehicleTypeName === "Ô Tô" || session.vehicleTypeName === "Ã” TÃ´";
-  const rate = isCar ? 20000 : 5000;
+  const rate = (isCar || isCarType(session.vehicleTypeName)) ? 20000 : 5000;
   const totalAmount = session.paymentStatus === "PAID" ? 0 : durationHours * rate;
 
   return {
@@ -62,6 +87,7 @@ export const adminHandlers = [
     session.status = "COMPLETED";
     session.paymentStatus = "PAID";
     session.exitTime = new Date().toISOString();
+    releaseSessionResources(session);
     sessionDb.saveSessions(sessions);
     sessionDb.addAuditLog("admin01", "FORCE_CLOSE_SESSION", `Đóng phiên ${session.sessionCode}. Lý do: ${reason}`, "CRITICAL", "ADMIN");
     return ok(session);
@@ -77,6 +103,7 @@ export const adminHandlers = [
     session.status = "CANCELLED";
     session.paymentStatus = "CANCELLED";
     session.exitTime = new Date().toISOString();
+    releaseSessionResources(session);
     sessionDb.saveSessions(sessions);
     sessionDb.addAuditLog("admin01", "CANCEL_SESSION", `Hủy phiên ${session.sessionCode}. Lý do: ${reason}`, "CRITICAL", "ADMIN");
     return ok(session);
@@ -259,6 +286,7 @@ export const adminHandlers = [
     session.exitTime = feePreview.exitTime;
     session.exitGateCode = exitGateCode || "GATE-OUT-01";
     session.paymentStatus = "PAID";
+    releaseSessionResources(session);
     sessionDb.saveSessions(sessions);
     sessionDb.addAuditLog("staff01", "PARKING_SESSION_EXIT_COMPLETED", `Hoàn tất lượt gửi ${session.sessionCode}`, "INFO", "STAFF");
 

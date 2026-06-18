@@ -59,6 +59,44 @@ const scanTypeLabels = {
   PLATE_ONLY: "Biển số",
 };
 
+function withScanTypeDefaults(form, scanType, gateType = form.gateType) {
+  const next = {
+    ...form,
+    gateType,
+    scanType,
+  };
+
+  if (scanType === "BOOKING_QR") {
+    next.gateType = "ENTRY";
+    next.gateCode = next.gateCode?.startsWith("GATE-IN") ? next.gateCode : "GATE-IN-02";
+    next.cardCode = "";
+    next.bookingId = next.bookingId || "BK-100001";
+    next.qrToken = "";
+  }
+
+  if (scanType === "CARD") {
+    next.cardCode = next.cardCode || (gateType === "ENTRY" ? "CARD-0001" : "CARD-0002");
+    next.bookingId = "";
+    next.qrToken = gateType === "EXIT" ? next.qrToken || "qr-card-0002" : "";
+  }
+
+  if (scanType === "PLATE_ONLY") {
+    next.cardCode = "";
+    next.bookingId = "";
+    next.qrToken = "";
+  }
+
+  return next;
+}
+
+function normalizeBookingToken(value) {
+  return String(value || "").trim().replace(/^booking-/i, "").toUpperCase();
+}
+
+function isBookingToken(value) {
+  return /^BK-\d+/i.test(normalizeBookingToken(value));
+}
+
 const presets = [
   {
     label: "Entry thẻ",
@@ -67,12 +105,27 @@ const presets = [
       gateType: "ENTRY",
       scanType: "CARD",
       gateCode: "GATE-IN-01",
-      cardCode: "CARD-0002",
+      cardCode: "CARD-0003",
       bookingId: "",
       qrToken: "",
       detectedPlate: "51K-24680",
       vehicleTypeName: "Xe Máy",
       plateConfidence: 96,
+    },
+  },
+  {
+    label: "Exit vua vao",
+    description: "Xe vua test entry bang CARD-0003",
+    values: {
+      gateType: "EXIT",
+      scanType: "CARD",
+      gateCode: "GATE-OUT-01",
+      cardCode: "CARD-0003",
+      bookingId: "",
+      qrToken: "qr-card-0003",
+      detectedPlate: "51K-24680",
+      vehicleTypeName: "Xe MÃ¡y",
+      plateConfidence: 97,
     },
   },
   {
@@ -91,6 +144,36 @@ const presets = [
     },
   },
   {
+    label: "Exit booking",
+    description: "Xe booking da gan CARD-0001",
+    values: {
+      gateType: "EXIT",
+      scanType: "CARD",
+      gateCode: "GATE-OUT-01",
+      cardCode: "CARD-0001",
+      bookingId: "",
+      qrToken: "booking-BK-100001",
+      detectedPlate: "29A-999.99",
+      vehicleTypeName: "Ã” TÃ´",
+      plateConfidence: 95,
+    },
+  },
+  {
+    label: "Entry QR het han",
+    description: "Booking qua thoi han check-in",
+    values: {
+      gateType: "ENTRY",
+      scanType: "BOOKING_QR",
+      gateCode: "GATE-IN-02",
+      cardCode: "",
+      bookingId: "BK-100099",
+      qrToken: "BK-100099",
+      detectedPlate: "30E-888.99",
+      vehicleTypeName: "O To",
+      plateConfidence: 91,
+    },
+  },
+  {
     label: "Exit tiền mặt",
     description: "Phiên casual đang active",
     values: {
@@ -102,6 +185,21 @@ const presets = [
       qrToken: "qr-card-0002",
       detectedPlate: "51A-12345",
       vehicleTypeName: "Ô Tô",
+      plateConfidence: 98,
+    },
+  },
+  {
+    label: "Exit ve thang",
+    description: "Phien monthly seed",
+    values: {
+      gateType: "EXIT",
+      scanType: "CARD",
+      gateCode: "GATE-OUT-01",
+      cardCode: "CARD-0007",
+      bookingId: "",
+      qrToken: "qr-card-0007",
+      detectedPlate: "59B-99999",
+      vehicleTypeName: "Ã” TÃ´",
       plateConfidence: 98,
     },
   },
@@ -261,13 +359,22 @@ export default function GateSimulatorPage() {
     setForm((current) => ({ ...current, [key]: value }));
   };
 
+  const updateScanType = (scanType) => {
+    setForm((current) => withScanTypeDefaults(current, scanType));
+  };
+
   const updateGateType = (gateType) => {
-    setForm((current) => ({
-      ...current,
-      gateType,
-      scanType: gateType === "ENTRY" ? "CARD" : "CARD",
-      gateCode: gateType === "ENTRY" ? "GATE-IN-01" : "GATE-OUT-01",
-    }));
+    setForm((current) => {
+      const scanType = gateType === "ENTRY" && current.scanType === "BOOKING_QR" ? "BOOKING_QR" : "CARD";
+      return withScanTypeDefaults(
+        {
+          ...current,
+          gateCode: gateType === "ENTRY" ? (scanType === "BOOKING_QR" ? "GATE-IN-02" : "GATE-IN-01") : "GATE-OUT-01",
+        },
+        scanType,
+        gateType
+      );
+    });
   };
 
   const applyPreset = (preset) => {
@@ -289,8 +396,12 @@ export default function GateSimulatorPage() {
   };
 
   const handleSend = () => {
+    const eventForm =
+      form.gateType === "ENTRY" && form.scanType === "CARD" && isBookingToken(form.qrToken)
+        ? withScanTypeDefaults({ ...form, bookingId: normalizeBookingToken(form.qrToken) }, "BOOKING_QR", "ENTRY")
+        : form;
     const sent = sendGateScanEvent({
-      ...form,
+      ...eventForm,
       capturedAt: new Date().toISOString(),
     });
     setLastSent(sent);
@@ -358,7 +469,7 @@ export default function GateSimulatorPage() {
                 </Field>
 
                 <Field label="Kiểu quét">
-                  <Select value={form.scanType} onValueChange={(value) => updateForm("scanType", value)}>
+                  <Select value={form.scanType} onValueChange={updateScanType}>
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
@@ -394,7 +505,8 @@ export default function GateSimulatorPage() {
                   <Input
                     value={form.cardCode}
                     onChange={(event) => updateForm("cardCode", event.target.value.toUpperCase())}
-                    placeholder="CARD-0002"
+                    placeholder={form.scanType === "BOOKING_QR" ? "Quet NFC o buoc sau" : "CARD-0002"}
+                    disabled={form.scanType === "BOOKING_QR" || form.scanType === "PLATE_ONLY"}
                   />
                 </Field>
 
