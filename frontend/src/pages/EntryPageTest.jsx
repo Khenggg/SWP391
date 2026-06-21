@@ -385,7 +385,7 @@ export default function EntryPageTest() {
                   </div>
 
                   {/* Form - Side by side label and input layout matching mockup */}
-                  <div className="flex flex-col gap-2.5 flex-1 overflow-y-auto pr-1 justify-center">
+                  <div className="flex flex-col gap-2 flex-1 overflow-y-auto pr-1 justify-start mt-1">
                     
                     {/* Row 1: License Plate */}
                     <div className="flex items-center gap-2">
@@ -506,26 +506,26 @@ export default function EntryPageTest() {
                       </div>
                     </div>
 
-                    {/* Row 7: Attachments - Side by side layout matching mockup */}
-                    <div className="flex items-center gap-2">
-                      <label className="text-slate-700 text-xs font-bold w-24 shrink-0">Ảnh xe</label>
-                      <div className="flex-1 flex items-center gap-4">
-                        {/* Vehicle photo */}
-                        <div className="w-28 h-16 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 shrink-0">
+                    {/* Row 7: Attachments - 2 columns, each taking 50% width, split into label and image */}
+                    <div className="grid grid-cols-2 gap-3 mt-1 shrink-0">
+                      {/* Column 1: Ảnh xe */}
+                      <div className="flex flex-col gap-1">
+                        <span className="text-slate-700 text-xs font-bold">Ảnh xe</span>
+                        <div className="w-full h-20 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 flex items-center justify-center">
                           <img 
                             src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=400&q=80" 
                             alt="Car attachment" 
                             className="w-full h-full object-cover"
                           />
                         </div>
-                        
-                        {/* Plate Crop Photo & label aligned side-by-side */}
-                        <div className="flex items-center gap-2 flex-1">
-                          <span className="text-slate-700 text-xs font-bold shrink-0">Ảnh biển số</span>
-                          <div className="flex-1 max-w-[160px] h-16 bg-slate-900 rounded-lg overflow-hidden flex items-center justify-center border border-slate-800 p-1">
-                            <div className="bg-white border border-slate-800 px-2 py-0.5 rounded text-slate-900 font-mono font-black tracking-wider text-[11px] shadow-sm select-none">
-                              {plateNumber}
-                            </div>
+                      </div>
+
+                      {/* Column 2: Ảnh biển số */}
+                      <div className="flex flex-col gap-1">
+                        <span className="text-slate-700 text-xs font-bold">Ảnh biển số</span>
+                        <div className="w-full h-20 bg-slate-900 rounded-lg overflow-hidden flex items-center justify-center border border-slate-800 p-2">
+                          <div className="bg-white border border-slate-800 px-3 py-1 rounded text-slate-900 font-mono font-black tracking-wider text-xs lg:text-[13px] shadow-sm select-none">
+                            {plateNumber}
                           </div>
                         </div>
                       </div>
