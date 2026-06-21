@@ -1,11 +1,11 @@
 #!/bin/sh
 
-protected_branches="main"
+protected_branches="main dev"
 
 while read local_ref local_sha remote_ref remote_sha
 do
   case "$remote_ref" in
-    refs/heads/main)
+    refs/heads/main|refs/heads/dev)
       branch="${remote_ref#refs/heads/}"
       echo "ERROR: Direct push to '$branch' is blocked." >&2
       echo "Create a branch, push that branch, then merge by Pull Request." >&2
