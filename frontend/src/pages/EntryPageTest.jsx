@@ -132,6 +132,7 @@ export default function EntryPageTest() {
   const [currentTime, setCurrentTime] = useState('09:24:18');
   const [currentDate, setCurrentDate] = useState('20/05/2025 (Thứ Ba)');
   const [showNotification, setShowNotification] = useState(null); // { type, text }
+  const [selectedSuggestion, setSelectedSuggestion] = useState('car'); // car, motorbike, truck
 
   // 3. System checks state (dynamically computed)
   const isCardValid = cardCode.startsWith('TH-') && cardCode.length >= 8;
@@ -164,6 +165,14 @@ export default function EntryPageTest() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Sync suggestion selection with vehicle type selection
+  useEffect(() => {
+    if (vehicleType === 'car') setSelectedSuggestion('car');
+    else if (vehicleType === 'motorbike') setSelectedSuggestion('motorbike');
+    else if (vehicleType === 'truck') setSelectedSuggestion('truck');
+    else if (vehicleType === 'bicycle') setSelectedSuggestion('motorbike');
+  }, [vehicleType]);
 
   // Format Helper
   const getVehicleLabel = (type) => {
@@ -624,110 +633,143 @@ export default function EntryPageTest() {
                   {/* Suggestions and Occupancy side-by-side split */}
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 min-h-0 overflow-y-auto pr-1">
                     
-                    {/* Left Column (4/12 width): Recommendation items, separated by horizontal lines */}
-                    <div className="lg:col-span-4 flex flex-col gap-2 justify-center pr-2">
+                    {/* Left Column (4/12 width): Recommendation items as interactive buttons */}
+                    <div className="lg:col-span-4 flex flex-col gap-1.5 justify-center pr-2">
                       
-                      {/* Car Suggestion */}
-                      <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
-                        <div className="text-xl">🚘</div>
-                        <div>
-                          <p className="text-[10px] font-extrabold text-blue-700 leading-none">Ô tô tiện tại</p>
-                          <p className="text-xs font-extrabold text-slate-800 mt-0.5">B2 - Slot A12</p>
+                      {/* Car Suggestion Button */}
+                      <button
+                        onClick={() => setSelectedSuggestion('car')}
+                        className={`w-full flex items-center gap-3 p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                          selectedSuggestion === 'car'
+                            ? 'border-blue-500 bg-blue-50/30 text-blue-700 shadow-xs'
+                            : 'border-slate-100 bg-white text-slate-600 hover:bg-slate-50/50 hover:border-slate-200'
+                        }`}
+                      >
+                        <div className="text-xl shrink-0">🚘</div>
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-[10px] uppercase tracking-wider leading-none ${selectedSuggestion === 'car' ? 'text-blue-600 font-extrabold' : 'text-slate-400 font-bold'}`}>
+                            Ô tô tiện tại
+                          </p>
+                          <p className="text-xs font-black mt-1 text-slate-800">B2 - Slot A12</p>
                         </div>
-                      </div>
+                      </button>
 
-                      {/* Motorbike Suggestion */}
-                      <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
-                        <div className="text-xl">🛵</div>
-                        <div>
-                          <p className="text-[10px] font-bold text-slate-450 leading-none">Xe máy</p>
-                          <p className="text-xs font-extrabold text-slate-800 mt-0.5">B1 - Khu C</p>
+                      {/* Motorbike Suggestion Button */}
+                      <button
+                        onClick={() => setSelectedSuggestion('motorbike')}
+                        className={`w-full flex items-center gap-3 p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                          selectedSuggestion === 'motorbike'
+                            ? 'border-blue-500 bg-blue-50/30 text-blue-700 shadow-xs'
+                            : 'border-slate-100 bg-white text-slate-600 hover:bg-slate-50/50 hover:border-slate-200'
+                        }`}
+                      >
+                        <div className="text-xl shrink-0">🛵</div>
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-[10px] uppercase tracking-wider leading-none ${selectedSuggestion === 'motorbike' ? 'text-blue-600 font-extrabold' : 'text-slate-400 font-bold'}`}>
+                            Xe máy
+                          </p>
+                          <p className="text-xs font-black mt-1 text-slate-800">B1 - Khu C</p>
                         </div>
-                      </div>
+                      </button>
 
-                      {/* Truck Suggestion */}
-                      <div className="flex items-center gap-2.5">
-                        <div className="text-xl">🚛</div>
-                        <div>
-                          <p className="text-[10px] font-bold text-slate-450 leading-none">Xe tải</p>
-                          <p className="text-xs font-extrabold text-slate-800 mt-0.5">B3 - Truck Bay 03</p>
+                      {/* Truck Suggestion Button */}
+                      <button
+                        onClick={() => setSelectedSuggestion('truck')}
+                        className={`w-full flex items-center gap-3 p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                          selectedSuggestion === 'truck'
+                            ? 'border-blue-500 bg-blue-50/30 text-blue-700 shadow-xs'
+                            : 'border-slate-100 bg-white text-slate-600 hover:bg-slate-50/50 hover:border-slate-200'
+                        }`}
+                      >
+                        <div className="text-xl shrink-0">🚛</div>
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-[10px] uppercase tracking-wider leading-none ${selectedSuggestion === 'truck' ? 'text-blue-600 font-extrabold' : 'text-slate-400 font-bold'}`}>
+                            Xe tải
+                          </p>
+                          <p className="text-xs font-black mt-1 text-slate-800">B3 - Truck Bay 03</p>
                         </div>
-                      </div>
+                      </button>
 
                     </div>
 
-                    {/* Right Column (8/12 width): Occupancy visual list with 2x6 cell grids */}
+                    {/* Right Column (8/12 width): Occupancy visual list for the selected suggestion */}
                     <div className="lg:col-span-8 flex flex-col gap-1.5 justify-center border-l border-slate-100 pl-3">
                       
-                      {/* B1 Floor */}
-                      <div className="flex items-center justify-between gap-1.5 p-1.5 border border-slate-100 rounded-lg bg-slate-50/50">
-                        <span className="text-[10px] font-extrabold text-slate-700 w-20 shrink-0">B1 - Khu C</span>
-                        <div className="grid grid-rows-2 grid-cols-6 gap-0.5 flex-1 justify-center max-w-[100px]">
-                          {[true, true, false, false, true, false, false, false, true, true, false, false].map((occ, idx) => (
-                            <div 
-                              key={idx} 
-                              className={`w-3.5 h-3.5 rounded-sm border ${
-                                occ ? 'bg-slate-300 border-slate-300' : 'bg-white border-slate-200'
-                              }`}
-                              title={occ ? 'Đã đỗ' : 'Còn trống'}
-                            ></div>
-                          ))}
+                      {selectedSuggestion === 'motorbike' && (
+                        /* B1 Floor */
+                        <div className="flex items-center justify-between gap-1.5 p-2.5 border border-slate-100 rounded-xl bg-slate-50/50 animate-fade-in">
+                          <span className="text-[10px] font-extrabold text-slate-700 w-20 shrink-0">B1 - Khu C</span>
+                          <div className="grid grid-rows-2 grid-cols-6 gap-0.5 flex-1 justify-center max-w-[100px]">
+                            {[true, true, false, false, true, false, false, false, true, true, false, false].map((occ, idx) => (
+                              <div 
+                                key={idx} 
+                                className={`w-3.5 h-3.5 rounded-sm border ${
+                                  occ ? 'bg-slate-300 border-slate-300' : 'bg-white border-slate-200'
+                                }`}
+                                title={occ ? 'Đã đỗ' : 'Còn trống'}
+                              ></div>
+                            ))}
+                          </div>
+                          <div className="text-right shrink-0 flex flex-col items-end gap-0.5 min-w-[76px]">
+                            <Badge className="bg-emerald-50 hover:bg-emerald-50 text-emerald-700 border-transparent text-[9px] font-bold px-1.5 py-0.2 rounded shadow-none flex items-center">
+                              <MiniParkingIcon />
+                              48%
+                            </Badge>
+                            <span className="text-[8px] text-slate-400 font-bold leading-none">Còn 34/64 trống</span>
+                          </div>
                         </div>
-                        <div className="text-right shrink-0 flex flex-col items-end gap-0.5 min-w-[76px]">
-                          <Badge className="bg-emerald-50 hover:bg-emerald-50 text-emerald-700 border-transparent text-[9px] font-bold px-1.5 py-0.2 rounded shadow-none flex items-center">
-                            <MiniParkingIcon />
-                            48%
-                          </Badge>
-                          <span className="text-[8px] text-slate-400 font-bold leading-none">Còn 34/64 trống</span>
-                        </div>
-                      </div>
+                      )}
 
-                      {/* B2 Floor */}
-                      <div className="flex items-center justify-between gap-1.5 p-1.5 border border-slate-100 rounded-lg bg-slate-50/50">
-                        <span className="text-[10px] font-extrabold text-slate-700 w-20 shrink-0">B2 - Khu A</span>
-                        <div className="grid grid-rows-2 grid-cols-6 gap-0.5 flex-1 justify-center max-w-[100px]">
-                          {[false, false, true, true, 'suggested', false, false, false, true, false, false, true].map((state, idx) => (
-                            <div 
-                              key={idx} 
-                              className={`w-3.5 h-3.5 rounded-sm border ${
-                                state === 'suggested' ? 'border-2 border-emerald-600 bg-white animate-pulse' :
-                                state ? 'bg-slate-300 border-slate-300' : 'bg-white border-slate-200'
-                              }`}
-                              title={state === 'suggested' ? 'Slot đề xuất: Slot A12' : state ? 'Đã đỗ' : 'Còn trống'}
-                            ></div>
-                          ))}
+                      {selectedSuggestion === 'car' && (
+                        /* B2 Floor */
+                        <div className="flex items-center justify-between gap-1.5 p-2.5 border border-slate-100 rounded-xl bg-slate-50/50 animate-fade-in">
+                          <span className="text-[10px] font-extrabold text-slate-700 w-20 shrink-0">B2 - Khu A</span>
+                          <div className="grid grid-rows-2 grid-cols-6 gap-0.5 flex-1 justify-center max-w-[100px]">
+                            {[false, false, true, true, 'suggested', false, false, false, true, false, false, true].map((state, idx) => (
+                              <div 
+                                key={idx} 
+                                className={`w-3.5 h-3.5 rounded-sm border ${
+                                  state === 'suggested' ? 'border-2 border-emerald-600 bg-white animate-pulse' :
+                                  state ? 'bg-slate-300 border-slate-300' : 'bg-white border-slate-200'
+                                }`}
+                                title={state === 'suggested' ? 'Slot đề xuất: Slot A12' : state ? 'Đã đỗ' : 'Còn trống'}
+                              ></div>
+                            ))}
+                          </div>
+                          <div className="text-right shrink-0 flex flex-col items-end gap-0.5 min-w-[76px]">
+                            <Badge className="bg-emerald-50 hover:bg-emerald-50 text-emerald-700 border-transparent text-[9px] font-bold px-1.5 py-0.2 rounded shadow-none flex items-center">
+                              <MiniParkingIcon />
+                              42%
+                            </Badge>
+                            <span className="text-[8px] text-slate-400 font-bold leading-none">Còn 58/138 trống</span>
+                          </div>
                         </div>
-                        <div className="text-right shrink-0 flex flex-col items-end gap-0.5 min-w-[76px]">
-                          <Badge className="bg-emerald-50 hover:bg-emerald-50 text-emerald-700 border-transparent text-[9px] font-bold px-1.5 py-0.2 rounded shadow-none flex items-center">
-                            <MiniParkingIcon />
-                            42%
-                          </Badge>
-                          <span className="text-[8px] text-slate-400 font-bold leading-none">Còn 58/138 trống</span>
-                        </div>
-                      </div>
+                      )}
 
-                      {/* B3 Floor */}
-                      <div className="flex items-center justify-between gap-1.5 p-1.5 border border-slate-100 rounded-lg bg-slate-50/50">
-                        <span className="text-[10px] font-extrabold text-slate-700 w-20 shrink-0">B3 - Khu B</span>
-                        <div className="grid grid-rows-2 grid-cols-6 gap-0.5 flex-1 justify-center max-w-[100px]">
-                          {[true, true, true, false, true, true, false, false, true, true, true, false].map((occ, idx) => (
-                            <div 
-                              key={idx} 
-                              className={`w-3.5 h-3.5 rounded-sm border ${
-                                occ ? 'bg-slate-300 border-slate-300' : 'bg-white border-slate-200'
-                              }`}
-                              title={occ ? 'Đã đỗ' : 'Còn trống'}
-                            ></div>
-                          ))}
+                      {selectedSuggestion === 'truck' && (
+                        /* B3 Floor */
+                        <div className="flex items-center justify-between gap-1.5 p-2.5 border border-slate-100 rounded-xl bg-slate-50/50 animate-fade-in">
+                          <span className="text-[10px] font-extrabold text-slate-700 w-20 shrink-0">B3 - Khu B</span>
+                          <div className="grid grid-rows-2 grid-cols-6 gap-0.5 flex-1 justify-center max-w-[100px]">
+                            {[true, true, true, false, true, true, false, false, true, true, true, false].map((occ, idx) => (
+                              <div 
+                                key={idx} 
+                                className={`w-3.5 h-3.5 rounded-sm border ${
+                                  occ ? 'bg-slate-300 border-slate-300' : 'bg-white border-slate-200'
+                                }`}
+                                title={occ ? 'Đã đỗ' : 'Còn trống'}
+                              ></div>
+                            ))}
+                          </div>
+                          <div className="text-right shrink-0 flex flex-col items-end gap-0.5 min-w-[76px]">
+                            <Badge className="bg-emerald-50 hover:bg-emerald-50 text-emerald-700 border-transparent text-[9px] font-bold px-1.5 py-0.2 rounded shadow-none flex items-center">
+                              <MiniParkingIcon />
+                              23%
+                            </Badge>
+                            <span className="text-[8px] text-slate-400 font-bold leading-none">Còn 23/96 trống</span>
+                          </div>
                         </div>
-                        <div className="text-right shrink-0 flex flex-col items-end gap-0.5 min-w-[76px]">
-                          <Badge className="bg-emerald-50 hover:bg-emerald-50 text-emerald-700 border-transparent text-[9px] font-bold px-1.5 py-0.2 rounded shadow-none flex items-center">
-                            <MiniParkingIcon />
-                            23%
-                          </Badge>
-                          <span className="text-[8px] text-slate-400 font-bold leading-none">Còn 23/96 trống</span>
-                        </div>
-                      </div>
+                      )}
 
                     </div>
 
