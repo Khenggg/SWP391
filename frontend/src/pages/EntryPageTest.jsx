@@ -219,7 +219,7 @@ export default function EntryPageTest() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans px-3 pt-3 pb-0 flex flex-col">
+    <div className="h-screen bg-slate-50 text-slate-800 font-sans p-3 flex flex-col overflow-hidden">
       {/* Toast Notification */}
       {showNotification && (
         <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-5 py-4 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-0 border ${
@@ -288,7 +288,7 @@ export default function EntryPageTest() {
         </div>
       </header>
 
-      <main className="flex flex-col gap-2 flex-1 min-h-0 h-screen">
+      <main className="flex flex-col gap-2 flex-1 min-h-0">
         
         {/* Top Split Layout: 3/4 left grid of steps, 1/4 right Booking detail */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-2 flex-1 min-h-0">
@@ -297,7 +297,7 @@ export default function EntryPageTest() {
           <section className="lg:col-span-3 flex flex-col gap-2 h-full min-h-0">
             
             {/* ROW 1: Steps 1 & 2 */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-[6.5] min-h-0">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-[5.8] min-h-0">
               {/* Step 1 (Camera nhận diện) - 50% width (6/12 cols) */}
               <div className="lg:col-span-6 flex flex-col h-full min-h-0">
                 <Card className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden flex flex-col p-0 gap-0 h-full min-h-0">
@@ -537,7 +537,7 @@ export default function EntryPageTest() {
             </div>
 
             {/* ROW 2: Steps 3 & 4 */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 flex-[3.5] min-h-0">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 flex-[4.2] min-h-0">
               {/* Step 3 (Kiểm tra hệ thống) - 1/3 width, horizontal 2x2 grid */}
               <div className="lg:col-span-1 flex flex-col h-full min-h-0">
                 <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2.5 h-full min-h-0">
