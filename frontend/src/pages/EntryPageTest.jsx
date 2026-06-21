@@ -624,19 +624,14 @@ export default function EntryPageTest() {
                   {/* Suggestions and Occupancy side-by-side split */}
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 min-h-0 overflow-y-auto pr-1">
                     
-                    {/* Left Column (5/12 width): Recommendation items, separated by horizontal lines */}
-                    <div className="lg:col-span-5 flex flex-col gap-2 justify-center pr-2">
+                    {/* Left Column (4/12 width): Recommendation items, separated by horizontal lines */}
+                    <div className="lg:col-span-4 flex flex-col gap-2 justify-center pr-2">
                       
                       {/* Car Suggestion */}
                       <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
                         <div className="text-xl">🚘</div>
                         <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-extrabold text-blue-700 leading-none">Ô tô tiện tại</span>
-                            <Badge className="bg-emerald-50 hover:bg-emerald-50 text-emerald-700 border-emerald-100 text-[8px] font-extrabold px-1.5 py-0.2 rounded shadow-none border-transparent">
-                              Đề xuất tốt nhất
-                            </Badge>
-                          </div>
+                          <p className="text-[10px] font-extrabold text-blue-700 leading-none">Ô tô tiện tại</p>
                           <p className="text-xs font-extrabold text-slate-800 mt-0.5">B2 - Slot A12</p>
                         </div>
                       </div>
@@ -661,8 +656,8 @@ export default function EntryPageTest() {
 
                     </div>
 
-                    {/* Right Column (7/12 width): Occupancy visual list with 2x6 cell grids */}
-                    <div className="lg:col-span-7 flex flex-col gap-1.5 justify-center border-l border-slate-100 pl-3">
+                    {/* Right Column (8/12 width): Occupancy visual list with 2x6 cell grids */}
+                    <div className="lg:col-span-8 flex flex-col gap-1.5 justify-center border-l border-slate-100 pl-3">
                       
                       {/* B1 Floor */}
                       <div className="flex items-center justify-between gap-1.5 p-1.5 border border-slate-100 rounded-lg bg-slate-50/50">
