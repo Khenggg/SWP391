@@ -297,7 +297,7 @@ export default function EntryPageTest() {
         </div>
       </header>
 
-      <main className="flex flex-col gap-2 flex-1 min-h-0">
+      <main className="flex flex-col gap-2 flex-1 min-h-0 h-[calc(100vh-88px)]">
         
         {/* Top Split Layout: 3/4 left grid of steps, 1/4 right Booking detail */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-2 flex-1 min-h-0">
@@ -306,7 +306,7 @@ export default function EntryPageTest() {
           <section className="lg:col-span-3 flex flex-col gap-2 h-full min-h-0">
             
             {/* ROW 1: Steps 1 & 2 */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-[6.0] min-h-0">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-[5.8] min-h-0">
               {/* Step 1 (Camera nhận diện) - 50% width (6/12 cols) */}
               <div className="lg:col-span-6 flex flex-col h-full min-h-0">
                 <Card className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden flex flex-col p-0 gap-0 h-full min-h-0">
@@ -546,7 +546,7 @@ export default function EntryPageTest() {
             </div>
 
             {/* ROW 2: Steps 3 & 4 */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-[4.0] min-h-0">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-[4.2] min-h-0">
               {/* Step 3 (Kiểm tra hệ thống) - 1.25/3 width (5/12 cols) */}
               <div className="lg:col-span-5 flex flex-col h-full min-h-0">
                 <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2.5 h-full min-h-0">
