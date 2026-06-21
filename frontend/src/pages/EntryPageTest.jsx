@@ -228,7 +228,7 @@ export default function EntryPageTest() {
   };
 
   return (
-    <div className="h-screen bg-slate-50 text-slate-800 font-sans p-3 flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans px-3 pt-3 pb-0 flex flex-col">
       {/* Toast Notification */}
       {showNotification && (
         <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-5 py-4 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-0 border ${
@@ -297,7 +297,7 @@ export default function EntryPageTest() {
         </div>
       </header>
 
-      <main className="flex flex-col gap-2 flex-1 min-h-0">
+      <main className="flex flex-col gap-2 flex-1 min-h-0 h-screen">
         
         {/* Top Split Layout: 3/4 left grid of steps, 1/4 right Booking detail */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-2 flex-1 min-h-0">
