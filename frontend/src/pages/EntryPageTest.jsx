@@ -855,12 +855,12 @@ export default function EntryPageTest() {
               </div>
             </div>
 
-            {/* Responsive grid: first 3 take col-span-2, last 2 take col-span-3 */}
-            <div className="grid grid-cols-2 lg:grid-cols-12 gap-2">
+            {/* Responsive grid: 5 equal columns on desktop, larger text and icons */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
               <Button 
                 variant="outline"
                 onClick={handleScanPlate}
-                className="h-12.5 col-span-1 lg:col-span-2 flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-800 hover:text-blue-700 font-black text-xs rounded-lg shadow-xs transition cursor-pointer"
+                className="h-11 col-span-1 lg:col-span-1 flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-800 hover:text-blue-700 font-black text-xs lg:text-[13px] rounded-lg shadow-xs transition cursor-pointer"
               >
                 <Camera className="h-5.5 w-5.5 shrink-0 stroke-[2.8] text-blue-600" />
                 Quét biển số
@@ -869,7 +869,7 @@ export default function EntryPageTest() {
               <Button 
                 variant="outline"
                 onClick={handleScanCard}
-                className="h-12.5 col-span-1 lg:col-span-2 flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-800 hover:text-blue-700 font-black text-xs rounded-lg shadow-xs transition cursor-pointer"
+                className="h-11 col-span-1 lg:col-span-1 flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-800 hover:text-blue-700 font-black text-xs lg:text-[13px] rounded-lg shadow-xs transition cursor-pointer"
               >
                 <CreditCard className="h-5.5 w-5.5 shrink-0 stroke-[2.8] text-blue-600" />
                 Quét thẻ
@@ -878,7 +878,7 @@ export default function EntryPageTest() {
               <Button 
                 variant="outline"
                 onClick={handleRecheck}
-                className="h-12.5 col-span-2 lg:col-span-2 flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-800 hover:text-blue-700 font-black text-xs rounded-lg shadow-xs transition cursor-pointer"
+                className="h-11 col-span-2 lg:col-span-1 flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-800 hover:text-blue-700 font-black text-xs lg:text-[13px] rounded-lg shadow-xs transition cursor-pointer"
               >
                 <RefreshCw className="h-5.5 w-5.5 shrink-0 stroke-[2.8] text-blue-600" />
                 Kiểm tra lại
@@ -886,30 +886,22 @@ export default function EntryPageTest() {
 
               <Button
                 onClick={handleCreateSession}
-                className={`h-12.5 col-span-1 lg:col-span-3 rounded-lg flex items-center justify-center gap-3 font-black text-xs shadow-xs transition cursor-pointer ${
+                className={`h-11 col-span-1 lg:col-span-1 rounded-lg flex items-center justify-center gap-2.5 font-black text-xs lg:text-[13px] shadow-xs transition cursor-pointer ${
                   allChecksPassed
                     ? 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-md'
                     : 'bg-slate-200 text-slate-400 cursor-not-allowed border-transparent'
                 }`}
               >
-                <div className="w-5.5 h-5.5 rounded-full border-2 border-white flex items-center justify-center shrink-0">
-                  <Plus className="h-4 w-4 stroke-[4]" />
-                </div>
-                <div className="text-left">
-                  <p className="font-black leading-tight text-xs lg:text-[13px]">Tạo phiên đỗ xe</p>
-                  <p className="text-[9px] opacity-80 font-bold">Tạo phiên đỗ xe mới</p>
-                </div>
+                <Plus className="h-5.5 w-5.5 shrink-0 stroke-[2.8] text-white" />
+                Tạo phiên đỗ xe
               </Button>
 
               <Button
                 onClick={handleOpenBarrier}
-                className="h-12.5 col-span-1 lg:col-span-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-xs hover:shadow-md flex items-center justify-center gap-3 font-black text-xs transition cursor-pointer border-transparent"
+                className="h-11 col-span-1 lg:col-span-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-xs hover:shadow-md flex items-center justify-center gap-2.5 font-black text-xs lg:text-[13px] transition cursor-pointer border-transparent"
               >
-                <BarrierIcon className="h-6.5 w-6.5 shrink-0" />
-                <div className="text-left">
-                  <p className="font-black leading-tight text-xs lg:text-[13px]">Mở cổng</p>
-                  <p className="text-[9px] opacity-80 font-bold">Mở cổng cho xe vào</p>
-                </div>
+                <BarrierIcon className="h-6 w-6 shrink-0 text-white" />
+                Mở cổng
               </Button>
             </div>
           </Card>
