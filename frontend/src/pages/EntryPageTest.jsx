@@ -30,6 +30,81 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 
+// Custom inline SVG icons matching the mockup
+const ScooterIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <circle cx="6" cy="18" r="3" />
+    <circle cx="18" cy="18" r="3" />
+    <path d="M18 15V7a2 2 0 0 0-2-2H9" />
+    <path d="m9 5-2 4h4" />
+    <path d="M6 15h12" />
+  </svg>
+);
+
+const CarFrontIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M4 14h16" />
+    <path d="M5 10V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4" />
+    <rect x="3" y="10" width="18" height="10" rx="2" />
+    <circle cx="7" cy="15" r="1.2" />
+    <circle cx="17" cy="15" r="1.2" />
+  </svg>
+);
+
+const TruckIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <rect x="1" y="3" width="15" height="13" rx="2" />
+    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+    <circle cx="5.5" cy="18.5" r="2.5" />
+    <circle cx="18.5" cy="18.5" r="2.5" />
+  </svg>
+);
+
+const BicycleIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <circle cx="18.5" cy="17.5" r="3.5" />
+    <circle cx="5.5" cy="17.5" r="3.5" />
+    <circle cx="15" cy="5" r="1" />
+    <path d="M12 17.5V14H9.5" />
+    <path d="m15 5-4.7 10" />
+    <path d="M12 8H8.5" />
+  </svg>
+);
+
+const ColorfulMapIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0 cursor-pointer">
+    <path d="M3 6L9 3L15 6L21 3V18L15 21L9 18L3 21V6Z" fill="#EFF6FF" stroke="#3B82F6" strokeWidth="1.5" strokeLinejoin="round"/>
+    <path d="M9 3V18" stroke="#3B82F6" strokeWidth="1.5" strokeDasharray="2 2"/>
+    <path d="M15 6V21" stroke="#3B82F6" strokeWidth="1.5" strokeDasharray="2 2"/>
+    <path d="M12 13C13.6569 13 15 11.6569 15 10C15 8.34315 13.6569 7 12 7C10.3431 7 9 8.34315 9 10C9 11.6569 10.3431 13 12 13Z" fill="#EF4444" stroke="#DC2626" strokeWidth="1"/>
+    <circle cx="12" cy="10" r="1.5" fill="#FFFFFF"/>
+  </svg>
+);
+
+const StatusCheckIcon = () => (
+  <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white shrink-0 shadow-xs">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  </div>
+);
+
+const StatusAlertIcon = () => (
+  <div className="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white shrink-0 shadow-xs">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  </div>
+);
+
+const MiniParkingIcon = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="mr-0.5 text-emerald-600">
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <path d="M9 17V7h4a3 3 0 0 1 0 6H9" />
+  </svg>
+);
+
 export default function EntryPageTest() {
   // 1. Form States
   const [plateNumber, setPlateNumber] = useState('30F-123.45');
@@ -200,19 +275,19 @@ export default function EntryPageTest() {
         </div>
       </header>
 
-      <main className="grid grid-cols-1 lg:grid-cols-4 gap-2 h-screen">
+      <main className="grid grid-cols-1 lg:grid-cols-4 gap-2 flex-1 min-h-0 h-screen">
         
         {/* ================= LEFT COLUMN: STEPS 1, 2, 3, 4, 5 (3/4 Width) ================= */}
         <section className="lg:col-span-3 flex flex-col gap-2 h-full min-h-0">
           
           {/* ROW 1: Steps 1 & 2 */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-[5] min-h-0">
-            {/* Step 1 (Camera nhận diện) - 2/3 width */}
+            {/* Step 1 (Camera nhận diện) - 1.75/3 width (7/12 cols) */}
             <div className="lg:col-span-7 flex flex-col h-full min-h-0">
               <Card className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden flex flex-col p-0 gap-0 h-full min-h-0">
                 <div className="p-3 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2 w-full shrink-0">
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">1</span>
+                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-600 text-white font-bold text-[10px]">1</span>
                     <h3 className="font-bold text-slate-800 text-sm">Camera nhận diện</h3>
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -285,145 +360,161 @@ export default function EntryPageTest() {
               </Card>
             </div>
 
-            {/* Step 2 (Thông tin xe vào) - 1/3 width */}
+            {/* Step 2 (Thông tin xe vào) - 1.25/3 width (5/12 cols) */}
             <div className="lg:col-span-5 flex flex-col h-full min-h-0">
-              <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2 h-full min-h-0">
+              <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2.5 h-full min-h-0">
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">2</span>
-                  <h3 className="font-bold text-slate-800 text-sm">Thông tin xe vào</h3>
+                  <div className="w-5 h-5 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">2</div>
+                  <h3 className="font-extrabold text-slate-805 text-sm">Thông tin xe vào</h3>
                 </div>
 
-                {/* Form */}
-                <div className="flex flex-col gap-2 flex-1 overflow-y-auto pr-1">
-                  {/* Field: License Plate */}
-                  <div className="flex flex-col gap-0.5">
-                    <label className="text-[11px] font-bold text-slate-500">Biển số <span className="text-rose-500">*</span></label>
+                {/* Form - Side by side label and input layout matching mockup */}
+                <div className="flex flex-col gap-2.5 flex-1 overflow-y-auto pr-1 justify-center">
+                  
+                  {/* Row 1: License Plate */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-slate-700 text-xs font-bold w-24 shrink-0">Biển số <span className="text-rose-500">*</span></label>
                     <Input 
                       type="text" 
                       value={plateNumber} 
                       onChange={(e) => setPlateNumber(e.target.value)}
-                      className="h-8.5 px-3 rounded-lg font-bold text-xs focus-visible:border-blue-500 focus-visible:ring-blue-100 text-slate-800"
+                      className="h-9 flex-1 px-3 rounded-lg font-bold text-xs focus-visible:border-blue-500 focus-visible:ring-blue-100 text-slate-800 border-slate-200"
                       placeholder="30F-123.45"
                     />
                   </div>
 
-                  {/* Field: Card Code */}
-                  <div className="flex flex-col gap-0.5">
-                    <label className="text-[11px] font-bold text-slate-500">Mã thẻ</label>
-                    <div className="relative">
+                  {/* Row 2: Card Code */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-slate-700 text-xs font-bold w-24 shrink-0">Mã thẻ</label>
+                    <div className="relative flex-1">
                       <Input 
                         type="text" 
                         value={cardCode} 
                         onChange={(e) => setCardCode(e.target.value)}
-                        className="h-8.5 px-3 pr-8 rounded-lg font-mono font-bold text-xs focus-visible:border-blue-500 focus-visible:ring-blue-100 text-slate-800"
+                        className="h-9 w-full px-3 pr-8 rounded-lg font-mono font-bold text-xs focus-visible:border-blue-500 focus-visible:ring-blue-100 text-slate-800 border-slate-200"
                         placeholder="TH-00112345"
                       />
                       {isCardValid && (
-                        <CheckCircle className="absolute right-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-emerald-500" />
+                        <div className="absolute right-2.5 top-1/2 transform -translate-y-1/2 h-4.5 w-4.5 rounded-full bg-emerald-500 flex items-center justify-center text-white">
+                          <Check className="h-3 w-3 stroke-[3.5]" />
+                        </div>
                       )}
                     </div>
                   </div>
 
-                  {/* Field: Vehicle Type */}
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[11px] font-bold text-slate-500">Loại xe <span className="text-rose-500">*</span></label>
-                    <div className="grid grid-cols-4 gap-0.5 p-0.5 bg-slate-100 rounded-lg">
-                      {['motorbike', 'car', 'truck', 'bicycle'].map((type) => {
-                        const label = type === 'motorbike' ? 'Xe máy' : type === 'car' ? 'Ô tô' : type === 'truck' ? 'Xe tải' : 'Xe đạp';
+                  {/* Row 3: Vehicle Type buttons (border-only style matching mockup) */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-slate-700 text-xs font-bold w-24 shrink-0">Loại xe <span className="text-rose-500">*</span></label>
+                    <div className="flex flex-wrap gap-1.5 flex-1">
+                      {[
+                        { key: 'motorbike', label: 'Xe máy', icon: ScooterIcon },
+                        { key: 'car', label: 'Ô tô', icon: CarFrontIcon },
+                        { key: 'truck', label: 'Xe tải', icon: TruckIcon },
+                        { key: 'bicycle', label: 'Xe đạp', icon: BicycleIcon }
+                      ].map((item) => {
+                        const Icon = item.icon;
+                        const isActive = vehicleType === item.key;
                         return (
                           <button
-                            key={type}
-                            onClick={() => setVehicleType(type)}
-                            className={`py-1 text-[10px] font-bold rounded transition cursor-pointer ${
-                              vehicleType === type
-                                ? 'bg-white text-blue-600 shadow-xs border border-slate-200/50'
-                                : 'text-slate-500 hover:text-slate-800'
+                            key={item.key}
+                            onClick={() => setVehicleType(item.key)}
+                            className={`px-3 py-1.5 rounded-lg border text-[11px] font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+                              isActive
+                                ? 'border-blue-600 bg-blue-50/20 text-blue-600'
+                                : 'border-slate-200 bg-white text-slate-500 hover:text-slate-700 hover:border-slate-300'
                             }`}
                           >
-                            {label}
+                            <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                            {item.label}
                           </button>
                         );
                       })}
                     </div>
                   </div>
 
-                  {/* Field: Driver Group */}
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[11px] font-bold text-slate-500">Nhóm tài xế <span className="text-rose-500">*</span></label>
-                    <div className="grid grid-cols-2 gap-0.5 p-0.5 bg-slate-100 rounded-lg">
-                      {['resident', 'visitor'].map((grp) => {
-                        const label = grp === 'resident' ? 'Cư dân' : 'Khách';
+                  {/* Row 4: Driver Group buttons */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-slate-700 text-xs font-bold w-24 shrink-0">Nhiệm tài xế <span className="text-rose-500">*</span></label>
+                    <div className="flex flex-wrap gap-1.5 flex-1">
+                      {[
+                        { key: 'resident', label: 'Cư dân' },
+                        { key: 'visitor', label: 'Khách vãng lai' }
+                      ].map((item) => {
+                        const isActive = driverGroup === item.key;
                         return (
                           <button
-                            key={grp}
-                            onClick={() => setDriverGroup(grp)}
-                            className={`py-1 text-[10px] font-bold rounded transition cursor-pointer ${
-                              driverGroup === grp
-                                ? 'bg-white text-blue-600 shadow-xs border border-slate-200/50'
-                                : 'text-slate-500 hover:text-slate-800'
-                              }`}
+                            key={item.key}
+                            onClick={() => setDriverGroup(item.key)}
+                            className={`px-4 py-1.5 rounded-lg border text-[11px] font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+                              isActive
+                                ? 'border-blue-600 bg-blue-50/20 text-blue-600'
+                                : 'border-slate-200 bg-white text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                            }`}
                           >
-                            {label}
+                            <User className={`w-3.5 h-3.5 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                            {item.label}
                           </button>
                         );
                       })}
                     </div>
                   </div>
 
-                  {/* Field: Gate */}
-                  <div className="flex flex-col gap-0.5">
-                    <label className="text-[11px] font-bold text-slate-500">Cổng vào <span className="text-rose-500">*</span></label>
-                    <div className="relative">
+                  {/* Row 5: Gate selection */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-slate-700 text-xs font-bold w-24 shrink-0">Cổng vào <span className="text-rose-500">*</span></label>
+                    <div className="relative flex-1">
                       <select 
                         value={gate}
                         onChange={(e) => setGate(e.target.value)}
-                        className="w-full h-8.5 px-3 py-1.5 rounded-lg border border-slate-200 font-bold text-xs focus:outline-none focus:border-blue-500 appearance-none bg-white text-slate-800 cursor-pointer"
+                        className="w-full h-9 px-3 py-1.5 rounded-lg border border-slate-200 font-bold text-xs focus:outline-none focus:border-blue-500 appearance-none bg-white text-slate-800 cursor-pointer"
                       >
                         <option value="A1">Cổng A1</option>
                         <option value="A2">Cổng A2</option>
                         <option value="B1">Cổng B1</option>
                       </select>
-                      <ChevronDown className="absolute right-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                      <ChevronDown className="absolute right-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                     </div>
                   </div>
 
-                  {/* Field: Time In */}
-                  <div className="flex flex-col gap-0.5">
-                    <label className="text-[11px] font-bold text-slate-500">Thời gian vào</label>
-                    <div className="relative">
+                  {/* Row 6: Time In with calendar on the left */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-slate-700 text-xs font-bold w-24 shrink-0">Thời gian vào</label>
+                    <div className="relative flex-1">
+                      <Calendar className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <Input 
                         type="text" 
                         value={entryTime}
                         onChange={(e) => setEntryTime(e.target.value)}
-                        className="h-8.5 px-3 pr-8 rounded-lg font-bold text-xs focus-visible:border-blue-500 focus-visible:ring-blue-100 text-slate-500 font-medium"
+                        className="h-9 w-full pl-9 pr-3 rounded-lg font-bold text-xs focus-visible:border-blue-500 focus-visible:ring-blue-100 text-slate-800 border-slate-200"
                       />
-                      <Calendar className="absolute right-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                     </div>
                   </div>
 
-                  {/* Thumbnail Attachments */}
-                  <div className="grid grid-cols-2 gap-2 mt-1">
-                    {/* Vehicle photo */}
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-[9px] font-bold text-slate-400">Ảnh xe</span>
-                      <div className="bg-slate-100 rounded-lg overflow-hidden aspect-[4/3] relative border border-slate-150">
+                  {/* Row 7: Attachments - Side by side layout matching mockup */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-slate-700 text-xs font-bold w-24 shrink-0">Ảnh xe</label>
+                    <div className="flex-1 flex items-center gap-4">
+                      {/* Vehicle photo */}
+                      <div className="w-28 h-16 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 shrink-0">
                         <img 
                           src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=400&q=80" 
                           alt="Car attachment" 
                           className="w-full h-full object-cover"
                         />
                       </div>
-                    </div>
-                    {/* Plate Crop Photo */}
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-[9px] font-bold text-slate-400">Ảnh biển số</span>
-                      <div className="bg-slate-900 rounded-lg overflow-hidden aspect-[4/3] flex items-center justify-center border border-slate-800 p-1.5">
-                        <div className="bg-slate-950 border border-slate-700 px-2 py-1 rounded text-white font-mono font-black tracking-wider text-[10px] shadow-inner">
-                          30F-123.45
+                      
+                      {/* Plate Crop Photo & label aligned side-by-side */}
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="text-slate-700 text-xs font-bold shrink-0">Ảnh biển số</span>
+                        <div className="flex-1 max-w-[160px] h-16 bg-slate-900 rounded-lg overflow-hidden flex items-center justify-center border border-slate-800 p-1">
+                          <div className="bg-white border border-slate-800 px-2 py-0.5 rounded text-slate-900 font-mono font-black tracking-wider text-[11px] shadow-sm select-none">
+                            {plateNumber}
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
+
                 </div>
               </Card>
             </div>
@@ -431,182 +522,207 @@ export default function EntryPageTest() {
 
           {/* ROW 2: Steps 3 & 4 */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 flex-[4] min-h-0">
-            {/* Step 3 (Kiểm tra hệ thống) - 1/3 width */}
+            {/* Step 3 (Kiểm tra hệ thống) - 1/3 width, horizontal 2x2 grid */}
             <div className="lg:col-span-1 flex flex-col h-full min-h-0">
-              <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2 h-full min-h-0">
+              <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2.5 h-full min-h-0">
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">3</span>
-                  <h3 className="font-bold text-slate-800 text-sm">Kiểm tra hệ thống</h3>
+                  <div className="w-5 h-5 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">3</div>
+                  <h3 className="font-extrabold text-slate-800 text-sm">Kiểm tra hệ thống</h3>
                 </div>
 
-                {/* Check Grid List */}
-                <div className="flex flex-col gap-2 flex-1 overflow-y-auto pr-1 justify-center">
+                {/* Check List - 2x2 Grid horizontal layout */}
+                <div className="grid grid-cols-2 gap-1.5 flex-1 items-center justify-center">
                   {/* Check 1 */}
-                  <div className="flex flex-col gap-0.5 p-2 rounded-lg bg-slate-50 border border-slate-100">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">Thẻ khả dụng</span>
-                    <div className="flex items-center justify-between mt-0.5">
-                      <span className={`text-xs font-bold ${isCardValid ? 'text-slate-700' : 'text-rose-600'}`}>
-                        {isCardValid ? 'Hợp lệ' : 'Lỗi/Khóa'}
+                  <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50 border border-slate-100">
+                    <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">Thẻ khả dụng</span>
+                    <div className="flex items-center gap-1">
+                      <span className={`text-[10px] font-bold ${isCardValid ? 'text-emerald-700' : 'text-rose-600'}`}>
+                        {isCardValid ? 'Hợp lệ' : 'Lỗi'}
                       </span>
-                      {isCardValid ? (
-                        <CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                      ) : (
-                        <AlertCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
-                      )}
+                      {isCardValid ? <StatusCheckIcon /> : <StatusAlertIcon />}
                     </div>
                   </div>
 
                   {/* Check 2 */}
-                  <div className="flex flex-col gap-0.5 p-2 rounded-lg bg-slate-50 border border-slate-100">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">Trùng phiên hoạt động</span>
-                    <div className="flex items-center justify-between mt-0.5">
-                      <span className={`text-xs font-bold ${isNoDuplicateSession ? 'text-slate-700' : 'text-rose-600'}`}>
-                        {isNoDuplicateSession ? 'Không trùng' : 'Bị trùng'}
+                  <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50 border border-slate-100">
+                    <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">Trùng phiên</span>
+                    <div className="flex items-center gap-1">
+                      <span className={`text-[10px] font-bold ${isNoDuplicateSession ? 'text-emerald-700' : 'text-rose-600'}`}>
+                        {isNoDuplicateSession ? 'Không trùng' : 'Trùng'}
                       </span>
-                      {isNoDuplicateSession ? (
-                        <CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                      ) : (
-                        <AlertTriangle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
-                      )}
+                      {isNoDuplicateSession ? <StatusCheckIcon /> : <StatusAlertIcon />}
                     </div>
                   </div>
 
                   {/* Check 3 */}
-                  <div className="flex flex-col gap-0.5 p-2 rounded-lg bg-slate-50 border border-slate-100">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">Mẫu biển số xe</span>
-                    <div className="flex items-center justify-between mt-0.5">
-                      <span className={`text-xs font-bold ${isPlateValid ? 'text-slate-700' : 'text-rose-600'}`}>
-                        {isPlateValid ? 'Chuẩn quy chuẩn' : 'Không đạt'}
+                  <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50 border border-slate-100">
+                    <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">Mẫu biển số</span>
+                    <div className="flex items-center gap-1">
+                      <span className={`text-[10px] font-bold ${isPlateValid ? 'text-emerald-700' : 'text-rose-600'}`}>
+                        {isPlateValid ? 'Quy chuẩn' : 'Lỗi'}
                       </span>
-                      {isPlateValid ? (
-                        <CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                      ) : (
-                        <AlertCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
-                      )}
+                      {isPlateValid ? <StatusCheckIcon /> : <StatusAlertIcon />}
                     </div>
                   </div>
 
                   {/* Check 4 */}
-                  <div className="flex flex-col gap-0.5 p-2 rounded-lg bg-slate-50 border border-slate-100">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">Phân loại xe</span>
-                    <div className="flex items-center justify-between mt-0.5">
-                      <span className={`text-xs font-bold ${isVehicleTypeValid ? 'text-slate-700' : 'text-rose-600'}`}>
-                        {isVehicleTypeValid ? 'Khớp loại' : 'Không khớp'}
+                  <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50 border border-slate-100">
+                    <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">Phân loại xe</span>
+                    <div className="flex items-center gap-1">
+                      <span className={`text-[10px] font-bold ${isVehicleTypeValid ? 'text-emerald-700' : 'text-rose-600'}`}>
+                        {isVehicleTypeValid ? 'Khớp loại' : 'Lỗi'}
                       </span>
-                      {isVehicleTypeValid ? (
-                        <CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                      ) : (
-                        <AlertCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
-                      )}
+                      {isVehicleTypeValid ? <StatusCheckIcon /> : <StatusAlertIcon />}
                     </div>
                   </div>
                 </div>
               </Card>
             </div>
 
-            {/* Step 4 (Gợi ý vị trí đỗ) - 2/3 width */}
+            {/* Step 4 (Gợi ý vị trí đỗ) - 2/3 width (Horizontal split matching Mockup Image 2) */}
             <div className="lg:col-span-2 flex flex-col h-full min-h-0">
               <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2 h-full min-h-0">
                 <div className="flex items-center justify-between shrink-0">
                   <div className="flex items-center gap-2">
-                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">4</span>
-                    <h3 className="font-bold text-slate-800 text-sm">Gợi ý vị trí đỗ</h3>
+                    <div className="w-5 h-5 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">4</div>
+                    <h3 className="font-extrabold text-slate-800 text-sm">Gợi ý vị trí đỗ</h3>
                   </div>
-                  <MapPin className="h-4 w-4 text-blue-600 cursor-pointer" />
+                  <ColorfulMapIcon />
                 </div>
 
-                {/* Suggestions and Occupancy wrapper */}
-                <div className="flex flex-col gap-2 flex-1 overflow-y-auto pr-1">
-                  {/* Suggestions list */}
-                  <div className="flex flex-col gap-1.5">
-                    {/* Sug 1 */}
-                    <div className="flex items-center justify-between p-2 bg-blue-50/50 border border-blue-100 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded bg-blue-500 text-white flex items-center justify-center text-xs">
-                          🚘
+                {/* Suggestions and Occupancy side-by-side split */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 min-h-0 overflow-y-auto pr-1">
+                  
+                  {/* Left Column (5/12 width): Recommendation items, separated by horizontal lines */}
+                  <div className="lg:col-span-5 flex flex-col gap-2 justify-center pr-2">
+                    
+                    {/* Car Suggestion */}
+                    <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
+                      <div className="text-xl">🚘</div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-extrabold text-blue-700 leading-none">Ô tô tiện tại</span>
+                          <Badge className="bg-emerald-50 hover:bg-emerald-50 text-emerald-700 border-emerald-100 text-[8px] font-extrabold px-1.5 py-0.2 rounded shadow-none border-transparent">
+                            Đề xuất tốt nhất
+                          </Badge>
                         </div>
-                        <div>
-                          <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Ô tô đề xuất</p>
-                          <p className="text-xs font-extrabold text-blue-700 mt-0.5">B2 - Slot A12</p>
-                        </div>
+                        <p className="text-xs font-extrabold text-slate-800 mt-0.5">B2 - Slot A12</p>
                       </div>
-                      <Badge className="bg-emerald-100 hover:bg-emerald-100 text-emerald-800 text-[9px] font-extrabold px-1.5 py-0.5 rounded border-transparent shadow-none">
-                        Tốt nhất
-                      </Badge>
                     </div>
 
-                    {/* Sug 2 */}
-                    <div className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-100 rounded-lg">
-                      <div className="w-7 h-7 rounded bg-slate-200 text-slate-600 flex items-center justify-center text-xs">
-                        🛵
-                      </div>
+                    {/* Motorbike Suggestion */}
+                    <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
+                      <div className="text-xl">🛵</div>
                       <div>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Xe máy</p>
-                        <p className="text-xs font-bold text-slate-700 mt-0.5">B1 - Khu C</p>
+                        <p className="text-[10px] font-bold text-slate-450 leading-none">Xe máy</p>
+                        <p className="text-xs font-extrabold text-slate-800 mt-0.5">B1 - Khu C</p>
                       </div>
                     </div>
+
+                    {/* Truck Suggestion */}
+                    <div className="flex items-center gap-2.5">
+                      <div className="text-xl">🚛</div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-450 leading-none">Xe tải</p>
+                        <p className="text-xs font-extrabold text-slate-800 mt-0.5">B3 - Truck Bay 03</p>
+                      </div>
+                    </div>
+
                   </div>
 
-                  {/* Occupancy visual grid panel */}
-                  <div className="border-t border-slate-100 pt-2 flex flex-col gap-2">
-                    {/* Floor 1 */}
-                    <div>
-                      <div className="flex justify-between items-center text-[10px] mb-1">
-                        <span className="font-bold text-slate-700">B1 - Khu C (48%)</span>
-                        <span className="text-slate-400 font-medium">Còn 34/64 trống</span>
-                      </div>
-                      {/* Visual Cells Grid */}
-                      <div className="grid grid-cols-8 gap-1">
-                        {[true, true, false, false, true, false, false, false].map((occ, idx) => (
+                  {/* Right Column (7/12 width): Occupancy visual list with 2x6 cell grids */}
+                  <div className="lg:col-span-7 flex flex-col gap-1.5 justify-center border-l border-slate-100 pl-3">
+                    
+                    {/* B1 Floor */}
+                    <div className="flex items-center justify-between gap-1.5 p-1.5 border border-slate-100 rounded-lg bg-slate-50/50">
+                      <span className="text-[10px] font-extrabold text-slate-700 w-20 shrink-0">B1 - Khu C</span>
+                      <div className="grid grid-rows-2 grid-cols-6 gap-0.5 flex-1 justify-center max-w-[100px]">
+                        {[true, true, false, false, true, false, false, false, true, true, false, false].map((occ, idx) => (
                           <div 
                             key={idx} 
-                            className={`h-4 rounded border ${
-                              occ ? 'bg-slate-300 border-slate-300' : 'bg-white border-slate-200 hover:border-blue-400 cursor-pointer'
+                            className={`w-3.5 h-3.5 rounded-sm border ${
+                              occ ? 'bg-slate-300 border-slate-300' : 'bg-white border-slate-200'
                             }`}
                             title={occ ? 'Đã đỗ' : 'Còn trống'}
                           ></div>
                         ))}
                       </div>
+                      <div className="text-right shrink-0 flex flex-col items-end gap-0.5 min-w-[76px]">
+                        <Badge className="bg-emerald-50 hover:bg-emerald-50 text-emerald-700 border-transparent text-[9px] font-bold px-1.5 py-0.2 rounded shadow-none flex items-center">
+                          <MiniParkingIcon />
+                          48%
+                        </Badge>
+                        <span className="text-[8px] text-slate-400 font-bold leading-none">Còn 34/64 trống</span>
+                      </div>
                     </div>
 
-                    {/* Floor 2 */}
-                    <div>
-                      <div className="flex justify-between items-center text-[10px] mb-1">
-                        <span className="font-bold text-slate-700">B2 - Khu A (42%)</span>
-                        <span className="text-slate-400 font-medium">Còn 58/138 trống</span>
-                      </div>
-                      {/* Visual Cells Grid with dynamic suggestion slot */}
-                      <div className="grid grid-cols-8 gap-1">
-                        {[false, false, true, true, 'suggested', false, false, false].map((state, idx) => (
+                    {/* B2 Floor */}
+                    <div className="flex items-center justify-between gap-1.5 p-1.5 border border-slate-100 rounded-lg bg-slate-50/50">
+                      <span className="text-[10px] font-extrabold text-slate-700 w-20 shrink-0">B2 - Khu A</span>
+                      <div className="grid grid-rows-2 grid-cols-6 gap-0.5 flex-1 justify-center max-w-[100px]">
+                        {[false, false, true, true, 'suggested', false, false, false, true, false, false, true].map((state, idx) => (
                           <div 
                             key={idx} 
-                            className={`h-4 rounded border ${
-                              state === 'suggested' ? 'bg-blue-50 border-emerald-500 border-2 ring-2 ring-emerald-100 animate-pulse' :
-                              state ? 'bg-slate-300 border-slate-300' : 'bg-white border-slate-200 hover:border-blue-400 cursor-pointer'
+                            className={`w-3.5 h-3.5 rounded-sm border ${
+                              state === 'suggested' ? 'border-2 border-emerald-600 bg-white animate-pulse' :
+                              state ? 'bg-slate-300 border-slate-300' : 'bg-white border-slate-200'
                             }`}
-                            title={state === 'suggested' ? 'Ví trí đề xuất: Slot A12' : state ? 'Đã đỗ' : 'Còn trống'}
+                            title={state === 'suggested' ? 'Slot đề xuất: Slot A12' : state ? 'Đã đỗ' : 'Còn trống'}
                           ></div>
                         ))}
                       </div>
+                      <div className="text-right shrink-0 flex flex-col items-end gap-0.5 min-w-[76px]">
+                        <Badge className="bg-emerald-50 hover:bg-emerald-50 text-emerald-700 border-transparent text-[9px] font-bold px-1.5 py-0.2 rounded shadow-none flex items-center">
+                          <MiniParkingIcon />
+                          42%
+                        </Badge>
+                        <span className="text-[8px] text-slate-400 font-bold leading-none">Còn 58/138 trống</span>
+                      </div>
                     </div>
 
-                    {/* Legend */}
-                    <div className="flex items-center justify-center gap-3 mt-1 text-[9px] font-bold text-slate-400">
-                      <div className="flex items-center gap-1">
-                        <span className="w-2.5 h-2.5 rounded border border-slate-300 bg-white"></span>
-                        <span>Trống</span>
+                    {/* B3 Floor */}
+                    <div className="flex items-center justify-between gap-1.5 p-1.5 border border-slate-100 rounded-lg bg-slate-50/50">
+                      <span className="text-[10px] font-extrabold text-slate-700 w-20 shrink-0">B3 - Khu B</span>
+                      <div className="grid grid-rows-2 grid-cols-6 gap-0.5 flex-1 justify-center max-w-[100px]">
+                        {[true, true, true, false, true, true, false, false, true, true, true, false].map((occ, idx) => (
+                          <div 
+                            key={idx} 
+                            className={`w-3.5 h-3.5 rounded-sm border ${
+                              occ ? 'bg-slate-300 border-slate-300' : 'bg-white border-slate-200'
+                            }`}
+                            title={occ ? 'Đã đỗ' : 'Còn trống'}
+                          ></div>
+                        ))}
                       </div>
-                      <div className="flex items-center gap-1">
-                        <span className="w-2.5 h-2.5 rounded border border-emerald-500 bg-blue-50"></span>
-                        <span>Gợi ý</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="w-2.5 h-2.5 rounded bg-slate-300"></span>
-                        <span>Đã đỗ</span>
+                      <div className="text-right shrink-0 flex flex-col items-end gap-0.5 min-w-[76px]">
+                        <Badge className="bg-emerald-50 hover:bg-emerald-50 text-emerald-700 border-transparent text-[9px] font-bold px-1.5 py-0.2 rounded shadow-none flex items-center">
+                          <MiniParkingIcon />
+                          23%
+                        </Badge>
+                        <span className="text-[8px] text-slate-400 font-bold leading-none">Còn 23/96 trống</span>
                       </div>
                     </div>
+
+                  </div>
+
+                </div>
+
+                {/* Legend at bottom */}
+                <div className="flex items-center justify-center gap-3 mt-0.5 text-[9px] font-bold text-slate-400 shrink-0 border-t border-slate-50 pt-1.5">
+                  <div className="flex items-center gap-1">
+                    <span className="w-3 h-3 bg-emerald-500 rounded-sm"></span>
+                    <span>Trống</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="w-3 h-3 border-2 border-emerald-600 bg-white rounded-sm"></span>
+                    <span>Đề xuất</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="w-3 h-3 bg-slate-300 rounded-sm"></span>
+                    <span>Đã chiếm</span>
                   </div>
                 </div>
+
               </Card>
             </div>
           </div>
@@ -615,7 +731,7 @@ export default function EntryPageTest() {
           <div className="w-full shrink-0">
             <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2">
               <div className="flex items-center gap-2 shrink-0">
-                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">5</span>
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-600 text-white font-bold text-[10px]">5</span>
                 <h3 className="font-bold text-slate-800 text-sm">Thao tác</h3>
               </div>
 
@@ -708,15 +824,15 @@ export default function EntryPageTest() {
                         <QrCode className="h-4 w-4" />
                       </div>
                       <div>
-                        <h4 className="text-[11px] font-bold text-blue-800 leading-none">QR nhận diện</h4>
-                        <p className="text-[9px] font-semibold text-slate-400 mt-1">BK-250520-018</p>
+                        <h4 className="text-xs font-bold text-blue-800 leading-none">QR nhận diện</h4>
+                        <p className="text-[10px] font-semibold text-slate-400 mt-1">BK-250520-018</p>
                       </div>
                     </div>
-                    <Badge className="bg-emerald-100 hover:bg-emerald-100 text-emerald-800 text-[9px] font-extrabold px-1.5 py-0.5 rounded border-transparent shadow-none">
+                    <Badge className="bg-emerald-100 hover:bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-1.5 py-0.5 rounded border-transparent shadow-none">
                       Hợp lệ
                     </Badge>
                   </div>
-                  <div className="mt-2 pt-2 border-t border-blue-50 flex items-center justify-between text-[11px]">
+                  <div className="mt-2 pt-2 border-t border-blue-50 flex items-center justify-between text-xs">
                     <span className="text-slate-400 font-semibold">Loại vào:</span>
                     <span className="font-bold text-slate-700">Đặt chỗ trước</span>
                   </div>
@@ -724,11 +840,11 @@ export default function EntryPageTest() {
 
                 {/* Widget 2: Pre-booked Vehicle Info */}
                 <div className="p-3 border border-slate-100 rounded-lg bg-slate-50/50 flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-[11px] font-bold text-slate-700">
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
                     <span className="text-emerald-500">🚘</span>
                     <span>Thông tin xe đặt chỗ</span>
                   </div>
-                  <div className="flex flex-col gap-1 text-[11px]">
+                  <div className="flex flex-col gap-1 text-xs">
                     <div className="flex justify-between">
                       <span className="text-slate-400 font-semibold">Biển số:</span>
                       <span className="font-bold text-slate-800">30F-123.45</span>
@@ -747,15 +863,15 @@ export default function EntryPageTest() {
                 {/* Widget 3: Booked Location */}
                 <div className="p-3 border border-slate-100 rounded-lg bg-slate-50/50 flex flex-col gap-2">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-[11px] font-bold text-slate-700">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
                       <span className="text-amber-500">📍</span>
                       <span>Vị trí đã đặt</span>
                     </div>
-                    <Badge className="bg-emerald-100 hover:bg-emerald-100 text-emerald-800 text-[8.5px] font-extrabold px-1 py-0.5 rounded border-transparent shadow-none">
+                    <Badge className="bg-emerald-100 hover:bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-1 py-0.5 rounded border-transparent shadow-none">
                       Có thể vào
                     </Badge>
                   </div>
-                  <div className="flex flex-col gap-1 text-[11px]">
+                  <div className="flex flex-col gap-1 text-xs">
                     <div className="flex justify-between">
                       <span className="text-slate-400 font-semibold">Tầng/Khu:</span>
                       <span className="font-bold text-slate-800">B2 - Khu A</span>
@@ -772,10 +888,10 @@ export default function EntryPageTest() {
                 </div>
               </div>
             ) : (
-              <div className="py-8 px-3 border border-dashed border-slate-200 rounded-xl text-center flex flex-col items-center justify-center gap-1.5">
+              <div className="py-8 px-3 border border-dashed border-slate-200 rounded-xl text-center flex flex-col items-center justify-center gap-2">
                 <QrCode className="h-8 w-8 text-slate-300" />
-                <p className="text-xs font-bold text-slate-400">Không tìm thấy thông tin</p>
-                <p className="text-[9px] text-slate-400 max-w-[150px]">
+                <p className="text-sm font-bold text-slate-400">Không tìm thấy thông tin</p>
+                <p className="text-[10px] text-slate-400 max-w-[150px]">
                   (Nhập biển số 30F-123.45 để kiểm tra thông tin đặt chỗ/QR)
                 </p>
               </div>
@@ -794,22 +910,22 @@ export default function EntryPageTest() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-slate-100">
-                    <TableHead className="h-7 font-bold text-slate-400 text-[10px] px-0">Biển số</TableHead>
-                    <TableHead className="h-7 font-bold text-slate-400 text-[10px]">Loại</TableHead>
-                    <TableHead className="h-7 font-bold text-slate-400 text-[10px] text-right pr-0">Thời gian</TableHead>
+                    <TableHead className="h-7 font-bold text-slate-400 text-[11px] px-0">Biển số</TableHead>
+                    <TableHead className="h-7 font-bold text-slate-400 text-[11px]">Loại</TableHead>
+                    <TableHead className="h-7 font-bold text-slate-400 text-[11px] text-right pr-0">Thời gian</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {recentEntries.map((entry, index) => (
                     <TableRow key={index} className="hover:bg-slate-50/50 border-slate-50">
-                      <TableCell className="py-2 font-extrabold text-slate-800 flex items-center gap-1 px-0 text-[11px]">
+                      <TableCell className="py-2 font-extrabold text-slate-800 flex items-center gap-1 px-0 text-xs">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
                         {entry.plate}
                       </TableCell>
-                      <TableCell className="py-2 font-semibold text-slate-600 text-[11px]">
+                      <TableCell className="py-2 font-semibold text-slate-600 text-xs">
                         {entry.type === 'car' ? '🚘' : entry.type === 'motorbike' ? '🛵' : '🚛'}
                       </TableCell>
-                      <TableCell className="py-2 text-right font-medium text-slate-400 pr-0 text-[10px]">{entry.time.split(' ')[0]}</TableCell>
+                      <TableCell className="py-2 text-right font-medium text-slate-400 pr-0 text-[11px]">{entry.time.split(' ')[0]}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
