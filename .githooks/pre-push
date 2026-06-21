@@ -1,67 +1,18 @@
 #!/bin/sh
 
-protected_branches="main dev"
-remote_name="${1:-origin}"
-require_latest_dev="$(git config --bool --get guard.requireLatestDev 2>/dev/null || echo true)"
-remote_dev_ref="refs/remotes/$remote_name/dev"
-fetched_dev="false"
-
-fetch_dev_once() {
-  if [ "$fetched_dev" = "true" ]; then
-    return 0
-  fi
-
-  if ! git fetch "$remote_name" "+refs/heads/dev:$remote_dev_ref" --quiet 2>/dev/null; then
-    echo "ERROR: Cannot fetch '$remote_name/dev' before push." >&2
-    echo "Run 'git fetch $remote_name dev' and try again." >&2
-    exit 1
-  fi
-
-  fetched_dev="true"
-}
+protected_branches="main"
 
 while read local_ref local_sha remote_ref remote_sha
 do
   case "$remote_ref" in
-    refs/heads/main|refs/heads/dev)
+    refs/heads/main)
       branch="${remote_ref#refs/heads/}"
       echo "ERROR: Direct push to '$branch' is blocked." >&2
-      echo "Create a feature/fix/docs branch, push that branch, then merge by Pull Request." >&2
+      echo "Create a branch, push that branch, then merge by Pull Request." >&2
       echo "Protected branches: $protected_branches" >&2
       exit 1
       ;;
   esac
-
-  case "$local_ref" in
-    refs/heads/*)
-      ;;
-    *)
-      continue
-      ;;
-  esac
-
-  case "$local_sha" in
-    0000000000000000000000000000000000000000)
-      continue
-      ;;
-  esac
-
-  if [ "$require_latest_dev" = "true" ]; then
-    fetch_dev_once
-
-    if git show-ref --verify --quiet "$remote_dev_ref"; then
-      if ! git merge-base --is-ancestor "$remote_dev_ref" "$local_sha"; then
-        branch="${local_ref#refs/heads/}"
-        echo "ERROR: '$branch' does not contain the latest '$remote_name/dev'." >&2
-        echo "Run one of these before pushing:" >&2
-        echo "  git fetch $remote_name dev" >&2
-        echo "  git merge $remote_name/dev" >&2
-        echo "or:" >&2
-        echo "  git rebase $remote_name/dev" >&2
-        exit 1
-      fi
-    fi
-  fi
 done
 
 exit 0
