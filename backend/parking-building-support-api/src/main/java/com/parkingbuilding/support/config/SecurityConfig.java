@@ -22,6 +22,12 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimNames;
+import org.springframework.security.oauth2.jwt.JwtClaimValidator;
+import org.springframework.security.oauth2.jwt.JwtValidators;
 
 @Configuration
 @EnableWebSecurity
@@ -29,6 +35,12 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
     @Value("${jwt.secret}")
     private String secret;
+
+    @Value("${jwt.issuer}")
+    private String issuer;
+
+    @Value("${jwt.audience}")
+    private String audience;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -64,13 +76,19 @@ public class SecurityConfig {
 
     @Bean
     public JwtDecoder jwtDecoder() {
-
-
         SecretKey key = new SecretKeySpec(
                 secret.getBytes(),
                 "HmacSHA256");
 
-        return NimbusJwtDecoder.withSecretKey(key).build();
+        NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder.withSecretKey(key).build();
+
+        OAuth2TokenValidator<Jwt> withIssuer = JwtValidators.createDefaultWithIssuer(issuer);
+        OAuth2TokenValidator<Jwt> withAudience = new JwtClaimValidator<List<String>>(
+                JwtClaimNames.AUD, aud -> aud != null && aud.contains(audience));
+        OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(withIssuer, withAudience);
+
+        jwtDecoder.setJwtValidator(validator);
+        return jwtDecoder;
     }
 
     @Bean

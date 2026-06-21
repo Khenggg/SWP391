@@ -3,14 +3,13 @@ package com.parkingbuilding.support.sharedreadmodel.repository;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import com.parkingbuilding.support.sharedreadmodel.entity.ParkingCardReadEntity;
 
 @Repository
 public interface ParkingCardReadRepository
-        extends JpaRepository<ParkingCardReadEntity, Long> {
+        extends ReadOnlyRepository<ParkingCardReadEntity, Long> {
 
     Optional<ParkingCardReadEntity> findByCardCode(String cardCode);
 

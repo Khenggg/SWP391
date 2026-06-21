@@ -19,10 +19,16 @@ public class AuthCheckController {
     public ApiResponse<?> authCheck(@AuthenticationPrincipal Jwt jwt) {
 
         Map<String, Object> data = new HashMap<>();
+
+        data.put("authenticated", true);
         data.put("sub", jwt.getSubject());
+        data.put("userId", jwt.getClaimAsString("user_id"));
+        data.put("username", jwt.getClaimAsString("username"));
+        data.put("fullName", jwt.getClaimAsString("fullName"));
+        data.put("role", jwt.getClaimAsString("role"));
+
         Map<String, Object> claims = jwt.getClaims();
         data.put("iss", String.valueOf(claims.get("iss")));
-        data.put("role", jwt.getClaimAsString("role"));
 
         return ApiResponse.ok("Authenticated", data);
     }

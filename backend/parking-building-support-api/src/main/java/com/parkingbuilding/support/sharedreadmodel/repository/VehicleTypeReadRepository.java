@@ -2,11 +2,12 @@ package com.parkingbuilding.support.sharedreadmodel.repository;
 
 import java.util.List;
 
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import com.parkingbuilding.support.sharedreadmodel.entity.VehicleTypeReadEntity;
 
-public interface VehicleTypeReadRepository extends JpaRepository<VehicleTypeReadEntity, Long> {
+@Repository
+public interface VehicleTypeReadRepository extends ReadOnlyRepository<VehicleTypeReadEntity, Long> {
 
     List<VehicleTypeReadEntity> findByIsActiveTrue();
 }
