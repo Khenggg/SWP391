@@ -537,9 +537,9 @@ export default function EntryPageTest() {
             </div>
 
             {/* ROW 2: Steps 3 & 4 */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 flex-[4.2] min-h-0">
-              {/* Step 3 (Kiểm tra hệ thống) - 1/3 width, horizontal 2x2 grid */}
-              <div className="lg:col-span-1 flex flex-col h-full min-h-0">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-[4.2] min-h-0">
+              {/* Step 3 (Kiểm tra hệ thống) - 1.25/3 width (5/12 cols) */}
+              <div className="lg:col-span-5 flex flex-col h-full min-h-0">
                 <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2.5 h-full min-h-0">
                   <div className="flex items-center gap-2 shrink-0">
                     <div className="w-5 h-5 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">3</div>
@@ -610,8 +610,8 @@ export default function EntryPageTest() {
                 </Card>
               </div>
 
-              {/* Step 4 (Gợi ý vị trí đỗ) - 2/3 width (Horizontal split matching Mockup Image 2) */}
-              <div className="lg:col-span-2 flex flex-col h-full min-h-0">
+              {/* Step 4 (Gợi ý vị trí đỗ) - 1.75/3 width (7/12 cols) */}
+              <div className="lg:col-span-7 flex flex-col h-full min-h-0">
                 <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2 h-full min-h-0">
                   <div className="flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-2">
