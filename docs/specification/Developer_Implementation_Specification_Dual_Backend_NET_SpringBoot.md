@@ -2760,17 +2760,15 @@ src
 │   ├── reportApi.js
 │   └── publicApi.js
 ├── components
-│   ├── common
-│   ├── layout
-│   ├── forms
-│   └── status
-├── features
-│   ├── auth
-│   ├── driver
-│   ├── staff
-│   ├── manager
-│   └── admin
+│   ├── ui
+│   └── layout
 ├── pages
+│   ├── admin
+│   ├── driver
+│   ├── manager
+│   ├── staff
+│   ├── public
+│   └── error
 ├── hooks
 ├── utils
 └── constants
@@ -3571,16 +3569,14 @@ Tạo folder:
 ```text
 src/api
 src/app
-src/components/common
+src/components/ui
 src/components/layout
-src/features/auth
-src/features/staff
-src/features/manager
-src/features/admin
-src/features/driver
 src/pages
+src/pages/public
+src/pages/error
 src/hooks
 src/utils
+src/constants
 ```
 
 ## 19.7 Starter Code Bắt Buộc Cho .NET
