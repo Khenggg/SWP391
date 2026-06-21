@@ -297,7 +297,7 @@ export default function EntryPageTest() {
         </div>
       </header>
 
-      <main className="flex flex-col gap-2 flex-1 min-h-0 h-[calc(100vh-88px)]">
+      <main className="flex flex-col gap-2 flex-1 min-h-0 h-[941px]">
         
         {/* Top Split Layout: 3/4 left grid of steps, 1/4 right Booking detail */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-2 flex-1 min-h-0">
