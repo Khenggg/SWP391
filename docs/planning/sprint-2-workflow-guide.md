@@ -31,9 +31,9 @@ Trước khi code, hãy cập nhật code mới nhất và tạo một nhánh tu
 
 **Ví dụ thực tế:** Để bắt đầu làm CRUD Users (Issue #71, do dev Ahug05 phụ trách), bạn chạy các lệnh sau:
 ```bash
-git checkout dev
+git switch dev
 git pull origin dev
-git checkout -b Ahug05/71-users-crud
+git switch -c Ahug05/71-users-crud
 ```
 
 ### 📌 Bước 2: Lập trình, Commit và Push
