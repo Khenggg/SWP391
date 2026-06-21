@@ -830,13 +830,20 @@ export default function EntryPageTest() {
         {/* ================= BOTTOM ROW: STEP 5 (Thao tác) - Full Screen Width ================= */}
         <div className="w-full shrink-0">
           <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2">
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-600 text-white font-bold text-[10px]">5</span>
-              <h3 className="font-bold text-slate-800 text-sm">Thao tác</h3>
+            <div className="flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-600 text-white font-bold text-[10px]">5</span>
+                <h3 className="font-bold text-slate-800 text-sm">Thao tác</h3>
+              </div>
+              <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400">
+                <Info className="h-3.5 w-3.5 text-blue-500" />
+                <span>Thời gian xử lý mục tiêu:</span>
+                <span className="font-bold text-slate-700">3-5 giây / lượt xe vào</span>
+              </div>
             </div>
 
-            {/* Quick Actions Buttons Row */}
-            <div className="grid grid-cols-3 gap-2">
+            {/* All 5 buttons in a single horizontal row */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
               <Button 
                 variant="outline"
                 onClick={handleScanPlate}
@@ -863,44 +870,26 @@ export default function EntryPageTest() {
                 <RefreshCw className="h-4 w-4 shrink-0" />
                 Kiểm tra lại
               </Button>
-            </div>
 
-            {/* Large Buttons Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {/* Blue CTA */}
               <Button
                 onClick={handleCreateSession}
-                className={`h-12.5 rounded-lg flex items-center justify-center gap-3 font-bold text-xs shadow-md transition cursor-pointer ${
+                className={`h-10 rounded-lg flex items-center justify-center gap-2 font-bold text-xs shadow-xs transition cursor-pointer ${
                   allChecksPassed
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-lg'
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-md'
                     : 'bg-slate-200 text-slate-400 cursor-not-allowed border-transparent'
                 }`}
               >
                 <Plus className="h-4.5 w-4.5 shrink-0" />
-                <div className="text-left">
-                  <p className="font-extrabold leading-tight text-xs">Tạo parking session</p>
-                  <p className="text-[9px] opacity-80 font-medium">Tạo phiên đỗ xe mới</p>
-                </div>
+                Tạo phiên mới
               </Button>
 
-              {/* Green CTA */}
               <Button
                 onClick={handleOpenBarrier}
-                className="h-12.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-md hover:shadow-lg flex items-center justify-center gap-3 font-bold text-xs transition cursor-pointer border-transparent"
+                className="h-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-xs hover:shadow-md flex items-center justify-center gap-2 font-bold text-xs transition cursor-pointer border-transparent"
               >
                 <LogIn className="h-4.5 w-4.5 rotate-270 shrink-0" />
-                <div className="text-left">
-                  <p className="font-extrabold leading-tight text-xs">Mở barrier</p>
-                  <p className="text-[9px] opacity-80 font-medium">Mở cổng cho xe vào</p>
-                </div>
+                Mở barrier
               </Button>
-            </div>
-
-            {/* Target Footer */}
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 border-t border-slate-100 pt-2 shrink-0">
-              <Info className="h-3.5 w-3.5 text-blue-500" />
-              <span>Thời gian xử lý mục tiêu:</span>
-              <span className="font-bold text-slate-700">3-5 giây / lượt xe vào</span>
             </div>
           </Card>
         </div>
