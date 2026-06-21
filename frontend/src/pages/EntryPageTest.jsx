@@ -19,7 +19,8 @@ import {
   CheckSquare, 
   Square,
   QrCode,
-  Info
+  Info,
+  LogIn
 } from 'lucide-react';
 
 export default function EntryPageTest() {
