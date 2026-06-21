@@ -846,7 +846,7 @@ export default function EntryPageTest() {
             <div className="flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <span className="flex items-center justify-center w-5.5 h-5.5 rounded-full bg-blue-600 text-white font-black text-xs shrink-0">5</span>
-                <h3 className="font-black text-slate-900 text-sm">Thao tác</h3>
+                <h3 className="font-black text-slate-800 text-sm">Thao tác</h3>
               </div>
               <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
                 <Info className="h-3.5 w-3.5 text-blue-500 stroke-[2.5]" />
@@ -855,54 +855,60 @@ export default function EntryPageTest() {
               </div>
             </div>
 
-            {/* Responsive grid: 5 equal columns on desktop, larger text and icons */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
-              <Button 
-                variant="outline"
-                onClick={handleScanPlate}
-                className="h-11 col-span-1 lg:col-span-1 flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-800 hover:text-blue-700 font-black text-xs lg:text-[13px] rounded-lg shadow-xs transition cursor-pointer"
-              >
-                <Camera className="h-5.5 w-5.5 shrink-0 stroke-[2.8] text-blue-600" />
-                Quét biển số
-              </Button>
-              
-              <Button 
-                variant="outline"
-                onClick={handleScanCard}
-                className="h-11 col-span-1 lg:col-span-1 flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-800 hover:text-blue-700 font-black text-xs lg:text-[13px] rounded-lg shadow-xs transition cursor-pointer"
-              >
-                <CreditCard className="h-5.5 w-5.5 shrink-0 stroke-[2.8] text-blue-600" />
-                Quét thẻ
-              </Button>
+            {/* Split layout: left 50% for first 3 buttons, right 50% for last 2 buttons */}
+            <div className="flex flex-col lg:flex-row gap-2">
+              {/* Left group: 3 buttons (50% width on desktop) */}
+              <div className="grid grid-cols-3 gap-2 lg:w-1/2 w-full">
+                <Button 
+                  variant="outline"
+                  onClick={handleScanPlate}
+                  className="h-11 w-full flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-800 hover:text-blue-700 font-black text-xs lg:text-[13px] rounded-lg shadow-xs transition cursor-pointer"
+                >
+                  <Camera className="h-5.5 w-5.5 shrink-0 stroke-[2.8] text-blue-600" />
+                  Quét biển số
+                </Button>
+                
+                <Button 
+                  variant="outline"
+                  onClick={handleScanCard}
+                  className="h-11 w-full flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-800 hover:text-blue-700 font-black text-xs lg:text-[13px] rounded-lg shadow-xs transition cursor-pointer"
+                >
+                  <CreditCard className="h-5.5 w-5.5 shrink-0 stroke-[2.8] text-blue-600" />
+                  Quét thẻ
+                </Button>
 
-              <Button 
-                variant="outline"
-                onClick={handleRecheck}
-                className="h-11 col-span-2 lg:col-span-1 flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-800 hover:text-blue-700 font-black text-xs lg:text-[13px] rounded-lg shadow-xs transition cursor-pointer"
-              >
-                <RefreshCw className="h-5.5 w-5.5 shrink-0 stroke-[2.8] text-blue-600" />
-                Kiểm tra lại
-              </Button>
+                <Button 
+                  variant="outline"
+                  onClick={handleRecheck}
+                  className="h-11 w-full flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-800 hover:text-blue-700 font-black text-xs lg:text-[13px] rounded-lg shadow-xs transition cursor-pointer"
+                >
+                  <RefreshCw className="h-5.5 w-5.5 shrink-0 stroke-[2.8] text-blue-600" />
+                  Kiểm tra lại
+                </Button>
+              </div>
 
-              <Button
-                onClick={handleCreateSession}
-                className={`h-11 col-span-1 lg:col-span-1 rounded-lg flex items-center justify-center gap-2.5 font-black text-xs lg:text-[13px] shadow-xs transition cursor-pointer ${
-                  allChecksPassed
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-md'
-                    : 'bg-slate-200 text-slate-400 cursor-not-allowed border-transparent'
-                }`}
-              >
-                <Plus className="h-5.5 w-5.5 shrink-0 stroke-[2.8] text-white" />
-                Tạo phiên đỗ xe
-              </Button>
+              {/* Right group: 2 buttons (50% width on desktop) */}
+              <div className="grid grid-cols-2 gap-2 lg:w-1/2 w-full">
+                <Button
+                  onClick={handleCreateSession}
+                  className={`h-11 w-full rounded-lg flex items-center justify-center gap-2.5 font-black text-xs lg:text-[13px] shadow-xs transition cursor-pointer ${
+                    allChecksPassed
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-md'
+                      : 'bg-slate-200 text-slate-400 cursor-not-allowed border-transparent'
+                  }`}
+                >
+                  <Plus className="h-5.5 w-5.5 shrink-0 stroke-[2.8] text-white" />
+                  Tạo phiên đỗ xe
+                </Button>
 
-              <Button
-                onClick={handleOpenBarrier}
-                className="h-11 col-span-1 lg:col-span-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-xs hover:shadow-md flex items-center justify-center gap-2.5 font-black text-xs lg:text-[13px] transition cursor-pointer border-transparent"
-              >
-                <BarrierIcon className="h-6 w-6 shrink-0 text-white" />
-                Mở cổng
-              </Button>
+                <Button
+                  onClick={handleOpenBarrier}
+                  className="h-11 w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-xs hover:shadow-md flex items-center justify-center gap-2.5 font-black text-xs lg:text-[13px] transition cursor-pointer border-transparent"
+                >
+                  <BarrierIcon className="h-6 w-6 shrink-0 text-white" />
+                  Mở cổng
+                </Button>
+              </div>
             </div>
           </Card>
         </div>
