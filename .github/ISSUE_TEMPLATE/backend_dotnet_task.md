@@ -5,15 +5,29 @@ title: "[.NET] "
 labels: backend-dotnet
 ---
 
-## Goal
+## 🎯 Mục tiêu (Goal)
+[Mô tả ngắn gọn về mục tiêu tính năng và lý do cần thực hiện]
 
-## API / Module
+## 🛠️ Scope công việc
+- [ ] [Đầu việc 1]
+- [ ] [Đầu việc 2]
+- [ ] [Đầu việc 3]
 
-## Acceptance Criteria
+## 📂 Các bảng Database liên quan
+- [Tên các bảng DB sẽ đọc/ghi]
 
-- [ ] Uses `/api/core/*`
-- [ ] Adds validation and role checks
-- [ ] Maps entities to the existing PostgreSQL schema
-- [ ] Updates `database/*.sql` first when schema changes
-- [ ] Does not add EF Core migration, `Database.Migrate()`, or `EnsureCreated()`
-- [ ] Updates docs/Postman when API changes
+## ⚙️ Yêu cầu kỹ thuật & Kiến trúc
+- Không hardcode Connection String hay JWT Secret (đọc qua biến môi trường).
+- Sử dụng đúng HTTP Method cho REST API.
+- Các yêu cầu khác...
+
+## ✅ Tiêu chuẩn nghiệm thu (Acceptance Criteria)
+- [ ] Chạy `dotnet build` không có lỗi biên dịch.
+- [ ] [Điều kiện nghiệm thu nghiệp vụ 1]
+- [ ] [Điều kiện nghiệm thu nghiệp vụ 2]
+- [ ] [Xác minh phân quyền vai trò hoạt động đúng]
+
+---
+
+## 💻 HƯỚNG DẪN KỸ THUẬT CHI TIẾT (Cheatsheet / Code mẫu)
+[Phần này dành cho Tech Lead/AI điền hướng dẫn chi tiết từng bước, cấu trúc class, file cần sửa và code mẫu để các bạn sinh viên dễ dàng làm theo]
