@@ -131,7 +131,7 @@ export default function EntryPageTest() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans p-4 flex flex-col">
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans px-3 pt-3 pb-0 flex flex-col">
       {/* Toast Notification */}
       {showNotification && (
         <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-5 py-4 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-0 border ${
@@ -147,7 +147,7 @@ export default function EntryPageTest() {
       )}
 
       {/* TOP HEADER */}
-      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 pb-3 mb-3 border-b border-slate-200 shrink-0">
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-2 pb-2 mb-2 border-b border-slate-200 shrink-0">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
             Xe vào
@@ -200,13 +200,13 @@ export default function EntryPageTest() {
         </div>
       </header>
 
-      <main className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-2rem)]">
+      <main className="grid grid-cols-1 lg:grid-cols-4 gap-2 h-screen">
         
         {/* ================= LEFT COLUMN: STEPS 1, 2, 3, 4, 5 (3/4 Width) ================= */}
-        <section className="lg:col-span-3 flex flex-col gap-4 h-full min-h-0">
+        <section className="lg:col-span-3 flex flex-col gap-2 h-full min-h-0">
           
           {/* ROW 1: Steps 1 & 2 */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-[5] min-h-0">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 flex-[5] min-h-0">
             {/* Step 1 (Camera nhận diện) - 2/3 width */}
             <div className="lg:col-span-2 flex flex-col h-full min-h-0">
               <Card className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden flex flex-col p-0 gap-0 h-full min-h-0">
@@ -287,14 +287,14 @@ export default function EntryPageTest() {
 
             {/* Step 2 (Thông tin xe vào) - 1/3 width */}
             <div className="lg:col-span-1 flex flex-col h-full min-h-0">
-              <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-4 flex flex-col gap-3 h-full min-h-0">
+              <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2 h-full min-h-0">
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">2</span>
                   <h3 className="font-bold text-slate-800 text-xs">Thông tin xe vào</h3>
                 </div>
 
                 {/* Form */}
-                <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-1">
+                <div className="flex flex-col gap-2 flex-1 overflow-y-auto pr-1">
                   {/* Field: License Plate */}
                   <div className="flex flex-col gap-0.5">
                     <label className="text-[10px] font-bold text-slate-500">Biển số <span className="text-rose-500">*</span></label>
@@ -430,10 +430,10 @@ export default function EntryPageTest() {
           </div>
 
           {/* ROW 2: Steps 3 & 4 */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-[4] min-h-0">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 flex-[4] min-h-0">
             {/* Step 3 (Kiểm tra hệ thống) - 1/3 width */}
             <div className="lg:col-span-1 flex flex-col h-full min-h-0">
-              <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-4 flex flex-col gap-3 h-full min-h-0">
+              <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2 h-full min-h-0">
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">3</span>
                   <h3 className="font-bold text-slate-800 text-xs">Kiểm tra hệ thống</h3>
@@ -506,7 +506,7 @@ export default function EntryPageTest() {
 
             {/* Step 4 (Gợi ý vị trí đỗ) - 2/3 width */}
             <div className="lg:col-span-2 flex flex-col h-full min-h-0">
-              <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-4 flex flex-col gap-3 h-full min-h-0">
+              <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2 h-full min-h-0">
                 <div className="flex items-center justify-between shrink-0">
                   <div className="flex items-center gap-2">
                     <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">4</span>
@@ -516,7 +516,7 @@ export default function EntryPageTest() {
                 </div>
 
                 {/* Suggestions and Occupancy wrapper */}
-                <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-1">
+                <div className="flex flex-col gap-2 flex-1 overflow-y-auto pr-1">
                   {/* Suggestions list */}
                   <div className="flex flex-col gap-1.5">
                     {/* Sug 1 */}
@@ -548,7 +548,7 @@ export default function EntryPageTest() {
                   </div>
 
                   {/* Occupancy visual grid panel */}
-                  <div className="border-t border-slate-100 pt-3 flex flex-col gap-2.5">
+                  <div className="border-t border-slate-100 pt-2 flex flex-col gap-2">
                     {/* Floor 1 */}
                     <div>
                       <div className="flex justify-between items-center text-[10px] mb-1">
@@ -613,14 +613,14 @@ export default function EntryPageTest() {
 
           {/* ROW 3: Step 5 (Thao tác) - Full width */}
           <div className="w-full shrink-0">
-            <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-4 flex flex-col gap-3">
+            <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2">
               <div className="flex items-center gap-2 shrink-0">
                 <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">5</span>
                 <h3 className="font-bold text-slate-800 text-xs">Thao tác</h3>
               </div>
 
               {/* Quick Actions Buttons Row */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2">
                 <Button 
                   variant="outline"
                   onClick={handleScanPlate}
@@ -650,7 +650,7 @@ export default function EntryPageTest() {
               </div>
 
               {/* Large Buttons Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {/* Blue CTA */}
                 <Button
                   onClick={handleCreateSession}
@@ -692,14 +692,14 @@ export default function EntryPageTest() {
         </section>
 
         {/* ================= RIGHT COLUMN: BOOKING & RECENT ENTRIES (1/4 Width) ================= */}
-        <section className="lg:col-span-1 flex flex-col gap-4 h-full min-h-0 overflow-y-auto pr-1">
+        <section className="lg:col-span-1 flex flex-col gap-2 h-full min-h-0 overflow-y-auto pr-1">
           
           {/* CARD: Thông tin booking / QR */}
-          <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-4 flex flex-col gap-3">
+          <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2">
             <h3 className="font-bold text-slate-800 text-xs">Thông tin booking / QR</h3>
 
             {hasBooking ? (
-              <div className="flex flex-col gap-3 animate-fade-in">
+              <div className="flex flex-col gap-2 animate-fade-in">
                 {/* Widget 1: Booking Status Check */}
                 <div className="p-3 border border-blue-100 rounded-lg bg-blue-50/20">
                   <div className="flex items-start justify-between">
@@ -783,7 +783,7 @@ export default function EntryPageTest() {
           </Card>
 
           {/* CARD: Lượt xe vào gần đây */}
-          <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-4 flex flex-col gap-3">
+          <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-slate-800 text-xs">Lượt xe vào gần đây</h3>
               <a href="#/recent" className="text-xs font-bold text-blue-600 hover:underline">Tất cả</a>
