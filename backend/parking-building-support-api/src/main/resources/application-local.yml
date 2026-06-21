@@ -3,9 +3,11 @@ server:
 
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/parking_db}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:your_password}
+    url: jdbc:postgresql://aws-1-ap-south-1.pooler.supabase.com:5432/postgres
+    username: postgres.iqzkddymzmfhyqbfrnyu
+    password: Moghicha12@
+    driver-class-name: org.postgresql.Driver
+
   jpa:
     open-in-view: false
     hibernate:
@@ -15,6 +17,6 @@ spring:
         format_sql: true
 
 jwt:
-  issuer: ${JWT_ISSUER:ParkingBuilding.CoreApi}
-  audience: ${JWT_AUDIENCE:ParkingBuilding.Frontend}
-  secret: ${JWT_SECRET:DEVELOPMENT_SECRET_KEY_FOR_LOCAL_TESTING_ONLY_2026_SWP391}
+  issuer: ParkingBuilding.CoreApi
+  audience: ParkingBuilding.Frontend
+  secret: DEVELOPMENT_SECRET_KEY_FOR_LOCAL_TESTING_ONLY_2026_SWP391
