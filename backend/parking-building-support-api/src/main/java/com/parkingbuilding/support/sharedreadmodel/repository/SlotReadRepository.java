@@ -1,12 +1,11 @@
 package com.parkingbuilding.support.sharedreadmodel.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
 
 import com.parkingbuilding.support.sharedreadmodel.entity.SlotReadEntity;
 
-public interface SlotReadRepository extends JpaRepository<SlotReadEntity, Long> {
+@Repository
+public interface SlotReadRepository extends ReadOnlyRepository<SlotReadEntity, Long> {
 
-    @Query("SELECT COUNT(s) FROM SlotReadEntity s WHERE s.status = 'AVAILABLE'")
     long countByStatus(String status);
 }
