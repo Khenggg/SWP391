@@ -106,7 +106,7 @@ const MiniParkingIcon = () => (
 );
 
 const BarrierIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
     {/* Post on left */}
     <path d="M6 20v-9" />
     <path d="M4 20h4" />
@@ -845,13 +845,13 @@ export default function EntryPageTest() {
           <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2">
             <div className="flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
-                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-600 text-white font-bold text-[10px]">5</span>
-                <h3 className="font-bold text-slate-800 text-sm">Thao tác</h3>
+                <span className="flex items-center justify-center w-5.5 h-5.5 rounded-full bg-blue-600 text-white font-black text-xs shrink-0">5</span>
+                <h3 className="font-black text-slate-900 text-sm">Thao tác</h3>
               </div>
-              <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400">
-                <Info className="h-3.5 w-3.5 text-blue-500" />
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                <Info className="h-3.5 w-3.5 text-blue-500 stroke-[2.5]" />
                 <span>Thời gian xử lý mục tiêu:</span>
-                <span className="font-bold text-slate-700">3-5 giây / lượt xe vào</span>
+                <span className="font-extrabold text-slate-700">3-5 giây / lượt xe vào</span>
               </div>
             </div>
 
@@ -860,55 +860,55 @@ export default function EntryPageTest() {
               <Button 
                 variant="outline"
                 onClick={handleScanPlate}
-                className="h-12.5 col-span-1 lg:col-span-2 flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-700 hover:text-blue-700 font-bold text-xs rounded-lg shadow-xs transition cursor-pointer"
+                className="h-12.5 col-span-1 lg:col-span-2 flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-800 hover:text-blue-700 font-black text-xs rounded-lg shadow-xs transition cursor-pointer"
               >
-                <Camera className="h-4.5 w-4.5 shrink-0" />
+                <Camera className="h-5.5 w-5.5 shrink-0 stroke-[2.8] text-blue-600" />
                 Quét biển số
               </Button>
               
               <Button 
                 variant="outline"
                 onClick={handleScanCard}
-                className="h-12.5 col-span-1 lg:col-span-2 flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-700 hover:text-blue-700 font-bold text-xs rounded-lg shadow-xs transition cursor-pointer"
+                className="h-12.5 col-span-1 lg:col-span-2 flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-800 hover:text-blue-700 font-black text-xs rounded-lg shadow-xs transition cursor-pointer"
               >
-                <CreditCard className="h-4.5 w-4.5 shrink-0" />
+                <CreditCard className="h-5.5 w-5.5 shrink-0 stroke-[2.8] text-blue-600" />
                 Quét thẻ
               </Button>
 
               <Button 
                 variant="outline"
                 onClick={handleRecheck}
-                className="h-12.5 col-span-2 lg:col-span-2 flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-700 hover:text-blue-700 font-bold text-xs rounded-lg shadow-xs transition cursor-pointer"
+                className="h-12.5 col-span-2 lg:col-span-2 flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-800 hover:text-blue-700 font-black text-xs rounded-lg shadow-xs transition cursor-pointer"
               >
-                <RefreshCw className="h-4.5 w-4.5 shrink-0" />
+                <RefreshCw className="h-5.5 w-5.5 shrink-0 stroke-[2.8] text-blue-600" />
                 Kiểm tra lại
               </Button>
 
               <Button
                 onClick={handleCreateSession}
-                className={`h-12.5 col-span-1 lg:col-span-3 rounded-lg flex items-center justify-center gap-3 font-bold text-xs shadow-xs transition cursor-pointer ${
+                className={`h-12.5 col-span-1 lg:col-span-3 rounded-lg flex items-center justify-center gap-3 font-black text-xs shadow-xs transition cursor-pointer ${
                   allChecksPassed
                     ? 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-md'
                     : 'bg-slate-200 text-slate-400 cursor-not-allowed border-transparent'
                 }`}
               >
-                <div className="w-5 h-5 rounded-full border-2 border-white flex items-center justify-center shrink-0">
-                  <Plus className="h-3 w-3 stroke-[3]" />
+                <div className="w-5.5 h-5.5 rounded-full border-2 border-white flex items-center justify-center shrink-0">
+                  <Plus className="h-4 w-4 stroke-[4]" />
                 </div>
                 <div className="text-left">
-                  <p className="font-extrabold leading-tight text-xs">Tạo parking session</p>
-                  <p className="text-[9px] opacity-80 font-medium">Tạo phiên đỗ xe mới</p>
+                  <p className="font-black leading-tight text-xs lg:text-[13px]">Tạo phiên đỗ xe</p>
+                  <p className="text-[9px] opacity-80 font-bold">Tạo phiên đỗ xe mới</p>
                 </div>
               </Button>
 
               <Button
                 onClick={handleOpenBarrier}
-                className="h-12.5 col-span-1 lg:col-span-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-xs hover:shadow-md flex items-center justify-center gap-3 font-bold text-xs transition cursor-pointer border-transparent"
+                className="h-12.5 col-span-1 lg:col-span-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-xs hover:shadow-md flex items-center justify-center gap-3 font-black text-xs transition cursor-pointer border-transparent"
               >
-                <BarrierIcon className="h-5 w-5 shrink-0" />
+                <BarrierIcon className="h-6.5 w-6.5 shrink-0" />
                 <div className="text-left">
-                  <p className="font-extrabold leading-tight text-xs">Mở barrier</p>
-                  <p className="text-[9px] opacity-80 font-medium">Mở cổng cho xe vào</p>
+                  <p className="font-black leading-tight text-xs lg:text-[13px]">Mở cổng</p>
+                  <p className="text-[9px] opacity-80 font-bold">Mở cổng cho xe vào</p>
                 </div>
               </Button>
             </div>
