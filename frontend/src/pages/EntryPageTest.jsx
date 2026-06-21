@@ -507,11 +507,11 @@ export default function EntryPageTest() {
                     </div>
 
                     {/* Row 7: Attachments - 2 columns, each taking 50% width, split into label and image */}
-                    <div className="grid grid-cols-2 gap-3 mt-1 shrink-0">
+                    <div className="grid grid-cols-2 gap-3 mt-1 flex-1 min-h-0">
                       {/* Column 1: Ảnh xe */}
-                      <div className="flex flex-col gap-1">
-                        <span className="text-slate-700 text-xs font-bold">Ảnh xe</span>
-                        <div className="w-full h-20 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 flex items-center justify-center">
+                      <div className="flex flex-col gap-1 min-h-0">
+                        <span className="text-slate-700 text-xs font-bold shrink-0">Ảnh xe</span>
+                        <div className="w-full flex-1 min-h-0 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 flex items-center justify-center">
                           <img 
                             src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=400&q=80" 
                             alt="Car attachment" 
@@ -521,10 +521,10 @@ export default function EntryPageTest() {
                       </div>
 
                       {/* Column 2: Ảnh biển số */}
-                      <div className="flex flex-col gap-1">
-                        <span className="text-slate-700 text-xs font-bold">Ảnh biển số</span>
-                        <div className="w-full h-20 bg-slate-900 rounded-lg overflow-hidden flex items-center justify-center border border-slate-800 p-2">
-                          <div className="bg-white border border-slate-800 px-3 py-1 rounded text-slate-900 font-mono font-black tracking-wider text-xs lg:text-[13px] shadow-sm select-none">
+                      <div className="flex flex-col gap-1 min-h-0">
+                        <span className="text-slate-700 text-xs font-bold shrink-0">Ảnh biển số</span>
+                        <div className="w-full flex-1 min-h-0 bg-slate-900 rounded-lg overflow-hidden flex items-center justify-center border border-slate-800 p-2">
+                          <div className="bg-white border border-slate-800 px-3 py-1.5 rounded text-slate-900 font-mono font-black tracking-wider text-xs lg:text-[13px] shadow-sm select-none">
                             {plateNumber}
                           </div>
                         </div>
