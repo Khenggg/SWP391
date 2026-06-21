@@ -131,7 +131,7 @@ export default function EntryPageTest() {
   };
 
   return (
-    <div className="h-screen bg-slate-50 text-slate-800 font-sans p-4 flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans p-4 flex flex-col">
       {/* Toast Notification */}
       {showNotification && (
         <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-5 py-4 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-0 border ${
@@ -200,7 +200,7 @@ export default function EntryPageTest() {
         </div>
       </header>
 
-      <main className="grid grid-cols-1 lg:grid-cols-4 gap-4 flex-1 min-h-0">
+      <main className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-2rem)]">
         
         {/* ================= LEFT COLUMN: STEPS 1, 2, 3, 4, 5 (3/4 Width) ================= */}
         <section className="lg:col-span-3 flex flex-col gap-4 h-full min-h-0">
