@@ -1,6 +1,7 @@
 ---
 name: Backend .NET task
 about: Core API task for auth, core write, mapping, or transaction flow
+title: "[.NET] "
 labels: backend-dotnet
 ---
 
