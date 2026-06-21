@@ -78,21 +78,43 @@ Toàn bộ công việc của Sprint 2 hiện tại được gom lại thành **
 
 ## 🛠️ 5. HƯỚNG DẪN KỸ THUẬT & CẤU HÌNH CỤC BỘ
 
-### 🔒 Không lưu thông tin đăng nhập trong code
-Để bảo mật dự án và tránh rò rỉ mật khẩu cơ sở dữ liệu lên GitHub, toàn bộ kết nối DB và JWT key đã được chuyển sang **đọc qua biến môi trường**.
+### 🔒 Không lưu thông tin đăng nhập trong code (Cấu hình Biến môi trường)
+Để bảo mật dự án và tránh rò rỉ thông tin đăng nhập thực tế của Supabase lên GitHub, toàn bộ chuỗi kết nối Database và JWT Secret đã được chuyển đổi sang dạng **đọc qua biến môi trường**.
 
-#### Cấu hình môi trường chạy máy cục bộ (Local):
-Trước khi chạy ứng dụng trên máy cá nhân, lập trình viên cần thiết lập các biến môi trường sau (ví dụ chạy trên PowerShell):
+#### 📁 Hướng dẫn tạo và chạy file cấu hình môi trường cục bộ (env):
 
-```powershell
-# Kết nối DB cho .NET & Spring Boot
-$env:DB_URL="jdbc:postgresql://localhost:5432/parking_db" # Hoặc URL kết nối database Supabase của bạn
-$env:DB_USERNAME="postgres"
-$env:DB_PASSWORD="your_password"
+##### Cách 1: Sử dụng PowerShell (Khuyên dùng trên Windows)
+1. Tạo một file tên là **`env.ps1`** ở thư mục gốc của dự án (thư mục chứa file `.gitignore`).
+2. Viết nội dung cấu hình kết nối database của bạn vào file đó:
+   ```powershell
+   # Kết nối DB cho .NET & Spring Boot
+   $env:DB_URL="jdbc:postgresql://localhost:5432/parking_db" # Hoặc URL kết nối database Supabase của bạn
+   $env:DB_USERNAME="postgres"
+   $env:DB_PASSWORD="your_password"
 
-# Khóa bí mật JWT
-$env:JWT_SECRET="DEVELOPMENT_SECRET_KEY_FOR_LOCAL_TESTING_ONLY_2026_SWP391"
-```
+   # Khóa bí mật JWT
+   $env:JWT_SECRET="DEVELOPMENT_SECRET_KEY_FOR_LOCAL_TESTING_ONLY_2026_SWP391"
+   ```
+3. Mỗi khi mở cửa sổ PowerShell mới để chạy code hoặc test, hãy chạy file này trước (gọi là Dot-Sourcing) để nạp biến môi trường vào terminal:
+   ```powershell
+   . .\env.ps1
+   ```
+
+##### Cách 2: Sử dụng Command Prompt (CMD)
+1. Tạo một file tên là **`env.bat`** ở thư mục gốc của dự án.
+2. Viết nội dung sau vào file:
+   ```cmd
+   set DB_URL=jdbc:postgresql://localhost:5432/parking_db
+   set DB_USERNAME=postgres
+   set DB_PASSWORD=your_password
+   set JWT_SECRET=DEVELOPMENT_SECRET_KEY_FOR_LOCAL_TESTING_ONLY_2026_SWP391
+   ```
+3. Chạy file này trên cửa sổ CMD trước khi chạy ứng dụng:
+   ```cmd
+   env.bat
+   ```
+
+> ⚠️ **CỰC KỲ QUAN TRỌNG:** Tuyệt đối không được commit file `env.ps1` hoặc `env.bat` của bạn lên GitHub. Hai file này đã được khai báo trong `.gitignore` để Git tự động bỏ qua.
 
 ### 💻 Các lệnh chạy & kiểm tra lỗi cục bộ
 
