@@ -546,50 +546,65 @@ export default function EntryPageTest() {
                     <h3 className="font-extrabold text-slate-800 text-sm">Kiểm tra hệ thống</h3>
                   </div>
 
-                  {/* Check List - 2x2 Grid horizontal layout */}
-                  <div className="grid grid-cols-2 gap-1.5 flex-1 items-center justify-center">
+                  {/* Check List - Vertical layout with fixed-height child items */}
+                  <div className="flex flex-col gap-1.5 flex-1 overflow-y-auto pr-1 mt-1 justify-start">
                     {/* Check 1 */}
-                    <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50 border border-slate-100">
-                      <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">Thẻ khả dụng</span>
-                      <div className="flex items-center gap-1">
-                        <span className={`text-[10px] font-bold ${isCardValid ? 'text-emerald-700' : 'text-rose-600'}`}>
-                          {isCardValid ? 'Hợp lệ' : 'Lỗi'}
-                        </span>
-                        {isCardValid ? <StatusCheckIcon /> : <StatusAlertIcon />}
+                    <div className="flex items-center justify-between px-3 h-10 rounded-lg border border-slate-100 bg-slate-50/20 shrink-0">
+                      {isCardValid ? <StatusCheckIcon /> : <StatusAlertIcon />}
+                      <div className="flex-1 flex justify-between items-center mx-2.5 text-xs font-bold text-slate-700">
+                        <span>{isCardValid ? "Thẻ đang AVAILABLE" : "Thẻ không hợp lệ"}</span>
+                        <span className="text-slate-400 font-semibold">{isCardValid ? "Hợp lệ đến 31/12/2025" : "Kiểm tra thẻ"}</span>
                       </div>
+                      {isCardValid ? <StatusCheckIcon /> : <StatusAlertIcon />}
                     </div>
 
                     {/* Check 2 */}
-                    <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50 border border-slate-100">
-                      <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">Trùng phiên</span>
-                      <div className="flex items-center gap-1">
-                        <span className={`text-[10px] font-bold ${isNoDuplicateSession ? 'text-emerald-700' : 'text-rose-600'}`}>
-                          {isNoDuplicateSession ? 'Không trùng' : 'Trùng'}
-                        </span>
-                        {isNoDuplicateSession ? <StatusCheckIcon /> : <StatusAlertIcon />}
+                    <div className="flex items-center justify-between px-3 h-10 rounded-lg border border-slate-100 bg-slate-50/20 shrink-0">
+                      {isNoDuplicateSession ? <StatusCheckIcon /> : <StatusAlertIcon />}
+                      <div className="flex-1 flex justify-between items-center mx-2.5 text-xs font-bold text-slate-700">
+                        <span>{isNoDuplicateSession ? "Không có phiên đang mở" : "Mở trùng phiên đỗ"}</span>
+                        <span className="text-slate-400 font-semibold">{isNoDuplicateSession ? "OK" : "Lỗi trùng"}</span>
                       </div>
+                      {isNoDuplicateSession ? <StatusCheckIcon /> : <StatusAlertIcon />}
                     </div>
 
                     {/* Check 3 */}
-                    <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50 border border-slate-100">
-                      <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">Mẫu biển số</span>
-                      <div className="flex items-center gap-1">
-                        <span className={`text-[10px] font-bold ${isPlateValid ? 'text-emerald-700' : 'text-rose-600'}`}>
-                          {isPlateValid ? 'Quy chuẩn' : 'Lỗi'}
-                        </span>
-                        {isPlateValid ? <StatusCheckIcon /> : <StatusAlertIcon />}
+                    <div className="flex items-center justify-between px-3 h-10 rounded-lg border border-slate-100 bg-slate-50/20 shrink-0">
+                      {isVehicleTypeValid ? <StatusCheckIcon /> : <StatusAlertIcon />}
+                      <div className="flex-1 flex justify-between items-center mx-2.5 text-xs font-bold text-slate-700">
+                        <span>{isVehicleTypeValid ? "Loại xe hợp lệ" : "Loại xe không hợp lệ"}</span>
+                        <span className="text-slate-400 font-semibold">{isVehicleTypeValid ? getVehicleLabel(vehicleType) : "Kiểm tra"}</span>
                       </div>
+                      {isVehicleTypeValid ? <StatusCheckIcon /> : <StatusAlertIcon />}
                     </div>
 
                     {/* Check 4 */}
-                    <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50 border border-slate-100">
-                      <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">Phân loại xe</span>
-                      <div className="flex items-center gap-1">
-                        <span className={`text-[10px] font-bold ${isVehicleTypeValid ? 'text-emerald-700' : 'text-rose-600'}`}>
-                          {isVehicleTypeValid ? 'Khớp loại' : 'Lỗi'}
-                        </span>
-                        {isVehicleTypeValid ? <StatusCheckIcon /> : <StatusAlertIcon />}
+                    <div className="flex items-center justify-between px-3 h-10 rounded-lg border border-slate-100 bg-slate-50/20 shrink-0">
+                      {isPlateValid ? <StatusCheckIcon /> : <StatusAlertIcon />}
+                      <div className="flex-1 flex justify-between items-center mx-2.5 text-xs font-bold text-slate-700">
+                        <span>{isPlateValid ? "Không trùng biển số" : "Thiếu biển số nhận diện"}</span>
+                        <span className="text-slate-400 font-semibold">{isPlateValid ? "OK" : "Kiểm tra"}</span>
                       </div>
+                      {isPlateValid ? <StatusCheckIcon /> : <StatusAlertIcon />}
+                    </div>
+
+                    {/* Status Banner */}
+                    <div className={`flex items-center gap-2 px-3 h-10 rounded-lg border shrink-0 ${
+                      allChecksPassed 
+                        ? 'bg-emerald-50/50 border-emerald-100 text-emerald-800' 
+                        : 'bg-rose-50/50 border-rose-100 text-rose-800'
+                    }`}>
+                      {allChecksPassed ? (
+                        <ShieldCheck className="h-4.5 w-4.5 text-emerald-600 shrink-0 stroke-[2.5]" />
+                      ) : (
+                        <AlertTriangle className="h-4.5 w-4.5 text-rose-600 shrink-0 stroke-[2.5]" />
+                      )}
+                      <span className="font-bold text-[11px] leading-tight">
+                        {allChecksPassed 
+                          ? "Tất cả điều kiện kiểm tra đều hợp lệ. Có thể tạo phiên đỗ xe."
+                          : "Điều kiện kiểm tra chưa hợp lệ. Vui lòng kiểm tra lại."
+                        }
+                      </span>
                     </div>
                   </div>
                 </Card>
