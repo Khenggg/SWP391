@@ -208,31 +208,35 @@ export default function EntryPageTest() {
           
           {/* CARD 1: Camera nhận diện */}
           <Card className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden flex flex-col p-0 gap-0">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2 w-full">
-              <div className="flex items-center gap-2">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs">1</span>
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between flex-wrap gap-3 w-full">
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-xs">1</span>
                 <h3 className="font-bold text-slate-800">Camera nhận diện</h3>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 {/* Badge Biển số đã nhận diện */}
-                <Badge variant={isPlateValid ? "default" : "outline"} className={`h-6 text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-none transition-all ${
+                <Badge variant={isPlateValid ? "default" : "outline"} className={`h-6.5 text-[11px] font-bold px-2.5 py-0.5 rounded-md flex items-center gap-1.5 shadow-none transition-all ${
                   isPlateValid ? 'bg-emerald-50 hover:bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-100 text-slate-400 border-transparent'
                 }`}>
-                  <Check className="w-3.5 h-3.5" />
+                  {isPlateValid ? (
+                    <CheckSquare className="w-3.5 h-3.5 text-emerald-600" />
+                  ) : (
+                    <Square className="w-3.5 h-3.5 text-slate-400" />
+                  )}
                   Biển số đã nhận diện
                 </Badge>
                 {/* Badge Thẻ hợp lệ */}
-                <Badge variant={isCardValid ? "default" : "outline"} className={`h-6 text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-none transition-all ${
+                <Badge variant={isCardValid ? "default" : "outline"} className={`h-6.5 text-[11px] font-bold px-2.5 py-0.5 rounded-md flex items-center gap-1.5 shadow-none transition-all ${
                   isCardValid ? 'bg-emerald-50 hover:bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-100 text-slate-400 border-transparent'
                 }`}>
-                  <Check className="w-3.5 h-3.5" />
+                  <CreditCard className={`w-3.5 h-3.5 ${isCardValid ? 'text-emerald-600' : 'text-slate-400'}`} />
                   Thẻ hợp lệ
                 </Badge>
                 {/* Badge Sẵn sàng tạo phiên */}
-                <Badge variant={allChecksPassed ? "default" : "outline"} className={`h-6 text-[11px] font-bold px-2.5 py-0.5 rounded-md flex items-center gap-1.5 shadow-none transition-all ${
-                  allChecksPassed ? 'bg-blue-50 hover:bg-blue-50 text-blue-700 border-blue-100' : 'bg-slate-100 text-slate-400 border-transparent'
+                <Badge variant={allChecksPassed ? "default" : "outline"} className={`h-6.5 text-[11px] font-bold px-2.5 py-0.5 rounded-md flex items-center gap-1.5 shadow-none transition-all ${
+                  allChecksPassed ? 'bg-indigo-50 hover:bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-slate-100 text-slate-400 border-transparent'
                 }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${allChecksPassed ? 'bg-blue-600 animate-pulse' : 'bg-slate-400'}`}></span>
+                  <span className={`w-2 h-2 rounded-full ${allChecksPassed ? 'bg-indigo-600 animate-pulse' : 'bg-slate-400'}`}></span>
                   Sẵn sàng tạo phiên
                 </Badge>
               </div>
@@ -281,7 +285,7 @@ export default function EntryPageTest() {
           {/* CARD 3: Kiểm tra hệ thống */}
           <Card className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 flex flex-col gap-4">
             <div className="flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs">3</span>
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-xs">3</span>
               <h3 className="font-bold text-slate-800">Kiểm tra hệ thống</h3>
             </div>
 
@@ -369,7 +373,7 @@ export default function EntryPageTest() {
           {/* CARD 5: Thao tác */}
           <Card className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 flex flex-col gap-4">
             <div className="flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs">5</span>
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-xs">5</span>
               <h3 className="font-bold text-slate-800">Thao tác</h3>
             </div>
 
@@ -450,7 +454,7 @@ export default function EntryPageTest() {
           {/* CARD 2: Thông tin xe vào */}
           <Card className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 flex flex-col gap-4">
             <div className="flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs">2</span>
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-xs">2</span>
               <h3 className="font-bold text-slate-800">Thông tin xe vào</h3>
             </div>
 
@@ -592,7 +596,7 @@ export default function EntryPageTest() {
           <Card className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs">4</span>
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-xs">4</span>
                 <h3 className="font-bold text-slate-800">Gợi ý vị trí đỗ</h3>
               </div>
               <MapPin className="h-5 w-5 text-blue-600 cursor-pointer" />
