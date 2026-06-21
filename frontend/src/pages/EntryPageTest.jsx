@@ -206,14 +206,14 @@ export default function EntryPageTest() {
         <section className="lg:col-span-3 flex flex-col gap-2 h-full min-h-0">
           
           {/* ROW 1: Steps 1 & 2 */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 flex-[5] min-h-0">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-[5] min-h-0">
             {/* Step 1 (Camera nhận diện) - 2/3 width */}
-            <div className="lg:col-span-2 flex flex-col h-full min-h-0">
+            <div className="lg:col-span-7 flex flex-col h-full min-h-0">
               <Card className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden flex flex-col p-0 gap-0 h-full min-h-0">
                 <div className="p-3 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2 w-full shrink-0">
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">1</span>
-                    <h3 className="font-bold text-slate-800 text-xs">Camera nhận diện</h3>
+                    <h3 className="font-bold text-slate-800 text-sm">Camera nhận diện</h3>
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {/* Badge Biển số đã nhận diện */}
@@ -286,18 +286,18 @@ export default function EntryPageTest() {
             </div>
 
             {/* Step 2 (Thông tin xe vào) - 1/3 width */}
-            <div className="lg:col-span-1 flex flex-col h-full min-h-0">
+            <div className="lg:col-span-5 flex flex-col h-full min-h-0">
               <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2 h-full min-h-0">
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">2</span>
-                  <h3 className="font-bold text-slate-800 text-xs">Thông tin xe vào</h3>
+                  <h3 className="font-bold text-slate-800 text-sm">Thông tin xe vào</h3>
                 </div>
 
                 {/* Form */}
                 <div className="flex flex-col gap-2 flex-1 overflow-y-auto pr-1">
                   {/* Field: License Plate */}
                   <div className="flex flex-col gap-0.5">
-                    <label className="text-[10px] font-bold text-slate-500">Biển số <span className="text-rose-500">*</span></label>
+                    <label className="text-[11px] font-bold text-slate-500">Biển số <span className="text-rose-500">*</span></label>
                     <Input 
                       type="text" 
                       value={plateNumber} 
@@ -309,7 +309,7 @@ export default function EntryPageTest() {
 
                   {/* Field: Card Code */}
                   <div className="flex flex-col gap-0.5">
-                    <label className="text-[10px] font-bold text-slate-500">Mã thẻ</label>
+                    <label className="text-[11px] font-bold text-slate-500">Mã thẻ</label>
                     <div className="relative">
                       <Input 
                         type="text" 
@@ -326,7 +326,7 @@ export default function EntryPageTest() {
 
                   {/* Field: Vehicle Type */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500">Loại xe <span className="text-rose-500">*</span></label>
+                    <label className="text-[11px] font-bold text-slate-500">Loại xe <span className="text-rose-500">*</span></label>
                     <div className="grid grid-cols-4 gap-0.5 p-0.5 bg-slate-100 rounded-lg">
                       {['motorbike', 'car', 'truck', 'bicycle'].map((type) => {
                         const label = type === 'motorbike' ? 'Xe máy' : type === 'car' ? 'Ô tô' : type === 'truck' ? 'Xe tải' : 'Xe đạp';
@@ -334,7 +334,7 @@ export default function EntryPageTest() {
                           <button
                             key={type}
                             onClick={() => setVehicleType(type)}
-                            className={`py-1 text-[9px] font-bold rounded transition cursor-pointer ${
+                            className={`py-1 text-[10px] font-bold rounded transition cursor-pointer ${
                               vehicleType === type
                                 ? 'bg-white text-blue-600 shadow-xs border border-slate-200/50'
                                 : 'text-slate-500 hover:text-slate-800'
@@ -349,7 +349,7 @@ export default function EntryPageTest() {
 
                   {/* Field: Driver Group */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500">Nhóm tài xế <span className="text-rose-500">*</span></label>
+                    <label className="text-[11px] font-bold text-slate-500">Nhóm tài xế <span className="text-rose-500">*</span></label>
                     <div className="grid grid-cols-2 gap-0.5 p-0.5 bg-slate-100 rounded-lg">
                       {['resident', 'visitor'].map((grp) => {
                         const label = grp === 'resident' ? 'Cư dân' : 'Khách';
@@ -357,7 +357,7 @@ export default function EntryPageTest() {
                           <button
                             key={grp}
                             onClick={() => setDriverGroup(grp)}
-                            className={`py-1 text-[9px] font-bold rounded transition cursor-pointer ${
+                            className={`py-1 text-[10px] font-bold rounded transition cursor-pointer ${
                               driverGroup === grp
                                 ? 'bg-white text-blue-600 shadow-xs border border-slate-200/50'
                                 : 'text-slate-500 hover:text-slate-800'
@@ -372,7 +372,7 @@ export default function EntryPageTest() {
 
                   {/* Field: Gate */}
                   <div className="flex flex-col gap-0.5">
-                    <label className="text-[10px] font-bold text-slate-500">Cổng vào <span className="text-rose-500">*</span></label>
+                    <label className="text-[11px] font-bold text-slate-500">Cổng vào <span className="text-rose-500">*</span></label>
                     <div className="relative">
                       <select 
                         value={gate}
@@ -389,7 +389,7 @@ export default function EntryPageTest() {
 
                   {/* Field: Time In */}
                   <div className="flex flex-col gap-0.5">
-                    <label className="text-[10px] font-bold text-slate-500">Thời gian vào</label>
+                    <label className="text-[11px] font-bold text-slate-500">Thời gian vào</label>
                     <div className="relative">
                       <Input 
                         type="text" 
@@ -436,16 +436,16 @@ export default function EntryPageTest() {
               <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2 h-full min-h-0">
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">3</span>
-                  <h3 className="font-bold text-slate-800 text-xs">Kiểm tra hệ thống</h3>
+                  <h3 className="font-bold text-slate-800 text-sm">Kiểm tra hệ thống</h3>
                 </div>
 
                 {/* Check Grid List */}
                 <div className="flex flex-col gap-2 flex-1 overflow-y-auto pr-1 justify-center">
                   {/* Check 1 */}
                   <div className="flex flex-col gap-0.5 p-2 rounded-lg bg-slate-50 border border-slate-100">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase">Thẻ khả dụng</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Thẻ khả dụng</span>
                     <div className="flex items-center justify-between mt-0.5">
-                      <span className={`text-[11px] font-bold ${isCardValid ? 'text-slate-700' : 'text-rose-600'}`}>
+                      <span className={`text-xs font-bold ${isCardValid ? 'text-slate-700' : 'text-rose-600'}`}>
                         {isCardValid ? 'Hợp lệ' : 'Lỗi/Khóa'}
                       </span>
                       {isCardValid ? (
@@ -458,9 +458,9 @@ export default function EntryPageTest() {
 
                   {/* Check 2 */}
                   <div className="flex flex-col gap-0.5 p-2 rounded-lg bg-slate-50 border border-slate-100">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase">Trùng phiên hoạt động</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Trùng phiên hoạt động</span>
                     <div className="flex items-center justify-between mt-0.5">
-                      <span className={`text-[11px] font-bold ${isNoDuplicateSession ? 'text-slate-700' : 'text-rose-600'}`}>
+                      <span className={`text-xs font-bold ${isNoDuplicateSession ? 'text-slate-700' : 'text-rose-600'}`}>
                         {isNoDuplicateSession ? 'Không trùng' : 'Bị trùng'}
                       </span>
                       {isNoDuplicateSession ? (
@@ -473,9 +473,9 @@ export default function EntryPageTest() {
 
                   {/* Check 3 */}
                   <div className="flex flex-col gap-0.5 p-2 rounded-lg bg-slate-50 border border-slate-100">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase">Mẫu biển số xe</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Mẫu biển số xe</span>
                     <div className="flex items-center justify-between mt-0.5">
-                      <span className={`text-[11px] font-bold ${isPlateValid ? 'text-slate-700' : 'text-rose-600'}`}>
+                      <span className={`text-xs font-bold ${isPlateValid ? 'text-slate-700' : 'text-rose-600'}`}>
                         {isPlateValid ? 'Chuẩn quy chuẩn' : 'Không đạt'}
                       </span>
                       {isPlateValid ? (
@@ -488,9 +488,9 @@ export default function EntryPageTest() {
 
                   {/* Check 4 */}
                   <div className="flex flex-col gap-0.5 p-2 rounded-lg bg-slate-50 border border-slate-100">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase">Phân loại xe</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Phân loại xe</span>
                     <div className="flex items-center justify-between mt-0.5">
-                      <span className={`text-[11px] font-bold ${isVehicleTypeValid ? 'text-slate-700' : 'text-rose-600'}`}>
+                      <span className={`text-xs font-bold ${isVehicleTypeValid ? 'text-slate-700' : 'text-rose-600'}`}>
                         {isVehicleTypeValid ? 'Khớp loại' : 'Không khớp'}
                       </span>
                       {isVehicleTypeValid ? (
@@ -510,7 +510,7 @@ export default function EntryPageTest() {
                 <div className="flex items-center justify-between shrink-0">
                   <div className="flex items-center gap-2">
                     <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">4</span>
-                    <h3 className="font-bold text-slate-800 text-xs">Gợi ý vị trí đỗ</h3>
+                    <h3 className="font-bold text-slate-800 text-sm">Gợi ý vị trí đỗ</h3>
                   </div>
                   <MapPin className="h-4 w-4 text-blue-600 cursor-pointer" />
                 </div>
@@ -616,7 +616,7 @@ export default function EntryPageTest() {
             <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2">
               <div className="flex items-center gap-2 shrink-0">
                 <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">5</span>
-                <h3 className="font-bold text-slate-800 text-xs">Thao tác</h3>
+                <h3 className="font-bold text-slate-800 text-sm">Thao tác</h3>
               </div>
 
               {/* Quick Actions Buttons Row */}
@@ -696,7 +696,7 @@ export default function EntryPageTest() {
           
           {/* CARD: Thông tin booking / QR */}
           <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2">
-            <h3 className="font-bold text-slate-800 text-xs">Thông tin booking / QR</h3>
+            <h3 className="font-bold text-slate-800 text-sm">Thông tin booking / QR</h3>
 
             {hasBooking ? (
               <div className="flex flex-col gap-2 animate-fade-in">
@@ -785,7 +785,7 @@ export default function EntryPageTest() {
           {/* CARD: Lượt xe vào gần đây */}
           <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-slate-800 text-xs">Lượt xe vào gần đây</h3>
+              <h3 className="font-bold text-slate-800 text-sm">Lượt xe vào gần đây</h3>
               <a href="#/recent" className="text-xs font-bold text-blue-600 hover:underline">Tất cả</a>
             </div>
 
