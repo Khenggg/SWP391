@@ -28,23 +28,27 @@ Trước khi code, hãy cập nhật code mới nhất và tạo một nhánh tu
   * `fix/s2-tên-lỗi` (Ví dụ: `fix/s2-jwt-validation`)
   * `chore/s2-tên-công-việc` (Ví dụ: `chore/s2-connect-api`)
 
-Lệnh thực hiện:
+**Ví dụ thực tế:** Để bắt đầu làm CRUD Users, bạn chạy các lệnh sau:
 ```bash
 git checkout dev
 git pull origin dev
-git checkout -b <tên-nhánh-đúng-quy-chuẩn>
+git checkout -b feature/s2-users-crud
 ```
 
 ### 📌 Bước 2: Lập trình, Commit và Push
 Bạn có thể commit bất kỳ lúc nào với mọi loại tin nhắn commit (thích hợp cho commit nháp khi chuyển nhánh). Đẩy nhánh của bạn lên remote:
+
+**Ví dụ thực tế:**
 ```bash
 git add .
-git commit -m "mô tả phần việc vừa làm"
-git push origin <tên-nhánh-đúng-quy-chuẩn>
+git commit -m "hoàn thành thiết lập database entity cho users"
+git push origin feature/s2-users-crud
 ```
 
 ### 📌 Bước 3: Tạo Pull Request (PR) để hợp nhất vào `dev`
-Lên giao diện GitHub, tạo một **Pull Request** từ `<tên-nhánh-đúng-quy-chuẩn>` hướng về nhánh **`dev`** để kiểm tra và hợp nhất code.
+Lên giao diện GitHub, tạo một **Pull Request** hướng về nhánh **`dev`** để kiểm tra và hợp nhất code.
+
+**Ví dụ thực tế:** Tạo Pull Request từ nhánh `feature/s2-users-crud` cần merge vào nhánh `dev`.
 > ⚠️ **Chú ý:** Lệnh `git push origin dev` sẽ bị chặn trực tiếp bởi Git Hook để bảo vệ mã nguồn chung. Bạn chỉ có thể đưa code vào `dev` bằng Pull Request.
 
 ---
