@@ -11,14 +11,6 @@ public class PublicParkingInfoController {
 
     @GetMapping("/api/public/parking-info")
     public ApiResponse<?> getParkingInfo() {
-        // Map<String, Object> data = Map.of(
-        //         "name", "Parking Building",
-        //         "address", "Q9",
-        //         "openingHours", "24/7",
-        //         "status", "OPEN",
-        //         "hotline", "0123456789",
-        //         "totalCapacity", 500);
-        //     return ApiResponse.ok(data);
 
         ParkingInfoResponse data = new ParkingInfoResponse("Parking Building",
                 "Q9",

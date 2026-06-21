@@ -3,6 +3,7 @@ package com.parkingbuilding.support.service;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.parkingbuilding.support.dto.response.AvailableSlotResponse;
 import com.parkingbuilding.support.sharedreadmodel.entity.AreaReadEntity;
@@ -11,7 +12,7 @@ import com.parkingbuilding.support.sharedreadmodel.repository.AreaReadRepository
 import com.parkingbuilding.support.sharedreadmodel.repository.SlotReadRepository;
 
 import lombok.RequiredArgsConstructor;
-
+@Transactional(readOnly = true)
 @Service
 @RequiredArgsConstructor
 
@@ -23,7 +24,6 @@ public class AvailableSlotService {
     public List<AvailableSlotResponse> getAvailableSlots(Long vehicleTypeId,
             Long areaId,
             Long floorId) {
-        System.out.println("service ok");
 
         List<SlotReadEntity> slots = slotReadRepository.findByStatus("AVAILABLE");
 

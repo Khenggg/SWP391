@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.parkingbuilding.support.dto.response.PublicPricingResponse;
 import com.parkingbuilding.support.sharedreadmodel.entity.VehicleTypeReadEntity;
@@ -13,6 +14,7 @@ import com.parkingbuilding.support.sharedreadmodel.repository.PricingRuleReadRep
 import com.parkingbuilding.support.sharedreadmodel.repository.VehicleTypeReadRepository;
 import lombok.RequiredArgsConstructor;
 
+@Transactional(readOnly = true)
 @Service
 @RequiredArgsConstructor
 public class PublicPricingService {
