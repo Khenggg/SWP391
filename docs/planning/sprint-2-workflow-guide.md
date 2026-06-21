@@ -23,16 +23,17 @@ Tất cả lập trình viên bắt buộc phải tuân theo luồng làm việc
 
 ### 📌 Bước 1: Tạo nhánh làm việc riêng từ `dev`
 Trước khi code, hãy cập nhật code mới nhất và tạo một nhánh tuân thủ đúng quy chuẩn sau:
-* **Quy chuẩn đặt tên nhánh:** `<loại_nhánh>/s2-<tên_tác_vụ>`
-  * `feature/s2-tên-tính-năng` (Ví dụ: `feature/s2-users-crud` hoặc `feature/s2-manage-floors`)
-  * `fix/s2-tên-lỗi` (Ví dụ: `fix/s2-jwt-validation`)
-  * `chore/s2-tên-công-việc` (Ví dụ: `chore/s2-connect-api`)
+* **Quy chuẩn đặt tên nhánh:** `<github-username>/<issue-id>-<short-name>`
+  * Trong đó:
+    * `<github-username>`: Tên tài khoản GitHub của bạn (ví dụ: `Ahug05`, `ToTrieuTien`, `fong-gif`).
+    * `<issue-id>`: Số thứ tự Issue trên GitHub (ví dụ: `71`, `72`, `73`).
+    * `<short-name>`: Tên ngắn gọn mô tả tính năng bằng tiếng Anh, viết thường, phân tách bằng dấu gạch ngang (ví dụ: `users-crud`, `manage-floors`).
 
-**Ví dụ thực tế:** Để bắt đầu làm CRUD Users, bạn chạy các lệnh sau:
+**Ví dụ thực tế:** Để bắt đầu làm CRUD Users (Issue #71, do dev Ahug05 phụ trách), bạn chạy các lệnh sau:
 ```bash
 git checkout dev
 git pull origin dev
-git checkout -b feature/s2-users-crud
+git checkout -b Ahug05/71-users-crud
 ```
 
 ### 📌 Bước 2: Lập trình, Commit và Push
@@ -42,13 +43,13 @@ Bạn có thể commit bất kỳ lúc nào với mọi loại tin nhắn commit
 ```bash
 git add .
 git commit -m "hoàn thành thiết lập database entity cho users"
-git push origin feature/s2-users-crud
+git push origin Ahug05/71-users-crud
 ```
 
 ### 📌 Bước 3: Tạo Pull Request (PR) để hợp nhất vào `dev`
 Lên giao diện GitHub, tạo một **Pull Request** hướng về nhánh **`dev`** để kiểm tra và hợp nhất code.
 
-**Ví dụ thực tế:** Tạo Pull Request từ nhánh `feature/s2-users-crud` cần merge vào nhánh `dev`.
+**Ví dụ thực tế:** Tạo Pull Request từ nhánh `Ahug05/71-users-crud` cần merge vào nhánh `dev`.
 > ⚠️ **Chú ý:** Lệnh `git push origin dev` sẽ bị chặn trực tiếp bởi Git Hook để bảo vệ mã nguồn chung. Bạn chỉ có thể đưa code vào `dev` bằng Pull Request.
 
 ---
