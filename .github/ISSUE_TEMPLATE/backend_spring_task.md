@@ -1,7 +1,6 @@
 ---
 name: Backend Spring task
 about: Support API task for public read, dashboard, report, or audit search
-title: "[Spring] "
 labels: backend-spring
 ---
 

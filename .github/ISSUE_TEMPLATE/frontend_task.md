@@ -1,7 +1,6 @@
 ---
 name: Frontend task
 about: React page, API integration, layout, or form task
-title: "[Frontend] "
 labels: frontend
 ---
 
