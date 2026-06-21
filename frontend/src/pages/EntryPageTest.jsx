@@ -282,8 +282,8 @@ export default function EntryPageTest() {
           
           {/* ROW 1: Steps 1 & 2 */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-[5] min-h-0">
-            {/* Step 1 (Camera nhận diện) - 1.75/3 width (7/12 cols) */}
-            <div className="lg:col-span-7 flex flex-col h-full min-h-0">
+            {/* Step 1 (Camera nhận diện) - 50% width (6/12 cols) */}
+            <div className="lg:col-span-6 flex flex-col h-full min-h-0">
               <Card className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden flex flex-col p-0 gap-0 h-full min-h-0">
                 <div className="p-3 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2 w-full shrink-0">
                   <div className="flex items-center gap-2 shrink-0">
@@ -360,8 +360,8 @@ export default function EntryPageTest() {
               </Card>
             </div>
 
-            {/* Step 2 (Thông tin xe vào) - 1.25/3 width (5/12 cols) */}
-            <div className="lg:col-span-5 flex flex-col h-full min-h-0">
+            {/* Step 2 (Thông tin xe vào) - 50% width (6/12 cols) */}
+            <div className="lg:col-span-6 flex flex-col h-full min-h-0">
               <Card className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 flex flex-col gap-2.5 h-full min-h-0">
                 <div className="flex items-center gap-2 shrink-0">
                   <div className="w-5 h-5 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">2</div>
