@@ -36,6 +36,7 @@ import DriverProfilePage from "../pages/driver/DriverProfilePage";
 import DriverVehiclesPage from "../pages/driver/DriverVehiclesPage";
 import DriverHistoryPage from "../pages/driver/DriverHistoryPage";
 import DriverBookingPage from "../pages/driver/DriverBookingPage";
+import EntryPageTest from "../pages/EntryPageTest";
 
 const RequireAuth = ({ isAuthenticated }) => {
   return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
@@ -55,6 +56,8 @@ export default function AppRoutes({ isAuthenticated, userRole, currentUser, onLo
         <Route path="/available-slots" element={<AvailableSlotsPage />} />
         <Route path="/card/:qrToken" element={<QRLookupPage />} />
       </Route>
+
+      <Route path="/entry-test" element={<EntryPageTest />} />
 
       <Route
         path="/login"
