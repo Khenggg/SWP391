@@ -11,6 +11,9 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence
 
         public DbSet<User> Users => Set<User>();
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+        public DbSet<VehicleType> VehicleTypes => Set<VehicleType>();
+        public DbSet<ParkingCard> ParkingCards => Set<ParkingCard>();
+        public DbSet<PricingRule> PricingRules => Set<PricingRule>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

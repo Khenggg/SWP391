@@ -22,7 +22,7 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Security
         {
             var issuer = _configuration["Jwt:Issuer"] ?? "ParkingBuilding.CoreApi";
             var audience = _configuration["Jwt:Audience"] ?? "ParkingBuilding.Frontend";
-            var secretKey = _configuration["Jwt:Secret"] ?? "DEVELOPMENT_SECRET_KEY_FOR_LOCAL_TESTING_ONLY_2026_SWP391";
+            var secretKey = _configuration["JWT_SECRET"] ?? _configuration["Jwt:Secret"] ?? "DEVELOPMENT_SECRET_KEY_FOR_LOCAL_TESTING_ONLY_2026_SWP391";
             var expirationMinutesStr = _configuration["Jwt:ExpirationMinutes"];
             
             if (!int.TryParse(expirationMinutesStr, out var expirationMinutes))
