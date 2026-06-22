@@ -58,7 +58,7 @@ namespace ParkingBuilding.CoreApi.Controllers
         public async Task<IActionResult> GetById(long id)
         {
             var item = await _context.ParkingCards.FindAsync(id);
-            if (item == null) return Fail("Not Found", $"Card with ID {id} not found.");
+            if (item == null) return StatusCodeResponse(404, "Not Found", $"Card with ID {id} not found.");
             return Success(item, "Get card successfully");
         }
 
@@ -76,7 +76,7 @@ namespace ParkingBuilding.CoreApi.Controllers
                 .AnyAsync(c => c.CardNumber.ToLower() == cleanCardNumber.ToLower());
                 
             if (isDuplicate)
-                return Fail("Conflict", "Card number already exists.");
+                return StatusCodeResponse(409, "Conflict", "Card number already exists.");
 
             var card = new ParkingCard
             {
@@ -99,7 +99,7 @@ namespace ParkingBuilding.CoreApi.Controllers
         public async Task<IActionResult> Update(long id, [FromBody] UpdateCardDto model)
         {
             var existing = await _context.ParkingCards.FindAsync(id);
-            if (existing == null) return Fail("Not Found", "Card not found.");
+            if (existing == null) return StatusCodeResponse(404, "Not Found", "Card not found.");
 
             existing.Note = model.Note;
             existing.UpdatedAt = DateTime.UtcNow;
@@ -115,7 +115,7 @@ namespace ParkingBuilding.CoreApi.Controllers
         public async Task<IActionResult> ChangeStatus(long id, [FromBody] string status)
         {
             var existing = await _context.ParkingCards.FindAsync(id);
-            if (existing == null) return Fail("Not Found", "Card not found.");
+            if (existing == null) return StatusCodeResponse(404, "Not Found", "Card not found.");
 
             if (!Enum.TryParse<CardStatus>(status, true, out var parsedStatus))
             {
@@ -129,6 +129,19 @@ namespace ParkingBuilding.CoreApi.Controllers
             await _context.SaveChangesAsync();
 
             return Success(existing, "Change card status successfully");
+        }
+
+        // 7. DELETE CARD
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(long id)
+        {
+            var existing = await _context.ParkingCards.FindAsync(id);
+            if (existing == null) return StatusCodeResponse(404, "Not Found", "Card not found.");
+
+            _context.ParkingCards.Remove(existing);
+            await _context.SaveChangesAsync();
+
+            return Success(true, "Delete card successfully");
         }
 
         // DTOs

@@ -44,7 +44,11 @@ builder.Services.AddHostedService<SupabaseConnectionLogger>();
 builder.Services.AddSingleton<JwtTokenGenerator>();
 
 // Cau hinh JWT Authentication
-var jwtSecret = builder.Configuration["JWT_SECRET"] ?? builder.Configuration["Jwt:Secret"] ?? "DEVELOPMENT_SECRET_KEY_FOR_LOCAL_TESTING_ONLY_2026_SWP391";
+var jwtSecret = builder.Configuration["JWT_SECRET"] ?? builder.Configuration["Jwt:Secret"];
+if (string.IsNullOrEmpty(jwtSecret))
+{
+    throw new System.InvalidOperationException("JWT Secret is not configured. Please set the JWT_SECRET environment variable or Jwt:Secret configuration.");
+}
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "ParkingBuilding.CoreApi";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "ParkingBuilding.Frontend";
 

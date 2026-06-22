@@ -38,7 +38,7 @@ namespace ParkingBuilding.CoreApi.Controllers
                 .Include(r => r.VehicleType)
                 .FirstOrDefaultAsync(r => r.Id == id);
                 
-            if (item == null) return Fail("Not Found", $"Pricing rule with ID {id} not found.");
+            if (item == null) return StatusCodeResponse(404, "Not Found", $"Pricing rule with ID {id} not found.");
             return Success(item, "Get pricing rule successfully");
         }
 
@@ -96,7 +96,7 @@ namespace ParkingBuilding.CoreApi.Controllers
             if (model == null) return Fail("Bad Request", "Model is required.");
 
             var existing = await _context.PricingRules.FindAsync(id);
-            if (existing == null) return Fail("Not Found", "Pricing rule not found.");
+            if (existing == null) return StatusCodeResponse(404, "Not Found", "Pricing rule not found.");
 
             // If updating vehicle type, check existence
             if (model.VehicleTypeId.HasValue)
@@ -173,7 +173,7 @@ namespace ParkingBuilding.CoreApi.Controllers
         public async Task<IActionResult> Delete(long id)
         {
             var existing = await _context.PricingRules.FindAsync(id);
-            if (existing == null) return Fail("Not Found", "Pricing rule not found.");
+            if (existing == null) return StatusCodeResponse(404, "Not Found", "Pricing rule not found.");
 
             _context.PricingRules.Remove(existing);
             await _context.SaveChangesAsync();

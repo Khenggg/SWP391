@@ -32,8 +32,11 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence.Configurations
                    .HasConversion<string>()
                    .IsRequired();
 
-            builder.Property(x => x.Note)
-                   .HasColumnName("note");
+             builder.Property(x => x.Note)
+                    .HasColumnName("note");
+
+             builder.Property(x => x.CurrentSessionId)
+                    .HasColumnName("current_session_id");
 
             builder.Property(x => x.CreatedAt)
                    .HasColumnName("created_at")

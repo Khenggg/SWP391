@@ -70,7 +70,7 @@ namespace ParkingBuilding.CoreApi.Controllers
         {
             var user = await _context.Users.FindAsync(id);
             if (user == null)
-                return Fail("Not Found", $"User with ID {id} not found.");
+                return StatusCodeResponse(404, "Not Found", $"User with ID {id} not found.");
 
             return Success(new UserResponseDto(user), "Get user successfully");
         }
@@ -90,7 +90,7 @@ namespace ParkingBuilding.CoreApi.Controllers
             bool isUsernameDuplicate = await _context.Users
                 .AnyAsync(u => u.Username.ToLower() == cleanUsername.ToLower());
             if (isUsernameDuplicate)
-                return Fail("Conflict", "Username already exists.");
+                return StatusCodeResponse(409, "Conflict", "Username already exists.");
 
             if (!Enum.TryParse<UserRole>(model.Role, true, out var parsedRole))
             {
@@ -127,7 +127,7 @@ namespace ParkingBuilding.CoreApi.Controllers
 
             var user = await _context.Users.FindAsync(id);
             if (user == null)
-                return Fail("Not Found", "User not found.");
+                return StatusCodeResponse(404, "Not Found", "User not found.");
 
             if (!string.IsNullOrWhiteSpace(model.FullName))
                 user.FullName = model.FullName.Trim();
@@ -158,7 +158,7 @@ namespace ParkingBuilding.CoreApi.Controllers
 
             var user = await _context.Users.FindAsync(id);
             if (user == null)
-                return Fail("Not Found", "User not found.");
+                return StatusCodeResponse(404, "Not Found", "User not found.");
 
             if (!Enum.TryParse<UserStatus>(model.Status, true, out var parsedStatus))
             {
@@ -183,7 +183,7 @@ namespace ParkingBuilding.CoreApi.Controllers
 
             var user = await _context.Users.FindAsync(id);
             if (user == null)
-                return Fail("Not Found", "User not found.");
+                return StatusCodeResponse(404, "Not Found", "User not found.");
 
             if (!Enum.TryParse<UserRole>(model.Role, true, out var parsedRole))
             {
@@ -205,7 +205,7 @@ namespace ParkingBuilding.CoreApi.Controllers
         {
             var user = await _context.Users.FindAsync(id);
             if (user == null)
-                return Fail("Not Found", "User not found.");
+                return StatusCodeResponse(404, "Not Found", "User not found.");
 
             _context.Users.Remove(user);
             await _context.SaveChangesAsync();

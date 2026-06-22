@@ -26,6 +26,19 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence.Configurations
                    .HasColumnName("is_active")
                    .HasDefaultValue(true)
                    .IsRequired();
+
+            builder.Property(x => x.RequiresSlot)
+                   .HasColumnName("requires_slot")
+                   .HasDefaultValue(true)
+                   .IsRequired();
+
+            builder.Property(x => x.CreatedAt)
+                   .HasColumnName("created_at")
+                   .HasColumnType("timestamp with time zone");
+
+            builder.Property(x => x.UpdatedAt)
+                   .HasColumnName("updated_at")
+                   .HasColumnType("timestamp with time zone");
         }
     }
 }

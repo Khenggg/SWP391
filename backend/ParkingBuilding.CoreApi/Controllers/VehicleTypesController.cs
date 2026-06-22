@@ -31,7 +31,7 @@ namespace ParkingBuilding.CoreApi.Controllers
         public async Task<IActionResult> GetById(long id)
         {
             var item = await _context.VehicleTypes.FindAsync(id);
-            if (item == null) return Fail("Not Found", $"Vehicle type with ID {id} not found.");
+            if (item == null) return StatusCodeResponse(404, "Not Found", $"Vehicle type with ID {id} not found.");
             return Success(item, "Get vehicle type successfully");
         }
 
@@ -41,6 +41,13 @@ namespace ParkingBuilding.CoreApi.Controllers
         {
             if (string.IsNullOrWhiteSpace(model.Name)) 
                 return Fail("Bad Request", "Name is required.");
+
+            bool exists = await _context.VehicleTypes
+                .AnyAsync(vt => vt.Name.ToLower() == model.Name.Trim().ToLower());
+            if (exists)
+            {
+                return StatusCodeResponse(409, "Conflict", "Vehicle type name already exists.");
+            }
 
             _context.VehicleTypes.Add(model);
             await _context.SaveChangesAsync();
@@ -52,7 +59,17 @@ namespace ParkingBuilding.CoreApi.Controllers
         public async Task<IActionResult> Update(long id, [FromBody] VehicleType model)
         {
             var existing = await _context.VehicleTypes.FindAsync(id);
-            if (existing == null) return Fail("Not Found", "Vehicle type not found.");
+            if (existing == null) return StatusCodeResponse(404, "Not Found", "Vehicle type not found.");
+
+            if (string.IsNullOrWhiteSpace(model.Name)) 
+                return Fail("Bad Request", "Name is required.");
+
+            bool exists = await _context.VehicleTypes
+                .AnyAsync(vt => vt.Id != id && vt.Name.ToLower() == model.Name.Trim().ToLower());
+            if (exists)
+            {
+                return StatusCodeResponse(409, "Conflict", "Vehicle type name already exists.");
+            }
 
             existing.Name = model.Name;
             existing.Description = model.Description;
@@ -68,7 +85,7 @@ namespace ParkingBuilding.CoreApi.Controllers
         public async Task<IActionResult> ChangeActive(long id, [FromBody] bool isActive)
         {
             var existing = await _context.VehicleTypes.FindAsync(id);
-            if (existing == null) return Fail("Not Found", "Vehicle type not found.");
+            if (existing == null) return StatusCodeResponse(404, "Not Found", "Vehicle type not found.");
 
             existing.IsActive = isActive;
             _context.VehicleTypes.Update(existing);
@@ -81,7 +98,7 @@ namespace ParkingBuilding.CoreApi.Controllers
         public async Task<IActionResult> Delete(long id)
         {
             var existing = await _context.VehicleTypes.FindAsync(id);
-            if (existing == null) return Fail("Not Found", "Vehicle type not found.");
+            if (existing == null) return StatusCodeResponse(404, "Not Found", "Vehicle type not found.");
 
             _context.VehicleTypes.Remove(existing);
             await _context.SaveChangesAsync();
