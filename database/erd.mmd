@@ -1,0 +1,475 @@
+erDiagram
+    users o|--o| driver_profiles : "user_id nullable unique"
+    users o|--o{ driver_profiles : "resident_verified_by nullable"
+    driver_profiles o|--o{ vehicles : "driver_id nullable resident only"
+    vehicle_types ||--o{ vehicles : "vehicle_type_id"
+
+    floors ||--o{ areas : "floor_id"
+    areas ||--o{ area_vehicle_types : "area_id"
+    vehicle_types ||--o{ area_vehicle_types : "vehicle_type_id"
+    areas ||--o{ slots : "area_id"
+    vehicle_types ||--o{ slots : "allowed_vehicle_type_id"
+    floors ||--o{ gates : "floor_id"
+
+    vehicle_types ||--o{ pricing_rules : "vehicle_type_id"
+    users ||--o{ pricing_rules : "created_by"
+    users o|--o{ pricing_rules : "updated_by nullable"
+
+    driver_profiles o|--o{ monthly_passes : "driver_id nullable"
+    parking_cards ||--o{ monthly_passes : "card_id"
+    vehicle_types ||--o{ monthly_passes : "vehicle_type_id"
+    users ||--o{ monthly_passes : "created_by"
+
+    driver_profiles o|--o{ reservations : "driver_id nullable"
+    vehicles o|--o{ reservations : "vehicle_id nullable"
+    vehicle_types ||--o{ reservations : "vehicle_type_id"
+    floors ||--o{ reservations : "floor_id"
+    areas ||--o{ reservations : "area_id"
+    slots o|--o{ reservations : "slot_id nullable by requires_slot"
+    pricing_rules o|--o{ reservations : "pricing_rule_id nullable"
+    users o|--o{ reservations : "created_by nullable"
+    users o|--o{ reservations : "checked_in_by nullable"
+    users o|--o{ reservations : "cancelled_by nullable"
+    reservations ||--o{ reservation_extensions : "reservation_id"
+    pricing_rules o|--o{ reservation_extensions : "pricing_rule_id nullable"
+    payments o|--o{ reservation_extensions : "payment_id nullable"
+    users o|--o{ reservation_extensions : "requested_by nullable"
+
+    parking_cards ||--o{ parking_sessions : "card_id"
+    parking_sessions o|--o| parking_cards : "current_session_id late FK"
+    driver_profiles o|--o{ parking_sessions : "driver_id nullable"
+    vehicles o|--o{ parking_sessions : "vehicle_id nullable"
+    vehicle_types ||--o{ parking_sessions : "vehicle_type_id"
+    monthly_passes o|--o{ parking_sessions : "monthly_pass_id nullable"
+    reservations o|--o{ parking_sessions : "reservation_id nullable unique"
+    floors ||--o{ parking_sessions : "floor_id"
+    areas ||--o{ parking_sessions : "area_id"
+    slots o|--o{ parking_sessions : "slot_id nullable"
+    parking_sessions o|--o| slots : "current_session_id late FK"
+    gates ||--o{ parking_sessions : "entry_gate_id"
+    gates o|--o{ parking_sessions : "exit_gate_id nullable"
+    users ||--o{ parking_sessions : "entry_staff_id"
+    users o|--o{ parking_sessions : "exit_staff_id nullable"
+    users o|--o{ parking_sessions : "claimed_by_user_id nullable"
+    pricing_rules o|--o{ parking_sessions : "pricing_rule_id nullable"
+    areas o|--o{ parking_sessions : "suggested_area_id nullable"
+    slots o|--o{ parking_sessions : "suggested_slot_id nullable"
+    areas o|--o{ parking_sessions : "override_area_id nullable"
+    slots o|--o{ parking_sessions : "override_slot_id nullable"
+    users o|--o{ parking_sessions : "override_by nullable"
+    users o|--o{ parking_sessions : "plate_corrected_by nullable"
+    parking_sessions ||--o{ parking_session_images : "session_id"
+
+    parking_sessions o|--o{ payments : "session_id nullable"
+    reservations o|--o{ payments : "reservation_id nullable"
+    monthly_passes o|--o{ payments : "monthly_pass_id nullable"
+    users o|--o{ payments : "paid_by_user_id nullable"
+    users o|--o{ payments : "collected_by nullable"
+    payments ||--o{ payment_attempts : "payment_id"
+
+    parking_sessions o|--o| receipts : "session_id nullable unique"
+    payments o|--o{ receipts : "payment_id nullable"
+    users o|--o{ receipts : "created_by nullable"
+
+    parking_sessions ||--o{ lost_card_cases : "session_id"
+    parking_cards o|--o{ lost_card_cases : "card_id nullable"
+    users ||--o{ lost_card_cases : "created_by"
+    users o|--o{ lost_card_cases : "approved_by nullable"
+    lost_card_cases ||--o| lost_card_refunds : "lost_card_case_id unique"
+    parking_sessions ||--o{ lost_card_refunds : "session_id"
+    parking_cards o|--o{ lost_card_refunds : "recovered_card_id nullable"
+    parking_cards o|--o{ lost_card_refunds : "replacement_card_id nullable"
+    users o|--o{ lost_card_refunds : "approved_by nullable"
+    payments o|--o{ lost_card_refunds : "payment_id nullable"
+
+    parking_sessions ||--o{ plate_mismatch_cases : "session_id"
+    users ||--o{ plate_mismatch_cases : "created_by"
+    users o|--o{ plate_mismatch_cases : "confirmed_by nullable"
+
+    users o|--o{ audit_logs : "actor_user_id nullable"
+
+    users {
+        BIGSERIAL id PK
+        VARCHAR full_name "not null"
+        VARCHAR username UK "not null"
+        VARCHAR email UK "nullable partial unique"
+        VARCHAR phone UK "nullable partial unique"
+        VARCHAR password_hash "not null"
+        VARCHAR role "ADMIN/MANAGER/STAFF/DRIVER"
+        VARCHAR status "ACTIVE/LOCKED/INACTIVE"
+        TIMESTAMPTZ last_login_at "nullable"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    driver_profiles {
+        BIGSERIAL id PK
+        BIGINT user_id FK,UK "nullable partial unique"
+        VARCHAR full_name "not null"
+        VARCHAR phone UK "nullable partial unique"
+        VARCHAR email UK "nullable partial unique"
+        VARCHAR status "ACTIVE/LOCKED/INACTIVE"
+        VARCHAR driver_type "RESIDENT/VISITOR"
+        VARCHAR apartment_number "nullable"
+        VARCHAR cccd_number "nullable"
+        VARCHAR cccd_image_url "nullable"
+        BOOLEAN resident_verified
+        TIMESTAMPTZ resident_verified_at "nullable"
+        BIGINT resident_verified_by FK "nullable"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    vehicle_types {
+        BIGSERIAL id PK
+        VARCHAR name UK "not null"
+        TEXT description "nullable"
+        BOOLEAN is_active
+        BOOLEAN requires_slot "true for slot-managed vehicles"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    vehicles {
+        BIGSERIAL id PK
+        BIGINT driver_id FK "nullable"
+        VARCHAR plate_number "nullable"
+        VARCHAR normalized_plate_number "nullable indexed"
+        BIGINT vehicle_type_id FK "not null"
+        TEXT description "nullable"
+        VARCHAR status "ACTIVE/INACTIVE"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    parking_cards {
+        BIGSERIAL id PK
+        VARCHAR card_code UK "not null"
+        VARCHAR qr_token UK "not null"
+        VARCHAR status "AVAILABLE/IN_USE/LOST/DAMAGED/INACTIVE"
+        BIGINT current_session_id FK,UK "nullable late FK partial unique"
+        TEXT note "nullable"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    floors {
+        BIGSERIAL id PK
+        VARCHAR floor_code UK "not null"
+        VARCHAR floor_name "not null"
+        VARCHAR status "ACTIVE/LOCKED/MAINTENANCE"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    areas {
+        BIGSERIAL id PK
+        BIGINT floor_id FK "not null composite unique with area_code"
+        VARCHAR area_code UK "not null composite unique with floor_id"
+        VARCHAR area_name "not null"
+        INT priority_order
+        VARCHAR status "ACTIVE/LOCKED/MAINTENANCE"
+        INT total_capacity "non-negative"
+        INT current_real_occupancy "non-negative"
+        INT current_booked_slots "non-negative capacity checked"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    area_vehicle_types {
+        BIGINT area_id PK,FK
+        BIGINT vehicle_type_id PK,FK
+    }
+
+    slots {
+        BIGSERIAL id PK
+        BIGINT area_id FK "not null composite unique with slot_code"
+        VARCHAR slot_code UK "not null composite unique with area_id"
+        BIGINT allowed_vehicle_type_id FK "not null"
+        VARCHAR status "AVAILABLE/RESERVED/OCCUPIED/LOCKED/MAINTENANCE"
+        BIGINT current_session_id FK,UK "nullable late FK partial unique"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    gates {
+        BIGSERIAL id PK
+        BIGINT floor_id FK "not null composite unique with gate_code"
+        VARCHAR gate_code UK "not null composite unique with floor_id"
+        VARCHAR gate_type "ENTRY/EXIT"
+        VARCHAR status "ACTIVE/LOCKED/MAINTENANCE"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    pricing_rules {
+        BIGSERIAL id PK
+        BIGINT vehicle_type_id FK "not null partial unique when ACTIVE"
+        NUMERIC day_price "non-negative"
+        NUMERIC night_price "non-negative"
+        NUMERIC monthly_price "non-negative"
+        NUMERIC reservation_hourly_price "non-negative"
+        NUMERIC lost_card_fee "non-negative"
+        TIMESTAMPTZ effective_from
+        VARCHAR status "ACTIVE/INACTIVE"
+        BIGINT created_by FK "not null"
+        BIGINT updated_by FK "nullable"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    monthly_passes {
+        BIGSERIAL id PK
+        BIGINT driver_id FK "nullable"
+        BIGINT card_id FK "not null"
+        VARCHAR owner_name "not null"
+        VARCHAR phone "nullable"
+        VARCHAR plate_number "not null"
+        VARCHAR normalized_plate_number "not null partial unique with vehicle_type_id when ACTIVE"
+        BIGINT vehicle_type_id FK "not null partial unique with normalized_plate_number when ACTIVE"
+        DATE start_date "not null"
+        DATE end_date "not null end_date >= start_date"
+        VARCHAR status "ACTIVE/EXPIRED/LOCKED"
+        BIGINT created_by FK "not null"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    reservations {
+        BIGSERIAL id PK
+        VARCHAR reservation_code UK "not null"
+        BIGINT driver_id FK "nullable"
+        BIGINT vehicle_id FK "nullable"
+        VARCHAR plate_number "not null non-blank"
+        VARCHAR normalized_plate_number "not null non-blank partial unique with vehicle_type_id when PENDING"
+        BIGINT vehicle_type_id FK "not null"
+        BIGINT floor_id FK "not null"
+        BIGINT area_id FK "not null"
+        BIGINT slot_id FK "nullable required by requires_slot trigger"
+        BIGINT pricing_rule_id FK "nullable"
+        NUMERIC snapshot_reservation_hourly_price "non-negative"
+        INT reserved_duration_minutes "non-negative"
+        NUMERIC booking_amount "non-negative"
+        VARCHAR payment_status "PENDING/PAID/FAILED/CANCELLED/WAIVED/NOT_REQUIRED"
+        TIMESTAMPTZ reserved_at
+        TIMESTAMPTZ expires_at "not null > reserved_at"
+        TIMESTAMPTZ checked_in_at "nullable >= reserved_at"
+        BIGINT checked_in_by FK "nullable QR/app check-in verifier"
+        TIMESTAMPTZ cancelled_at "nullable >= reserved_at"
+        VARCHAR status "PENDING/COMPLETED/CANCELLED/EXPIRED"
+        BIGINT created_by FK "nullable"
+        BIGINT cancelled_by FK "nullable"
+        TEXT cancellation_reason "nullable"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    reservation_extensions {
+        BIGSERIAL id PK
+        BIGINT reservation_id FK "not null"
+        TIMESTAMPTZ old_expires_at "not null"
+        TIMESTAMPTZ new_expires_at "not null > old_expires_at"
+        INT added_minutes "positive"
+        BIGINT pricing_rule_id FK "nullable"
+        NUMERIC snapshot_reservation_hourly_price "non-negative"
+        NUMERIC amount "non-negative"
+        BIGINT payment_id FK "nullable"
+        BIGINT requested_by FK "nullable"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    parking_sessions {
+        BIGSERIAL id PK
+        VARCHAR session_code UK "not null"
+        BIGINT card_id FK "not null partial unique while active/pending"
+        BIGINT driver_id FK "nullable"
+        BIGINT vehicle_id FK "nullable"
+        VARCHAR plate_number "nullable"
+        VARCHAR normalized_plate_number "nullable partial unique while active/pending"
+        BOOLEAN no_plate
+        TEXT vehicle_description "required when no_plate true"
+        BIGINT vehicle_type_id FK "not null"
+        VARCHAR customer_type "CASUAL/MONTHLY"
+        BIGINT claimed_by_user_id FK "nullable app card-QR claimant"
+        TIMESTAMPTZ claimed_at "nullable"
+        VARCHAR claim_method "CARD_QR/STAFF_ASSIGN nullable"
+        BIGINT monthly_pass_id FK "nullable"
+        BIGINT reservation_id FK "nullable unique"
+        BIGINT floor_id FK "not null"
+        BIGINT area_id FK "not null"
+        BIGINT slot_id FK "nullable partial unique while active/pending"
+        BIGINT entry_gate_id FK "not null"
+        BIGINT exit_gate_id FK "nullable"
+        BIGINT entry_staff_id FK "not null"
+        BIGINT exit_staff_id FK "nullable"
+        TIMESTAMPTZ entry_time
+        TIMESTAMPTZ exit_time "nullable exit_time >= entry_time"
+        TIMESTAMPTZ billable_start_time "fee start, >= entry_time"
+        VARCHAR status "ACTIVE/COMPLETED/CANCELLED/LOST_CARD_PENDING/MISMATCH_PENDING"
+        BOOLEAN payment_required
+        VARCHAR payment_status "PENDING/PAID/FAILED/CANCELLED/WAIVED/NOT_REQUIRED"
+        BIGINT pricing_rule_id FK "nullable"
+        NUMERIC snapshot_day_price "nullable"
+        NUMERIC snapshot_night_price "nullable"
+        NUMERIC snapshot_monthly_price "nullable"
+        NUMERIC snapshot_lost_card_fee "nullable"
+        BIGINT suggested_area_id FK "nullable"
+        BIGINT suggested_slot_id FK "nullable"
+        BIGINT override_area_id FK "nullable"
+        BIGINT override_slot_id FK "nullable"
+        BIGINT override_by FK "nullable"
+        TIMESTAMPTZ override_at "nullable"
+        TEXT override_reason "nullable"
+        BIGINT plate_corrected_by FK "nullable"
+        TIMESTAMPTZ plate_corrected_at "nullable"
+        TEXT cancellation_reason "nullable"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    parking_session_images {
+        BIGSERIAL id PK
+        BIGINT session_id FK "not null"
+        VARCHAR image_type "ENTRY_PLATE/ENTRY_VEHICLE/EXIT_PLATE/EXIT_VEHICLE"
+        VARCHAR image_url "not null storage URL"
+        VARCHAR thumbnail_url "nullable fast preview URL"
+        VARCHAR detected_plate_number "nullable OCR display value"
+        VARCHAR detected_normalized_plate_number "nullable indexed OCR value"
+        NUMERIC confidence "nullable 0-100"
+        BOOLEAN is_primary "one primary per session/type"
+        TIMESTAMPTZ captured_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    payments {
+        BIGSERIAL id PK
+        BIGINT session_id FK "nullable indexed; multiple paid cycles allowed"
+        BIGINT reservation_id FK "nullable"
+        BIGINT monthly_pass_id FK "nullable"
+        NUMERIC amount "non-negative"
+        NUMERIC lost_card_fee "non-negative"
+        NUMERIC total_amount "amount + lost_card_fee"
+        VARCHAR purpose "PARKING_FEE/LOST_CARD_FEE/MONTHLY_PASS_RENEWAL/RESERVATION_FEE/RESERVATION_EXTENSION/LOST_CARD_REFUND"
+        VARCHAR method "CASH/BANK_TRANSFER/NONE"
+        VARCHAR status "PENDING/PAID/FAILED/CANCELLED/WAIVED/NOT_REQUIRED"
+        VARCHAR provider "nullable e.g. VIETQR"
+        VARCHAR provider_transaction_id "nullable unique per provider"
+        VARCHAR payment_url "nullable checkout or QR URL"
+        TIMESTAMPTZ expired_at "nullable"
+        JSONB gateway_payload "nullable raw provider metadata"
+        BIGINT paid_by_user_id FK "nullable app user who paid online"
+        NUMERIC received_amount "actual received amount"
+        TIMESTAMPTZ fee_calculated_at "nullable"
+        TIMESTAMPTZ payment_valid_until "nullable online exit deadline"
+        TIMESTAMPTZ paid_at "nullable"
+        BIGINT collected_by FK "nullable"
+        VARCHAR waive_reason "nullable"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    payment_attempts {
+        BIGSERIAL id PK
+        BIGINT payment_id FK "not null"
+        VARCHAR provider "default VIETQR"
+        INT attempt_no "positive unique per payment"
+        NUMERIC amount "non-negative"
+        NUMERIC received_amount "non-negative"
+        VARCHAR payment_url "nullable"
+        TEXT qr_payload "nullable"
+        VARCHAR provider_transaction_id "nullable unique per provider"
+        VARCHAR status "PENDING/PAID/EXPIRED/FAILED/CANCELLED"
+        TIMESTAMPTZ requested_at
+        TIMESTAMPTZ expired_at "not null > requested_at"
+        TIMESTAMPTZ paid_at "nullable >= requested_at"
+        JSONB gateway_payload "nullable raw provider metadata"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    receipts {
+        BIGSERIAL id PK
+        VARCHAR receipt_code UK "not null"
+        BIGINT session_id FK,UK "nullable"
+        BIGINT payment_id FK "nullable"
+        VARCHAR card_code "not null snapshot"
+        VARCHAR plate_number "nullable snapshot"
+        VARCHAR vehicle_type_name "not null snapshot"
+        TIMESTAMPTZ entry_time "nullable snapshot"
+        TIMESTAMPTZ exit_time "nullable snapshot"
+        NUMERIC amount "non-negative"
+        NUMERIC lost_card_fee "non-negative"
+        NUMERIC total_amount "amount + lost_card_fee"
+        VARCHAR payment_method "CASH/BANK_TRANSFER/NONE"
+        INT printed_count "non-negative"
+        BIGINT created_by FK "nullable"
+        TIMESTAMPTZ created_at
+    }
+
+    lost_card_cases {
+        BIGSERIAL id PK
+        BIGINT session_id FK "not null partial unique when PENDING"
+        BIGINT card_id FK "nullable"
+        VARCHAR reporter_name "not null"
+        VARCHAR phone "nullable"
+        TEXT verification_note "not null"
+        TEXT reason "not null"
+        NUMERIC lost_card_fee "non-negative"
+        VARCHAR status "PENDING/APPROVED/REJECTED"
+        BIGINT created_by FK "not null"
+        BIGINT approved_by FK "nullable"
+        TIMESTAMPTZ approved_at "nullable"
+        TEXT rejection_reason "nullable"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    lost_card_refunds {
+        BIGSERIAL id PK
+        BIGINT lost_card_case_id FK,UK "not null"
+        BIGINT session_id FK "not null"
+        BIGINT recovered_card_id FK "nullable"
+        BIGINT replacement_card_id FK "nullable"
+        NUMERIC refund_percent "0-100"
+        NUMERIC refund_amount "non-negative"
+        TEXT reason "not null"
+        VARCHAR status "PENDING/APPROVED/REJECTED/PAID/CANCELLED"
+        TIMESTAMPTZ requested_at
+        BIGINT approved_by FK "nullable"
+        TIMESTAMPTZ approved_at "nullable"
+        TEXT rejected_reason "nullable"
+        TIMESTAMPTZ paid_at "nullable"
+        BIGINT payment_id FK "nullable"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    plate_mismatch_cases {
+        BIGSERIAL id PK
+        BIGINT session_id FK "not null partial unique when PENDING"
+        VARCHAR entry_plate_number "nullable"
+        VARCHAR exit_plate_number "not null"
+        TEXT reason "nullable"
+        VARCHAR status "PENDING/CONFIRMED/REJECTED"
+        BIGINT created_by FK "not null"
+        BIGINT confirmed_by FK "nullable"
+        TIMESTAMPTZ confirmed_at "nullable"
+        TEXT rejection_reason "nullable"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    audit_logs {
+        BIGSERIAL id PK
+        BIGINT actor_user_id FK "nullable"
+        VARCHAR source_service "CORE_API/SUPPORT_API"
+        VARCHAR action "not null"
+        VARCHAR target_type "not null"
+        VARCHAR target_id "not null"
+        JSONB old_value "nullable"
+        JSONB new_value "nullable"
+        TEXT reason "nullable"
+        TIMESTAMPTZ created_at
+    }
