@@ -1,29 +1,16 @@
 #!/bin/sh
 
-protected_branches="main dev"
-allowed_prefixes="feature/* fix/* docs/* test/* chore/* refactor/* hotfix/* release/* bugfix/*"
+protected_branches="main"
 branch="$(git symbolic-ref --quiet --short HEAD 2>/dev/null || true)"
 
 case "$branch" in
-  main|dev)
+  main)
     echo "ERROR: Commit directly on '$branch' is blocked." >&2
-    echo "Create a feature/fix/docs/chore branch, commit there, then open a Pull Request." >&2
+    echo "Create a branch, commit there, then open a Pull Request." >&2
     echo "Protected branches: $protected_branches" >&2
     exit 1
     ;;
 esac
-
-if [ -n "$branch" ]; then
-  case "$branch" in
-    feature/*|fix/*|docs/*|test/*|chore/*|refactor/*|hotfix/*|release/*|bugfix/*)
-      ;;
-    *)
-      echo "ERROR: Branch name '$branch' is not allowed." >&2
-      echo "Allowed branch prefixes: $allowed_prefixes" >&2
-      exit 1
-      ;;
-  esac
-fi
 
 staged_files="$(git diff --cached --name-only --diff-filter=ACMR)"
 if [ -z "$staged_files" ]; then

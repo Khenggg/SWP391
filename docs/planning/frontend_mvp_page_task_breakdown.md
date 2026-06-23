@@ -9,24 +9,24 @@
 
 Frontend không nên làm page theo cảm tính. Mỗi page phải bám theo backend sprint:
 
-| Backend sprint | Backend cung cấp | Frontend nên làm |
-| --- | --- | --- |
-| Sprint 1 | Auth, JWT, current user, common response, DB foundation | App shell, API clients, auth flow, route guard, layout, mock UI |
-| Sprint 2 | Master data, cards, structure, pricing, monthly pass, public APIs | Public pages, user/card/structure/pricing/monthly pass management |
-| Sprint 3 | Slot suggestion, entry transaction, QR active session lookup | Staff entry, public QR lookup |
-| Sprint 4 | Exit, fee, payment, lost card, mismatch, cancel session | Staff exit, session search, lost card, approvals, admin session |
-| Sprint 5 | Dashboard, reports, audit search | Dashboard, reports, audit pages |
+| Backend sprint | Backend cung cấp                                                  | Frontend nên làm                                                  |
+| -------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Sprint 1       | Auth, JWT, current user, common response, DB foundation           | App shell, API clients, auth flow, route guard, layout, mock UI   |
+| Sprint 2       | Master data, cards, structure, pricing, monthly pass, public APIs | Public pages, user/card/structure/pricing/monthly pass management |
+| Sprint 3       | Slot suggestion, entry transaction, QR active session lookup      | Staff entry, public QR lookup                                     |
+| Sprint 4       | Exit, fee, payment, lost card, mismatch, cancel session           | Staff exit, session search, lost card, approvals, admin session   |
+| Sprint 5       | Dashboard, reports, audit search                                  | Dashboard, reports, audit pages                                   |
 
 ### 1.2 Phase dùng cho mỗi page
 
 Mỗi page chia thành 4 phase nhỏ:
 
-| Phase | Mục tiêu | Được làm khi |
-| --- | --- | --- |
-| Phase A - Page shell | Route, layout, title, nav, empty/loading/error states, mock data | Làm ngay được |
-| Phase B - Form/table UX | Form, table, filter, modal, validation frontend, confirm dialog | Làm ngay được với mock |
-| Phase C - API integration | Gọi API thật, token, error mapping, pagination, refresh state | Backend API đã có hoặc contract ổn định |
-| Phase D - Flow test | Test end-to-end theo user flow, role guard, edge case, demo data | Backend flow hoàn tất |
+| Phase                     | Mục tiêu                                                         | Được làm khi                            |
+| ------------------------- | ---------------------------------------------------------------- | --------------------------------------- |
+| Phase A - Page shell      | Route, layout, title, nav, empty/loading/error states, mock data | Làm ngay được                           |
+| Phase B - Form/table UX   | Form, table, filter, modal, validation frontend, confirm dialog  | Làm ngay được với mock                  |
+| Phase C - API integration | Gọi API thật, token, error mapping, pagination, refresh state    | Backend API đã có hoặc contract ổn định |
+| Phase D - Flow test       | Test end-to-end theo user flow, role guard, edge case, demo data | Backend flow hoàn tất                   |
 
 ### 1.3 Foundation frontend bắt buộc trước 21 page
 
@@ -35,13 +35,15 @@ Phần này không nằm trong 21 pages nhưng phải làm trước, nếu khôn
 #### FE-FND-01 - App routing and layout
 
 Scope:
+
 - Cài hoặc thiết lập routing cho React app nếu chưa có.
-- Tạo route groups: public, staff, manager, admin.
+- Tạo route groups: public, driver, staff, manager, admin.
 - Tạo `AppShell` cho authenticated pages.
 - Tạo `PublicLayout` cho public pages.
 - Tạo `NotFoundPage`, `UnauthorizedPage`, basic error boundary.
 
 Acceptance:
+
 - User mở được public route không cần login.
 - Protected route redirect về login nếu chưa có token.
 - Sidebar/menu hiển thị theo role.
@@ -49,24 +51,28 @@ Acceptance:
 #### FE-FND-02 - API clients and response handling
 
 Scope:
+
 - Tạo `coreAxiosClient`, `supportAxiosClient`, `publicAxiosClient`.
 - Gắn token interceptor cho `coreApi` và `supportApi`.
 - Chuẩn hóa handler cho response dạng `{ success, message, data, errors, timestamp }`.
 - Chuẩn hóa handler cho `401`, `403`, validation error, network error.
 
 Acceptance:
+
 - Mỗi feature không tự viết lại axios config.
 - Khi token hết hạn, app xóa session và redirect login.
 
 #### FE-FND-03 - Auth state and role guard
 
 Scope:
+
 - Tạo auth store/context: `accessToken`, `currentUser`, `role`, `isAuthenticated`.
 - Tạo `login`, `logout`, `loadCurrentUser`.
 - Tạo `RequireAuth`, `RequireRole`.
 - Tạo role constants: `ADMIN`, `MANAGER`, `STAFF`, `DRIVER`.
 
 Acceptance:
+
 - Role STAFF không vào admin pages.
 - Role MANAGER vào manager pages và staff operation pages nếu spec cho phép.
 - Role ADMIN vào admin pages.
@@ -74,24 +80,29 @@ Acceptance:
 #### FE-FND-04 - Shared UI primitives
 
 Scope:
+
 - Button, IconButton, Input, Select, Checkbox, Tabs, Modal, Drawer, Toast.
 - DataTable có loading, empty, error, pagination.
 - StatusBadge cho card/session/payment/slot/monthly pass.
 - ConfirmDialog cho thao tác nguy hiểm.
 
 Acceptance:
+
 - Các page dùng chung component, không copy style lung tung.
 - Loading/error/empty state nhất quán.
 
 #### FE-FND-05 - LoginPage
 
 Status:
+
 - Không nằm trong Page Breakdown 21 pages, nhưng FR-01 yêu cầu `LoginPage`.
 
 Backend dependency:
+
 - Sprint 1: `F009 Login & JWT Generation`, `F010 Get Current User Profile`.
 
 Scope:
+
 - Form username/password.
 - Gọi `POST /api/core/auth/login`.
 - Lưu token.
@@ -103,6 +114,7 @@ Scope:
   - DRIVER -> `/`
 
 Flow:
+
 1. User nhập username/password.
 2. Frontend validate required fields.
 3. Gọi login API.
@@ -112,56 +124,63 @@ Flow:
 7. Nếu sai password/status locked, hiển thị lỗi từ backend.
 
 Acceptance:
+
 - Login thành công với seed `admin01`, `manager01`, `staff01`.
 - Login sai không làm crash app.
 - Refresh page vẫn giữ session nếu token còn hợp lệ.
 
 ## 2. Thứ Tự Làm 21 Must Pages
 
-| Thứ tự | Page | Backend sprint | Lý do |
-| ---: | --- | --- | --- |
-| 1 | ParkingInfoPage | Sprint 2 | Public, ít phụ thuộc auth |
-| 2 | RulesPage | Sprint 2 hoặc static | Có thể làm static/mock sớm |
-| 3 | PublicPricingPage | Sprint 2 | Dùng public pricing |
-| 4 | AvailableSlotsPage | Sprint 2 | Dùng structure/slot read model |
-| 5 | UserManagementPage | Sprint 2 | Cần auth/admin, kiểm tra app shell |
-| 6 | CardManagementPage | Sprint 2 | Master data quan trọng cho entry |
-| 7 | StructureManagementPage | Sprint 2 | Foundation cho slots/gates |
-| 8 | PricingManagementPage | Sprint 2 | Foundation cho fee calculation |
-| 9 | MonthlyPassManagementPage | Sprint 2 | Foundation cho monthly flow |
-| 10 | StaffEntryPage | Sprint 3 | Cần slot suggestion + entry |
-| 11 | CardLookupPage | Sprint 3 | Public QR lookup |
-| 12 | StaffSessionSearchPage | Sprint 4 | Chuẩn bị exit/admin |
-| 13 | StaffExitPage | Sprint 4 | Phụ thuộc fee/payment/exit |
-| 14 | StaffLostCardPage | Sprint 4 | Exception flow |
-| 15 | LostCardApprovalPage | Sprint 4 | Manager approval |
-| 16 | MismatchApprovalPage | Sprint 4 | Manager approval |
-| 17 | SessionAdministrationPage | Sprint 4 | Admin cancel/move/search |
-| 18 | ManagerDashboardPage | Sprint 5 | Cần dữ liệu entry/exit/payment |
-| 19 | ReportsPage | Sprint 5 | Cần dữ liệu tích lũy |
-| 20 | AuditLogPage | Sprint 5 | Cần audit writer trước |
-| 21 | AdminAuditLogPage | Sprint 5 | Reuse AuditLogPage với role/admin scope |
+| Thứ tự | Page                      | Backend sprint       | Lý do                                   |
+| -----: | ------------------------- | -------------------- | --------------------------------------- |
+|      1 | ParkingInfoPage           | Sprint 2             | Public, ít phụ thuộc auth               |
+|      2 | RulesPage                 | Sprint 2 hoặc static | Có thể làm static/mock sớm              |
+|      3 | PublicPricingPage         | Sprint 2             | Dùng public pricing                     |
+|      4 | AvailableSlotsPage        | Sprint 2             | Dùng structure/slot read model          |
+|      5 | UserManagementPage        | Sprint 2             | Cần auth/admin, kiểm tra app shell      |
+|      6 | CardManagementPage        | Sprint 2             | Master data quan trọng cho entry        |
+|      7 | StructureManagementPage   | Sprint 2             | Foundation cho slots/gates              |
+|      8 | PricingManagementPage     | Sprint 2             | Foundation cho fee calculation          |
+|      9 | MonthlyPassManagementPage | Sprint 2             | Foundation cho monthly flow             |
+|     10 | StaffEntryPage            | Sprint 3             | Cần slot suggestion + entry             |
+|     11 | CardLookupPage            | Sprint 3             | Public QR lookup                        |
+|     12 | StaffSessionSearchPage    | Sprint 4             | Chuẩn bị exit/admin                     |
+|     13 | StaffExitPage             | Sprint 4             | Phụ thuộc fee/payment/exit              |
+|     14 | StaffLostCardPage         | Sprint 4             | Exception flow                          |
+|     15 | LostCardApprovalPage      | Sprint 4             | Manager approval                        |
+|     16 | MismatchApprovalPage      | Sprint 4             | Manager approval                        |
+|     17 | SessionAdministrationPage | Sprint 4             | Admin cancel/move/search                |
+|     18 | ManagerDashboardPage      | Sprint 5             | Cần dữ liệu entry/exit/payment          |
+|     19 | ReportsPage               | Sprint 5             | Cần dữ liệu tích lũy                    |
+|     20 | AuditLogPage              | Sprint 5             | Cần audit writer trước                  |
+|     21 | AdminAuditLogPage         | Sprint 5             | Reuse AuditLogPage với role/admin scope |
 
 ## 3. Public Driver Pages
 
 ### 3.1 ParkingInfoPage
 
 Route:
+
 - `/`
 
 Priority:
+
 - Must
 
 Backend dependency:
+
 - Sprint 2, Spring: `F026 Parking Info API`.
 
 APIs:
+
 - `GET /api/public/parking-info`
 
 Purpose:
+
 - Trang public đầu tiên cho driver/visitor xem thông tin bãi xe.
 
 Phase A - Page shell:
+
 - Tạo route `/`.
 - Tạo public header/navigation: Home, Available Slots, Pricing, Rules.
 - Tạo layout thông tin bãi: tên bãi, trạng thái hoạt động, giờ mở cửa, địa chỉ, hotline.
@@ -170,6 +189,7 @@ Phase A - Page shell:
 - Error state: không tải được public info.
 
 Phase B - UI details:
+
 - Section tổng quan:
   - parking name
   - opening status
@@ -184,18 +204,21 @@ Phase B - UI details:
   - last updated time
 
 Phase C - API integration:
+
 - Tạo `publicApi.getParkingInfo()`.
 - Map response từ backend sang view model.
 - Gắn loading skeleton.
 - Nếu backend trả thiếu field optional, UI vẫn render fallback.
 
 Functional flow:
+
 1. User mở `/`.
 2. Frontend gọi public info API.
 3. Nếu success, hiển thị thông tin bãi.
 4. User bấm CTA để chuyển sang `/available-slots`, `/pricing`, `/rules`.
 
 Acceptance:
+
 - Page public không cần token.
 - Load được bằng direct URL.
 - Không hiển thị menu staff/manager/admin.
@@ -204,22 +227,28 @@ Acceptance:
 ### 3.2 AvailableSlotsPage
 
 Route:
+
 - `/available-slots`
 
 Priority:
+
 - Must
 
 Backend dependency:
+
 - Sprint 2, Spring: `F027 Available Slots API`.
 - Backend data dependency: `.NET` đã có floors/areas/slots từ Sprint 2.
 
 APIs:
+
 - `GET /api/public/available-slots`
 
 Purpose:
+
 - Driver xem số slot trống theo loại xe/tầng/khu.
 
 Phase A - Page shell:
+
 - Tạo route `/available-slots`.
 - Tạo filter panel mock:
   - vehicle type
@@ -230,6 +259,7 @@ Phase A - Page shell:
 - Mock slots theo floor/area.
 
 Phase B - UI details:
+
 - Filter controls:
   - `vehicleTypeId`
   - `floorId`
@@ -249,6 +279,7 @@ Phase B - UI details:
   - không có slot phù hợp filter.
 
 Phase C - API integration:
+
 - Tạo `publicApi.getAvailableSlots(params)`.
 - Query params đề xuất:
   - `vehicleTypeId`
@@ -258,6 +289,7 @@ Phase C - API integration:
 - Khi filter đổi, reset pagination nếu có.
 
 Functional flow:
+
 1. User mở page.
 2. Frontend load default available slots.
 3. User chọn loại xe.
@@ -265,11 +297,13 @@ Functional flow:
 5. UI cập nhật summary và danh sách.
 
 Edge cases:
+
 - Backend trả danh sách rỗng.
 - Slot vừa hết khi user đang xem.
 - Filter invalid hoặc API trả validation error.
 
 Acceptance:
+
 - Public không cần login.
 - Filter không làm reload toàn app.
 - Kết quả hiển thị dễ scan theo floor/area.
@@ -277,27 +311,34 @@ Acceptance:
 ### 3.3 PublicPricingPage
 
 Route:
+
 - `/pricing`
 
 Priority:
+
 - Must
 
 Backend dependency:
+
 - Sprint 2, Spring: `F028 Public Pricing API`.
 - Backend data dependency: `.NET` pricing rules từ Sprint 2.
 
 APIs:
+
 - `GET /api/public/pricing`
 
 Purpose:
+
 - Driver xem bảng giá đang active.
 
 Phase A - Page shell:
+
 - Tạo route `/pricing`.
 - Tạo pricing table mock.
 - Tạo loading/error/empty state.
 
 Phase B - UI details:
+
 - Table columns:
   - vehicle type
   - day price
@@ -310,17 +351,20 @@ Phase B - UI details:
 - Note rõ giá có thể thay đổi theo chính sách bãi.
 
 Phase C - API integration:
+
 - Tạo `publicApi.getPricing()`.
 - Map numeric fields sang formatter.
 - Nếu backend trả nhiều rule, frontend chỉ hiển thị active/current rules theo contract.
 
 Functional flow:
+
 1. User mở `/pricing`.
 2. Frontend gọi public pricing API.
 3. User scan theo loại xe.
 4. User có thể chuyển sang rules/available slots.
 
 Acceptance:
+
 - Không cần token.
 - Không hiển thị chức năng edit pricing trên public page.
 - Giá format nhất quán.
@@ -328,22 +372,28 @@ Acceptance:
 ### 3.4 RulesPage
 
 Route:
+
 - `/rules`
 
 Priority:
+
 - Must
 
 Backend dependency:
+
 - Sprint 2, Spring: `F029 Public Rules API`, hoặc static frontend.
 
 APIs:
+
 - `GET /api/public/rules` nếu backend làm.
 - Có thể dùng static config trong frontend nếu backend chưa làm.
 
 Purpose:
+
 - Driver xem nội quy gửi xe, điều kiện mất thẻ, sai biển số, thanh toán.
 
 Phase A - Page shell:
+
 - Tạo route `/rules`.
 - Tạo static sections:
   - quy định vào bãi
@@ -354,43 +404,53 @@ Phase A - Page shell:
   - liên hệ hỗ trợ
 
 Phase B - UI details:
+
 - Tabs hoặc accordion theo nhóm rule.
 - Search text trong rules nếu nội dung dài.
 - Last updated note nếu API có.
 
 Phase C - API integration:
+
 - Nếu backend có `GET /api/public/rules`, load dynamic rules.
 - Nếu API lỗi, fallback static copy.
 
 Functional flow:
+
 1. User mở `/rules`.
 2. Nếu API configured, frontend load rules.
 3. User đọc theo accordion/tab.
 4. User search rule keyword.
 
 Acceptance:
+
 - Page dùng được ngay cả khi backend public rules chưa sẵn sàng.
 - Không có nội dung mâu thuẫn với fee/lost card flow.
 
 ### 3.5 CardLookupPage
 
 Route:
+
 - `/card/:qrToken`
 
 Priority:
+
 - Must
 
 Backend dependency:
+
 - Sprint 3, Spring: `F037 Public QR Active Session Lookup`.
 - Security dependency: `F038 QR Privacy Tests`.
 
 APIs:
+
 - `GET /api/public/cards/{qrToken}/active-session`
 
 Purpose:
+
 - Driver quét QR trên card để xem session active đã được mask dữ liệu nhạy cảm.
 
 Phase A - Page shell:
+
 - Tạo dynamic route `/card/:qrToken`.
 - Tạo mock states:
   - active session found
@@ -400,6 +460,7 @@ Phase A - Page shell:
 - Tạo privacy-safe session view.
 
 Phase B - UI details:
+
 - Hiển thị:
   - card code masked nếu cần
   - vehicle plate masked nếu backend trả masked
@@ -414,12 +475,14 @@ Phase B - UI details:
   - pricing sensitive snapshot nếu backend không cho public
 
 Phase C - API integration:
+
 - Tạo `publicApi.getActiveSessionByQrToken(qrToken)`.
 - Validate route param tồn tại.
 - Handle `404` no active session.
 - Handle `403/400` invalid token.
 
 Functional flow:
+
 1. Driver quét QR.
 2. Browser mở `/card/:qrToken`.
 3. Frontend gọi lookup API.
@@ -427,6 +490,7 @@ Functional flow:
 5. Nếu không có active session, hiển thị thông báo thẻ chưa có lượt gửi đang hoạt động.
 
 Acceptance:
+
 - Không cần login.
 - Không lộ dữ liệu nhạy cảm.
 - Direct URL hoạt động.
@@ -436,12 +500,15 @@ Acceptance:
 ### 4.1 StaffEntryPage
 
 Route:
+
 - `/staff/entry`
 
 Priority:
+
 - Must
 
 Backend dependency:
+
 - Sprint 3:
   - `F031 Slot Suggestion`
   - `F032 Entry Validation`
@@ -450,6 +517,7 @@ Backend dependency:
   - `F035 Save Pricing Snapshot`
 
 APIs:
+
 - `POST /api/core/parking-sessions/suggest-slot`
 - `POST /api/core/parking-sessions/entry`
 - Supporting:
@@ -462,9 +530,11 @@ APIs:
   - `GET /api/core/monthly-passes/check`
 
 Purpose:
+
 - Staff tạo lượt xe vào.
 
 Phase A - Page shell:
+
 - Tạo protected route staff/manager/admin.
 - Tạo entry form mock.
 - Tạo panels:
@@ -475,6 +545,7 @@ Phase A - Page shell:
 - Tạo mock vehicle types, cards, gates, slots.
 
 Phase B - Form UX:
+
 - Fields:
   - card code/card id
   - plate number
@@ -494,6 +565,7 @@ Phase B - Form UX:
   - override reason required nếu override slot
 
 Phase C - API integration:
+
 - Load dropdown data.
 - Suggest slot API:
   - call after vehicle type/gate/filter ready
@@ -509,6 +581,7 @@ Phase C - API integration:
     - `MONTHLY_PASS_INVALID`
 
 Functional flow:
+
 1. Staff mở `/staff/entry`.
 2. Chọn/scan card.
 3. Nhập biển số hoặc tick no plate.
@@ -521,6 +594,7 @@ Functional flow:
 10. Form reset để tiếp nhận xe tiếp theo.
 
 Acceptance:
+
 - Không tạo entry nếu form invalid.
 - Submit double-click không tạo duplicate request.
 - Sau entry success, selected card/slot không còn hiển thị available trong local state hoặc được refetch.
@@ -528,12 +602,15 @@ Acceptance:
 ### 4.2 StaffExitPage
 
 Route:
+
 - `/staff/exit`
 
 Priority:
+
 - Must
 
 Backend dependency:
+
 - Sprint 4:
   - `F039 Search Active Session By Card Code`
   - `F040 Calculate Parking Fee`
@@ -543,6 +620,7 @@ Backend dependency:
   - `F046 Complete Monthly Pass Exit`
 
 APIs:
+
 - `GET /api/core/parking-sessions/by-card-code/{cardCode}`
 - `POST /api/core/parking-sessions/{id}/calculate-fee`
 - `POST /api/core/payments/cash`
@@ -552,9 +630,11 @@ APIs:
 - `GET /api/core/gates`
 
 Purpose:
+
 - Staff xử lý xe ra, tính phí, thu tiền, hoàn tất session.
 
 Phase A - Page shell:
+
 - Tạo protected staff route.
 - Panels:
   - SessionLookupPanel
@@ -571,6 +651,7 @@ Phase A - Page shell:
   - casual paid/unpaid
 
 Phase B - Form UX:
+
 - Lookup by card code.
 - Exit info:
   - exit gate
@@ -585,6 +666,7 @@ Phase B - Form UX:
   - waive action only manager/admin
 
 Phase C - API integration:
+
 - Lookup active session by card code.
 - Calculate fee after exit time/plate/gate ready.
 - Create cash payment.
@@ -599,6 +681,7 @@ Phase C - API integration:
   - `PAYMENT_AMOUNT_MISMATCH`
 
 Functional flow - casual exit:
+
 1. Staff nhập/scan card code.
 2. Frontend tìm active session.
 3. Staff nhập exit plate/gate/time.
@@ -610,6 +693,7 @@ Functional flow - casual exit:
 9. UI hiển thị completed summary và reset lookup.
 
 Functional flow - monthly pass exit:
+
 1. Staff lookup active monthly session.
 2. Staff nhập exit plate/gate/time.
 3. Frontend nhận fee 0 hoặc not required.
@@ -617,6 +701,7 @@ Functional flow - monthly pass exit:
 5. UI hiển thị completed summary.
 
 Acceptance:
+
 - Staff không thể complete casual exit trước khi payment PAID.
 - Monthly pass valid không bắt cash payment.
 - Nếu mismatch/lost card pending, UI hướng staff sang page/case phù hợp.
@@ -624,32 +709,39 @@ Acceptance:
 ### 4.3 StaffLostCardPage
 
 Route:
+
 - `/staff/lost-card`
 
 Priority:
+
 - Must
 
 Backend dependency:
+
 - Sprint 4:
   - `F047 Create Lost Card Case`
   - `F040 Calculate Parking Fee`
   - `F039 Search Active Session By Card Code`
 
 APIs:
+
 - `GET /api/core/parking-sessions/by-card-code/{cardCode}`
 - `POST /api/core/parking-sessions/{id}/calculate-fee`
 - `POST /api/core/lost-card-cases`
 
 Purpose:
+
 - Staff tạo hồ sơ mất thẻ cho active session.
 
 Phase A - Page shell:
+
 - Search panel by card/plate/session code.
 - Session summary panel.
 - Lost card case form.
 - Fee preview panel.
 
 Phase B - Form UX:
+
 - Fields:
   - reporter name
   - phone
@@ -662,6 +754,7 @@ Phase B - Form UX:
   - reason required
 
 Phase C - API integration:
+
 - Lookup session.
 - Calculate fee including lost card fee if needed.
 - Create lost-card case.
@@ -671,6 +764,7 @@ Phase C - API integration:
   - session not active
 
 Functional flow:
+
 1. Staff tìm active session.
 2. UI hiển thị card/session/vehicle summary.
 3. Staff nhập thông tin người báo mất.
@@ -680,6 +774,7 @@ Functional flow:
 7. UI hiển thị case created và hướng Manager approve.
 
 Acceptance:
+
 - Staff chỉ tạo case, không approve.
 - Không tạo case nếu không có active session.
 - UI thể hiện rõ cần Manager/Admin duyệt.
@@ -687,30 +782,37 @@ Acceptance:
 ### 4.4 StaffSessionSearchPage
 
 Route:
+
 - `/staff/sessions`
 
 Priority:
+
 - Must
 
 Backend dependency:
+
 - Sprint 4:
   - `F039 Search Active Session By Card Code`
   - Session search endpoint from exit/session module.
 
 APIs:
+
 - `GET /api/core/parking-sessions/search`
 - `GET /api/core/parking-sessions/{id}`
 - `GET /api/core/parking-sessions/by-card-code/{cardCode}`
 
 Purpose:
+
 - Staff tra cứu session để hỗ trợ entry/exit/exception.
 
 Phase A - Page shell:
+
 - Search filters.
 - Session result table.
 - Session detail drawer.
 
 Phase B - UI details:
+
 - Filters:
   - card code
   - plate number
@@ -733,12 +835,14 @@ Phase B - UI details:
   - create lost card case
 
 Phase C - API integration:
+
 - Query search endpoint with filters.
 - Implement pagination.
 - Load detail drawer by id.
 - Preserve filters in URL query if useful.
 
 Functional flow:
+
 1. Staff opens session search.
 2. Enters filter criteria.
 3. Frontend loads sessions.
@@ -746,6 +850,7 @@ Functional flow:
 5. Staff routes to exit/lost-card flow with selected session context.
 
 Acceptance:
+
 - Search can handle empty result.
 - Detail drawer does not lose current filters.
 - Staff sees only actions allowed by session status.
@@ -755,27 +860,34 @@ Acceptance:
 ### 5.1 ManagerDashboardPage
 
 Route:
+
 - `/manager/dashboard`
 
 Priority:
+
 - Must
 
 Backend dependency:
+
 - Sprint 5, Spring: `F056 Operational Dashboard`.
 
 APIs:
+
 - `GET /api/support/dashboard/summary`
 
 Purpose:
+
 - Manager xem snapshot vận hành: occupancy, revenue, entry/exit count, card status, pending cases.
 
 Phase A - Page shell:
+
 - Dashboard layout with KPI grid.
 - Mock charts using Recharts.
 - Time range selector.
 - Loading skeleton.
 
 Phase B - UI details:
+
 - KPI cards:
   - vehicles currently parked
   - available slots
@@ -794,6 +906,7 @@ Phase B - UI details:
   - high pending cases
 
 Phase C - API integration:
+
 - Tạo `supportApi.getDashboardSummary(params)`.
 - Params:
   - date
@@ -803,6 +916,7 @@ Phase C - API integration:
 - Auto-refresh optional after API stable.
 
 Functional flow:
+
 1. Manager opens dashboard.
 2. Frontend loads summary.
 3. Manager changes date/floor filter.
@@ -810,6 +924,7 @@ Functional flow:
 5. Manager clicks pending case count to go approval pages.
 
 Acceptance:
+
 - Dashboard is read-only.
 - Does not compute official revenue in frontend beyond display.
 - Charts handle zero data.
@@ -817,17 +932,21 @@ Acceptance:
 ### 5.2 CardManagementPage
 
 Route:
+
 - `/manager/cards`
 
 Priority:
+
 - Must
 
 Backend dependency:
+
 - Sprint 2:
   - `F015 Parking Card CRUD + QR Token`
   - `F016 Update Card Status`
 
 APIs:
+
 - `GET /api/core/cards`
 - `POST /api/core/cards`
 - `GET /api/core/cards/available`
@@ -836,9 +955,11 @@ APIs:
 - `GET /api/core/cards/by-code/{cardCode}/active-session`
 
 Purpose:
+
 - Manager/Admin quản lý thẻ gửi xe và trạng thái thẻ.
 
 Phase A - Page shell:
+
 - Card table with mock data.
 - Filter by status/card code.
 - Create card modal.
@@ -846,6 +967,7 @@ Phase A - Page shell:
 - Detail drawer.
 
 Phase B - UI details:
+
 - Table columns:
   - card code
   - status
@@ -868,6 +990,7 @@ Phase B - UI details:
   - INACTIVE
 
 Phase C - API integration:
+
 - Load card list with filters/pagination.
 - Create card and refresh table.
 - Update status with confirmation.
@@ -878,12 +1001,14 @@ Phase C - API integration:
   - card not found
 
 Functional flow - create card:
+
 1. Manager opens Create Card.
 2. Enters card code/note if needed.
 3. Backend generates static QR token.
 4. Table refreshes and displays new card.
 
 Functional flow - status update:
+
 1. Manager selects card.
 2. Chooses new status.
 3. Frontend confirms destructive status changes.
@@ -891,6 +1016,7 @@ Functional flow - status update:
 5. UI refreshes row.
 
 Acceptance:
+
 - Cannot silently mark active card lost/damaged without confirmation.
 - Card QR token is not shown as editable.
 - In-use cards clearly show linked session.
@@ -898,12 +1024,15 @@ Acceptance:
 ### 5.3 StructureManagementPage
 
 Route:
+
 - `/manager/structure`
 
 Priority:
+
 - Must
 
 Backend dependency:
+
 - Sprint 2:
   - `F017 Manage Floors`
   - `F018 Manage Areas`
@@ -912,6 +1041,7 @@ Backend dependency:
   - `F021 Lock/Unlock Area & Slot`
 
 APIs:
+
 - `GET /api/core/floors`
 - `POST /api/core/floors`
 - `PUT /api/core/floors/{id}`
@@ -925,9 +1055,11 @@ APIs:
 - `GET /api/core/gates`
 
 Purpose:
+
 - Manager/Admin quản lý cấu trúc bãi xe: tầng, khu, slot, cổng.
 
 Phase A - Page shell:
+
 - Tabs:
   - Floors
   - Areas
@@ -938,6 +1070,7 @@ Phase A - Page shell:
 - Slot status modal.
 
 Phase B - UI details:
+
 - Floors tab:
   - list floor code/name/status
   - create/edit floor
@@ -956,6 +1089,7 @@ Phase B - UI details:
   - entry/exit badge
 
 Phase C - API integration:
+
 - Load all needed master data.
 - Use optimistic UI only for safe edits; otherwise refetch.
 - Handle status constraints:
@@ -963,6 +1097,7 @@ Phase C - API integration:
   - locked/maintenance area may affect slots depending backend rule.
 
 Functional flow - manage slots:
+
 1. Manager opens Slots tab.
 2. Filters by floor/area.
 3. Creates or updates slot status.
@@ -970,6 +1105,7 @@ Functional flow - manage slots:
 5. UI refreshes slot table.
 
 Functional flow - move session slot:
+
 1. Manager finds occupied slot/session.
 2. Opens move slot action.
 3. Chooses target available slot.
@@ -978,6 +1114,7 @@ Functional flow - move session slot:
 6. UI refreshes.
 
 Acceptance:
+
 - Tabs do not lose filter state when switching.
 - Status update requires confirmation and reason where needed.
 - UI prevents obvious invalid transitions before API call.
@@ -985,15 +1122,19 @@ Acceptance:
 ### 5.4 PricingManagementPage
 
 Route:
+
 - `/manager/pricing`
 
 Priority:
+
 - Must
 
 Backend dependency:
+
 - Sprint 2: `F022 Manage Pricing Rules`.
 
 APIs:
+
 - `GET /api/core/pricing-rules`
 - `POST /api/core/pricing-rules`
 - `PUT /api/core/pricing-rules/{id}`
@@ -1001,15 +1142,18 @@ APIs:
   - `GET /api/core/vehicle-types`
 
 Purpose:
+
 - Manager/Admin quản lý bảng giá theo loại xe.
 
 Phase A - Page shell:
+
 - Pricing rules table.
 - Create/edit modal.
 - Vehicle type filter.
 - Mock active/inactive rules.
 
 Phase B - Form UX:
+
 - Fields:
   - vehicle type
   - day price
@@ -1024,6 +1168,7 @@ Phase B - Form UX:
   - effective from required
 
 Phase C - API integration:
+
 - Load pricing rules.
 - Create active pricing rule.
 - Update existing rule.
@@ -1033,6 +1178,7 @@ Phase C - API integration:
   - pricing rule not found
 
 Functional flow:
+
 1. Manager opens pricing.
 2. Frontend loads vehicle types and pricing rules.
 3. Manager creates/updates pricing.
@@ -1040,6 +1186,7 @@ Functional flow:
 5. UI refreshes table.
 
 Acceptance:
+
 - Money inputs prevent negative values.
 - UI explains that active sessions use pricing snapshot from entry.
 - Public pricing page remains read-only and separate.
@@ -1047,18 +1194,22 @@ Acceptance:
 ### 5.5 MonthlyPassManagementPage
 
 Route:
+
 - `/manager/monthly-passes`
 
 Priority:
+
 - Must
 
 Backend dependency:
+
 - Sprint 2:
   - `F023 Monthly Pass CRUD`
   - `F024 Renew Monthly Pass`
   - `F025 Check Monthly Pass Validity`
 
 APIs:
+
 - `GET /api/core/monthly-passes`
 - `POST /api/core/monthly-passes`
 - `PUT /api/core/monthly-passes/{id}`
@@ -1069,9 +1220,11 @@ APIs:
   - `GET /api/core/vehicle-types`
 
 Purpose:
+
 - Manager/Admin quản lý vé tháng.
 
 Phase A - Page shell:
+
 - Monthly pass table.
 - Create/edit modal.
 - Renew modal.
@@ -1079,6 +1232,7 @@ Phase A - Page shell:
 - Validity check panel.
 
 Phase B - Form UX:
+
 - Fields:
   - owner name
   - phone
@@ -1095,6 +1249,7 @@ Phase B - Form UX:
   - vehicle type required
 
 Phase C - API integration:
+
 - Load monthly passes with filters.
 - Create/update pass.
 - Renew pass.
@@ -1103,6 +1258,7 @@ Phase C - API integration:
 - Handle duplicate active pass.
 
 Functional flow - create:
+
 1. Manager opens create modal.
 2. Enters owner/plate/type/dates.
 3. Frontend validates date range.
@@ -1110,6 +1266,7 @@ Functional flow - create:
 5. Table refreshes.
 
 Functional flow - renew:
+
 1. Manager selects existing pass.
 2. Opens renew modal.
 3. Enters new end date.
@@ -1117,6 +1274,7 @@ Functional flow - renew:
 5. UI updates status/dates.
 
 Acceptance:
+
 - Expired/locked/active statuses are visually distinct.
 - Check validity panel returns clear valid/invalid result.
 - Renew does not silently shorten pass unless backend allows.
@@ -1124,32 +1282,39 @@ Acceptance:
 ### 5.6 LostCardApprovalPage
 
 Route:
+
 - `/manager/lost-card-cases`
 
 Priority:
+
 - Must
 
 Backend dependency:
+
 - Sprint 4:
   - `F048 Approve/Reject Lost Card`
   - `F047 Create Lost Card Case`
 
 APIs:
+
 - `GET /api/core/lost-card-cases`
 - `GET /api/core/lost-card-cases/{id}`
 - `POST /api/core/lost-card-cases/{id}/approve`
 - `POST /api/core/lost-card-cases/{id}/reject`
 
 Purpose:
+
 - Manager/Admin duyệt hoặc từ chối hồ sơ mất thẻ.
 
 Phase A - Page shell:
+
 - Cases table.
 - Detail drawer.
 - Approve/reject modals.
 - Mock pending/approved/rejected data.
 
 Phase B - UI details:
+
 - Filters:
   - status
   - created date range
@@ -1171,12 +1336,14 @@ Phase B - UI details:
   - payment/fee preview if available
 
 Phase C - API integration:
+
 - Load pending cases by default.
 - Approve with confirmation.
 - Reject with rejection reason.
 - Handle stale case already resolved.
 
 Functional flow - approve:
+
 1. Manager opens pending case.
 2. Reviews session/card/reporter info.
 3. Confirms approval.
@@ -1184,12 +1351,14 @@ Functional flow - approve:
 5. UI refreshes case and routes staff back to exit if needed.
 
 Functional flow - reject:
+
 1. Manager opens pending case.
 2. Enters rejection reason.
 3. Backend rejects case.
 4. UI refreshes.
 
 Acceptance:
+
 - Staff role cannot access approval actions.
 - Reject requires reason.
 - Approved/rejected cases are not actionable again.
@@ -1197,30 +1366,37 @@ Acceptance:
 ### 5.7 MismatchApprovalPage
 
 Route:
+
 - `/manager/mismatch`
 
 Priority:
+
 - Must
 
 Backend dependency:
+
 - Sprint 4:
   - `F049 Detect Plate Mismatch`
   - `F050 Resolve Plate Mismatch`
 
 APIs:
+
 - `POST /api/core/parking-sessions/{id}/mismatch/confirm`
 - `POST /api/core/parking-sessions/{id}/mismatch/reject`
 - Expected supporting search/list endpoint from mismatch/session module.
 
 Purpose:
+
 - Manager/Admin xử lý trường hợp biển số ra khác biển số vào.
 
 Phase A - Page shell:
+
 - Pending mismatch table.
 - Detail panel showing entry/exit plate.
 - Confirm/reject modals.
 
 Phase B - UI details:
+
 - Filters:
   - status
   - date range
@@ -1240,12 +1416,14 @@ Phase B - UI details:
   - notes
 
 Phase C - API integration:
+
 - Load mismatch pending list when backend endpoint is available.
 - Confirm mismatch.
 - Reject mismatch with reason.
 - Handle case already resolved.
 
 Functional flow:
+
 1. Manager opens mismatch page.
 2. Selects pending case/session.
 3. Compares entry/exit plate.
@@ -1254,6 +1432,7 @@ Functional flow:
 6. Staff can continue exit after confirmation if needed.
 
 Acceptance:
+
 - Confirm/reject requires explicit user action.
 - Reject requires reason.
 - Page shows clear audit context.
@@ -1261,12 +1440,15 @@ Acceptance:
 ### 5.8 ReportsPage
 
 Route:
+
 - `/manager/reports`
 
 Priority:
+
 - Must
 
 Backend dependency:
+
 - Sprint 5:
   - `F057 Revenue Report`
   - `F058 Traffic Report`
@@ -1275,6 +1457,7 @@ Backend dependency:
   - optional `F062 Excel Export`
 
 APIs:
+
 - `GET /api/support/reports/revenue`
 - `GET /api/support/reports/traffic`
 - `GET /api/support/reports/occupancy`
@@ -1283,9 +1466,11 @@ APIs:
 - Optional: `GET /api/support/reports/export-excel`
 
 Purpose:
+
 - Manager xem báo cáo vận hành và doanh thu.
 
 Phase A - Page shell:
+
 - Report tabs:
   - Revenue
   - Traffic
@@ -1296,6 +1481,7 @@ Phase A - Page shell:
 - Mock charts/tables.
 
 Phase B - UI details:
+
 - Revenue tab:
   - total revenue
   - revenue by day
@@ -1314,12 +1500,14 @@ Phase B - UI details:
   - session list if provided
 
 Phase C - API integration:
+
 - Each tab lazy-loads its own API.
 - Date range shared across tabs.
 - Export button only visible if API available.
 - Handle large result with pagination or server aggregation.
 
 Functional flow:
+
 1. Manager opens reports.
 2. Selects date range.
 3. Opens a report tab.
@@ -1327,6 +1515,7 @@ Functional flow:
 5. Manager exports if supported.
 
 Acceptance:
+
 - Switching tabs does not wipe date range.
 - Charts handle empty/zero data.
 - Reports are read-only.
@@ -1334,30 +1523,37 @@ Acceptance:
 ### 5.9 AuditLogPage
 
 Route:
+
 - `/manager/audit-logs`
 
 Priority:
+
 - Must
 
 Backend dependency:
+
 - Sprint 5:
   - `F054 Search Audit Logs`
   - `F055 View Audit Log Detail`
 
 APIs:
+
 - `GET /api/support/audit-logs`
 - `GET /api/support/audit-logs/{id}`
 
 Purpose:
+
 - Manager/Admin search audit logs.
 
 Phase A - Page shell:
+
 - Audit search filters.
 - Audit table.
 - Detail drawer.
 - Mock audit rows.
 
 Phase B - UI details:
+
 - Filters:
   - actor user
   - action
@@ -1378,12 +1574,14 @@ Phase B - UI details:
   - metadata
 
 Phase C - API integration:
+
 - Search audit with filters/pagination.
 - View detail by id.
 - Pretty-print JSON safely.
 - Optional export hidden unless API exists.
 
 Functional flow:
+
 1. Manager opens audit page.
 2. Enters filters.
 3. Frontend loads audit logs.
@@ -1391,6 +1589,7 @@ Functional flow:
 5. UI shows before/after values.
 
 Acceptance:
+
 - Audit page is read-only.
 - Large JSON does not break layout.
 - Empty result is clear.
@@ -1400,16 +1599,20 @@ Acceptance:
 ### 6.1 UserManagementPage
 
 Route:
+
 - `/admin/users`
 
 Priority:
+
 - Must
 
 Backend dependency:
+
 - Sprint 2: `F013 Manage Internal Users`.
 - Auth dependency: Sprint 1 `F009`, `F010`.
 
 APIs:
+
 - `GET /api/core/users`
 - `POST /api/core/users`
 - `GET /api/core/users/{id}`
@@ -1418,15 +1621,18 @@ APIs:
 - `PATCH /api/core/users/{id}/role`
 
 Purpose:
+
 - Admin quản lý tài khoản nội bộ.
 
 Phase A - Page shell:
+
 - Users table.
 - Create/edit user modal.
 - Change role/status modal.
 - Mock users.
 
 Phase B - Form UX:
+
 - Fields:
   - full name
   - username
@@ -1443,6 +1649,7 @@ Phase B - Form UX:
   - phone format if provided
 
 Phase C - API integration:
+
 - Load users with filters.
 - Create user.
 - Update profile fields.
@@ -1451,6 +1658,7 @@ Phase C - API integration:
 - Handle duplicate username/email/phone.
 
 Functional flow - create user:
+
 1. Admin opens create modal.
 2. Enters user info.
 3. Frontend validates.
@@ -1458,6 +1666,7 @@ Functional flow - create user:
 5. Table refreshes.
 
 Functional flow - lock user:
+
 1. Admin selects user.
 2. Chooses status LOCKED/INACTIVE.
 3. Confirms action.
@@ -1465,6 +1674,7 @@ Functional flow - lock user:
 5. UI updates badge.
 
 Acceptance:
+
 - Only ADMIN can access.
 - Admin cannot accidentally demote/lock self without explicit confirmation if backend allows.
 - Role and status changes are separated from general edit.
@@ -1472,18 +1682,22 @@ Acceptance:
 ### 6.2 SessionAdministrationPage
 
 Route:
+
 - `/admin/sessions`
 
 Priority:
+
 - Must
 
 Backend dependency:
+
 - Sprint 4:
   - `F051 Cancel Active Session`
   - `F052 Move Session Slot`
   - `F039 Search Active Session By Card Code`
 
 APIs:
+
 - `GET /api/core/parking-sessions/search`
 - `GET /api/core/parking-sessions/{id}`
 - `POST /api/core/parking-sessions/{id}/cancel`
@@ -1492,15 +1706,18 @@ APIs:
   - `GET /api/core/slots`
 
 Purpose:
+
 - Admin xử lý session lỗi/demo: tìm, hủy, chuyển slot.
 
 Phase A - Page shell:
+
 - Session search table.
 - Detail drawer.
 - Cancel modal.
 - Move slot modal.
 
 Phase B - UI details:
+
 - Filters:
   - session code
   - card code
@@ -1517,6 +1734,7 @@ Phase B - UI details:
   - reason required
 
 Phase C - API integration:
+
 - Search sessions.
 - Cancel active session.
 - Move active session slot.
@@ -1527,6 +1745,7 @@ Phase C - API integration:
   - concurrent state changed
 
 Functional flow - cancel:
+
 1. Admin searches session.
 2. Opens detail.
 3. Clicks Cancel.
@@ -1535,6 +1754,7 @@ Functional flow - cancel:
 6. UI refreshes row/detail.
 
 Functional flow - move slot:
+
 1. Admin opens active session.
 2. Clicks Move Slot.
 3. Selects target slot.
@@ -1543,6 +1763,7 @@ Functional flow - move slot:
 6. UI refreshes old/new slot info.
 
 Acceptance:
+
 - Cancel and move require reason.
 - Destructive actions have confirmation.
 - Only ADMIN can access page.
@@ -1550,29 +1771,36 @@ Acceptance:
 ### 6.3 AdminAuditLogPage
 
 Route:
+
 - `/admin/audit-logs`
 
 Priority:
+
 - Must
 
 Backend dependency:
+
 - Sprint 5:
   - `F054 Search Audit Logs`
   - `F055 View Audit Log Detail`
 
 APIs:
+
 - `GET /api/support/audit-logs`
 - `GET /api/support/audit-logs/{id}`
 
 Purpose:
+
 - Admin audit view. Reuse phần lớn `AuditLogPage`, nhưng admin có thể thấy đầy đủ hơn nếu backend phân quyền.
 
 Phase A - Page shell:
+
 - Reuse `AuditLogPage` component with `adminMode`.
 - Add admin route guard.
 - Mock full audit dataset.
 
 Phase B - UI details:
+
 - Same filters as manager audit.
 - Additional admin-friendly filters if backend supports:
   - user role
@@ -1581,17 +1809,20 @@ Phase B - UI details:
 - Detail drawer supports full JSON.
 
 Phase C - API integration:
+
 - Reuse `supportApi.searchAuditLogs`.
 - Reuse `supportApi.getAuditLogDetail`.
 - If backend returns extra fields for admin, render optional fields.
 
 Functional flow:
+
 1. Admin opens audit logs.
 2. Filters by actor/action/date.
 3. Opens detail.
 4. Reviews old/new values.
 
 Acceptance:
+
 - Admin route protected by ADMIN only.
 - No mutation actions are available.
 - Reuse common audit components instead of duplicating Manager page.

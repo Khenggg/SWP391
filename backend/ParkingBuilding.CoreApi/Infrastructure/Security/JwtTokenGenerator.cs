@@ -35,10 +35,12 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Security
 
             var claims = new List<Claim>
             {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Username),
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim("user_id", user.Id.ToString()),
                 new Claim("username", user.Username),
-                new Claim("role", user.Role.ToString().ToUpper()) // e.g. "ADMIN", "MANAGER", "STAFF"
+                new Claim("role", user.Role.ToString().ToUpper()), // e.g. "ADMIN", "MANAGER", "STAFF"
+                new Claim("fullName", user.FullName ?? string.Empty),
+                new Claim("full_name", user.FullName ?? string.Empty)
             };
 
             var token = new JwtSecurityToken(
