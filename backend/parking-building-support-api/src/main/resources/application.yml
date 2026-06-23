@@ -1,3 +1,6 @@
+server:
+  port: 8081
+
 spring:
   datasource:
     url: jdbc:postgresql://aws-1-ap-south-1.pooler.supabase.com:5432/postgres
@@ -6,15 +9,14 @@ spring:
     driver-class-name: org.postgresql.Driver
 
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: validate
-
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
 
-    show-sql: true
 jwt:
-  issuer: ${JWT_ISSUER:ParkingBuilding.CoreApi}
-  audience: ${JWT_AUDIENCE:ParkingBuilding.Frontend}
-  secret: ${JWT_SECRET:DEVELOPMENT_SECRET_KEY_FOR_LOCAL_TESTING_ONLY_2026_SWP391}
+  issuer: ParkingBuilding.CoreApi
+  audience: ParkingBuilding.Frontend
+  secret: DEVELOPMENT_SECRET_KEY_FOR_LOCAL_TESTING_ONLY_2026_SWP391
