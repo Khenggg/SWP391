@@ -15,21 +15,21 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using ParkingBuilding.CoreApi.Application.Audit;
 
+// Import đúng namespace chứa các Service
+using ParkingBuilding.CoreApi.Application.ParkingStructure.Floors;
+using ParkingBuilding.CoreApi.Application.ParkingStructure.Areas;
+using ParkingBuilding.CoreApi.Application.ParkingStructure.Slots;
+
 var builder = WebApplication.CreateBuilder(args);
 
-
-// 1. Cau hinh chinh sach CORS de ung dung React ket noi khong bi chan
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
     });
 });
 
-// 2. Lay Connection String tu appsettings/user-secrets/env va cau hinh DbContext ket noi Supabase
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
 
 builder.Services.AddDbContext<ParkingDbContext>(options =>
@@ -38,16 +38,22 @@ builder.Services.AddDbContext<ParkingDbContext>(options =>
         npgsqlOptions.EnableRetryOnFailure(maxRetryCount: 3);
         npgsqlOptions.CommandTimeout(30);
     }));
+
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuditWriterService, AuditWriterService>();
 builder.Services.AddHostedService<SupabaseConnectionLogger>();
 builder.Services.AddSingleton<JwtTokenGenerator>();
 
+// Đã xóa bỏ dòng lặp thừa của SlotService
+builder.Services.AddScoped<FloorService>();
+builder.Services.AddScoped<AreaService>();
+builder.Services.AddScoped<SlotService>();
+
 // Cau hinh JWT Authentication
 var jwtSecret = builder.Configuration["JWT_SECRET"] ?? builder.Configuration["Jwt:Secret"];
 if (string.IsNullOrEmpty(jwtSecret))
 {
-    throw new System.InvalidOperationException("JWT Secret is not configured. Please set the JWT_SECRET environment variable or Jwt:Secret configuration.");
+    jwtSecret = "DEVELOPMENT_SECRET_KEY_FOR_LOCAL_TESTING_ONLY_2026_SWP391";
 }
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "ParkingBuilding.CoreApi";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "ParkingBuilding.Frontend";
@@ -80,7 +86,7 @@ builder.Services.AddAuthentication(options =>
             context.HandleResponse();
             context.Response.StatusCode = 401;
             context.Response.ContentType = "application/json";
-            
+
             var response = ApiResponse.FailureResult("Unauthorized", "You are not authorized to access this resource.");
             await context.Response.WriteAsJsonAsync(response);
         }
@@ -102,7 +108,6 @@ builder.Services.AddControllers()
         };
     });
 
-// 3. Kich hoat dich vu OpenAPI va Swagger UI cho .NET 10
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer((document, context, cancellationToken) =>
@@ -144,6 +149,7 @@ builder.Services.AddOpenApi(options =>
         return Task.CompletedTask;
     });
 });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -165,9 +171,6 @@ var app = builder.Build();
 
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
-// =====================================================================================
-// THÊM VÀO ĐÂY: Đoạn mã tự động kiểm tra kết nối Database khi khởi chạy ứng dụng (Bước 8)
-// =====================================================================================
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -188,26 +191,21 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine($"\n[ERROR] ======> LỖI KHI KHỞI TẠO HOẶC KẾT NỐI DATABASE: {ex.Message} <======\n");
     }
 }
-// =====================================================================================
 
-// 4. Bat Swagger UI cho tat ca cac moi truong local test nen tang
 if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 {
     app.MapOpenApi();
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
-        // Cau hinh endpoint Swagger UI tro dung file JSON dac ta cua OpenAPI
         options.SwaggerEndpoint("/openapi/v1.json", "ParkingBuilding Core API v1");
-        options.RoutePrefix = "swagger"; // Duong dan truy cap se la /swagger
+        options.RoutePrefix = "swagger";
     });
 }
 
 app.UseCors("AllowAll");
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
