@@ -19,6 +19,10 @@ using ParkingBuilding.CoreApi.Application.Audit;
 using ParkingBuilding.CoreApi.Application.ParkingStructure.Floors;
 using ParkingBuilding.CoreApi.Application.ParkingStructure.Areas;
 using ParkingBuilding.CoreApi.Application.ParkingStructure.Slots;
+using ParkingBuilding.CoreApi.Application.ParkingSessions.SlotSuggestion;
+
+// THÊM DÒNG NÀY: Để nhận diện lớp dịch vụ vào bãi xe
+using ParkingBuilding.CoreApi.Application.ParkingSessions.Entry;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,10 +48,14 @@ builder.Services.AddScoped<IAuditWriterService, AuditWriterService>();
 builder.Services.AddHostedService<SupabaseConnectionLogger>();
 builder.Services.AddSingleton<JwtTokenGenerator>();
 
-// Đã xóa bỏ dòng lặp thừa của SlotService
+// Khai báo quản lý vòng đời (Dependency Injection) cho các Service nghiệp vụ
 builder.Services.AddScoped<FloorService>();
 builder.Services.AddScoped<AreaService>();
 builder.Services.AddScoped<SlotService>();
+builder.Services.AddScoped<ISlotSuggestionService, SlotSuggestionService>();
+
+// THÊM DÒNG NÀY: Đăng ký interface và implementation xử lý xe vào bãi
+builder.Services.AddScoped<IEntryService, EntryService>();
 
 // Cau hinh JWT Authentication
 var jwtSecret = builder.Configuration["JWT_SECRET"] ?? builder.Configuration["Jwt:Secret"];

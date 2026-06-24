@@ -23,3 +23,5 @@ namespace ParkingBuilding.CoreApi.Domain.Entities
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
 }
+
+

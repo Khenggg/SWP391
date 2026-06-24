@@ -19,6 +19,7 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence
         public DbSet<AreaVehicleType> AreaVehicleTypes { get; set; }
         public DbSet<Slot> Slots { get; set; }
         public DbSet<Gate> Gates { get; set; }
+        public DbSet<ParkingSession> ParkingSessions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
