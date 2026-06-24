@@ -29,8 +29,16 @@ export const publicHandlers = [
         areas: db.getAreas(), 
         slots: db.getSlots(), 
         floors: db.getFloors(),
-        vehicleTypes: MOCK_VEHICLE_TYPES 
+        vehicleTypes: MOCK_VEHICLE_TYPES
       });
     })
   ),
+    ...enabled(
+    MOCK_FLAGS.PUBLIC_AVAILABLE_SLOTS,
+    http.get(`${API_BASE_URLS.public}/vehicle-types`, async () => {
+      await delay(250);
+      return ok(MOCK_VEHICLE_TYPES);
+    })
+  ),
+
 ];
