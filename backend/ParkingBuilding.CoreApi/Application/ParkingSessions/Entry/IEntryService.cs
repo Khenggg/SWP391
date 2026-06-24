@@ -5,4 +5,6 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry;
 public interface IEntryService
 {
     Task CreateEntryAsync(CreateEntryRequest request);
+
+    Task<bool> ClaimSessionAsync(string userId, string qrToken);
 }

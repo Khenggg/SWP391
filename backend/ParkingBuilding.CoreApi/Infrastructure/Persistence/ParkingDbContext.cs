@@ -20,6 +20,8 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence
         public DbSet<Slot> Slots { get; set; }
         public DbSet<Gate> Gates { get; set; }
         public DbSet<ParkingSession> ParkingSessions { get; set; }
+        public DbSet<DriverProfile> DriverProfiles { get; set; } // Hoặc tên DbSet tương ứng trong context
+        public DbSet<MonthlyPass> MonthlyPasses { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
