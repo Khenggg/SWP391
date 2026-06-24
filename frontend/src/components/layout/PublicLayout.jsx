@@ -10,7 +10,7 @@ export default function PublicLayout() {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Định nghĩa các nút điều hướng công cộng
+  // Define menu items
   const menuItems = [
     { label: "Thông Tin Bãi Xe", path: "/" },
     { label: "Số Slot Trống", path: "/available-slots" },
@@ -18,31 +18,55 @@ export default function PublicLayout() {
     { label: "Nội Quy", path: "/rules" },
   ];
 
+  // Dynamic theme colors based on route
+  const getThemeConfig = (path) => {
+    switch (path) {
+      case "/available-slots":
+        return { accent: "text-emerald-400", bgHover: "hover:bg-emerald-400/10", border: "border-emerald-500", button: "bg-emerald-600 hover:bg-emerald-500 shadow-[0_0_15px_rgba(5,150,105,0.4)]" };
+      case "/pricing":
+        return { accent: "text-amber-400", bgHover: "hover:bg-amber-400/10", border: "border-amber-500", button: "bg-amber-600 hover:bg-amber-500 shadow-[0_0_15px_rgba(217,119,6,0.4)]" };
+      case "/rules":
+        return { accent: "text-rose-400", bgHover: "hover:bg-rose-400/10", border: "border-rose-500", button: "bg-rose-600 hover:bg-rose-500 shadow-[0_0_15px_rgba(225,29,72,0.4)]" };
+      default: // Parking Info (Home)
+        return { accent: "text-violet-400", bgHover: "hover:bg-violet-400/10", border: "border-violet-500", button: "bg-violet-600 hover:bg-violet-500 shadow-[0_0_15px_rgba(124,58,237,0.4)]" };
+    }
+  };
+
+  const theme = getThemeConfig(location.pathname);
+
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-800">
+    <div className="flex min-h-screen flex-col bg-slate-950 text-slate-200 font-sans">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
+      <header className="sticky top-0 z-50 border-b border-white/5 bg-slate-950/50 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link to="/" className="flex items-center space-x-2 text-lg font-black tracking-tight text-blue-700">
-            <span className="bg-blue-700 px-2 py-0.5 text-white rounded text-sm">PB</span>
-            <span>PARKING SYSTEM</span>
+          <Link to="/" className="flex items-center space-x-3 group">
+            <div className={`flex items-center justify-center w-8 h-8 rounded bg-white/5 border border-white/10 ${theme.accent} group-hover:scale-105 transition-transform`}>
+              <span className="font-black text-xs tracking-tight">PB</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-black tracking-widest text-white">PARKING SYSTEM</span>
+              <span className="text-[10px] text-slate-500 font-medium tracking-wide">Quản lý bãi xe thông minh</span>
+            </div>
           </Link>
 
           {/* Navigation Menu (Desktop) */}
-          <nav className="hidden md:flex space-x-2 sm:space-x-4">
+          <nav className="hidden md:flex items-center space-x-1">
             {menuItems.map((item) => {
               const isActive = location.pathname === item.path;
               return (
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`rounded px-3 py-1.5 text-sm font-bold transition-colors ${
+                  className={`relative rounded-full px-4 py-1.5 text-xs font-bold tracking-wide transition-all ${
                     isActive
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                      ? `text-white bg-white/5`
+                      : `text-slate-400 hover:text-white ${theme.bgHover}`
                   }`}
                 >
                   {item.label}
+                  {isActive && (
+                    <span className={`absolute -bottom-[17px] left-1/2 -translate-x-1/2 w-8 h-[2px] rounded-t-full ${theme.accent.replace('text-', 'bg-')} shadow-[0_0_8px_currentColor]`} />
+                  )}
                 </Link>
               );
             })}
@@ -52,7 +76,7 @@ export default function PublicLayout() {
           <div className="hidden md:block">
             <Link
               to="/login"
-              className="rounded bg-blue-700 hover:bg-blue-800 px-4 py-2 text-sm font-bold text-white transition-colors"
+              className={`rounded-full px-5 py-2 text-xs font-bold text-white transition-all ${theme.button}`}
             >
               Đăng Nhập
             </Link>
@@ -62,8 +86,7 @@ export default function PublicLayout() {
           <div className="flex md:hidden">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition focus:outline-none cursor-pointer"
-              aria-label={isMobileMenuOpen ? "Đóng menu" : "Mở menu"}
+              className="rounded-lg p-2 text-slate-400 hover:bg-white/10 hover:text-white transition focus:outline-none"
             >
               {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -72,7 +95,7 @@ export default function PublicLayout() {
 
         {/* Mobile Navigation Dropdown Menu */}
         {isMobileMenuOpen && (
-          <div className="border-t border-slate-200 bg-white px-4 py-3 md:hidden space-y-1.5 animate-fadeIn">
+          <div className="border-t border-white/10 bg-slate-900 px-4 py-4 md:hidden space-y-2">
             {menuItems.map((item) => {
               const isActive = location.pathname === item.path;
               return (
@@ -80,21 +103,21 @@ export default function PublicLayout() {
                   key={item.path}
                   to={item.path}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`block rounded-lg px-3 py-2 text-sm font-bold transition-colors ${
+                  className={`block rounded-lg px-4 py-3 text-sm font-bold transition-colors ${
                     isActive
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                      ? `bg-white/5 ${theme.accent}`
+                      : "text-slate-400 hover:bg-white/5 hover:text-white"
                   }`}
                 >
                   {item.label}
                 </Link>
               );
             })}
-            <div className="border-t border-slate-100 pt-3 mt-2">
+            <div className="pt-4 mt-4 border-t border-white/5">
               <Link
                 to="/login"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="block w-full text-center rounded-lg bg-blue-700 hover:bg-blue-800 py-2.5 text-sm font-bold text-white transition-colors"
+                className={`block w-full text-center rounded-lg py-3 text-sm font-bold text-white transition-all ${theme.button}`}
               >
                 Đăng Nhập
               </Link>
@@ -104,18 +127,9 @@ export default function PublicLayout() {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-grow">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-          <Outlet />
-        </div>
+      <main className="flex-grow flex flex-col relative z-10">
+        <Outlet />
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-6 text-center text-xs text-slate-500">
-        <div className="mx-auto max-w-7xl px-4">
-          <p className="font-bold text-slate-700">Hệ Thống Quản Lý Bãi Đỗ Xe Thông Minh (Parking Building)</p>
-        </div>
-      </footer>
     </div>
   );
 }
