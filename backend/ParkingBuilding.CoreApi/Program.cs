@@ -85,6 +85,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    options.MapInboundClaims = false;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -95,7 +96,7 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtAudience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
         ClockSkew = TimeSpan.Zero,
-        RoleClaimType = System.Security.Claims.ClaimTypes.Role,
+        RoleClaimType = "role",
         NameClaimType = "username"
     };
 
@@ -170,13 +171,6 @@ using (var scope = app.Services.CreateScope())
         if (context.Database.CanConnect())
         {
             Console.WriteLine("\n[SUCCESS] ======> ĐÃ KẾT NỐI ĐẾN POSTGRESQL/SUPABASE DATABASE THÀNH CÔNG! <======\n");
-            
-            // Alter check constraint on reservations status to support 'CONFIRMED'
-            context.Database.ExecuteSqlRaw(@"
-                ALTER TABLE reservations DROP CONSTRAINT IF EXISTS ck_reservations_status;
-                ALTER TABLE reservations ADD CONSTRAINT ck_reservations_status CHECK (status IN ('PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'EXPIRED'));
-            ");
-            Console.WriteLine("[INFO] Altered reservations status check constraint successfully.");
         }
         else
         {

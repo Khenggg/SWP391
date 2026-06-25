@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.Entry;
+using ParkingBuilding.CoreApi.Application.ParkingSessions.SlotSuggestion;
 using ParkingBuilding.CoreApi.Contracts.Common; // Để sử dụng cấu trúc ApiResponse chung
 using Microsoft.AspNetCore.Authorization; // Cần thiết cho [Authorize]
 using System.Security.Claims;             // Cần thiết cho ClaimTypes
@@ -13,13 +14,16 @@ namespace ParkingBuilding.CoreApi.Controllers;
 public class ParkingSessionsController : ControllerBase
 {
     private readonly IEntryService _entryService;
+    private readonly ISlotSuggestionService _suggestionService;
 
-    public ParkingSessionsController(IEntryService entryService)
+    public ParkingSessionsController(IEntryService entryService, ISlotSuggestionService suggestionService)
     {
         _entryService = entryService;
+        _suggestionService = suggestionService;
     }
 
     [HttpPost("entry")]
+    [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
     public async Task<IActionResult> CreateEntry([FromBody] CreateEntryRequest request)
     {
         try
@@ -63,5 +67,17 @@ public class ParkingSessionsController : ControllerBase
             return BadRequest(ApiResponse.FailureResult("Lượt đỗ không hợp lệ hoặc đã thuộc về tài khoản khác."));
 
         return Ok(ApiResponse.SuccessResult("Liên kết lượt đỗ thành công."));
+    }
+
+    [HttpPost("suggest-slot")]
+    [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
+    public async Task<IActionResult> SuggestSlot([FromBody] SuggestSlotRequest request)
+    {
+        var result = await _suggestionService.SuggestSlotAsync(request);
+        if (result == null)
+        {
+            return NotFound(ApiResponse.FailureResult("Không tìm thấy slot phù hợp hoặc bãi đỗ xe đã đầy."));
+        }
+        return Ok(ApiResponse.SuccessResult(result, "Gợi ý slot thành công."));
     }
 }

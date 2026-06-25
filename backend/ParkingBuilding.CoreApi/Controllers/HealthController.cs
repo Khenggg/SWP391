@@ -4,6 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 using System.Linq;
 using ParkingBuilding.CoreApi.Domain.Entities;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ParkingBuilding.CoreApi.Controllers
 {
@@ -11,10 +14,12 @@ namespace ParkingBuilding.CoreApi.Controllers
     public class HealthController : BaseApiController
     {
         private readonly ParkingDbContext _context;
+        private readonly IWebHostEnvironment _env;
 
-        public HealthController(ParkingDbContext context)
+        public HealthController(ParkingDbContext context, IWebHostEnvironment env)
         {
             _context = context;
+            _env = env;
         }
 
         [HttpGet] // Kích hoạt phương thức GET cho endpoint /api/core/health
@@ -28,9 +33,17 @@ namespace ParkingBuilding.CoreApi.Controllers
             return Success(data, "Core API is running");
         }
 
+        // DEV ONLY: This endpoint is only for local integration testing.
+        // Do not enable it in production/demo environment.
         [HttpGet("dump-reservations")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> DumpReservations()
         {
+            if (!_env.IsDevelopment())
+            {
+                return Forbid("Endpoint only available in development environment.");
+            }
+
             var list = await _context.Reservations
                 .Select(r => new {
                     r.Id,
@@ -47,9 +60,17 @@ namespace ParkingBuilding.CoreApi.Controllers
             return Ok(list);
         }
 
+        // DEV ONLY: This endpoint is only for local integration testing.
+        // Do not enable it in production/demo environment.
         [HttpPost("clear-reservations")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> ClearReservations()
         {
+            if (!_env.IsDevelopment())
+            {
+                return Forbid("Endpoint only available in development environment.");
+            }
+
             var slots = await _context.Slots.ToListAsync();
             foreach (var slot in slots)
             {

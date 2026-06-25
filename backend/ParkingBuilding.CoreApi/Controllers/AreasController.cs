@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using ParkingBuilding.CoreApi.Application.ParkingStructure.Areas;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ParkingBuilding.CoreApi.Controllers;
 
@@ -14,8 +15,18 @@ public class AreasController : ControllerBase
         _service = service;
     }
 
+    // GET ALL
+    [HttpGet]
+    [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
+    public async Task<IActionResult> GetAll()
+    {
+        var result = await _service.GetAllAsync();
+        return Ok(result);
+    }
+
     // CREATE
     [HttpPost]
+    [Authorize(Roles = "MANAGER,ADMIN")]
     public async Task<IActionResult> Create([FromBody] CreateAreaRequest request)
     {
         var result = await _service.CreateAsync(request);
@@ -24,6 +35,7 @@ public class AreasController : ControllerBase
 
     // UPDATE
     [HttpPut("{id}")]
+    [Authorize(Roles = "MANAGER,ADMIN")]
     public async Task<IActionResult> Update(long id, [FromBody] UpdateAreaRequest request)
     {
         var result = await _service.UpdateAsync(id, request);

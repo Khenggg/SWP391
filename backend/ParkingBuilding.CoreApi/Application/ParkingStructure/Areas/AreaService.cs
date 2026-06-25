@@ -188,4 +188,19 @@ public class AreaService
             Status = entity.Status
         };
     }
+
+    public async Task<List<AreaResponse>> GetAllAsync()
+    {
+        return await _context.Areas
+            .Select(x => new AreaResponse
+            {
+                Id = x.Id,
+                FloorId = x.FloorId,
+                AreaCode = x.AreaCode,
+                AreaName = x.AreaName,
+                TotalCapacity = x.TotalCapacity,
+                Status = x.Status
+            })
+            .ToListAsync();
+    }
 }

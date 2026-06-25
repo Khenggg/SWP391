@@ -80,7 +80,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                             AreaId = activeReservation.AreaId,
                             FloorId = activeReservation.FloorId,
                             ReservationId = activeReservation.Id,
-                            EntryStaffId = 1, // TODO: Lấy từ JWT
+                            EntryStaffId = 1, // TODO: Resolve staff user id from JWT user_id claim instead of hardcoded 1.
                             EntryTime = DateTimeOffset.UtcNow,
                             BillableStartTime = DateTimeOffset.UtcNow,
                             Status = "ACTIVE",
@@ -101,7 +101,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                         // Cập nhật booking sang COMPLETED
                         activeReservation.Status = "COMPLETED";
                         activeReservation.CheckedInAt = DateTimeOffset.UtcNow;
-                        activeReservation.CheckedInBy = 1; // System/Staff ID
+                        activeReservation.CheckedInBy = 1; // TODO: Resolve staff user id from JWT user_id claim instead of hardcoded 1.
                         activeReservation.UpdatedAt = DateTimeOffset.UtcNow;
 
                         // Điều chỉnh slot & công suất
@@ -144,13 +144,9 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                             var slot = await _dbContext.Slots.Include(s => s.Area).FirstOrDefaultAsync(s => s.Id == request.SelectedSlotId);
                             if (slot == null) throw new Exception("SLOT_NOT_FOUND");
 
-                            slot.Status = "OCCUPIED";
                             slotId = slot.Id;
                             areaId = slot.AreaId;
                             floorId = slot.Area.FloorId;
-
-                            // Tăng occupancy thực tế
-                            slot.Area.CurrentRealOccupancy += 1;
 
                             newSession = new ParkingSession
                             {
@@ -165,7 +161,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                                 SlotId = slotId,
                                 AreaId = areaId,
                                 FloorId = floorId,
-                                EntryStaffId = 1, // TODO: Lấy từ JWT
+                                EntryStaffId = 1, // TODO: Resolve staff user id from JWT user_id claim instead of hardcoded 1.
                                 EntryTime = DateTimeOffset.UtcNow,
                                 BillableStartTime = DateTimeOffset.UtcNow,
                                 Status = "ACTIVE",
@@ -182,7 +178,9 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                             _dbContext.ParkingSessions.Add(newSession);
                             await _dbContext.SaveChangesAsync();
 
+                            slot.Status = "OCCUPIED";
                             slot.CurrentSessionId = newSession.Id;
+                            slot.Area.CurrentRealOccupancy += 1;
                             await _dbContext.SaveChangesAsync();
                         }
                         else
@@ -224,7 +222,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                                 SlotId = null,
                                 AreaId = areaId,
                                 FloorId = floorId,
-                                EntryStaffId = 1, // TODO: Lấy từ JWT
+                                EntryStaffId = 1, // TODO: Resolve staff user id from JWT user_id claim instead of hardcoded 1.
                                 EntryTime = DateTimeOffset.UtcNow,
                                 BillableStartTime = DateTimeOffset.UtcNow,
                                 Status = "ACTIVE",

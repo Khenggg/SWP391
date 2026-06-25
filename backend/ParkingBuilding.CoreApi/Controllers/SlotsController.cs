@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using ParkingBuilding.CoreApi.Application.ParkingStructure.Slots;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ParkingBuilding.CoreApi.Controllers;
 
@@ -14,8 +15,18 @@ public class SlotsController : ControllerBase
         _service = service;
     }
 
+    // ================= GET ALL =================
+    [HttpGet]
+    [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
+    public async Task<IActionResult> GetAll()
+    {
+        var result = await _service.GetAllAsync();
+        return Ok(result);
+    }
+
     // ================= CREATE SLOT =================
     [HttpPost]
+    [Authorize(Roles = "MANAGER,ADMIN")]
     public async Task<IActionResult> Create([FromBody] CreateSlotRequest request)
     {
         var result = await _service.CreateAsync(request);
@@ -24,6 +35,7 @@ public class SlotsController : ControllerBase
 
     // ================= UPDATE STATUS =================
     [HttpPatch("{id}/status")]
+    [Authorize(Roles = "MANAGER,ADMIN")]
     public async Task<IActionResult> UpdateStatus(long id, [FromBody] UpdateSlotStatusRequest request)
     {
         var result = await _service.UpdateStatusAsync(id, request);

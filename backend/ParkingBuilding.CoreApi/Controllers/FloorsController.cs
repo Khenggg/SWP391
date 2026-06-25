@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using ParkingBuilding.CoreApi.Application.ParkingStructure.Floors;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ParkingBuilding.CoreApi.Controllers;
 
@@ -16,6 +17,7 @@ public class FloorsController : ControllerBase
 
     // GET ALL
     [HttpGet]
+    [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
     public async Task<IActionResult> GetAll()
     {
         var result = await _service.GetAllAsync();
@@ -24,6 +26,7 @@ public class FloorsController : ControllerBase
 
     // CREATE
     [HttpPost]
+    [Authorize(Roles = "MANAGER,ADMIN")]
     public async Task<IActionResult> Create([FromBody] CreateFloorRequest request)
     {
         var result = await _service.CreateAsync(request);
@@ -32,6 +35,7 @@ public class FloorsController : ControllerBase
 
     // UPDATE
     [HttpPut("{id}")]
+    [Authorize(Roles = "MANAGER,ADMIN")]
     public async Task<IActionResult> Update(long id, [FromBody] UpdateFloorRequest request)
     {
         var result = await _service.UpdateAsync(id, request);
