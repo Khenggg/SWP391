@@ -111,22 +111,32 @@ public class EntryService : IEntryService
 
     private async Task ValidateEntryRequest(CreateEntryRequest request)
     {
+        // 1. Kiểm tra Thẻ
         var card = await _dbContext.ParkingCards.FirstOrDefaultAsync(c => c.CardNumber == request.CardCode);
         if (card == null || card.Status != CardStatus.AVAILABLE)
-            throw new Exception("CARD_NOT_AVAILABLE");
+            throw new Exception("CARD_NOT_AVAILABLE: Thẻ không tồn tại hoặc không ở trạng thái khả dụng");
 
+        // 2. Bóc tách kiểm tra Slot để bắt chính xác lỗi
         var slot = await _dbContext.Slots.FirstOrDefaultAsync(s => s.Id == request.SelectedSlotId);
-        if (slot == null || slot.Status != "AVAILABLE" || slot.AllowedVehicleTypeId != request.VehicleTypeId)
-            throw new Exception("SLOT_NOT_AVAILABLE");
 
+        if (slot == null)
+            throw new Exception($"SLOT_NOT_FOUND: Vị trí đỗ ID {request.SelectedSlotId} không tồn tại trong DB");
+
+        if (slot.Status != "AVAILABLE")
+            throw new Exception($"SLOT_STATUS_INVALID: Trạng thái hiện tại của slot ID {request.SelectedSlotId} đang là '{slot.Status}'");
+
+        if (slot.AllowedVehicleTypeId != request.VehicleTypeId)
+            throw new Exception($"SLOT_TYPE_MISMATCH: Slot yêu cầu loại xe '{slot.AllowedVehicleTypeId}', nhưng request truyền vào là '{request.VehicleTypeId}'");
+
+        // 3. Kiểm tra Biển số xe
         if (!request.NoPlate)
         {
             bool hasActive = await _dbContext.ParkingSessions.AnyAsync(s => s.PlateNumber == request.LicensePlate && s.Status == "ACTIVE");
-            if (hasActive) throw new Exception("VEHICLE_HAS_ACTIVE_SESSION");
+            if (hasActive) throw new Exception("VEHICLE_HAS_ACTIVE_SESSION: Biển số xe này đang có một phiên đỗ ACTIVE trong bãi");
         }
         else if (string.IsNullOrWhiteSpace(request.VehicleDescription))
         {
-            throw new Exception("VEHICLE_DESCRIPTION_REQUIRED");
+            throw new Exception("VEHICLE_DESCRIPTION_REQUIRED: Xe không biển số bắt buộc phải nhập mô tả xe");
         }
     }
 }
