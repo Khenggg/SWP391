@@ -1,98 +1,83 @@
 import React, { useState, useEffect } from "react";
 import { parkingService } from "@/services/parkingService";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { CarFront, AlertTriangle, RefreshCw, CheckCircle } from "lucide-react";
 
-function AreaDensityGauge({ area, isCar }) {
-  const maxCap = area.maxCapacity || area.totalSlots || 0;
-  const current = area.currentCount !== undefined ? area.currentCount : (maxCap - (area.availableSlots || 0));
-  const percent = maxCap > 0 ? Math.round((current / maxCap) * 100) : 0;
-  const available = maxCap - current;
-
-  let statusLabel = "Thông thoáng";
-  let barColor = "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]";
-  let textColor = "text-emerald-400";
-  let borderColor = "border-emerald-500/30";
-  let badgeColor = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
-  let boxGlow = "hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] hover:border-emerald-500/50";
-
-  if (percent >= 90) {
-    statusLabel = "Đầy chỗ";
-    barColor = "bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)] animate-pulse";
-    textColor = "text-rose-400";
-    borderColor = "border-rose-500/30";
-    badgeColor = "bg-rose-500/10 text-rose-400 border border-rose-500/20";
-    boxGlow = "hover:shadow-[0_0_20px_rgba(244,63,94,0.15)] hover:border-rose-500/50";
-  } else if (percent >= 75) {
-    statusLabel = "Khá đông";
-    barColor = "bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]";
-    textColor = "text-amber-400";
-    borderColor = "border-amber-500/30";
-    badgeColor = "bg-amber-500/10 text-amber-400 border border-amber-500/20";
-    boxGlow = "hover:shadow-[0_0_20px_rgba(245,158,11,0.15)] hover:border-amber-500/50";
-  }
-
+// ─── Slot Chip ────────────────────────────────────────────────────────────────
+function SlotChip({ code }) {
   return (
-    <div className={`p-5 rounded-2xl bg-[#061410]/80 backdrop-blur-md border transition-all duration-300 ${borderColor} ${boxGlow}`}>
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <span className="font-mono text-[10px] font-black text-emerald-600/70 uppercase tracking-widest block mb-0.5">
-            {area.code}
-          </span>
-          <h4 className="font-bold text-white text-sm">{area.name}</h4>
-        </div>
-        <Badge variant="outline" className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${badgeColor}`}>
-          {statusLabel}
-        </Badge>
-      </div>
-
-      <div className="space-y-2">
-        <div className="flex justify-between text-[11px] font-bold text-slate-400">
-          <span className="uppercase tracking-wider">Mật độ bao phủ</span>
-          <span className={textColor}>{percent}%</span>
-        </div>
-        <div className="w-full h-2 bg-slate-800/50 rounded-full overflow-hidden relative">
-          <div
-            className={`h-full transition-all duration-700 rounded-full ${barColor}`}
-            style={{ width: `${percent}%` }}
-          />
-        </div>
-        <div className="flex justify-between text-[10px] text-slate-500 pt-1 font-medium">
-          <span>Đang đỗ: <span className="text-slate-300">{current}/{maxCap}</span></span>
-          <span>Còn trống: <span className="text-white font-bold">{available}</span></span>
-        </div>
-      </div>
-      
-      {/* Decorative car grid map logic inside gauge for B2 (just visual flair) */}
-      {isCar && available > 0 && (
-        <div className="mt-4 pt-4 border-t border-white/5 grid grid-cols-5 gap-1.5 opacity-60">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className={`h-4 rounded border ${i < 2 ? 'bg-emerald-500/20 border-emerald-500/40' : 'bg-white/5 border-white/10'}`} />
-          ))}
-        </div>
-      )}
+    <div className="flex items-center gap-1.5 bg-green-50 border border-green-200 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-green-700">
+      <CheckCircle size={11} className="text-green-500 flex-shrink-0" />
+      {code}
     </div>
   );
 }
 
+// ─── Area Section ─────────────────────────────────────────────────────────────
+function AreaSection({ areaCode, areaName, vehicleTypeName, slots }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+      {/* Area Header */}
+      <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gray-50">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{areaCode}</span>
+          <span className="text-xs text-gray-400">•</span>
+          <span className="text-sm font-bold text-gray-700">{areaName}</span>
+          {vehicleTypeName && (
+            <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[10px] font-bold border border-blue-100">
+              {vehicleTypeName}
+            </span>
+          )}
+        </div>
+        <span className="text-xs font-bold text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+          {slots.length} chỗ trống
+        </span>
+      </div>
+
+      {/* Slot Grid */}
+      <div className="p-4">
+        {slots.length === 0 ? (
+          <p className="text-xs text-gray-400 text-center py-2 italic">Không còn chỗ trống</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {slots.map((s) => (
+              <SlotChip key={s.id} code={s.slotCode} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Floor Summary Card ───────────────────────────────────────────────────────
+function FloorCard({ floorCode, floorName, count }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
+      <p className="text-3xl font-black text-blue-600">{count}</p>
+      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mt-1">{floorName}</p>
+      <p className="text-[10px] text-gray-400 mt-0.5">chỗ trống</p>
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function AvailableSlotsPage() {
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [filterVehicle, setFilterVehicle] = useState("ALL");
+  const [error, setError]         = useState(null);
+  const [slots, setSlots]         = useState([]);
+  const [areas, setAreas]         = useState([]);
+  const [floors, setFloors]       = useState([]);
   const [filterFloor, setFilterFloor] = useState("ALL");
-  const [areas, setAreas] = useState([]);
-  const [floors, setFloors] = useState([]);
-  const [vehicleTypes, setVehicleTypes] = useState([]);
 
   const load = async () => {
     setIsLoading(true);
     setError(null);
     try {
       const data = await parkingService.getAvailableSlots();
-      setAreas(data.areas || []);
+      setSlots(data.slots   || []);
+      setAreas(data.areas   || []);
       setFloors(data.floors || []);
-      setVehicleTypes(data.vehicleTypes || []);
-    } catch (e) {
+    } catch {
       setError("Không tải được dữ liệu bãi xe. Vui lòng thử lại.");
     } finally {
       setIsLoading(false);
@@ -101,193 +86,128 @@ export default function AvailableSlotsPage() {
 
   useEffect(() => { load(); }, []);
 
-  const vehicleOptions = ["ALL", ...vehicleTypes.map((v) => v.name)];
-  const floorOptions = ["ALL", ...floors.map((f) => f.code)];
+  // Filter areas by floor
+  const filteredAreas = filterFloor === "ALL"
+    ? areas
+    : areas.filter((a) => a.floorCode === filterFloor);
 
-  // Motorbike calculations (B1)
-  const mbAreas = areas.filter((a) => a.floorCode === "B1");
-  const mbTotalCapacity = mbAreas.reduce((sum, a) => sum + a.maxCapacity, 0);
-  const mbTotalCurrent = mbAreas.reduce((sum, a) => sum + a.currentCount, 0);
-  const mbPercent = mbTotalCapacity > 0 ? Math.round((mbTotalCurrent / mbTotalCapacity) * 100) : 0;
+  // Count slots per floor for summary
+  const floorCounts = floors.reduce((acc, f) => {
+    acc[f.code] = slots.filter((s) => {
+      const parts = (s.slotCode || "").split("-");
+      const fc    = s.floorCode || parts[0] || "";
+      return fc === f.code;
+    }).length;
+    return acc;
+  }, {});
 
-  // Transport calculations (B3)
-  const tsAreas = areas.filter((a) => a.floorCode === "B3");
-  const tsTotalCapacity = tsAreas.reduce((sum, a) => sum + a.maxCapacity, 0);
-  const tsTotalCurrent = tsAreas.reduce((sum, a) => sum + a.currentCount, 0);
-  const tsPercent = tsTotalCapacity > 0 ? Math.round((tsTotalCurrent / tsTotalCapacity) * 100) : 0;
-
-  // Car calculations (B2)
-  const carAreas = areas.filter((a) => a.floorCode === "B2");
-  const carTotalCapacity = carAreas.reduce((sum, a) => sum + (a.maxCapacity || a.totalSlots || 0), 0);
-  const carTotalCurrent = carAreas.reduce((sum, a) => sum + (a.currentCount !== undefined ? a.currentCount : ((a.maxCapacity || a.totalSlots) - (a.availableSlots || 0))), 0);
-  const carPercent = carTotalCapacity > 0 ? Math.round((carTotalCurrent / carTotalCapacity) * 100) : 0;
-
-  // Mismatch Error logic
-  let infoMessage = null;
-
-  if (filterVehicle === "Xe Máy" && (filterFloor === "B2" || filterFloor === "B3")) {
-    infoMessage = { title: "Vị trí không phù hợp", desc: "Xe Máy chỉ đỗ tại Tầng B1. Vui lòng chuyển bộ lọc sang Tầng B1." };
-  } else if (filterVehicle === "Ô Tô" && (filterFloor === "B1" || filterFloor === "B3")) {
-    infoMessage = { title: "Vị trí không phù hợp", desc: "Xe Ô Tô chỉ đỗ tại Tầng B2. Vui lòng chuyển bộ lọc sang Tầng B2." };
-  } else if (filterVehicle === "Xe Vận Chuyển" && (filterFloor === "B1" || filterFloor === "B2")) {
-    infoMessage = { title: "Vị trí không phù hợp", desc: "Xe Vận Chuyển chỉ đỗ tại Tầng B3. Vui lòng chuyển bộ lọc sang Tầng B3." };
-  }
-
-  const showB1 = !infoMessage && (filterFloor === "ALL" || filterFloor === "B1") && (filterVehicle === "ALL" || filterVehicle === "Xe Máy");
-  const showB2 = !infoMessage && (filterFloor === "ALL" || filterFloor === "B2") && (filterVehicle === "ALL" || filterVehicle === "Ô Tô");
-  const showB3 = !infoMessage && (filterFloor === "ALL" || filterFloor === "B3") && (filterVehicle === "ALL" || filterVehicle === "Xe Vận Chuyển");
+  const totalAvailable = slots.length;
 
   return (
-    <div className="flex-grow bg-slate-950 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#064e3b] via-slate-950 to-[#020617]">
-      {/* Hero Header */}
-      <div className="max-w-6xl mx-auto px-6 pt-16 pb-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-black mb-3 text-white tracking-tight">
-              Số Slot Trống <span className="text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]">Real-time</span>
-            </h1>
-            <p className="text-emerald-500/70 text-sm max-w-2xl font-medium">
-              Cập nhật tình trạng chỗ đỗ xe theo thời gian thực tại các khu vực và các tầng của bãi đỗ xe.
-            </p>
+    <div className="bg-gray-50 min-h-full">
+      {/* Page Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-10">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+              <CarFront size={20} className="text-blue-600" />
+            </div>
+            <h1 className="text-2xl font-black text-gray-900">Chỗ Trống Hiện Tại</h1>
+            {!isLoading && !error && (
+              <span className="ml-2 px-3 py-1 bg-green-100 text-green-700 border border-green-200 rounded-full text-xs font-bold">
+                {totalAvailable} chỗ trống
+              </span>
+            )}
           </div>
-          
-          {/* Right: Illustration */}
-          <div className="relative mt-12 lg:mt-0 w-full flex justify-center">
-             {/* Background neon glow */}
-            <div className="absolute inset-0 bg-emerald-600/20 blur-[100px] rounded-full pointer-events-none" />
-            <img 
-              src="/images/isometric-parking.png" 
-              alt="Smart Parking Concept" 
-              className="relative w-full max-w-[320px] md:max-w-[400px] lg:max-w-[500px] object-cover opacity-90 mix-blend-screen pointer-events-none transform lg:scale-110 lg:translate-x-4"
-              style={{
-                maskImage: "radial-gradient(ellipse at center, black 40%, transparent 70%)",
-                WebkitMaskImage: "radial-gradient(ellipse at center, black 40%, transparent 70%)"
-              }}
-            />
-          </div>
+          <p className="text-gray-500 text-sm">Danh sách các vị trí đỗ xe còn trống theo thời gian thực.</p>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 pb-16 space-y-8">
-        
-        {/* Filters and Summaries Container */}
-        <div className="rounded-3xl bg-white/[0.02] border border-white/5 p-6 backdrop-blur-md">
-          {/* Summary Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-            {[
-              { label: "Tầng B1 (Xe máy)", val: mbPercent, color: "text-teal-400", bg: "bg-teal-500/10", border: "border-teal-500/20" },
-              { label: "Tầng B2 (Ô tô)", val: carPercent, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.1)]" },
-              { label: "Tầng B3 (Vận tải)", val: tsPercent, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" },
-            ].map(s => (
-              <div key={s.label} className={`rounded-2xl border p-4 text-center ${s.bg} ${s.border}`}>
-                <p className={`text-2xl md:text-3xl font-black ${s.color}`}>{s.val}%</p>
-                <p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">{s.label}</p>
-              </div>
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+
+        {/* Floor Summary */}
+        {!isLoading && !error && floors.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {floors.map((f) => (
+              <FloorCard
+                key={f.code}
+                floorCode={f.code}
+                floorName={f.name}
+                count={floorCounts[f.code] ?? 0}
+              />
             ))}
           </div>
+        )}
 
-          {/* Filters */}
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between pt-6 border-t border-white/5">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[10px] font-black text-emerald-600/80 uppercase tracking-widest mr-2">Loại xe:</span>
-              {vehicleOptions.map((v) => (
-                <Button
-                  key={v}
-                  onClick={() => setFilterVehicle(v)}
-                  variant={filterVehicle === v ? "default" : "outline"}
-                  className={`rounded-full px-4 h-8 text-xs font-bold transition-all ${
-                    filterVehicle === v
-                      ? "bg-emerald-600 hover:bg-emerald-500 text-white border-transparent shadow-[0_0_15px_rgba(5,150,105,0.4)]"
-                      : "bg-transparent text-slate-400 border-white/10 hover:border-emerald-500/50 hover:text-emerald-400"
-                  }`}
-                >
-                  {v === "ALL" ? "Tất cả" : v}
-                </Button>
-              ))}
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[10px] font-black text-emerald-600/80 uppercase tracking-widest mr-2">Tầng:</span>
-              {floorOptions.map((f) => (
-                <Button
-                  key={f}
-                  onClick={() => setFilterFloor(f)}
-                  variant={filterFloor === f ? "default" : "outline"}
-                  className={`rounded-full px-4 h-8 text-xs font-bold transition-all ${
-                    filterFloor === f
-                      ? "bg-emerald-600 hover:bg-emerald-500 text-white border-transparent shadow-[0_0_15px_rgba(5,150,105,0.4)]"
-                      : "bg-transparent text-slate-400 border-white/10 hover:border-emerald-500/50 hover:text-emerald-400"
-                  }`}
-                >
-                  {f === "ALL" ? "Tất cả" : f}
-                </Button>
-              ))}
-            </div>
+        {/* Filter Bar */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-wrap items-center gap-3">
+          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tầng:</span>
+          <button
+            onClick={() => setFilterFloor("ALL")}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+              filterFloor === "ALL" ? "bg-blue-600 text-white border-blue-600" : "text-gray-600 border-gray-200 hover:border-blue-300 hover:text-blue-600"
+            }`}
+          >
+            Tất cả
+          </button>
+          {floors.map((f) => (
+            <button
+              key={f.code}
+              onClick={() => setFilterFloor(f.code)}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                filterFloor === f.code ? "bg-blue-600 text-white border-blue-600" : "text-gray-600 border-gray-200 hover:border-blue-300 hover:text-blue-600"
+              }`}
+            >
+              {f.code}
+            </button>
+          ))}
+          <button
+            onClick={load}
+            className="ml-auto flex items-center gap-1.5 text-xs text-gray-400 hover:text-blue-600 font-semibold transition-colors"
+          >
+            <RefreshCw size={13} /> Làm mới
+          </button>
+        </div>
+
+        {/* Content */}
+        {isLoading ? (
+          <div className="space-y-4 animate-pulse">
+            {[1, 2, 3].map((i) => <div key={i} className="h-32 bg-gray-200 rounded-xl" />)}
           </div>
-        </div>
-
-        {/* Display Area */}
-        <div className="space-y-10">
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-pulse">
-              {[1, 2, 3, 4].map((i) => <div key={i} className="h-32 bg-white/5 rounded-2xl" />)}
-            </div>
-          ) : error ? (
-            <div className="rounded-3xl border border-red-500/20 bg-red-500/5 p-10 text-center">
-              <p className="text-red-400 text-sm font-semibold mb-4">⚠ {error}</p>
-              <Button onClick={load} variant="outline" className="bg-transparent border-red-500/50 text-red-400 hover:bg-red-500/20">Thử lại</Button>
-            </div>
-          ) : infoMessage ? (
-            <div className="rounded-3xl border border-rose-500/20 bg-rose-500/5 p-10 text-center text-rose-400">
-              <span className="text-4xl block mb-4 drop-shadow-[0_0_15px_rgba(244,63,94,0.5)]">!</span>
-              <h3 className="text-base font-black uppercase tracking-wide mb-2 text-rose-300">{infoMessage.title}</h3>
-              <p className="text-sm opacity-80 max-w-lg mx-auto">{infoMessage.desc}</p>
-            </div>
-          ) : (
-            <>
-              {/* Tầng B1 - Xe Máy */}
-              {showB1 && (
-                <div className="space-y-5">
-                  <div className="flex items-center gap-3 border-l-2 border-teal-500 pl-4">
-                    <h2 className="text-lg font-black text-white uppercase tracking-wider">
-                      Tầng B1 <span className="text-teal-400 font-medium">/ Xe Máy</span>
-                    </h2>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {mbAreas.map((area) => <AreaDensityGauge key={area.id} area={area} isCar={false} />)}
-                  </div>
-                </div>
-              )}
-
-              {/* Tầng B2 - Ô Tô */}
-              {showB2 && (
-                <div className="space-y-5">
-                  <div className="flex items-center gap-3 border-l-2 border-emerald-500 pl-4">
-                    <h2 className="text-lg font-black text-white uppercase tracking-wider">
-                      Tầng B2 <span className="text-emerald-400 font-medium">/ Ô Tô</span>
-                    </h2>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {carAreas.map((area) => <AreaDensityGauge key={area.id} area={area} isCar={true} />)}
-                  </div>
-                </div>
-              )}
-
-              {/* Tầng B3 - Vận Chuyển */}
-              {showB3 && (
-                <div className="space-y-5">
-                  <div className="flex items-center gap-3 border-l-2 border-amber-500 pl-4">
-                    <h2 className="text-lg font-black text-white uppercase tracking-wider">
-                      Tầng B3 <span className="text-amber-400 font-medium">/ Vận Chuyển</span>
-                    </h2>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {tsAreas.map((area) => <AreaDensityGauge key={area.id} area={area} isCar={false} />)}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
+        ) : error ? (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-10 text-center">
+            <AlertTriangle size={32} className="text-red-400 mx-auto mb-3" />
+            <p className="text-red-600 text-sm font-semibold mb-3">{error}</p>
+            <button onClick={load} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors">
+              Thử lại
+            </button>
+          </div>
+        ) : filteredAreas.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
+            <CarFront size={40} className="text-gray-300 mx-auto mb-3" />
+            <p className="font-bold text-gray-600">Không có chỗ trống</p>
+            <p className="text-sm text-gray-400 mt-1">Không còn vị trí trống cho bộ lọc này.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredAreas.map((area) => {
+              const areaSlots = slots.filter((s) => {
+                const parts   = (s.slotCode || "").split("-");
+                const ac      = s.areaCode || (parts.length >= 2 ? `${parts[0]}-${parts[1]}` : "");
+                return ac === area.code;
+              });
+              return (
+                <AreaSection
+                  key={area.code}
+                  areaCode={area.code}
+                  areaName={area.name}
+                  vehicleTypeName={area.vehicleTypeName}
+                  slots={areaSlots}
+                />
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -14,7 +14,7 @@ export const MOCK_PARKING_INFO = {
   openingHours: "06:00 - 22:00",
   totalFloors: 3,
   totalAreas: 4,
-  totalSlots: 40,
+  totalCapacity: 40,
   availableSlots: 20,
   supportNote: "Hỗ trợ khách hàng từ 07:00 - 20:00 các ngày trong tuần. Hệ thống chỉ thực hiện giám sát & quản lý vị trí (slot) đỗ cho Xe Ô Tô tại Tầng B2. Xe Máy (Tầng B1) và Xe Vận Chuyển (Tầng B3) tự quản lý và đỗ theo điều phối.",
   lastUpdated: "2026-05-28T07:00:00Z",
