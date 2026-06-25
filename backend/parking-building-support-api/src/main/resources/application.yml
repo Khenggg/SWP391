@@ -3,9 +3,15 @@ server:
 
 spring:
   datasource:
+<<<<<<< HEAD
     url: ${DB_URL:jdbc:postgresql://localhost:5432/parking_db}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:your_password}
+=======
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+>>>>>>> 8fdfb93 (feat: connect supabase and update configuration)
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -17,6 +23,12 @@ spring:
         format_sql: true
 
 jwt:
+<<<<<<< HEAD
   issuer: ${JWT_ISSUER:ParkingBuilding.CoreApi}
   audience: ${JWT_AUDIENCE:ParkingBuilding.Frontend}
   secret: ${JWT_SECRET:DEVELOPMENT_SECRET_KEY_FOR_LOCAL_TESTING_ONLY_2026_SWP391}
+=======
+  issuer: ${JWT_ISSUER}
+  audience: ${JWT_AUDIENCE}
+  secret: ${JWT_SECRET}
+>>>>>>> 8fdfb93 (feat: connect supabase and update configuration)

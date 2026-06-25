@@ -1,5 +1,6 @@
 package com.parkingbuilding.support.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -8,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.parkingbuilding.support.sharedreadmodel.entity.AreaReadEntity;
 import com.parkingbuilding.support.sharedreadmodel.entity.FloorReadEntity;
+import com.parkingbuilding.support.sharedreadmodel.entity.SlotReadEntity;
 import com.parkingbuilding.support.sharedreadmodel.repository.AreaReadRepository;
 import com.parkingbuilding.support.sharedreadmodel.repository.FloorReadRepository;
 import com.parkingbuilding.support.sharedreadmodel.repository.SlotReadRepository;
@@ -25,49 +27,57 @@ public class DashboardService {
 
     public Map<String, Long> getStats() {
 
-        List<Long> activeFloorIds =
-                floorReadRepository.findByStatus("ACTIVE")
-                        .stream()
-                        .map(FloorReadEntity::getId)
-                        .toList();
+        // Lấy Floor ACTIVE
+        List<FloorReadEntity> activeFloors
+                = floorReadRepository.findByStatus("ACTIVE");
 
-        List<Long> activeAreaIds =
-                areaReadRepository.findByStatus("ACTIVE")
-                        .stream()
-                        .filter(area ->
-                                activeFloorIds.contains(
-                                        area.getFloorId()))
-                        .map(AreaReadEntity::getId)
-                        .toList();
+        List<Long> activeFloorIds = new ArrayList<>();
 
-        long available =
-                slotReadRepository.findByStatus("AVAILABLE")
-                        .stream()
-                        .filter(slot ->
-                                activeAreaIds.contains(
-                                        slot.getAreaId()))
-                        .count();
+        for (FloorReadEntity floor : activeFloors) {
+            activeFloorIds.add(floor.getId());
+        }
 
-        long occupied =
-                slotReadRepository.findByStatus("OCCUPIED")
-                        .stream()
-                        .filter(slot ->
-                                activeAreaIds.contains(
-                                        slot.getAreaId()))
-                        .count();
+        // Lấy Area ACTIVE thuộc Floor ACTIVE
+        List<AreaReadEntity> activeAreas
+                = areaReadRepository.findByStatus("ACTIVE");
 
-        long reserved =
-                slotReadRepository.findByStatus("RESERVED")
-                        .stream()
-                        .filter(slot ->
-                                activeAreaIds.contains(
-                                        slot.getAreaId()))
-                        .count();
+        List<Long> activeAreaIds = new ArrayList<>();
+
+        for (AreaReadEntity area : activeAreas) {
+
+            if (activeFloorIds.contains(area.getFloorId())) {
+                activeAreaIds.add(area.getId());
+            }
+        }
+
+        // Đếm slot
+        long available = countSlots("AVAILABLE", activeAreaIds);
+        long occupied = countSlots("OCCUPIED", activeAreaIds);
+        long reserved = countSlots("RESERVED", activeAreaIds);
 
         return Map.of(
                 "totalSlotsAvailable", available,
                 "totalSlotsOccupied", occupied,
                 "totalSlotsReserved", reserved
         );
+    }
+
+    private long countSlots(
+            String status,
+            List<Long> activeAreaIds) {
+
+        List<SlotReadEntity> slots
+                = slotReadRepository.findByStatus(status);
+
+        long count = 0;
+
+        for (SlotReadEntity slot : slots) {
+
+            if (activeAreaIds.contains(slot.getAreaId())) {
+                count++;
+            }
+        }
+
+        return count;
     }
 }
