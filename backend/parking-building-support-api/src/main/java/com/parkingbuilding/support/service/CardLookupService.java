@@ -15,8 +15,6 @@ import com.parkingbuilding.support.sharedreadmodel.repository.ParkingSessionRead
 
 import lombok.RequiredArgsConstructor;
 
-
-
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -27,44 +25,75 @@ public class CardLookupService {
 
     public ActiveSessionResponse getActiveSession(String qrToken) {
 
+        // 1. Tìm thẻ bằng QR Token
         ParkingCardReadEntity card = cardRepo.findByQrToken(qrToken)
                 .orElseThrow(() -> new RuntimeException("Card not found"));
 
+        // 2. Chỉ cho phép thẻ đang được sử dụng
+        if (!"IN_USE".equals(card.getStatus())) {
+            throw new RuntimeException("Card not found");
+        }
+
+        // 3. Tìm phiên gửi xe đang hoạt động
         ParkingSession session = sessionRepo
                 .findByCardIdAndStatus(card.getId(), "ACTIVE")
                 .orElseThrow(() -> new RuntimeException("No active session"));
 
+        // 4. Trả dữ liệu
         return map(card, session);
     }
 
-    private ActiveSessionResponse map(ParkingCardReadEntity card, ParkingSession session) {
+    private ActiveSessionResponse map(
+            ParkingCardReadEntity card,
+            ParkingSession session) {
 
         return ActiveSessionResponse.builder()
                 .cardCode(card.getCardCode())
                 .sessionCode(session.getSessionCode())
                 .maskedPlateNumber(maskPlate(session.getPlateNumber()))
-                .vehicleType(String.valueOf(session.getVehicleTypeId()))
+                .vehicleType(
+                        session.getVehicleTypeId() == null
+                        ? null
+                        : session.getVehicleTypeId().toString()
+                )
                 .entryTime(session.getEntryTime())
                 .temporaryFeePreview(calculateFee(session))
                 .status(session.getStatus())
                 .build();
     }
 
+    /**
+     * Ẩn toàn bộ biển số VD: 51A-12345 -> 51A-**** 59X2-88888 -> 59X2-****
+     */
     private String maskPlate(String plate) {
-        if (plate == null || plate.length() < 6) return "****";
+
+        if (plate == null || plate.isBlank()) {
+            return "UNKNOWN";
+        }
 
         String[] parts = plate.split("-");
-        if (parts.length != 2) return "****";
 
-        String prefix = parts[0];
-        String number = parts[1];
+        if (parts.length != 2) {
+            return "****";
+        }
 
-        return prefix + "-***" + number.substring(number.length() - 2);
+        return parts[0] + "-****";
     }
 
+    /**
+     * Tính phí tạm thời để hiển thị. Phí chính thức sẽ do .NET tính khi
+     * checkout.
+     */
     private BigDecimal calculateFee(ParkingSession session) {
-        long minutes = Duration.between(session.getEntryTime(), Instant.now()).toMinutes();
 
-        return BigDecimal.valueOf((minutes / 60.0) * 1000);
+        if (session.getEntryTime() == null) {
+            return BigDecimal.ZERO;
+        }
+
+        long hours = Duration
+                .between(session.getEntryTime(), Instant.now())
+                .toHours();
+
+        return BigDecimal.valueOf(hours * 1000);
     }
 }

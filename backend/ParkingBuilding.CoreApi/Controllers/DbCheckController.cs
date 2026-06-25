@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence.Diagnostics;
@@ -6,6 +7,7 @@ using System.Collections.Generic;
 
 namespace ParkingBuilding.CoreApi.Controllers;
 
+[Authorize(Roles = "ADMIN")]
 [ApiController]
 [Route("api/core/db-check")]
 public sealed class DbCheckController(
