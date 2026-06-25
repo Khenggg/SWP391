@@ -8,10 +8,7 @@ export const parkingService = {
     return res.success ? res.data : null;
   },
 
-  getRules: async () => {
-    const res = await publicAxiosClient.get("/rules");
-    return res.success ? res.data : [];
-  },
+
 
   getAvailableSlots: async () => {
     const res = await publicAxiosClient.get("/available-slots");

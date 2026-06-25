@@ -1,45 +1,70 @@
-import React, { useState, useEffect } from "react";
-import { parkingService } from "@/services/parkingService";
-import { List, Search, AlertTriangle, ChevronDown } from "lucide-react";
+import React, { useState } from "react";
+import { List, Search, ChevronDown } from "lucide-react";
 
-const iconMap = {
-  entry:        "→",
-  exit:         "←",
-  lost_card:    "⚠",
-  mismatch:     "✗",
-  monthly_pass: "📋",
-  payment:      "💳",
-};
+// ─── STATIC RULES DATA ────────────────────────────────────────────────────────
+const STATIC_RULES = [
+  {
+    id: "entry",
+    title: "Quy Định Vào Bãi",
+    icon: "→",
+    items: [
+      "Quý khách vui lòng dừng xe đúng vạch quy định để camera nhận dạng biển số.",
+      "Nhận vé xe (thẻ từ) từ nhân viên hoặc máy phát tự động trước khi vào bãi.",
+      "Tuyệt đối không mang chất cháy nổ, vũ khí hoặc hàng hóa cấm vào bãi gửi xe.",
+      "Đối với xe ô tô, vui lòng hạ kính xe để nhân viên kiểm tra (nếu có yêu cầu).",
+    ],
+  },
+  {
+    id: "parking",
+    title: "Quy Định Đỗ Xe",
+    icon: "🅿️",
+    items: [
+      "Đỗ xe đúng trong vạch kẻ quy định của từng ô đỗ, không lấn vạch.",
+      "Đỗ đúng khu vực dành riêng cho từng loại xe (xe máy, ô tô, xe điện).",
+      "Tắt máy, khóa xe cẩn thận và tự bảo quản tư trang, tài sản cá nhân có giá trị.",
+      "Nghiêm cấm vứt rác bừa bãi, hút thuốc hoặc gây mất vệ sinh khu vực bãi xe.",
+    ],
+  },
+  {
+    id: "exit",
+    title: "Quy Định Ra Bãi",
+    icon: "←",
+    items: [
+      "Giao lại vé xe (thẻ từ) cho nhân viên soát vé tại cổng ra.",
+      "Thanh toán đầy đủ phí gửi xe theo bảng giá quy định trước khi rời đi.",
+      "Biển số xe ra phải trùng khớp hoàn toàn với biển số xe lúc vào.",
+      "Trong trường hợp hệ thống không nhận diện được, quý khách vui lòng hợp tác với nhân viên kiểm tra.",
+    ],
+  },
+  {
+    id: "lost_card",
+    title: "Mất Thẻ & Sự Cố",
+    icon: "⚠",
+    items: [
+      "Nếu làm mất thẻ/vé, quý khách phải lập tức thông báo cho ban quản lý bãi xe.",
+      "Cần xuất trình Giấy đăng ký xe (Cà vẹt) và CCCD/CMND để xác minh sở hữu xe.",
+      "Phí làm mất thẻ/vé sẽ được thu theo quy định hiện hành của bãi xe.",
+      "Thời gian giải quyết xe mất thẻ có thể kéo dài để đảm bảo an ninh, mong quý khách thông cảm.",
+    ],
+  },
+  {
+    id: "monthly_pass",
+    title: "Khách Hàng Vé Tháng",
+    icon: "📋",
+    items: [
+      "Thẻ vé tháng chỉ có giá trị sử dụng cho đúng 01 xe đã đăng ký biển số.",
+      "Vui lòng đóng phí gia hạn trước ngày mùng 5 hàng tháng để thẻ không bị khóa.",
+      "Không tự ý cho mượn thẻ vé tháng dưới bất kỳ hình thức nào.",
+    ],
+  },
+];
 
+// ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function RulesPage() {
-  const [rules, setRules]           = useState([]);
-  const [isLoading, setIsLoading]   = useState(true);
-  const [error, setError]           = useState(null);
   const [openSection, setOpenSection] = useState("entry");
-  const [searchText, setSearchText] = useState("");
+  const [searchText, setSearchText]   = useState("");
 
-  useEffect(() => {
-    const fetch = async () => {
-      try {
-        const data = await parkingService.getRules();
-        const mapped = data.map(r => ({
-          id:    r.group,
-          title: r.title,
-          icon:  iconMap[r.group] || "ℹ",
-          items: r.content || [],
-        }));
-        setRules(mapped);
-        if (mapped.length > 0) setOpenSection(mapped[0].id);
-      } catch {
-        setError("Không tải được nội quy bãi xe. Vui lòng thử lại.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetch();
-  }, []);
-
-  const filteredRules = rules
+  const filteredRules = STATIC_RULES
     .map(s => ({
       ...s,
       items: searchText.trim()
@@ -82,16 +107,7 @@ export default function RulesPage() {
         </div>
 
         {/* Content */}
-        {isLoading ? (
-          <div className="space-y-3 animate-pulse">
-            {[1,2,3].map(i => <div key={i} className="h-16 bg-gray-200 rounded-xl" />)}
-          </div>
-        ) : error ? (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-10 text-center">
-            <AlertTriangle size={32} className="text-red-400 mx-auto mb-3" />
-            <p className="text-red-600 font-semibold text-sm">{error}</p>
-          </div>
-        ) : filteredRules.length === 0 ? (
+        {filteredRules.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-16 text-center">
             <Search size={36} className="text-gray-300 mx-auto mb-3" />
             <p className="font-bold text-gray-700">Không tìm thấy quy định</p>

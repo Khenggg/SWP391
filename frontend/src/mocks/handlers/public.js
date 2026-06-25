@@ -1,16 +1,8 @@
 import { delay, http } from "msw";
 import { API_BASE_URLS, MOCK_FLAGS } from "../mockConfig";
-import { MOCK_VEHICLE_TYPES, STATIC_RULES } from "../mockData";
+import { MOCK_VEHICLE_TYPES } from "../mockData";
 import { ok, enabled } from "./helpers";
 import { db } from "./db";
-
-// Convert STATIC_RULES format (id/items) → API format (group/content)
-const MOCK_RULES_API = STATIC_RULES.map((r) => ({
-  group:   r.id,
-  title:   r.title,
-  content: r.items,
-}));
-
 export const publicHandlers = [
   // Parking Info
   ...enabled(
@@ -57,15 +49,6 @@ export const publicHandlers = [
           vehicleTypeName:      s.vehicleTypeName,
         }));
       return ok(availableSlots);
-    })
-  ),
-
-  // Rules / Nội quy
-  ...enabled(
-    MOCK_FLAGS.PUBLIC_PARKING_INFO,
-    http.get(`${API_BASE_URLS.public}/rules`, async () => {
-      await delay(250);
-      return ok(MOCK_RULES_API);
     })
   ),
 ];
