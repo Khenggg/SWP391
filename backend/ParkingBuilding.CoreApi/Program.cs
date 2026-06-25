@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using ParkingBuilding.CoreApi.Application.Audit;
+using Microsoft.OpenApi;
 
 // Import đúng namespace chứa các Service
 using ParkingBuilding.CoreApi.Application.ParkingStructure.Floors;
@@ -23,14 +24,21 @@ using ParkingBuilding.CoreApi.Application.ParkingSessions.SlotSuggestion;
 
 // THÊM DÒNG NÀY: Để nhận diện lớp dịch vụ vào bãi xe
 using ParkingBuilding.CoreApi.Application.ParkingSessions.Entry;
+using ParkingBuilding.CoreApi.Application.Reservations;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("FrontendDev", policy =>
     {
-        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+        policy
+            .WithOrigins(
+                "http://localhost:5173",
+                "http://127.0.0.1:5173"
+            )
+            .AllowAnyMethod()
+            .AllowAnyHeader();
     });
 });
 
@@ -57,6 +65,10 @@ builder.Services.AddScoped<ISlotSuggestionService, SlotSuggestionService>();
 // THÊM DÒNG NÀY: Đăng ký interface và implementation xử lý xe vào bãi
 builder.Services.AddScoped<IEntryService, EntryService>();
 
+// Register Booking/Reservation services
+builder.Services.AddScoped<ReservationService>();
+builder.Services.AddHostedService<ReservationExpiryWorker>();
+
 // Cau hinh JWT Authentication
 var jwtSecret = builder.Configuration["JWT_SECRET"] ?? builder.Configuration["Jwt:Secret"];
 if (string.IsNullOrEmpty(jwtSecret))
@@ -73,6 +85,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    options.MapInboundClaims = false;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -102,6 +115,10 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    })
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>
@@ -116,59 +133,25 @@ builder.Services.AddControllers()
         };
     });
 
-builder.Services.AddOpenApi(options =>
-{
-    options.AddDocumentTransformer((document, context, cancellationToken) =>
-    {
-        if (document == null) return Task.CompletedTask;
-
-        var securityScheme = new Microsoft.OpenApi.OpenApiSecurityScheme
-        {
-            Type = Microsoft.OpenApi.SecuritySchemeType.Http,
-            Name = "Authorization",
-            Scheme = "bearer",
-            BearerFormat = "JWT",
-            In = Microsoft.OpenApi.ParameterLocation.Header,
-            Description = "JWT Authorization header using the Bearer scheme. Enter your token in the text input below."
-        };
-
-        document.Components ??= new Microsoft.OpenApi.OpenApiComponents();
-        document.Components.SecuritySchemes ??= new System.Collections.Generic.Dictionary<string, Microsoft.OpenApi.IOpenApiSecurityScheme>();
-        document.Components.SecuritySchemes.Add("Bearer", securityScheme);
-
-        if (document.Paths != null)
-        {
-            foreach (var path in document.Paths.Values)
-            {
-                if (path.Operations != null)
-                {
-                    foreach (var operation in path.Operations.Values)
-                    {
-                        operation.Security ??= new System.Collections.Generic.List<Microsoft.OpenApi.OpenApiSecurityRequirement>();
-                        operation.Security.Add(new Microsoft.OpenApi.OpenApiSecurityRequirement
-                        {
-                            [new Microsoft.OpenApi.OpenApiSecuritySchemeReference("Bearer", document!)] = new System.Collections.Generic.List<string>()
-                        });
-                    }
-                }
-            }
-        }
-
-        return Task.CompletedTask;
-    });
-});
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.OpenApiInfo
+    {
+        Title = "Parking Building Core API",
+        Version = "v1",
+        Description = "ASP.NET Core API for core parking building operations"
+    });
+
     options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.OpenApiSecurityScheme
     {
         Type = Microsoft.OpenApi.SecuritySchemeType.Http,
         Scheme = "bearer",
         BearerFormat = "JWT",
         In = Microsoft.OpenApi.ParameterLocation.Header,
-        Description = "JWT Authorization header using the Bearer scheme. \r\n\r\n Enter your token in the text input below."
+        Description = "Enter JWT token only. Do not include the word 'Bearer'."
     });
+
     options.AddSecurityRequirement(document => new Microsoft.OpenApi.OpenApiSecurityRequirement
     {
         [new Microsoft.OpenApi.OpenApiSecuritySchemeReference("Bearer", document)] = new System.Collections.Generic.List<string>()
@@ -200,18 +183,17 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
+if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/openapi/v1.json", "ParkingBuilding Core API v1");
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Parking Building Core API v1");
         options.RoutePrefix = "swagger";
     });
 }
 
-app.UseCors("AllowAll");
+app.UseCors("FrontendDev");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

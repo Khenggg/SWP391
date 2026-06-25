@@ -80,13 +80,20 @@ public class SlotService
         var newStatus = request.Status.Trim().ToUpper();
         var oldStatus = slot.Status;
 
-        var validStatuses = new[] { "AVAILABLE", "OCCUPIED", "BOOKED" };
+        var validStatuses = new[]
+        {
+            "AVAILABLE",
+            "RESERVED",
+            "OCCUPIED",
+            "LOCKED",
+            "MAINTENANCE"
+        };
 
         if (!validStatuses.Contains(newStatus))
             throw new ArgumentException("Invalid status");
 
         // ===== INVALID TRANSITION =====
-        if (oldStatus == "OCCUPIED" && newStatus == "BOOKED")
+        if (oldStatus == "OCCUPIED" && newStatus == "RESERVED")
             throw new InvalidOperationException("Invalid transition");
 
         // ===== CAPACITY CHECK =====
@@ -94,7 +101,7 @@ public class SlotService
             slot.Area.CurrentRealOccupancy >= slot.Area.TotalCapacity)
             throw new InvalidOperationException("Area is full");
 
-        if (newStatus == "BOOKED" &&
+        if (newStatus == "RESERVED" &&
             slot.Area.CurrentBookedSlots >= slot.Area.TotalCapacity)
             throw new InvalidOperationException("Area booking full");
 
@@ -102,14 +109,14 @@ public class SlotService
         if (oldStatus == "OCCUPIED")
             slot.Area.CurrentRealOccupancy--;
 
-        if (oldStatus == "BOOKED")
+        if (oldStatus == "RESERVED")
             slot.Area.CurrentBookedSlots--;
 
         // ===== ADD NEW =====
         if (newStatus == "OCCUPIED")
             slot.Area.CurrentRealOccupancy++;
 
-        if (newStatus == "BOOKED")
+        if (newStatus == "RESERVED")
             slot.Area.CurrentBookedSlots++;
 
         slot.Status = newStatus;
@@ -124,5 +131,18 @@ public class SlotService
             SlotCode = slot.SlotCode,
             Status = slot.Status
         };
+    }
+
+    public async Task<List<SlotResponse>> GetAllAsync()
+    {
+        return await _context.Slots
+            .Select(x => new SlotResponse
+            {
+                Id = x.Id,
+                AreaId = x.AreaId,
+                SlotCode = x.SlotCode,
+                Status = x.Status
+            })
+            .ToListAsync();
     }
 }

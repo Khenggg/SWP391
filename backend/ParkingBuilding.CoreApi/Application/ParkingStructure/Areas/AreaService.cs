@@ -77,13 +77,14 @@ public class AreaService
         // ===== 7. MANY-TO-MANY =====
         if (vehicleTypeIds.Any())
         {
-            var mappings = vehicleTypeIds.Select(vtId => new AreaVehicleType
+            foreach (var vtId in vehicleTypeIds)
             {
-                AreaId = entity.Id,
-                VehicleTypeId = vtId
-            });
-
-            _context.AreaVehicleTypes.AddRange(mappings);
+                entity.AreaVehicleTypes.Add(new AreaVehicleType
+                {
+                    Area = entity,
+                    VehicleTypeId = vtId
+                });
+            }
         }
 
         // ===== 8. SAVE 1 LẦN =====
@@ -186,5 +187,20 @@ public class AreaService
             TotalCapacity = entity.TotalCapacity,
             Status = entity.Status
         };
+    }
+
+    public async Task<List<AreaResponse>> GetAllAsync()
+    {
+        return await _context.Areas
+            .Select(x => new AreaResponse
+            {
+                Id = x.Id,
+                FloorId = x.FloorId,
+                AreaCode = x.AreaCode,
+                AreaName = x.AreaName,
+                TotalCapacity = x.TotalCapacity,
+                Status = x.Status
+            })
+            .ToListAsync();
     }
 }

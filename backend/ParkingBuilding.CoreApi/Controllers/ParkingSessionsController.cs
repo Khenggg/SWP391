@@ -2,10 +2,10 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.Entry;
+using ParkingBuilding.CoreApi.Application.ParkingSessions.SlotSuggestion;
 using ParkingBuilding.CoreApi.Contracts.Common; // Để sử dụng cấu trúc ApiResponse chung
 using Microsoft.AspNetCore.Authorization; // Cần thiết cho [Authorize]
 using System.Security.Claims;             // Cần thiết cho ClaimTypes
-using ParkingBuilding.CoreApi.Application.ParkingSessions.SlotSuggestion;
 namespace ParkingBuilding.CoreApi.Controllers;
 
 
@@ -14,39 +14,16 @@ namespace ParkingBuilding.CoreApi.Controllers;
 public class ParkingSessionsController : ControllerBase
 {
     private readonly IEntryService _entryService;
-    private readonly ISlotSuggestionService _slotSuggestionService; // Khai báo trường private này
+    private readonly ISlotSuggestionService _suggestionService;
 
-    // Cập nhật Constructor để Inject cả 2 dịch vụ vào Controller
-    public ParkingSessionsController(
-        IEntryService entryService,
-        ISlotSuggestionService slotSuggestionService)
+    public ParkingSessionsController(IEntryService entryService, ISlotSuggestionService suggestionService)
     {
         _entryService = entryService;
-        _slotSuggestionService = slotSuggestionService;
-    }
-
-    [HttpPost("suggest-slot")]
-    public async Task<IActionResult> SuggestSlot([FromBody] SuggestSlotRequest request)
-    {
-        try
-        {
-            var result = await _slotSuggestionService.SuggestSlotAsync(request);
-            if (result == null)
-            {
-                return NotFound(ApiResponse.FailureResult("Không tìm thấy vị trí đỗ phù hợp còn trống."));
-            }
-
-            var response = ApiResponse.SuccessResult(result, "Gợi ý vị trí đỗ thành công.");
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            var response = ApiResponse.FailureResult("Lỗi khi gợi ý vị trí đỗ", ex.Message);
-            return BadRequest(response);
-        }
+        _suggestionService = suggestionService;
     }
 
     [HttpPost("entry")]
+    [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
     public async Task<IActionResult> CreateEntry([FromBody] CreateEntryRequest request)
     {
         try
@@ -76,13 +53,11 @@ public class ParkingSessionsController : ControllerBase
         }
     }
 
-
-
     [HttpPost("{qrToken}/claim")]
     [Authorize]
     public async Task<IActionResult> ClaimSession(string qrToken)
     {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userIdClaim = User.FindFirst("user_id")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userIdClaim))
             return Unauthorized(ApiResponse.FailureResult("Tài khoản không hợp lệ."));
 
@@ -92,5 +67,17 @@ public class ParkingSessionsController : ControllerBase
             return BadRequest(ApiResponse.FailureResult("Lượt đỗ không hợp lệ hoặc đã thuộc về tài khoản khác."));
 
         return Ok(ApiResponse.SuccessResult("Liên kết lượt đỗ thành công."));
+    }
+
+    [HttpPost("suggest-slot")]
+    [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
+    public async Task<IActionResult> SuggestSlot([FromBody] SuggestSlotRequest request)
+    {
+        var result = await _suggestionService.SuggestSlotAsync(request);
+        if (result == null)
+        {
+            return NotFound(ApiResponse.FailureResult("Không tìm thấy slot phù hợp hoặc bãi đỗ xe đã đầy."));
+        }
+        return Ok(ApiResponse.SuccessResult(result, "Gợi ý slot thành công."));
     }
 }

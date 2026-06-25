@@ -9,11 +9,12 @@ public class ParkingSession
     public long Id { get; set; }
     public string SessionCode { get; set; } = null!;
     public long CardId { get; set; }
-    public virtual ParkingCard ParkingCard { get; set; }
+    public virtual ParkingCard ParkingCard { get; set; } = null!;
     public long? DriverId { get; set; }
-    public virtual DriverProfile Driver { get; set; }
+    public virtual DriverProfile? Driver { get; set; }
     public long? VehicleId { get; set; }
     public string? PlateNumber { get; set; }
+    public string? NormalizedPlateNumber { get; set; }
     public bool NoPlate { get; set; }
     public string? VehicleDescription { get; set; }
     public long VehicleTypeId { get; set; }
@@ -27,6 +28,8 @@ public class ParkingSession
     public long FloorId { get; set; }
     public long AreaId { get; set; }
     public long? SlotId { get; set; }
+    public long? ReservationId { get; set; }
+    public virtual Reservation? Reservation { get; set; }
 
     public PricingRule? PricingRule { get; set; }
 
