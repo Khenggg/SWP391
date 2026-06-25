@@ -35,8 +35,8 @@ namespace ParkingBuilding.CoreApi.Application.Audit
                     Action = dto.Action ?? "UNKNOWN",
                     TargetType = dto.TargetType ?? "SYSTEM",
                     TargetId = dto.TargetId ?? "0",
-                    OldValue = dto.OldValue,
-                    NewValue = dto.NewValue,
+                    OldValue = EnsureValidJson(dto.OldValue),
+                    NewValue = EnsureValidJson(dto.NewValue),
                     CreatedAt = DateTimeOffset.UtcNow
                 };
 
@@ -92,6 +92,23 @@ namespace ParkingBuilding.CoreApi.Application.Audit
                 _logger.LogError(ex, "Failed to insert audit log for action '{Action}'", dto.Action);
                 throw;
             }
+        }
+
+        private string? EnsureValidJson(string? value)
+        {
+            if (string.IsNullOrEmpty(value)) return null;
+            var trimmed = value.Trim();
+            if ((trimmed.StartsWith("{") && trimmed.EndsWith("}")) ||
+                (trimmed.StartsWith("[") && trimmed.EndsWith("]")) ||
+                (trimmed.StartsWith("\"") && trimmed.EndsWith("\"")) ||
+                trimmed.Equals("null", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.Equals("false", StringComparison.OrdinalIgnoreCase) ||
+                decimal.TryParse(trimmed, out _))
+            {
+                return trimmed;
+            }
+            return System.Text.Json.JsonSerializer.Serialize(value);
         }
 
         public Task WriteAuditLogAsync(

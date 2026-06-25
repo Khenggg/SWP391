@@ -148,11 +148,11 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                             throw new InvalidOperationException("This slot already has a pending reservation.");
                     }
 
-                    Floor floor = await _context.Floors.FindAsync(request.FloorId);
+                    var floor = await _context.Floors.FindAsync(request.FloorId);
                     if (floor == null)
                         throw new KeyNotFoundException("Floor not found.");
 
-                    Area area = await _context.Areas
+                    var area = await _context.Areas
                         .Include(a => a.AreaVehicleTypes)
                         .FirstOrDefaultAsync(a => a.Id == request.AreaId);
                     if (area == null)
@@ -259,7 +259,7 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                 }
                 catch (Exception)
                 {
-                    await transaction.RollbackAsync();
+                    try { await transaction.RollbackAsync(); } catch {}
                     throw;
                 }
             });
@@ -335,7 +335,7 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                 }
                 catch (Exception)
                 {
-                    await transaction.RollbackAsync();
+                    try { await transaction.RollbackAsync(); } catch {}
                     throw;
                 }
             });
@@ -399,7 +399,7 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                 }
                 catch (Exception)
                 {
-                    await transaction.RollbackAsync();
+                    try { await transaction.RollbackAsync(); } catch {}
                     throw;
                 }
             });
@@ -458,7 +458,7 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                     }
                     catch (Exception)
                     {
-                        await transaction.RollbackAsync();
+                        try { await transaction.RollbackAsync(); } catch {}
                         // Log error and continue to other expired bookings to prevent blocking the worker
                     }
                 }

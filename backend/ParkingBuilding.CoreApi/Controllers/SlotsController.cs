@@ -4,7 +4,7 @@ using ParkingBuilding.CoreApi.Application.ParkingStructure.Slots;
 namespace ParkingBuilding.CoreApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/core/slots")]
 public class SlotsController : ControllerBase
 {
     private readonly SlotService _service;
@@ -23,7 +23,7 @@ public class SlotsController : ControllerBase
     }
 
     // ================= UPDATE STATUS =================
-    [HttpPut("{id}/status")]
+    [HttpPatch("{id}/status")]
     public async Task<IActionResult> UpdateStatus(long id, [FromBody] UpdateSlotStatusRequest request)
     {
         var result = await _service.UpdateStatusAsync(id, request);

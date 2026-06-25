@@ -4,7 +4,7 @@ using ParkingBuilding.CoreApi.Application.ParkingStructure.Areas;
 namespace ParkingBuilding.CoreApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/core/areas")]
 public class AreasController : ControllerBase
 {
     private readonly AreaService _service;
