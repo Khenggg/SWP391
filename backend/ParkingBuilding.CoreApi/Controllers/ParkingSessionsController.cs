@@ -53,7 +53,7 @@ public class ParkingSessionsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> ClaimSession(string qrToken)
     {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userIdClaim = User.FindFirst("user_id")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userIdClaim))
             return Unauthorized(ApiResponse.FailureResult("Tài khoản không hợp lệ."));
 

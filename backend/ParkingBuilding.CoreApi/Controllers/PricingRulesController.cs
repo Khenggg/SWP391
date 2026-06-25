@@ -71,7 +71,7 @@ namespace ParkingBuilding.CoreApi.Controllers
                 MonthlyPrice = model.MonthlyPrice,
                 ReservationHourlyPrice = model.ReservationHourlyPrice,
                 LostCardFee = model.LostCardFee,
-                EffectiveFrom = model.EffectiveFrom ?? DateTime.UtcNow,
+                EffectiveFrom = model.EffectiveFrom?.ToUniversalTime() ?? DateTime.UtcNow,
                 Status = model.Status ?? "ACTIVE",
                 CreatedBy = actorUserId,
                 CreatedAt = DateTime.UtcNow,
@@ -139,7 +139,7 @@ namespace ParkingBuilding.CoreApi.Controllers
 
             if (model.EffectiveFrom.HasValue)
             {
-                existing.EffectiveFrom = model.EffectiveFrom.Value;
+                existing.EffectiveFrom = model.EffectiveFrom.Value.ToUniversalTime();
             }
 
             if (!string.IsNullOrEmpty(model.Status))

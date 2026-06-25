@@ -3,6 +3,7 @@ using ParkingBuilding.CoreApi.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 using System.Linq;
+using ParkingBuilding.CoreApi.Domain.Entities;
 
 namespace ParkingBuilding.CoreApi.Controllers
 {
@@ -49,23 +50,43 @@ namespace ParkingBuilding.CoreApi.Controllers
         [HttpPost("clear-reservations")]
         public async Task<IActionResult> ClearReservations()
         {
-            var reservations = await _context.Reservations.ToListAsync();
-            _context.Reservations.RemoveRange(reservations);
-
             var slots = await _context.Slots.ToListAsync();
             foreach (var slot in slots)
             {
                 slot.Status = "AVAILABLE";
+                slot.CurrentSessionId = null;
             }
 
             var areas = await _context.Areas.ToListAsync();
             foreach (var area in areas)
             {
                 area.CurrentBookedSlots = 0;
+                area.CurrentRealOccupancy = 0;
+            }
+
+            var cards = await _context.ParkingCards.ToListAsync();
+            foreach (var card in cards)
+            {
+                card.Status = CardStatus.AVAILABLE;
+                card.CurrentSessionId = null;
             }
 
             await _context.SaveChangesAsync();
-            return Ok(new { message = "All reservations cleared, slots reset to AVAILABLE, area booked slots reset to 0." });
+
+            var extensions = await _context.ReservationExtensions.ToListAsync();
+            _context.ReservationExtensions.RemoveRange(extensions);
+
+            var payments = await _context.Payments.ToListAsync();
+            _context.Payments.RemoveRange(payments);
+
+            var sessions = await _context.ParkingSessions.ToListAsync();
+            _context.ParkingSessions.RemoveRange(sessions);
+
+            var reservations = await _context.Reservations.ToListAsync();
+            _context.Reservations.RemoveRange(reservations);
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "All reservations, sessions, and audit logs cleared. Slots, areas, and cards reset successfully." });
         }
     }
 }

@@ -34,6 +34,10 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence.Configurations
                 .HasColumnName("plate_number")
                 .HasMaxLength(30);
 
+            builder.Property(x => x.NormalizedPlateNumber)
+                .HasColumnName("normalized_plate_number")
+                .HasMaxLength(30);
+
             builder.Property(x => x.NoPlate)
                 .HasColumnName("no_plate")
                 .IsRequired();
