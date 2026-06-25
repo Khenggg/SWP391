@@ -219,7 +219,7 @@ CREATE TABLE IF NOT EXISTS reservations (
     cancellation_reason TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT ck_reservations_status CHECK (status IN ('PENDING', 'COMPLETED', 'CANCELLED', 'EXPIRED')),
+    CONSTRAINT ck_reservations_status CHECK (status IN ('PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'EXPIRED')),
     CONSTRAINT ck_reservations_payment_status CHECK (payment_status IN ('PENDING', 'PAID', 'FAILED', 'CANCELLED', 'WAIVED', 'NOT_REQUIRED')),
     CONSTRAINT ck_reservations_booking_amounts CHECK (
         snapshot_reservation_hourly_price >= 0

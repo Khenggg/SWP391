@@ -23,6 +23,7 @@ using ParkingBuilding.CoreApi.Application.ParkingSessions.SlotSuggestion;
 
 // THÊM DÒNG NÀY: Để nhận diện lớp dịch vụ vào bãi xe
 using ParkingBuilding.CoreApi.Application.ParkingSessions.Entry;
+using ParkingBuilding.CoreApi.Application.Reservations;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -56,6 +57,10 @@ builder.Services.AddScoped<ISlotSuggestionService, SlotSuggestionService>();
 
 // THÊM DÒNG NÀY: Đăng ký interface và implementation xử lý xe vào bãi
 builder.Services.AddScoped<IEntryService, EntryService>();
+
+// Register Booking/Reservation services
+builder.Services.AddScoped<ReservationService>();
+builder.Services.AddHostedService<ReservationExpiryWorker>();
 
 // Cau hinh JWT Authentication
 var jwtSecret = builder.Configuration["JWT_SECRET"] ?? builder.Configuration["Jwt:Secret"];
@@ -188,6 +193,13 @@ using (var scope = app.Services.CreateScope())
         if (context.Database.CanConnect())
         {
             Console.WriteLine("\n[SUCCESS] ======> ĐÃ KẾT NỐI ĐẾN POSTGRESQL/SUPABASE DATABASE THÀNH CÔNG! <======\n");
+            
+            // Alter check constraint on reservations status to support 'CONFIRMED'
+            context.Database.ExecuteSqlRaw(@"
+                ALTER TABLE reservations DROP CONSTRAINT IF EXISTS ck_reservations_status;
+                ALTER TABLE reservations ADD CONSTRAINT ck_reservations_status CHECK (status IN ('PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'EXPIRED'));
+            ");
+            Console.WriteLine("[INFO] Altered reservations status check constraint successfully.");
         }
         else
         {

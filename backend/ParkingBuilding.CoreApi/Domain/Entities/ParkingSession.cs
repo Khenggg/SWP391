@@ -25,6 +25,8 @@ public class ParkingSession
     public long FloorId { get; set; }
     public long AreaId { get; set; }
     public long? SlotId { get; set; }
+    public long? ReservationId { get; set; }
+    public virtual Reservation? Reservation { get; set; }
 
     // Thêm vào class ParkingSession
     public long? PricingRuleId { get; set; }
