@@ -13,6 +13,8 @@ import RulesPage from "../pages/public/RulesPage";
 import PublicPricingPage from "../pages/public/PublicPricingPage";
 import AvailableSlotsPage from "../pages/public/AvailableSlotsPage";
 import QRLookupPage from "../pages/public/QRLookupPage";
+import RegisterPage from "../pages/public/RegisterPage";
+import ForgotPasswordPage from "../pages/public/ForgotPasswordPage";
 
 import UserManagementPage from "../pages/admin/UserManagementPage";
 import SessionsAdministrationPage from "../pages/admin/SessionsAdministrationPage";
@@ -56,30 +58,31 @@ export default function AppRoutes({ isAuthenticated, userRole, currentUser, onLo
         <Route path="/pricing" element={<PublicPricingPage />} />
         <Route path="/available-slots" element={<AvailableSlotsPage />} />
         <Route path="/card/:qrToken" element={<QRLookupPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route
+          path="/login"
+          element={
+            isAuthenticated ? (
+              userRole === USER_ROLES.ADMIN ? (
+                <Navigate to="/admin/users" replace />
+              ) : userRole === USER_ROLES.MANAGER ? (
+                <Navigate to="/manager/dashboard" replace />
+              ) : userRole === USER_ROLES.STAFF ? (
+                <Navigate to="/staff/entry" replace />
+              ) : userRole === USER_ROLES.DRIVER ? (
+                <Navigate to="/driver/profile" replace />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            ) : (
+              <LoginPage onLoginSuccess={onLoginSuccess} />
+            )
+          }
+        />
       </Route>
 
       <Route path="/entry-test" element={<EntryPageTest />} />
-
-      <Route
-        path="/login"
-        element={
-          isAuthenticated ? (
-            userRole === USER_ROLES.ADMIN ? (
-              <Navigate to="/admin/users" replace />
-            ) : userRole === USER_ROLES.MANAGER ? (
-              <Navigate to="/manager/dashboard" replace />
-            ) : userRole === USER_ROLES.STAFF ? (
-              <Navigate to="/staff/entry" replace />
-            ) : userRole === USER_ROLES.DRIVER ? (
-              <Navigate to="/driver/profile" replace />
-            ) : (
-              <Navigate to="/" replace />
-            )
-          ) : (
-            <LoginPage onLoginSuccess={onLoginSuccess} />
-          )
-        }
-      />
 
       <Route element={<RequireAuth isAuthenticated={isAuthenticated} />}>
         <Route element={<AppShell currentUser={currentUser} onLogout={onLogout} />}>

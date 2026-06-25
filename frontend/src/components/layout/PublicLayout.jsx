@@ -117,30 +117,30 @@ export default function PublicLayout() {
       </main>
 
       {/* ===== FOOTER ===== */}
-      <footer className="bg-gray-50 border-t border-gray-200 mt-auto">
+      <footer className="bg-[#0f1d3a] border-t border-[#1a2b4c] mt-auto">
         <div className="max-w-7xl mx-auto px-6 py-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             {/* Col 1: Brand */}
             <div>
               <Link to="/" className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-md bg-blue-600 flex items-center justify-center text-white font-black text-sm">P</div>
+                <div className="w-8 h-8 rounded-md bg-white flex items-center justify-center text-[#0f1d3a] font-black text-sm">P</div>
                 <div className="leading-tight">
-                  <div className="text-sm font-black text-blue-700 uppercase">SWP Building</div>
-                  <div className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Smart Parking</div>
+                  <div className="text-sm font-black text-white uppercase">SWP Building</div>
+                  <div className="text-[10px] text-blue-200/70 uppercase tracking-wider font-semibold">Smart Parking</div>
                 </div>
               </Link>
-              <p className="text-xs text-gray-500 leading-relaxed mt-2">
+              <p className="text-xs text-blue-100/70 leading-relaxed mt-2">
                 Hệ thống bãi đỗ xe thông minh tại SWP Building. An toàn - Tiện lợi - Hiện đại.
               </p>
             </div>
 
             {/* Col 2: Contact */}
             <div>
-              <h4 className="text-sm font-bold text-gray-800 mb-4">Liên hệ</h4>
+              <h4 className="text-sm font-bold text-white mb-4">Liên hệ</h4>
               <ul className="space-y-2.5">
                 {CONTACT_INFO.map((item, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-gray-500">
-                    <span className="mt-0.5">{item.icon}</span>
+                  <li key={i} className="flex items-start gap-2 text-xs text-blue-100/70">
+                    <span className="mt-0.5 text-blue-300">{item.icon}</span>
                     <span className="leading-relaxed">{item.text}</span>
                   </li>
                 ))}
@@ -150,7 +150,7 @@ export default function PublicLayout() {
         </div>
 
         {/* Copyright */}
-        <div className="border-t border-gray-200 py-4 text-center text-xs text-gray-400">
+        <div className="border-t border-[#1a2b4c] py-4 text-center text-xs text-blue-200/50">
           © 2024 SWP Building Smart Parking System. All rights reserved.
         </div>
       </footer>

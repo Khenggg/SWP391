@@ -181,16 +181,6 @@ export default function ParkingInfoPage() {
           ))}
         </div>
       </div>
-
-      {/* ===== SUPPORT NOTE ===== */}
-      {!isLoading && !error && info?.supportNote && (
-        <div className="max-w-7xl mx-auto px-6 pb-12">
-          <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5">
-            <p className="text-xs font-bold text-blue-700 uppercase tracking-wider mb-2">Hỗ Trợ Khách Hàng</p>
-            <p className="text-sm text-blue-900/80 leading-relaxed">{info.supportNote}</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
