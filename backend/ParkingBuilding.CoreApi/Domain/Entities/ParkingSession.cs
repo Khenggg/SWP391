@@ -9,11 +9,13 @@ public class ParkingSession
     public long Id { get; set; }
     public string SessionCode { get; set; } = null!;
     public long CardId { get; set; }
+    [ForeignKey(nameof(CardId))]
     public virtual ParkingCard ParkingCard { get; set; }
     public long? DriverId { get; set; }
     public virtual DriverProfile Driver { get; set; }
     public long? VehicleId { get; set; }
     public string? PlateNumber { get; set; }
+    public string? NormalizedPlateNumber { get; set; } // Phải có trường này
     public bool NoPlate { get; set; }
     public string? VehicleDescription { get; set; }
     public long VehicleTypeId { get; set; }

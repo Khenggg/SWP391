@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ParkingBuilding.CoreApi.Domain.Entities
 {
@@ -14,6 +15,7 @@ namespace ParkingBuilding.CoreApi.Domain.Entities
     public class ParkingCard
     {
         public long Id { get; set; }
+        [Column("card_code")] // 2. ÉP EF CORE MAP VÀO CỘT WRITE_CODE DƯỚI DB
         public string CardNumber { get; set; } = string.Empty; // physical card code (mapped to card_code)
         public string QrToken { get; set; } = string.Empty;    // QR token identifier
         public CardStatus Status { get; set; } = CardStatus.AVAILABLE;

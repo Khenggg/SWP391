@@ -12,16 +12,16 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence.Configurations
             builder.ToTable("parking_sessions");
             builder.HasKey(x => x.Id);
 
-            // Đảm bảo map đúng khóa ngoại PricingRuleId
+            // Map các cột rõ ràng (chỉ khai báo mỗi cột 1 lần)
+            builder.Property(x => x.PlateNumber).HasColumnName("plate_number");
+            builder.Property(x => x.NormalizedPlateNumber).HasColumnName("normalized_plate_number");
+            builder.Property(x => x.PricingRuleId).HasColumnName("pricing_rule_id");
+            builder.Property(x => x.NoPlate).HasColumnName("no_plate"); // Đảm bảo đã map cột này!
+
             builder.HasOne(x => x.PricingRule)
                    .WithMany()
                    .HasForeignKey(x => x.PricingRuleId)
                    .OnDelete(DeleteBehavior.Restrict);
-
-            // Map rõ ràng các cột khác để tránh EF tự suy luận sai
-            builder.Property(x => x.PlateNumber).HasColumnName("plate_number");
-            builder.Property(x => x.PricingRuleId).HasColumnName("pricing_rule_id");
-            // ... thêm các thuộc tính khác nếu cần
         }
     }
 }

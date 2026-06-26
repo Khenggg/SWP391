@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using ParkingBuilding.CoreApi.Domain.Entities;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
+using System.Text.Json.Serialization;
 
 namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry;
 
@@ -48,15 +49,25 @@ public class EntryService : IEntryService
                 // 4. Lấy thông tin Thẻ & Slot (Đã validate ở bước 1)
                 var card = await _dbContext.ParkingCards.FirstOrDefaultAsync(c => c.CardNumber == request.CardCode);
                 var slot = await _dbContext.Slots.Include(s => s.Area).FirstOrDefaultAsync(s => s.Id == request.SelectedSlotId);
+                var plate = request.NoPlate ? null : request.LicensePlate?.ToUpper().Replace(" ", "");
 
                 // 5. Tạo mới Phiên đỗ xe với thông tin Snapshot (F033 + F035)
                 var newSession = new ParkingSession
                 {
                     SessionCode = $"SESS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}",
                     CardId = card.Id,
-                    PlateNumber = request.LicensePlate,
+
+                    // Ép chuỗi rỗng về null
+
+                    VehicleDescription = string.IsNullOrWhiteSpace(request.VehicleDescription) ? null : request.VehicleDescription,
+
                     NoPlate = request.NoPlate,
-                    VehicleDescription = request.VehicleDescription,
+                    PlateNumber = request.NoPlate
+        ? null
+        : (!string.IsNullOrWhiteSpace(request.LicensePlate)
+            ? request.LicensePlate.ToUpper().Replace(" ", "")
+            : "UNKNOWN"),
+                    NormalizedPlateNumber = plate,
                     VehicleTypeId = request.VehicleTypeId,
                     EntryGateId = request.EntryGateId,
                     SlotId = slot.Id,
@@ -77,15 +88,19 @@ public class EntryService : IEntryService
                     PaymentStatus = monthlyPass == null ? "PENDING" : "NOT_REQUIRED"
                 };
 
+
                 _dbContext.ParkingSessions.Add(newSession);
                 await _dbContext.SaveChangesAsync();
 
-                // 6. Cập nhật trạng thái Thẻ & Slot (F034)
+                // Cập nhật thẻ và slot ngay tại đây (để EF theo dõi thay đổi)
                 card.Status = CardStatus.IN_USE;
                 card.CurrentSessionId = newSession.Id;
-                slot.Status = "OCCUPIED";
+                slot.Status = "OCCUPIED"; // Đảm bảo giá trị này khớp với check constraint của DB
+                slot.CurrentSessionId = newSession.Id; // Nếu bảng Slots có cột này
 
+                // Lưu TẤT CẢ trong 1 lần duy nhất
                 await _dbContext.SaveChangesAsync();
+
                 await transaction.CommitAsync();
 
                 // 7. Ghi Audit Log (F036)
@@ -105,7 +120,6 @@ public class EntryService : IEntryService
         });
     }
 
-    // ... (Giữ nguyên các phương thức ClaimSessionAsync và ValidateEntryRequest như cũ)
 
     public async Task<bool> ClaimSessionAsync(string userIdString, string qrToken) { /* ... */ return true; }
 
@@ -128,15 +142,25 @@ public class EntryService : IEntryService
         if (slot.AllowedVehicleTypeId != request.VehicleTypeId)
             throw new Exception($"SLOT_TYPE_MISMATCH: Slot yêu cầu loại xe '{slot.AllowedVehicleTypeId}', nhưng request truyền vào là '{request.VehicleTypeId}'");
 
-        // 3. Kiểm tra Biển số xe
-        if (!request.NoPlate)
+        // 3. Kiểm tra logic biển số xe & mô tả
+        if (request.NoPlate)
         {
-            bool hasActive = await _dbContext.ParkingSessions.AnyAsync(s => s.PlateNumber == request.LicensePlate && s.Status == "ACTIVE");
-            if (hasActive) throw new Exception("VEHICLE_HAS_ACTIVE_SESSION: Biển số xe này đang có một phiên đỗ ACTIVE trong bãi");
+            // Nếu không có biển, bắt buộc phải có mô tả để bảo mật/truy vết
+            if (string.IsNullOrWhiteSpace(request.VehicleDescription))
+                throw new Exception("VEHICLE_DESCRIPTION_REQUIRED: Xe không biển số bắt buộc phải có mô tả.");
         }
-        else if (string.IsNullOrWhiteSpace(request.VehicleDescription))
+        else
         {
-            throw new Exception("VEHICLE_DESCRIPTION_REQUIRED: Xe không biển số bắt buộc phải nhập mô tả xe");
+            // Nếu có biển, bắt buộc phải có LicensePlate
+            if (string.IsNullOrWhiteSpace(request.LicensePlate))
+                throw new Exception("INVALID_INPUT: Xe có biển số không được để trống.");
+
+            bool hasActive = await _dbContext.ParkingSessions.AnyAsync(s =>
+                s.PlateNumber == request.LicensePlate.ToUpper().Replace(" ", "") &&
+                s.Status == "ACTIVE");
+
+            if (hasActive)
+                throw new Exception("VEHICLE_HAS_ACTIVE_SESSION: Biển số này đã có trong bãi.");
         }
     }
 }
