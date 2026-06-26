@@ -48,15 +48,16 @@ public class CardLookupService {
                 .sessionCode(session.getSessionCode())
                 .maskedPlateNumber(maskPlate(session.getPlateNumber()))
                 .vehicleType(
-                        session.getVehicleTypeId() == null
-                        ? null
-                        : session.getVehicleTypeId().toString()
+                        session.getVehicleType().getId() != null
+                        ? session.getVehicleType().getName()
+                        : null
                 )
                 .entryTime(session.getEntryTime())
                 .temporaryFeePreview(calculateFee(session))
                 .status(session.getStatus())
                 .build();
     }
+
     private String maskPlate(String plate) {
 
         if (plate == null || plate.isBlank()) {
