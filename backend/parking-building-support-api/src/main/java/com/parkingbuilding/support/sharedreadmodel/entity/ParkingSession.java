@@ -58,4 +58,7 @@ public class ParkingSession {
 
     @Column(name = "pricing_rule_id")
     private Long pricingRuleId;
+
+    @Column(name = "exit_time")
+    private Instant exitTime;
 }
