@@ -78,10 +78,10 @@ ON CONFLICT (id) DO UPDATE SET
 INSERT INTO areas (id, floor_id, area_code, area_name, priority_order, status, total_capacity)
 VALUES
     (1, 1, 'A', 'B1 - Khu xe máy A', 10, 'ACTIVE', 150),
-    (2, 1, 'B', 'B1 - Khu xe máy B', 20, 'ACTIVE', 150),
+    (2, 1, 'B', 'B1 - Khu xe đạp A', 20, 'ACTIVE', 100),
     (3, 2, 'A', 'B2 - Khu ô tô A', 30, 'ACTIVE', 20),
     (4, 2, 'B', 'B2 - Khu ô tô B', 40, 'ACTIVE', 20),
-    (5, 3, 'A', 'B3 - Khu xe đạp A', 50, 'ACTIVE', 100)
+    (5, 3, 'A', 'B3 - Khu xe tải A', 50, 'ACTIVE', 10)
 ON CONFLICT (id) DO UPDATE SET
     floor_id = EXCLUDED.floor_id,
     area_code = EXCLUDED.area_code,
@@ -93,18 +93,15 @@ ON CONFLICT (id) DO UPDATE SET
 
 INSERT INTO area_vehicle_types (area_id, vehicle_type_id)
 VALUES
-    (1, 3),
-    (1, 4),
-    (2, 3),
-    (2, 4),
-    (3, 5),
-    (3, 6),
-    (3, 7),
-    (4, 5),
-    (4, 6),
-    (4, 7),
-    (5, 1),
-    (5, 2)
+    (1, 3), -- Area 1: Xe máy
+    (1, 4), -- Area 1: Xe máy điện
+    (2, 1), -- Area 2: Xe đạp
+    (2, 2), -- Area 2: Xe đạp điện
+    (3, 5), -- Area 3: Ô tô
+    (3, 6), -- Area 3: Ô tô điện
+    (4, 5), -- Area 4: Ô tô
+    (4, 6), -- Area 4: Ô tô điện
+    (5, 7)  -- Area 5: Xe vận chuyển hàng hóa
 ON CONFLICT (area_id, vehicle_type_id) DO NOTHING;
 
 INSERT INTO slots (id, area_id, slot_code, allowed_vehicle_type_id, status)
@@ -118,7 +115,7 @@ VALUES
     (17, 3, 'A-C07', 5, 'AVAILABLE'),
     (18, 3, 'A-EC01', 6, 'AVAILABLE'),
     (19, 3, 'A-EC02', 6, 'AVAILABLE'),
-    (20, 3, 'A-D01', 7, 'AVAILABLE'),
+    (20, 5, 'A-D01', 7, 'AVAILABLE'),
     (31, 4, 'B-C01', 5, 'AVAILABLE'),
     (32, 4, 'B-C02', 5, 'AVAILABLE'),
     (33, 4, 'B-C03', 5, 'AVAILABLE'),
@@ -128,7 +125,7 @@ VALUES
     (37, 4, 'B-C07', 5, 'AVAILABLE'),
     (38, 4, 'B-EC01', 6, 'AVAILABLE'),
     (39, 4, 'B-EC02', 6, 'AVAILABLE'),
-    (40, 4, 'B-D01', 7, 'AVAILABLE')
+    (40, 5, 'A-D02', 7, 'AVAILABLE')
 ON CONFLICT (id) DO UPDATE SET
     area_id = EXCLUDED.area_id,
     slot_code = EXCLUDED.slot_code,
