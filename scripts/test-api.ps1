@@ -834,8 +834,8 @@ try {
         vehicleId = $null
         plateNumber = $confirmedPlateNumber
         vehicleTypeId = 5
-        floorId = 1
-        areaId = 2
+        floorId = 2
+        areaId = 3
         slotId = 11
         reservedDurationMinutes = 60
     } | ConvertTo-Json
@@ -871,11 +871,24 @@ try {
 
 # 42. Claim Session (associated with the C010 card QR Token)
 try {
-    # Get the actual qrToken of C010 dynamically from the API
+    # 1. Login as driver01 to obtain a driver token (since only drivers have driver profiles)
+    $driverLoginBody = @{
+        username = "driver01"
+        password = "123456"
+    } | ConvertTo-Json
+    $driverRes = Invoke-RestMethod -Uri "$BaseUrl/api/core/auth/login" -Method Post -ContentType "application/json" -Body $driverLoginBody
+    $driverToken = $driverRes.data.accessToken
+    $driverHeaders = @{
+        "Content-Type" = "application/json"
+        "Authorization" = "Bearer $driverToken"
+    }
+
+    # 2. Get the actual qrToken of C010 dynamically from the API
     $resCards = Invoke-RestMethod -Uri "$BaseUrl/api/core/cards?search=C010" -Method Get -Headers $headers
     $qrToken = $resCards.data[0].qrToken
 
-    $res = Invoke-RestMethod -Uri "$BaseUrl/api/core/parking-sessions/$qrToken/claim" -Method Post -Headers $headers
+    # 3. Perform the claim call using the driver's credentials
+    $res = Invoke-RestMethod -Uri "$BaseUrl/api/core/parking-sessions/$qrToken/claim" -Method Post -Headers $driverHeaders
     if ($res.success -eq $true) {
         Report-Result -TestName "POST /api/core/parking-sessions/{qrToken}/claim (Link session to driver)" -Success $true
     } else {
@@ -908,8 +921,8 @@ try {
         vehicleId = $null
         plateNumber = $plateNumber
         vehicleTypeId = 5
-        floorId = 1
-        areaId = 2
+        floorId = 2
+        areaId = 3
         slotId = 12
         reservedDurationMinutes = 60
     } | ConvertTo-Json

@@ -214,6 +214,26 @@ try {
         throw "Expected slot status to be OCCUPIED after check-in, but got $($slotCheck2.status)"
     }
 
+    # F. Driver Claims Session
+    Write-Host "[Flow 2] Logging in as driver01 to claim the session..."
+    $driverLoginBody = @{
+        username = "driver01"
+        password = "123456"
+    } | ConvertTo-Json
+    $driverLoginResult = Invoke-ApiRequest -Method Post -Uri "$BaseUrl/api/core/auth/login" -Body $driverLoginBody
+    $driverToken = $driverLoginResult.data.accessToken
+    $driverHeaders = @{
+        Authorization = "Bearer $driverToken"
+    }
+    Write-Host "  Driver logged in successfully. Retrieving C005 QR Token..."
+
+    $resCards = Invoke-ApiRequest -Method Get -Uri "$BaseUrl/api/core/cards?search=C005" -Headers $adminHeaders
+    $qrToken = $resCards.data[0].qrToken
+
+    Write-Host "[Flow 2] Driver claims session with QR Token: $qrToken..."
+    $claimRes = Invoke-ApiRequest -Method Post -Uri "$BaseUrl/api/core/parking-sessions/$qrToken/claim" -Headers $driverHeaders
+    Write-Host "  Claim Result: $($claimRes.message)" -ForegroundColor Green
+
     # ----------------- FLOW 3: RESERVATION EXTEND & CANCEL -----------------
     Write-Host "`n[Flow 3] --- Starting Reservation Extension & Cancellation ---" -ForegroundColor Cyan
 
