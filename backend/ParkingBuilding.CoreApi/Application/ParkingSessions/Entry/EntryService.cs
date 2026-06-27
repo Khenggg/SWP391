@@ -41,8 +41,9 @@ public class EntryService : IEntryService
                 if (pricing == null) throw new Exception("PRICING_RULE_NOT_FOUND");
 
                 // 3. Nhận diện khách hàng tháng (F032)
+                var normalizedPlate = request.LicensePlate?.Trim().Replace("-", "").Replace(".", "").Replace(" ", "").ToUpper() ?? "";
                 var monthlyPass = await _dbContext.MonthlyPasses.FirstOrDefaultAsync(m =>
-                    m.PlateNumber == request.LicensePlate && m.Status == "ACTIVE" &&
+                    m.NormalizedPlateNumber == normalizedPlate && m.Status == "ACTIVE" &&
                     m.StartDate <= DateTime.UtcNow && m.EndDate >= DateTime.UtcNow);
 
                 // 4. Lấy thông tin Thẻ & Slot (Đã validate ở bước 1)
@@ -54,7 +55,9 @@ public class EntryService : IEntryService
                 {
                     SessionCode = $"SESS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}",
                     CardId = card.Id,
+                    DriverId = monthlyPass?.DriverId,
                     PlateNumber = request.LicensePlate,
+                    NormalizedPlateNumber = normalizedPlate,
                     NoPlate = request.NoPlate,
                     VehicleDescription = request.VehicleDescription,
                     VehicleTypeId = request.VehicleTypeId,
@@ -84,6 +87,7 @@ public class EntryService : IEntryService
                 card.Status = CardStatus.IN_USE;
                 card.CurrentSessionId = newSession.Id;
                 slot.Status = "OCCUPIED";
+                slot.CurrentSessionId = newSession.Id;
 
                 await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -107,7 +111,44 @@ public class EntryService : IEntryService
 
     // ... (Giữ nguyên các phương thức ClaimSessionAsync và ValidateEntryRequest như cũ)
 
-    public async Task<bool> ClaimSessionAsync(string userIdString, string qrToken) { /* ... */ return true; }
+    public async Task<bool> ClaimSessionAsync(string userIdString, string qrToken)
+    {
+        if (string.IsNullOrEmpty(userIdString) || string.IsNullOrEmpty(qrToken))
+            return false;
+
+        if (!long.TryParse(userIdString, out var userId))
+            return false;
+
+        // 1. Tìm thông tin tài xế từ UserId
+        var driver = await _dbContext.DriverProfiles.FirstOrDefaultAsync(d => d.UserId == userId);
+        if (driver == null)
+            return false;
+
+        // 2. Tìm thẻ từ qrToken
+        var card = await _dbContext.ParkingCards.FirstOrDefaultAsync(c => c.QrToken == qrToken);
+        if (card == null)
+            return false;
+
+        // 3. Tìm phiên đỗ xe ACTIVE liên quan đến thẻ này
+        var session = await _dbContext.ParkingSessions.FirstOrDefaultAsync(s => s.CardId == card.Id && s.Status == "ACTIVE");
+        if (session == null)
+            return false;
+
+        // 4. Nếu phiên đỗ xe đã có tài xế khác liên kết
+        if (session.DriverId.HasValue)
+        {
+            // Nếu đã liên kết đúng tài xế này rồi thì trả về true, ngược lại trả về false
+            return session.DriverId.Value == driver.Id;
+        }
+
+        // 5. Tiến hành liên kết
+        session.DriverId = driver.Id;
+        session.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await _dbContext.SaveChangesAsync();
+
+        return true;
+    }
 
     private async Task ValidateEntryRequest(CreateEntryRequest request)
     {
@@ -131,7 +172,11 @@ public class EntryService : IEntryService
         // 3. Kiểm tra Biển số xe
         if (!request.NoPlate)
         {
-            bool hasActive = await _dbContext.ParkingSessions.AnyAsync(s => s.PlateNumber == request.LicensePlate && s.Status == "ACTIVE");
+            var normalizedPlate = request.LicensePlate?.Trim().Replace("-", "").Replace(".", "").Replace(" ", "").ToUpper() ?? "";
+            bool hasActive = await _dbContext.ParkingSessions.AnyAsync(s => 
+                s.Status == "ACTIVE" && 
+                s.PlateNumber != null && 
+                s.PlateNumber.Replace("-", "").Replace(".", "").Replace(" ", "").ToUpper() == normalizedPlate);
             if (hasActive) throw new Exception("VEHICLE_HAS_ACTIVE_SESSION: Biển số xe này đang có một phiên đỗ ACTIVE trong bãi");
         }
         else if (string.IsNullOrWhiteSpace(request.VehicleDescription))

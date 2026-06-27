@@ -14,6 +14,7 @@ public class ParkingSession
     public virtual DriverProfile Driver { get; set; }
     public long? VehicleId { get; set; }
     public string? PlateNumber { get; set; }
+    public string? NormalizedPlateNumber { get; set; }
     public bool NoPlate { get; set; }
     public string? VehicleDescription { get; set; }
     public long VehicleTypeId { get; set; }

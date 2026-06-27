@@ -83,7 +83,7 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtAudience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
         ClockSkew = TimeSpan.Zero,
-        RoleClaimType = "role",
+        RoleClaimType = System.Security.Claims.ClaimTypes.Role,
         NameClaimType = "username"
     };
 
@@ -118,6 +118,19 @@ builder.Services.AddControllers()
 
 builder.Services.AddOpenApi(options =>
 {
+    options.AddSchemaTransformer((schema, context, cancellationToken) =>
+    {
+        if (context.JsonTypeInfo.Type == typeof(ParkingBuilding.CoreApi.Contracts.Requests.LoginRequest))
+        {
+            schema.Example = new System.Text.Json.Nodes.JsonObject
+            {
+                ["username"] = "admin01",
+                ["password"] = "123456"
+            };
+        }
+        return Task.CompletedTask;
+    });
+
     options.AddDocumentTransformer((document, context, cancellationToken) =>
     {
         if (document == null) return Task.CompletedTask;
