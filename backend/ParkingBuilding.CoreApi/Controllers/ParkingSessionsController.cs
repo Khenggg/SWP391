@@ -14,12 +14,12 @@ namespace ParkingBuilding.CoreApi.Controllers;
 public class ParkingSessionsController : ControllerBase
 {
     private readonly IEntryService _entryService;
-    private readonly ISlotSuggestionService _suggestionService;
+    private readonly ISlotSuggestionService _slotSuggestionService;
 
-    public ParkingSessionsController(IEntryService entryService, ISlotSuggestionService suggestionService)
+    public ParkingSessionsController(IEntryService entryService, ISlotSuggestionService slotSuggestionService)
     {
         _entryService = entryService;
-        _suggestionService = suggestionService;
+        _slotSuggestionService = slotSuggestionService;
     }
 
     [HttpPost("entry")]
@@ -53,6 +53,8 @@ public class ParkingSessionsController : ControllerBase
         }
     }
 
+
+
     [HttpPost("{qrToken}/claim")]
     [Authorize]
     public async Task<IActionResult> ClaimSession(string qrToken)
@@ -73,11 +75,21 @@ public class ParkingSessionsController : ControllerBase
     [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
     public async Task<IActionResult> SuggestSlot([FromBody] SuggestSlotRequest request)
     {
-        var result = await _suggestionService.SuggestSlotAsync(request);
-        if (result == null)
+        try
         {
-            return NotFound(ApiResponse.FailureResult("Không tìm thấy slot phù hợp hoặc bãi đỗ xe đã đầy."));
+            var result = await _slotSuggestionService.SuggestSlotAsync(request);
+            if (result == null)
+            {
+                return NotFound(ApiResponse.FailureResult("Không tìm thấy vị trí đỗ phù hợp còn trống."));
+            }
+
+            var response = ApiResponse.SuccessResult(result, "Gợi ý vị trí đỗ thành công.");
+            return Ok(response);
         }
-        return Ok(ApiResponse.SuccessResult(result, "Gợi ý slot thành công."));
+        catch (Exception ex)
+        {
+            var response = ApiResponse.FailureResult("Lỗi khi gợi ý vị trí đỗ", ex.Message);
+            return BadRequest(response);
+        }
     }
 }

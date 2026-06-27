@@ -1,7 +1,9 @@
 using System;
+using System.ComponentModel.DataAnnotations.Schema; // Thêm dòng này để dùng Table Attribute
 
 namespace ParkingBuilding.CoreApi.Domain.Entities;
 
+[Table("parking_sessions")] // Ép cứng EF Core map đúng vào bảng viết thường dưới DB
 public class ParkingSession
 {
     public long Id { get; set; }
@@ -28,6 +30,8 @@ public class ParkingSession
     public long? SlotId { get; set; }
     public long? ReservationId { get; set; }
     public virtual Reservation? Reservation { get; set; }
+
+    public PricingRule? PricingRule { get; set; }
 
     // Thêm vào class ParkingSession
     public long? PricingRuleId { get; set; }

@@ -96,7 +96,7 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtAudience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
         ClockSkew = TimeSpan.Zero,
-        RoleClaimType = "role",
+        RoleClaimType = System.Security.Claims.ClaimTypes.Role,
         NameClaimType = "username"
     };
 
@@ -132,6 +132,61 @@ builder.Services.AddControllers()
             return new BadRequestObjectResult(response);
         };
     });
+
+builder.Services.AddOpenApi(options =>
+{
+    options.AddSchemaTransformer((schema, context, cancellationToken) =>
+    {
+        if (context.JsonTypeInfo.Type == typeof(ParkingBuilding.CoreApi.Contracts.Requests.LoginRequest))
+        {
+            schema.Example = new System.Text.Json.Nodes.JsonObject
+            {
+                ["username"] = "admin01",
+                ["password"] = "123456"
+            };
+        }
+        return Task.CompletedTask;
+    });
+
+    options.AddDocumentTransformer((document, context, cancellationToken) =>
+    {
+        if (document == null) return Task.CompletedTask;
+
+        var securityScheme = new Microsoft.OpenApi.OpenApiSecurityScheme
+        {
+            Type = Microsoft.OpenApi.SecuritySchemeType.Http,
+            Name = "Authorization",
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            In = Microsoft.OpenApi.ParameterLocation.Header,
+            Description = "JWT Authorization header using the Bearer scheme. Enter your token in the text input below."
+        };
+
+        document.Components ??= new Microsoft.OpenApi.OpenApiComponents();
+        document.Components.SecuritySchemes ??= new System.Collections.Generic.Dictionary<string, Microsoft.OpenApi.IOpenApiSecurityScheme>();
+        document.Components.SecuritySchemes.Add("Bearer", securityScheme);
+
+        if (document.Paths != null)
+        {
+            foreach (var path in document.Paths.Values)
+            {
+                if (path.Operations != null)
+                {
+                    foreach (var operation in path.Operations.Values)
+                    {
+                        operation.Security ??= new System.Collections.Generic.List<Microsoft.OpenApi.OpenApiSecurityRequirement>();
+                        operation.Security.Add(new Microsoft.OpenApi.OpenApiSecurityRequirement
+                        {
+                            [new Microsoft.OpenApi.OpenApiSecuritySchemeReference("Bearer", document!)] = new System.Collections.Generic.List<string>()
+                        });
+                    }
+                }
+            }
+        }
+
+        return Task.CompletedTask;
+    });
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -183,12 +238,13 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 {
+    app.MapOpenApi();
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Parking Building Core API v1");
+        options.SwaggerEndpoint("/openapi/v1.json", "ParkingBuilding Core API v1");
         options.RoutePrefix = "swagger";
     });
 }

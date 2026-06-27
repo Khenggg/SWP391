@@ -40,8 +40,9 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                     if (pricing == null) throw new Exception("PRICING_RULE_NOT_FOUND");
 
                     // 3. Nhận diện khách hàng tháng (F032)
+                    var normalizedPlate = request.LicensePlate?.Trim().Replace("-", "").Replace(".", "").Replace(" ", "").ToUpper() ?? "";
                     var monthlyPass = await _dbContext.MonthlyPasses.FirstOrDefaultAsync(m =>
-                        m.PlateNumber == request.LicensePlate && m.Status == "ACTIVE" &&
+                        m.NormalizedPlateNumber == normalizedPlate && m.Status == "ACTIVE" &&
                         m.StartDate <= DateTime.UtcNow && m.EndDate >= DateTime.UtcNow);
 
                     // 4. Lấy thông tin Thẻ & Loại xe
@@ -53,7 +54,6 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
 
                     // 5. Kiểm tra Đặt chỗ trước (Booking/Reservation Check-in)
                     Reservation? activeReservation = null;
-                    var normalizedPlate = request.LicensePlate?.Trim().Replace("-", "").Replace(".", "").Replace(" ", "").ToUpper() ?? "";
                     if (!request.NoPlate && !string.IsNullOrEmpty(normalizedPlate))
                     {
                         activeReservation = await _dbContext.Reservations
@@ -152,6 +152,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                             {
                                 SessionCode = $"SESS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}",
                                 CardId = card.Id,
+                                DriverId = monthlyPass?.DriverId,
                                 PlateNumber = request.LicensePlate,
                                 NormalizedPlateNumber = normalizedPlate,
                                 NoPlate = request.NoPlate,
@@ -213,6 +214,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                             {
                                 SessionCode = $"SESS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}",
                                 CardId = card.Id,
+                                DriverId = monthlyPass?.DriverId,
                                 PlateNumber = request.LicensePlate,
                                 NormalizedPlateNumber = normalizedPlate,
                                 NoPlate = request.NoPlate,
@@ -267,8 +269,41 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
 
         public async Task<bool> ClaimSessionAsync(string userIdString, string qrToken)
         {
-            // Dummy implementation matching interface
-            return await Task.FromResult(true);
+            if (string.IsNullOrEmpty(userIdString) || string.IsNullOrEmpty(qrToken))
+                return false;
+
+            if (!long.TryParse(userIdString, out var userId))
+                return false;
+
+            // 1. Tìm thông tin tài xế từ UserId
+            var driver = await _dbContext.DriverProfiles.FirstOrDefaultAsync(d => d.UserId == userId);
+            if (driver == null)
+                return false;
+
+            // 2. Tìm thẻ từ qrToken
+            var card = await _dbContext.ParkingCards.FirstOrDefaultAsync(c => c.QrToken == qrToken);
+            if (card == null)
+                return false;
+
+            // 3. Tìm phiên đỗ xe ACTIVE liên quan đến thẻ này
+            var session = await _dbContext.ParkingSessions.FirstOrDefaultAsync(s => s.CardId == card.Id && s.Status == "ACTIVE");
+            if (session == null)
+                return false;
+
+            // 4. Nếu phiên đỗ xe đã có tài xế khác liên kết
+            if (session.DriverId.HasValue)
+            {
+                // Nếu đã liên kết đúng tài xế này rồi thì trả về true, ngược lại trả về false
+                return session.DriverId.Value == driver.Id;
+            }
+
+            // 5. Tiến hành liên kết
+            session.DriverId = driver.Id;
+            session.UpdatedAt = DateTimeOffset.UtcNow;
+
+            await _dbContext.SaveChangesAsync();
+
+            return true;
         }
 
         private async Task ValidateEntryRequest(CreateEntryRequest request)
