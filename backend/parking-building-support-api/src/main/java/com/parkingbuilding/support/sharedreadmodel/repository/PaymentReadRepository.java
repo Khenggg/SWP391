@@ -21,20 +21,34 @@ public interface PaymentReadRepository extends JpaRepository<PaymentReadEntity, 
     long countByStatus(String status);
 
     @Query("""
-        SELECT COALESCE(SUM(p.totalAmount),0)
-        FROM PaymentReadEntity p
-        WHERE p.status=:status
-    """)
+                SELECT COALESCE(SUM(p.totalAmount),0)
+                FROM PaymentReadEntity p
+                WHERE p.status=:status
+            """)
     BigDecimal sumByStatus(@Param("status") String status);
 
     @Query("""
-        SELECT COALESCE(SUM(p.totalAmount),0)
-        FROM PaymentReadEntity p
-        WHERE p.status='PAID'
-        AND p.paidAt BETWEEN :from AND :to
-    """)
+                SELECT COALESCE(SUM(p.totalAmount),0)
+                FROM PaymentReadEntity p
+                WHERE p.status='PAID'
+                AND p.paidAt BETWEEN :from AND :to
+            """)
     BigDecimal sumRevenueBetween(
             @Param("from") OffsetDateTime from,
             @Param("to") OffsetDateTime to);
+
+    long countByPaidAtBetween(
+            OffsetDateTime from,
+            OffsetDateTime to);
+
+    long countByStatusAndPaidAtBetween(
+            String status,
+            OffsetDateTime from,
+            OffsetDateTime to);
+
+    long countByStatusAndCreatedAtBetween(
+            String status,
+            OffsetDateTime from,
+            OffsetDateTime to);
 
 }
