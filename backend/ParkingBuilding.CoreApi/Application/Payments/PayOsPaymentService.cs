@@ -168,14 +168,24 @@ public class PayOsPaymentService : IPayOsPaymentService
             throw new BusinessException(ErrorCodes.PayOsWebhookInvalid);
         }
 
-        // Handle PayOS test webhook request
+        // Intercept test webhook from PayOS Dashboard
         if (data.OrderCode == 123)
         {
+            await _auditWriter.WriteAuditLogAsync(
+                action: "PAYOS_WEBHOOK_TEST_SUCCESS",
+                targetType: "Payment",
+                targetId: "0",
+                newValue: "PayOS Dashboard Webhook test succeeded (orderCode 123)",
+                reason: "payOS dashboard test webhook request."
+            );
+
             return new PayOsWebhookProcessResult
             {
                 Success = true,
-                Message = "Test webhook verified successfully.",
-                OrderCode = data.OrderCode
+                Message = "Test webhook processed successfully.",
+                OrderCode = 123,
+                PaymentStatus = "PAID",
+                ReservationStatus = "CONFIRMED"
             };
         }
 
