@@ -72,7 +72,7 @@ export default function BookingSummaryPanel({
           </li>
           <li className="flex gap-2 items-start">
             <Clock className="w-4 h-4 shrink-0 text-slate-400" />
-            <span>Giữ chỗ tối đa <strong className="text-rose-500">15 phút</strong> kể từ khi xác nhận.</span>
+            <span>Giữ chỗ tối đa <strong className="text-rose-500">10 phút</strong> kể từ khi xác nhận.</span>
           </li>
           <li className="flex gap-2 items-start">
             <CheckCircle2 className="w-4 h-4 shrink-0 text-slate-400" />

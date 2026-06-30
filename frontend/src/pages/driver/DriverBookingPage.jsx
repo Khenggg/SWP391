@@ -34,16 +34,13 @@ export default function DriverBookingPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [areasData, historyData, pricingData, activeData, slotsData] = await Promise.all([
-          parkingService.getAreas(),
+        const [historyData, pricingData, activeData] = await Promise.all([
           reservationService.getHistory(0, 3), // Get 3 recent
           pricingService.getPublicPricing(),
-          reservationService.getActiveReservation().catch(() => null),
-          reservationService.getAvailableSlots()
+          reservationService.getActiveReservation().catch(() => null)
         ]);
         
         setVehicles([]);
-        setAreas(areasData || []);
         setRecentHistory(historyData || []);
         setPricingRules(pricingData || []);
         
@@ -54,14 +51,34 @@ export default function DriverBookingPage() {
         } else if (activeData && activeData.status === "CONFIRMED") {
           setCurrentStep(6);
         }
-        
-        setAvailableSlots(slotsData?.slots || []);
       } catch (error) {
         console.error("Error fetching booking data:", error);
       }
     };
     fetchData();
   }, []);
+
+  // Tải danh sách ô đỗ và khu vực thực tế từ C# Backend dựa trên phương tiện được chọn
+  useEffect(() => {
+    if (!selectedVehicle) return;
+    const loadSlotsAndAreas = async () => {
+      try {
+        const vehicleTypeId = selectedVehicle.vehicleTypeId || (selectedVehicle.vehicleTypeName === "Ô Tô" ? 5 : 3);
+        const slotsData = await reservationService.getAvailableSlots(vehicleTypeId);
+        setAvailableSlots(slotsData?.slots || []);
+        setAreas(slotsData?.areas || []);
+        
+        // Reset selected area/slot when changing vehicle
+        setSelectedAreaId(null);
+        setSelectedAreaName("");
+        setSelectedSlotId(null);
+        setSelectedSlotName("");
+      } catch (error) {
+        console.error("Error loading slots:", error);
+      }
+    };
+    loadSlotsAndAreas();
+  }, [selectedVehicle]);
 
   const handleNextStep = () => {
     if (currentStep === 1 && !selectedVehicle) {
@@ -103,7 +120,9 @@ export default function DriverBookingPage() {
         floorId,
         selectedAreaId,
         durationHours,
-        selectedSlotId // Truyền thêm slotId cho Ô tô
+        selectedSlotId,
+        selectedAreaName,
+        selectedSlotName
       );
       // alert("Đặt chỗ thành công!");
       setActiveReservation(res);
@@ -248,7 +267,7 @@ export default function DriverBookingPage() {
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-xl font-black text-slate-800">Đặt chỗ trước</h2>
-                <p className="text-sm text-slate-500 mt-1">Đặt trước chỗ đỗ ô tô tại tầng B2. Giữ chỗ tối đa 15 phút kể từ thời điểm xác nhận.</p>
+                <p className="text-sm text-slate-500 mt-1">Đặt trước chỗ đỗ ô tô tại tầng B2. Giữ chỗ tối đa 10 phút kể từ thời điểm xác nhận.</p>
               </div>
             </div>
 
@@ -302,7 +321,7 @@ export default function DriverBookingPage() {
                   <h3 className="text-2xl font-black text-slate-800 mb-2">Xác nhận thông tin</h3>
                   <p className="text-slate-500 max-w-md mx-auto mb-8">
                     Kiểm tra lại kỹ thông tin đặt chỗ của bạn bên thanh tóm tắt trước khi bấm xác nhận. 
-                    Hệ thống sẽ khóa slot đỗ tạm thời cho bạn trong 15 phút để chờ thanh toán.
+                    Hệ thống sẽ khóa slot đỗ tạm thời cho bạn trong 10 phút để chờ thanh toán.
                   </p>
                 </div>
               )}

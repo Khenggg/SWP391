@@ -20,12 +20,13 @@ export const reservationService = {
           return null;
         }
 
-        // Cập nhật thông tin mới nhất
+        // Cập nhật thông tin mới nhất và giữ nguyên các trường UI cũ
         const updated = {
           ...reservation,
           status: latest.reservationStatus,
           paymentStatus: latest.paymentStatus,
-          checkoutUrl: latest.checkoutUrl
+          checkoutUrl: latest.checkoutUrl,
+          reservationEndTime: latest.expiresAt || reservation.reservationEndTime
         };
         sessionStorage.setItem("activeReservation", JSON.stringify(updated));
         return updated;
@@ -36,27 +37,70 @@ export const reservationService = {
     }
   },
 
-  // Lấy danh sách slot khả dụng cho đặt chỗ (mặc định lấy cho Ô tô - vehicleTypeId = 5)
-  getAvailableSlots: async () => {
-    const res = await coreAxiosClient.get("/reservations/available-locations?vehicleTypeId=5");
-    if (!res.success || !res.data) return { slots: [] };
+  // Lấy danh sách slot khả dụng và khu vực khả dụng cho đặt chỗ từ Backend
+  getAvailableSlots: async (vehicleTypeId = 5) => {
+    const res = await coreAxiosClient.get(`/reservations/available-locations?vehicleTypeId=${vehicleTypeId}`);
+    if (!res.success || !res.data) return { slots: [], areas: [] };
+    
+    // Parse slots
     const slots = (res.data.availableSlots || []).map(s => ({
       id: s.slotId,
       slotCode: s.slotCode,
       areaId: s.areaId,
+      areaCode: s.areaCode,
+      areaName: s.areaName,
       floorId: s.floorId,
+      floorCode: s.floorCode,
+      floorName: s.floorName,
       status: "AVAILABLE"
     }));
-    return { slots }; 
+
+    // Parse areas
+    const areas = (res.data.availableAreas || []).map(a => ({
+      id: a.areaId,
+      code: a.areaCode,
+      name: a.areaName,
+      floorId: a.floorId,
+      floorCode: a.floorCode,
+      floorName: a.floorName,
+      availableSlots: a.availableCapacity,
+      totalSlots: a.totalCapacity,
+      vehicleTypeName: vehicleTypeId === 5 ? "Ô Tô" : "Xe Máy",
+      status: "ACTIVE"
+    }));
+
+    // Đối với Ô tô (vehicleTypeId = 5), tự động trích xuất các khu vực có chứa slot trống
+    if (vehicleTypeId === 5 && slots.length > 0) {
+      const areaIds = new Set();
+      slots.forEach(s => {
+        if (!areaIds.has(s.areaId)) {
+          areaIds.add(s.areaId);
+          areas.push({
+            id: s.areaId,
+            code: s.areaCode,
+            name: s.areaName,
+            floorId: s.floorId,
+            floorCode: s.floorCode,
+            floorName: s.floorName,
+            availableSlots: slots.filter(sl => sl.areaId === s.areaId).length,
+            totalSlots: slots.filter(sl => sl.areaId === s.areaId).length,
+            vehicleTypeName: "Ô Tô",
+            status: "ACTIVE"
+          });
+        }
+      });
+    }
+
+    return { slots, areas }; 
   },
 
-  // Lịch sử đặt chỗ (mock tạm thời vì backend chưa hỗ trợ GET /reservations cho driver)
+  // Lịch sử đặt chỗ
   getHistory: async (page = 0, size = 10) => {
     return [];
   },
 
   // Đặt chỗ mới
-  createReservation: async (plateNumber, vehicleTypeId, floorId, areaId, durationHours, slotId) => {
+  createReservation: async (plateNumber, vehicleTypeId, floorId, areaId, durationHours, slotId, areaName, slotName) => {
     const res = await coreAxiosClient.post("/reservations", {
       plateNumber,
       vehicleTypeId,
@@ -79,6 +123,9 @@ export const reservationService = {
         plateNumber: reservation.plateNumber,
         areaId: reservation.areaId,
         slotId: reservation.slotId,
+        areaName: areaName || "Khu vực đã chọn",
+        slotName: slotName || "Slot đã chọn",
+        reservationEndTime: reservation.expiresAt || reservation.reservationEndTime,
         checkoutUrl: payment?.checkoutUrl,
         orderCode: payment?.orderCode,
         paymentId: payment?.paymentId
@@ -101,12 +148,22 @@ export const reservationService = {
     throw new Error(res.message || "Hủy đặt chỗ thất bại");
   },
 
-  // Kiểm tra thanh toán thành công thông qua webhook
+  // Kiểm tra thanh toán thành công thông qua webhook và cập nhật cache
   payReservation: async (id) => {
     const res = await coreAxiosClient.get(`/reservations/${id}/payment-status`);
     if (res.success && res.data && res.data.paymentStatus === "PAID") {
-      // Xóa cache khi thanh toán xong
-      sessionStorage.removeItem("activeReservation");
+      const cached = sessionStorage.getItem("activeReservation");
+      if (cached) {
+        const reservation = JSON.parse(cached);
+        const updated = {
+          ...reservation,
+          status: "CONFIRMED",
+          paymentStatus: "PAID",
+          reservationEndTime: res.data.expiresAt || reservation.reservationEndTime
+        };
+        sessionStorage.setItem("activeReservation", JSON.stringify(updated));
+        return updated;
+      }
       return res.data;
     }
     throw new Error("Giao dịch chưa được thanh toán trên PayOS. Vui lòng thanh toán trước.");
