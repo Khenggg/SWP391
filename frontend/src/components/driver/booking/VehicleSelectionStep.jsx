@@ -22,7 +22,7 @@ import LicensePlate from "@/components/ui/license-plate";
 export default function VehicleSelectionStep({ vehicles, selectedVehicle, onSelectVehicle, onVehicleAdded }) {
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
   const [newPlate, setNewPlate] = useState("");
-  const [newVehicleType, setNewVehicleType] = useState("1"); // 1: Ô Tô, 2: Xe Máy
+  const [newVehicleType, setNewVehicleType] = useState("5"); // 5: Ô Tô, 3: Xe Máy
   const [adding, setAdding] = useState(false);
 
   const handleAddVehicle = async () => {
@@ -122,8 +122,8 @@ export default function VehicleSelectionStep({ vehicles, selectedVehicle, onSele
                   <SelectValue placeholder="Chọn loại xe" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">Ô Tô</SelectItem>
-                  <SelectItem value="2">Xe Máy</SelectItem>
+                  <SelectItem value="5">Ô Tô</SelectItem>
+                  <SelectItem value="3">Xe Máy</SelectItem>
                 </SelectContent>
               </Select>
             </div>
