@@ -381,7 +381,7 @@ Priority:
 
 Backend dependency:
 
-- Sprint 2: UI sử dụng dữ liệu cứng (Static Frontend Data), không cần API.
+- Sprint 2, Spring: `F029 Public Rules API`, hoặc static frontend.
 
 APIs:
 

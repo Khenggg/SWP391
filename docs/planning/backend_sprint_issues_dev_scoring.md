@@ -527,16 +527,16 @@ API public xem slot trống theo loại xe/tầng/khu
 
 API public xem bảng giá
 
-### F029 — Public Rules API (CANCELED)
+### F029 — Public Rules API
 
 **Module:** Public Read  
 **Backend Owner:** Spring Boot  
 **Actor:** Public  
-**Priority:** CANCELED (Frontend sử dụng dữ liệu tĩnh)  
-**Dev phụ trách:** None  
+**Priority:** P1  
+**Dev phụ trách:** Dev 3  
 **Size:** S  
-**Score gốc:** 0  
-**Sprint Score:** 0  
+**Score gốc:** 1  
+**Sprint Score:** 1 x 30 = **30**  
 **Depends On:** F008  
 **Scope Note:** Có thể static/config  
 
