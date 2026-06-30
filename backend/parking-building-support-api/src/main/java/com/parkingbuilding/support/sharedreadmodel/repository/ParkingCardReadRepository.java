@@ -17,4 +17,6 @@ public interface ParkingCardReadRepository
 
     List<ParkingCardReadEntity> findByStatus(String status);
 
+    long countByStatus(String status);
+
 }

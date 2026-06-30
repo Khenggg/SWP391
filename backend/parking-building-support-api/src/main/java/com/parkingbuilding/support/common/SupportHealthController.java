@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class SupportHealthController {
 
     @GetMapping("/health")
-    public ApiResponse<String> health() {
+    public ApiResponse<Void> health() {
         return ApiResponse.ok("Support API is running");
     }
 }

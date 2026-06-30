@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+
 @Getter
 @Setter
 @Entity
@@ -40,4 +41,13 @@ public class AreaReadEntity {
 
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
+
+    @Column(name = "total_capacity")
+    private Integer totalCapacity;
+
+    @Column(name = "current_real_occupancy")
+    private Integer currentRealOccupancy;
+
+    @Column(name = "current_booked_slots")
+    private Integer currentBookedSlots;
 }
