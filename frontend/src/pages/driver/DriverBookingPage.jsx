@@ -34,8 +34,7 @@ export default function DriverBookingPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [vehiclesData, areasData, historyData, pricingData, activeData, slotsData] = await Promise.all([
-          vehicleService.getVehiclesByOwner(),
+        const [areasData, historyData, pricingData, activeData, slotsData] = await Promise.all([
           parkingService.getAreas(),
           reservationService.getHistory(0, 3), // Get 3 recent
           pricingService.getPublicPricing(),
@@ -43,7 +42,7 @@ export default function DriverBookingPage() {
           reservationService.getAvailableSlots()
         ]);
         
-        setVehicles(vehiclesData || []);
+        setVehicles([]);
         setAreas(areasData || []);
         setRecentHistory(historyData || []);
         setPricingRules(pricingData || []);
