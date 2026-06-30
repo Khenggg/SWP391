@@ -73,6 +73,30 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence.Configurations
                 .HasColumnName("updated_at")
                 .HasColumnType("timestamp with time zone")
                 .IsRequired();
+
+            builder.Property(x => x.FloorId)
+                .HasColumnName("floor_id");
+
+            builder.Property(x => x.AreaId)
+                .HasColumnName("area_id");
+
+            builder.Property(x => x.SlotId)
+                .HasColumnName("slot_id");
+
+            builder.HasOne(x => x.Floor)
+                .WithMany()
+                .HasForeignKey(x => x.FloorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.Area)
+                .WithMany()
+                .HasForeignKey(x => x.AreaId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.Slot)
+                .WithMany()
+                .HasForeignKey(x => x.SlotId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

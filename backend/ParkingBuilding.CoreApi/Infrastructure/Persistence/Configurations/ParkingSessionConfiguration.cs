@@ -133,10 +133,71 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence.Configurations
             builder.Property(x => x.ReservationId)
                 .HasColumnName("reservation_id");
 
+            builder.Property(x => x.SuggestedAreaId)
+                .HasColumnName("suggested_area_id");
+
+            builder.Property(x => x.SuggestedSlotId)
+                .HasColumnName("suggested_slot_id");
+
+            builder.Property(x => x.OverrideAreaId)
+                .HasColumnName("override_area_id");
+
+            builder.Property(x => x.OverrideSlotId)
+                .HasColumnName("override_slot_id");
+
+            builder.Property(x => x.OverrideBy)
+                .HasColumnName("override_by");
+
+            builder.Property(x => x.OverrideAt)
+                .HasColumnName("override_at")
+                .HasColumnType("timestamp with time zone");
+
+            builder.Property(x => x.OverrideReason)
+                .HasColumnName("override_reason");
+
+            builder.Property(x => x.ClaimedByUserId)
+                .HasColumnName("claimed_by_user_id");
+
+            builder.Property(x => x.ClaimedAt)
+                .HasColumnName("claimed_at")
+                .HasColumnType("timestamp with time zone");
+
+            builder.Property(x => x.ClaimMethod)
+                .HasColumnName("claim_method")
+                .HasMaxLength(30);
+
+            builder.Property(x => x.MonthlyPassId)
+                .HasColumnName("monthly_pass_id");
+
+            builder.Property(x => x.ExitGateId)
+                .HasColumnName("exit_gate_id");
+
+            builder.Property(x => x.ExitStaffId)
+                .HasColumnName("exit_staff_id");
+
+            builder.Property(x => x.ExitTime)
+                .HasColumnName("exit_time")
+                .HasColumnType("timestamp with time zone");
+
+            builder.Property(x => x.PlateCorrectedBy)
+                .HasColumnName("plate_corrected_by");
+
+            builder.Property(x => x.PlateCorrectedAt)
+                .HasColumnName("plate_corrected_at")
+                .HasColumnType("timestamp with time zone");
+
+            builder.Property(x => x.CancellationReason)
+                .HasColumnName("cancellation_reason");
+
             // Relationships
             builder.HasOne(x => x.ParkingCard)
                 .WithMany()
                 .HasForeignKey(x => x.CardId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.ClaimedByUser)
+                .WithMany()
+                .HasForeignKey(x => x.ClaimedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(x => x.Driver)

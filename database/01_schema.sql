@@ -182,6 +182,9 @@ CREATE TABLE IF NOT EXISTS monthly_passes (
     plate_number VARCHAR(30) NOT NULL,
     normalized_plate_number VARCHAR(30) NOT NULL,
     vehicle_type_id BIGINT NOT NULL REFERENCES vehicle_types(id),
+    floor_id BIGINT REFERENCES floors(id),
+    area_id BIGINT REFERENCES areas(id),
+    slot_id BIGINT REFERENCES slots(id),
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
@@ -197,8 +200,8 @@ CREATE TABLE IF NOT EXISTS reservations (
     reservation_code VARCHAR(50) NOT NULL,
     driver_id BIGINT REFERENCES driver_profiles(id),
     vehicle_id BIGINT REFERENCES vehicles(id),
-    plate_number VARCHAR(30) NOT NULL,
-    normalized_plate_number VARCHAR(30) NOT NULL,
+    plate_number VARCHAR(30) NULL,
+    normalized_plate_number VARCHAR(30) NULL,
     vehicle_type_id BIGINT NOT NULL REFERENCES vehicle_types(id),
     floor_id BIGINT NOT NULL REFERENCES floors(id),
     area_id BIGINT NOT NULL REFERENCES areas(id),
@@ -210,6 +213,8 @@ CREATE TABLE IF NOT EXISTS reservations (
     payment_status VARCHAR(40) NOT NULL DEFAULT 'PENDING',
     reserved_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     expires_at TIMESTAMPTZ NOT NULL,
+    payment_deadline TIMESTAMPTZ NULL,
+    confirmed_at TIMESTAMPTZ NULL,
     checked_in_at TIMESTAMPTZ,
     checked_in_by BIGINT REFERENCES users(id),
     cancelled_at TIMESTAMPTZ,
@@ -234,8 +239,8 @@ CREATE TABLE IF NOT EXISTS reservations (
     ),
     CONSTRAINT ck_reservations_cancelled_at CHECK (cancelled_at IS NULL OR cancelled_at >= reserved_at),
     CONSTRAINT ck_reservations_plate_required CHECK (
-        NULLIF(BTRIM(plate_number), '') IS NOT NULL
-        AND NULLIF(BTRIM(normalized_plate_number), '') IS NOT NULL
+        (plate_number IS NULL AND normalized_plate_number IS NULL)
+        OR (NULLIF(BTRIM(plate_number), '') IS NOT NULL AND NULLIF(BTRIM(normalized_plate_number), '') IS NOT NULL)
     )
 );
 
@@ -511,6 +516,36 @@ CREATE TABLE IF NOT EXISTS lost_card_cases (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT ck_lost_card_cases_status CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
     CONSTRAINT ck_lost_card_cases_fee CHECK (lost_card_fee >= 0)
+);
+
+CREATE TABLE IF NOT EXISTS lost_card_case_documents (
+    id BIGSERIAL PRIMARY KEY,
+    lost_card_case_id BIGINT NOT NULL REFERENCES lost_card_cases(id) ON DELETE CASCADE,
+    document_type VARCHAR(50) NOT NULL,
+    file_path TEXT NOT NULL,
+    thumbnail_path TEXT,
+    original_file_name VARCHAR(255),
+    mime_type VARCHAR(100),
+    size_bytes BIGINT,
+    sha256_hash VARCHAR(100),
+    note TEXT,
+    is_sensitive BOOLEAN NOT NULL DEFAULT true,
+    uploaded_by BIGINT NOT NULL REFERENCES users(id),
+    uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT ck_lost_card_documents_type CHECK (document_type IN (
+        'CCCD_FRONT',
+        'CCCD_BACK',
+        'FACE_PHOTO',
+        'VEHICLE_PHOTO',
+        'LOSS_DECLARATION',
+        'SIGNED_FORM',
+        'OTHER'
+    )),
+    CONSTRAINT ck_lost_card_documents_file_path CHECK (NULLIF(BTRIM(file_path), '') IS NOT NULL),
+    CONSTRAINT ck_lost_card_documents_size CHECK (size_bytes IS NULL OR size_bytes >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS lost_card_refunds (

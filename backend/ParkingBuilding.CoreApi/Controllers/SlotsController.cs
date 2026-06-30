@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using ParkingBuilding.CoreApi.Application.ParkingStructure.Slots;
 using Microsoft.AspNetCore.Authorization;
+using System.Threading.Tasks;
 
 namespace ParkingBuilding.CoreApi.Controllers;
 
 [ApiController]
 [Route("api/core/slots")]
-public class SlotsController : ControllerBase
+public class SlotsController : BaseApiController
 {
     private readonly SlotService _service;
 
@@ -21,7 +22,7 @@ public class SlotsController : ControllerBase
     public async Task<IActionResult> GetAll()
     {
         var result = await _service.GetAllAsync();
-        return Ok(result);
+        return Success(result, "Get slots successfully.");
     }
 
     // ================= CREATE SLOT =================
@@ -30,7 +31,7 @@ public class SlotsController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateSlotRequest request)
     {
         var result = await _service.CreateAsync(request);
-        return CreatedAtAction(nameof(Create), result);
+        return CreatedSuccess(result, "Create slot successfully.");
     }
 
     // ================= UPDATE STATUS =================
@@ -39,6 +40,6 @@ public class SlotsController : ControllerBase
     public async Task<IActionResult> UpdateStatus(long id, [FromBody] UpdateSlotStatusRequest request)
     {
         var result = await _service.UpdateStatusAsync(id, request);
-        return Ok(result);
+        return Success(result, "Update slot status successfully.");
     }
 }

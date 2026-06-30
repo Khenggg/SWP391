@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using ParkingBuilding.CoreApi.Application.ParkingStructure.Floors;
 using Microsoft.AspNetCore.Authorization;
+using System.Threading.Tasks;
 
 namespace ParkingBuilding.CoreApi.Controllers;
 
 [ApiController]
 [Route("api/core/floors")]
-public class FloorsController : ControllerBase
+public class FloorsController : BaseApiController
 {
     private readonly FloorService _service;
 
@@ -21,7 +22,7 @@ public class FloorsController : ControllerBase
     public async Task<IActionResult> GetAll()
     {
         var result = await _service.GetAllAsync();
-        return Ok(result);
+        return Success(result, "Get floors successfully.");
     }
 
     // CREATE
@@ -30,7 +31,7 @@ public class FloorsController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateFloorRequest request)
     {
         var result = await _service.CreateAsync(request);
-        return CreatedAtAction(nameof(Create), result);
+        return CreatedSuccess(result, "Create floor successfully.");
     }
 
     // UPDATE
@@ -39,6 +40,6 @@ public class FloorsController : ControllerBase
     public async Task<IActionResult> Update(long id, [FromBody] UpdateFloorRequest request)
     {
         var result = await _service.UpdateAsync(id, request);
-        return Ok(result);
+        return Success(result, "Update floor successfully.");
     }
 }

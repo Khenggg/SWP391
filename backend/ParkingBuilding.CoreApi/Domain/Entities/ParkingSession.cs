@@ -41,7 +41,33 @@ public class ParkingSession
     public decimal SnapshotLostCardFee { get; set; }
     public string CustomerType { get; set; } = "CASUAL"; // "CASUAL" hoặc "MONTHLY"
 
+    public long? SuggestedAreaId { get; set; }
+    public long? SuggestedSlotId { get; set; }
+    public long? OverrideAreaId { get; set; }
+    public long? OverrideSlotId { get; set; }
+    public long? OverrideBy { get; set; }
+    public DateTimeOffset? OverrideAt { get; set; }
+    public string? OverrideReason { get; set; }
+
+    public long? ClaimedByUserId { get; set; }
+    public virtual User? ClaimedByUser { get; set; }
+    public DateTimeOffset? ClaimedAt { get; set; }
+    public string? ClaimMethod { get; set; }
+
+    public long? MonthlyPassId { get; set; }
+
+    public long? ExitGateId { get; set; }
+    public long? ExitStaffId { get; set; }
+    public DateTimeOffset? ExitTime { get; set; }
+
+    public long? PlateCorrectedBy { get; set; }
+    public DateTimeOffset? PlateCorrectedAt { get; set; }
+
+    public string? CancellationReason { get; set; }
+
     // Đổi từ DateTime sang DateTimeOffset cho đồng bộ
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public virtual ICollection<ParkingSessionImage> ParkingSessionImages { get; set; } = new List<ParkingSessionImage>();
 }

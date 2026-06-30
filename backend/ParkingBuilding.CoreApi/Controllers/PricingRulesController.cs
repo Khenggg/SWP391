@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using ParkingBuilding.CoreApi.Contracts.Common;
 using ParkingBuilding.CoreApi.Domain.Entities;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
 using System;
@@ -53,8 +54,11 @@ namespace ParkingBuilding.CoreApi.Controllers
             if (!vehicleTypeExists)
                 return Fail("Bad Request", $"Vehicle type with ID {model.VehicleTypeId} does not exist.");
 
-            if (model.DayPrice < 0 || model.NightPrice < 0 || model.MonthlyPrice < 0 || model.ReservationHourlyPrice < 0 || model.LostCardFee < 0)
+            if (model.DayPrice < 0 || model.NightPrice < 0 || model.MonthlyPrice < 0 || model.LostCardFee < 0)
                 return Fail("Bad Request", "Prices and fees must be non-negative.");
+
+            var reservationPriceValidation = ValidateReservationHourlyPrice(model.ReservationHourlyPrice);
+            if (reservationPriceValidation != null) return reservationPriceValidation;
 
             var userIdStr = User.FindFirst("user_id")?.Value;
             long actorUserId = 1; // Default fallback to system/seeding admin
@@ -127,7 +131,8 @@ namespace ParkingBuilding.CoreApi.Controllers
 
             if (model.ReservationHourlyPrice.HasValue)
             {
-                if (model.ReservationHourlyPrice.Value < 0) return Fail("Bad Request", "Reservation hourly price must be non-negative.");
+                var reservationPriceValidation = ValidateReservationHourlyPrice(model.ReservationHourlyPrice.Value);
+                if (reservationPriceValidation != null) return reservationPriceValidation;
                 existing.ReservationHourlyPrice = model.ReservationHourlyPrice.Value;
             }
 
@@ -168,6 +173,35 @@ namespace ParkingBuilding.CoreApi.Controllers
             return Success(result, "Update pricing rule successfully");
         }
 
+        [HttpPatch("{id}/reservation-hourly-price")]
+        public async Task<IActionResult> UpdateReservationHourlyPrice(long id, [FromBody] UpdateReservationHourlyPriceDto model)
+        {
+            if (model == null) return Fail("Bad Request", "Model is required.");
+
+            var validation = ValidateReservationHourlyPrice(model.ReservationHourlyPrice);
+            if (validation != null) return validation;
+
+            var existing = await _context.PricingRules.FindAsync(id);
+            if (existing == null) return StatusCodeResponse(404, "Not Found", "Pricing rule not found.");
+
+            existing.ReservationHourlyPrice = model.ReservationHourlyPrice;
+
+            var userIdStr = User.FindFirst("user_id")?.Value;
+            if (!string.IsNullOrEmpty(userIdStr) && long.TryParse(userIdStr, out var parsedId))
+            {
+                existing.UpdatedBy = parsedId;
+            }
+
+            existing.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            var result = await _context.PricingRules
+                .Include(r => r.VehicleType)
+                .FirstOrDefaultAsync(r => r.Id == existing.Id);
+
+            return Success(result, "Update reservation hourly price successfully");
+        }
+
         // 5. DELETE PRICING RULE
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(long id)
@@ -204,6 +238,22 @@ namespace ParkingBuilding.CoreApi.Controllers
             public decimal? LostCardFee { get; set; }
             public DateTime? EffectiveFrom { get; set; }
             public string? Status { get; set; }
+        }
+
+        public class UpdateReservationHourlyPriceDto
+        {
+            public decimal ReservationHourlyPrice { get; set; }
+        }
+
+        private IActionResult? ValidateReservationHourlyPrice(decimal value)
+        {
+            if (value <= 0m)
+                return BusinessError(ErrorCodes.ReservationBookingFeeRequired);
+
+            if (value != decimal.Truncate(value))
+                return BusinessError(ErrorCodes.ReservationHourlyPriceMustBeInteger);
+
+            return null;
         }
     }
 }

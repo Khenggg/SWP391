@@ -28,13 +28,11 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence.Configurations
 
             builder.Property(x => x.PlateNumber)
                 .HasColumnName("plate_number")
-                .HasMaxLength(30)
-                .IsRequired();
+                .HasMaxLength(30);
 
             builder.Property(x => x.NormalizedPlateNumber)
                 .HasColumnName("normalized_plate_number")
-                .HasMaxLength(30)
-                .IsRequired();
+                .HasMaxLength(30);
 
             builder.Property(x => x.VehicleTypeId)
                 .HasColumnName("vehicle_type_id")
@@ -82,6 +80,14 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence.Configurations
                 .HasColumnName("expires_at")
                 .HasColumnType("timestamp with time zone")
                 .IsRequired();
+
+            builder.Property(x => x.PaymentDeadline)
+                .HasColumnName("payment_deadline")
+                .HasColumnType("timestamp with time zone");
+
+            builder.Property(x => x.ConfirmedAt)
+                .HasColumnName("confirmed_at")
+                .HasColumnType("timestamp with time zone");
 
             builder.Property(x => x.CheckedInAt)
                 .HasColumnName("checked_in_at")

@@ -100,8 +100,8 @@ if ($meResult.success -eq $true -and $meResult.data.username -eq "staff01") {
 # 5. GET floors
 Write-Host "[Smoke] Fetching floors list..."
 $floors = Invoke-ApiRequest -Method Get -Uri "$BaseUrl/api/core/floors" -Headers $headers
-if (@($floors).Count -gt 0) {
-    Write-Host "  Floors list count: $(@($floors).Count) (OK)" -ForegroundColor Green
+if (@($floors.data).Count -gt 0) {
+    Write-Host "  Floors list count: $(@($floors.data).Count) (OK)" -ForegroundColor Green
 } else {
     throw "Floors list is empty!"
 }
@@ -109,8 +109,8 @@ if (@($floors).Count -gt 0) {
 # 6. GET areas
 Write-Host "[Smoke] Fetching areas list..."
 $areas = Invoke-ApiRequest -Method Get -Uri "$BaseUrl/api/core/areas" -Headers $headers
-if (@($areas).Count -gt 0) {
-    Write-Host "  Areas list count: $(@($areas).Count) (OK)" -ForegroundColor Green
+if (@($areas.data).Count -gt 0) {
+    Write-Host "  Areas list count: $(@($areas.data).Count) (OK)" -ForegroundColor Green
 } else {
     throw "Areas list is empty!"
 }
@@ -118,8 +118,8 @@ if (@($areas).Count -gt 0) {
 # 7. GET slots
 Write-Host "[Smoke] Fetching slots list..."
 $slots = Invoke-ApiRequest -Method Get -Uri "$BaseUrl/api/core/slots" -Headers $headers
-if (@($slots).Count -gt 0) {
-    Write-Host "  Slots list count: $(@($slots).Count) (OK)" -ForegroundColor Green
+if (@($slots.data).Count -gt 0) {
+    Write-Host "  Slots list count: $(@($slots.data).Count) (OK)" -ForegroundColor Green
 } else {
     throw "Slots list is empty!"
 }

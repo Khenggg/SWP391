@@ -98,7 +98,7 @@ try {
         floorName = $floorName
     } | ConvertTo-Json
     $newFloor = Invoke-ApiRequest -Method Post -Uri "$BaseUrl/api/core/floors" -Body $floorBody -Headers $headers
-    $floorId = $newFloor.id
+    $floorId = $newFloor.data.id
     Write-Host "  Floor created successfully with ID: $floorId" -ForegroundColor Green
 
     # 2. Update Floor
@@ -108,7 +108,7 @@ try {
         status = "ACTIVE"
     } | ConvertTo-Json
     $updatedFloor = Invoke-ApiRequest -Method Put -Uri "$BaseUrl/api/core/floors/$floorId" -Body $updateFloorBody -Headers $headers
-    Write-Host "  Floor updated: $($updatedFloor.floorName)" -ForegroundColor Green
+    Write-Host "  Floor updated: $($updatedFloor.data.floorName)" -ForegroundColor Green
 
     # 3. Create Area
     Write-Host "[Crud] Creating new Area ($areaCode) on Floor $floorId..."
@@ -121,7 +121,7 @@ try {
         vehicleTypeIds = @(5) # Allow Car (Vehicle Type 5)
     } | ConvertTo-Json
     $newArea = Invoke-ApiRequest -Method Post -Uri "$BaseUrl/api/core/areas" -Body $areaBody -Headers $headers
-    $areaId = $newArea.id
+    $areaId = $newArea.data.id
     Write-Host "  Area created successfully with ID: $areaId" -ForegroundColor Green
 
     # 4. Update Area
@@ -134,7 +134,7 @@ try {
         vehicleTypeIds = @(5, 6) # Allow Car and Electric Car
     } | ConvertTo-Json
     $updatedArea = Invoke-ApiRequest -Method Put -Uri "$BaseUrl/api/core/areas/$areaId" -Body $updateAreaBody -Headers $headers
-    Write-Host "  Area updated: $($updatedArea.areaName)" -ForegroundColor Green
+    Write-Host "  Area updated: $($updatedArea.data.areaName)" -ForegroundColor Green
 
     # 5. Create Slot
     Write-Host "[Crud] Creating new Slot ($slotCode) on Area $areaId..."
@@ -144,7 +144,7 @@ try {
         allowedVehicleTypeId = 5
     } | ConvertTo-Json
     $newSlot = Invoke-ApiRequest -Method Post -Uri "$BaseUrl/api/core/slots" -Body $slotBody -Headers $headers
-    $slotId = $newSlot.id
+    $slotId = $newSlot.data.id
     Write-Host "  Slot created successfully with ID: $slotId" -ForegroundColor Green
 
     # 6. Patch Slot Status (RESERVED)
@@ -153,16 +153,16 @@ try {
         status = "RESERVED"
     } | ConvertTo-Json
     $patchedSlot = Invoke-ApiRequest -Method Patch -Uri "$BaseUrl/api/core/slots/$slotId/status" -Body $patchBody -Headers $headers
-    if ($patchedSlot.status -eq "RESERVED") {
+    if ($patchedSlot.data.status -eq "RESERVED") {
         Write-Host "  Slot status patched to RESERVED successfully" -ForegroundColor Green
     } else {
-        throw "Failed to patch slot status to RESERVED. Status is $($patchedSlot.status)"
+        throw "Failed to patch slot status to RESERVED. Status is $($patchedSlot.data.status)"
     }
 
     # 7. Get Slots list and verify ours exists
     Write-Host "[Crud] Verifying slot exists in global slot list..."
     $allSlots = Invoke-ApiRequest -Method Get -Uri "$BaseUrl/api/core/slots" -Headers $headers
-    $foundSlot = @($allSlots) | Where-Object { $_.id -eq $slotId }
+    $foundSlot = @($allSlots.data) | Where-Object { $_.id -eq $slotId }
     if ($foundSlot) {
         Write-Host "  Verified: Created slot found in GET /api/core/slots list!" -ForegroundColor Green
     } else {

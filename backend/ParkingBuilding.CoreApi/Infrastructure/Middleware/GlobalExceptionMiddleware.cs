@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ParkingBuilding.CoreApi.Contracts.Common;
 
@@ -14,13 +14,11 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Middleware
     {
         private readonly RequestDelegate _next;
         private readonly ILogger<GlobalExceptionMiddleware> _logger;
-        private readonly IHostEnvironment _env;
 
-        public GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExceptionMiddleware> logger, IHostEnvironment env)
+        public GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExceptionMiddleware> logger)
         {
             _next = next;
             _logger = logger;
-            _env = env;
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -31,50 +29,66 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Middleware
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An unhandled exception has occurred.");
-                await HandleExceptionAsync(context, ex);
+                await HandleExceptionAsync(context, ex, context.TraceIdentifier, context.Request.Path);
             }
         }
 
-        private async Task HandleExceptionAsync(HttpContext context, Exception exception)
+        private async Task HandleExceptionAsync(HttpContext context, Exception exception, string traceId, string path)
         {
-            context.Response.ContentType = "application/json";
-            
-            // Map specific exceptions to HTTP Status Codes
-            var statusCode = exception switch
-            {
-                KeyNotFoundException => HttpStatusCode.NotFound,
-                UnauthorizedAccessException => HttpStatusCode.Unauthorized,
-                ArgumentException or InvalidOperationException => HttpStatusCode.BadRequest,
-                _ => HttpStatusCode.InternalServerError
-            };
+            var (statusCode, errorCode) = MapException(exception);
+            var message = ErrorMessages.GetMessage(errorCode);
 
+            LogException(exception, statusCode, errorCode, traceId, path);
+
+            context.Response.ContentType = "application/json";
             context.Response.StatusCode = (int)statusCode;
 
-            var errorsList = new List<string>();
-            if (_env.IsDevelopment())
-            {
-                errorsList.Add(exception.ToString());
-            }
-            else
-            {
-                errorsList.Add(exception.Message);
-            }
-
-            var response = new ApiResponse<object>(
-                success: false,
-                message: "An unexpected error occurred.",
-                data: null,
-                errors: errorsList
+            var response = ApiResponse.FailureResult(
+                message: message,
+                errors: new List<string> { errorCode },
+                errorCode: errorCode,
+                statusCode: (int)statusCode,
+                traceId: traceId,
+                path: path
             );
 
-            var jsonOptions = new JsonSerializerOptions
+            var json = JsonSerializer.Serialize(response, new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            };
+            });
 
-            var json = JsonSerializer.Serialize(response, jsonOptions);
             await context.Response.WriteAsync(json);
+        }
+
+        private static (HttpStatusCode StatusCode, string ErrorCode) MapException(Exception exception)
+        {
+            return exception switch
+            {
+                BusinessException businessException => ((HttpStatusCode)businessException.StatusCode, businessException.ErrorCode),
+                UnauthorizedAccessException => (HttpStatusCode.Unauthorized, ErrorCodes.Unauthorized),
+                KeyNotFoundException keyNotFoundException => (HttpStatusCode.NotFound, GetErrorCodeOrFallback(keyNotFoundException.Message, ErrorCodes.NotFound)),
+                ArgumentException argumentException => (HttpStatusCode.BadRequest, GetErrorCodeOrFallback(argumentException.Message, ErrorCodes.InvalidRequest)),
+                InvalidOperationException invalidOperationException => (HttpStatusCode.BadRequest, GetErrorCodeOrFallback(invalidOperationException.Message, ErrorCodes.InvalidRequest)),
+                _ => (HttpStatusCode.InternalServerError, ErrorCodes.InternalServerError)
+            };
+        }
+
+        private static string GetErrorCodeOrFallback(string value, string fallback)
+            => IsErrorCode(value) ? value : fallback;
+
+        private static bool IsErrorCode(string value)
+            => !string.IsNullOrWhiteSpace(value)
+                && Regex.IsMatch(value, "^[A-Z0-9_]+$");
+
+        private void LogException(Exception exception, HttpStatusCode statusCode, string errorCode, string traceId, string path)
+        {
+            if ((int)statusCode >= StatusCodes.Status500InternalServerError)
+            {
+                _logger.LogError(exception, "Unhandled system exception. ErrorCode={ErrorCode}, TraceId={TraceId}, Path={Path}", errorCode, traceId, path);
+                return;
+            }
+
+            _logger.LogWarning(exception, "Handled API exception. StatusCode={StatusCode}, ErrorCode={ErrorCode}, TraceId={TraceId}, Path={Path}", (int)statusCode, errorCode, traceId, path);
         }
     }
 }

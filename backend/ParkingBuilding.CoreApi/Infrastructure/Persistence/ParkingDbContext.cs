@@ -26,6 +26,8 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence
         public DbSet<Reservation> Reservations { get; set; }
         public DbSet<ReservationExtension> ReservationExtensions { get; set; }
         public DbSet<Payment> Payments { get; set; }
+        public DbSet<ParkingSessionImage> ParkingSessionImages { get; set; }
+        public DbSet<LostCardCaseDocument> LostCardCaseDocuments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -11,8 +11,8 @@ namespace ParkingBuilding.CoreApi.Domain.Entities
         public virtual DriverProfile? Driver { get; set; }
         public long? VehicleId { get; set; }
         public virtual Vehicle? Vehicle { get; set; }
-        public string PlateNumber { get; set; } = string.Empty;
-        public string NormalizedPlateNumber { get; set; } = string.Empty;
+        public string? PlateNumber { get; set; }
+        public string? NormalizedPlateNumber { get; set; }
         public long VehicleTypeId { get; set; }
         public virtual VehicleType VehicleType { get; set; } = null!;
         public long FloorId { get; set; }
@@ -29,6 +29,8 @@ namespace ParkingBuilding.CoreApi.Domain.Entities
         public string PaymentStatus { get; set; } = "PENDING"; // PENDING, PAID, FAILED, CANCELLED, WAIVED, NOT_REQUIRED
         public DateTimeOffset ReservedAt { get; set; } = DateTimeOffset.UtcNow;
         public DateTimeOffset ExpiresAt { get; set; }
+        public DateTimeOffset? PaymentDeadline { get; set; }
+        public DateTimeOffset? ConfirmedAt { get; set; }
         public DateTimeOffset? CheckedInAt { get; set; }
         public long? CheckedInBy { get; set; }
         public virtual User? CheckedInByUser { get; set; }

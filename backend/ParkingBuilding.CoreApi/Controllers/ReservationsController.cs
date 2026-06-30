@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ParkingBuilding.CoreApi.Application.Reservations;
+using ParkingBuilding.CoreApi.Contracts.Common;
 using System.Threading.Tasks;
 
 namespace ParkingBuilding.CoreApi.Controllers
@@ -16,7 +17,6 @@ namespace ParkingBuilding.CoreApi.Controllers
             _reservationService = reservationService;
         }
 
-        // ================= GET AVAILABLE LOCATIONS =================
         [HttpGet("available-locations")]
         public async Task<IActionResult> GetAvailableLocations([FromQuery] long vehicleTypeId)
         {
@@ -24,16 +24,23 @@ namespace ParkingBuilding.CoreApi.Controllers
             return Success(result, "Get available locations successfully.");
         }
 
-        // ================= CREATE RESERVATION =================
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateReservationRequest request)
         {
-            long? userId = GetUserIdFromClaims();
-            var result = await _reservationService.CreateReservationAsync(request, userId);
-            return StatusCode(201, result); // Returns 201 Created directly
+            var userIdClaim = User.FindFirst("user_id")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var actorUserId))
+            {
+                throw new BusinessException(ErrorCodes.AuthUserIdInvalid);
+            }
+
+            var actorRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+                ?? User.FindFirst("role")?.Value
+                ?? string.Empty;
+
+            var result = await _reservationService.CreateReservationAsync(request, actorUserId, actorRole);
+            return CreatedSuccess(result, "Create reservation successfully.");
         }
 
-        // ================= EXTEND RESERVATION =================
         [HttpPost("{id}/extend")]
         public async Task<IActionResult> Extend(long id, [FromBody] ExtendReservationRequest request)
         {
@@ -42,7 +49,6 @@ namespace ParkingBuilding.CoreApi.Controllers
             return Success(result, "Extend reservation successfully.");
         }
 
-        // ================= CANCEL RESERVATION =================
         [HttpPost("{id}/cancel")]
         public async Task<IActionResult> Cancel(long id, [FromBody] CancelReservationRequest request)
         {
@@ -51,7 +57,33 @@ namespace ParkingBuilding.CoreApi.Controllers
             return Success(result, "Cancel reservation successfully.");
         }
 
-        // Helper to extract User ID from JWT token claims
+        [HttpGet("{id}/payment-status")]
+        public async Task<IActionResult> GetPaymentStatus(long id)
+        {
+            var result = await _reservationService.GetPaymentStatusAsync(id);
+            return Success(result, "Get reservation payment status successfully.");
+        }
+
+        [HttpGet("{reservationCode}/entry-check")]
+        [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
+        public async Task<IActionResult> CheckReservationForEntry(
+            string reservationCode,
+            [FromQuery] long entryGateId)
+        {
+            var userIdClaim = User.FindFirst("user_id")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var staffId))
+            {
+                throw new BusinessException(ErrorCodes.AuthUserIdInvalid);
+            }
+
+            var result = await _reservationService.CheckReservationForEntryAsync(
+                reservationCode,
+                entryGateId,
+                staffId);
+
+            return Success(result, "Kiem tra reservation thanh cong.");
+        }
+
         private long? GetUserIdFromClaims()
         {
             var userIdClaim = User.FindFirst("user_id")?.Value;
@@ -59,6 +91,7 @@ namespace ParkingBuilding.CoreApi.Controllers
             {
                 return parsedId;
             }
+
             return null;
         }
     }
