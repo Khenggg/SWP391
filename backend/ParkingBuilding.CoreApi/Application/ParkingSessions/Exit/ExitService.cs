@@ -99,48 +99,6 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
 
                     if (!isConfirmedMismatch)
                     {
-                        var alreadyLogged = await _context.PlateMismatchCases
-                            .AnyAsync(m => m.SessionId == session.Id && m.Status == "PENDING");
-
-                        if (!alreadyLogged)
-                        {
-                            // Save exit images if provided
-                            if (!string.IsNullOrWhiteSpace(request.ExitPlateImageUrl))
-                            {
-                                _context.ParkingSessionImages.Add(new ParkingSessionImage
-                                {
-                                    SessionId = session.Id,
-                                    ImageUrl = request.ExitPlateImageUrl,
-                                    ImageType = "EXIT_PLATE",
-                                    Confidence = request.OcrConfidence.HasValue ? (decimal)request.OcrConfidence.Value : null,
-                                    CapturedAt = DateTimeOffset.UtcNow
-                                });
-                            }
-                            if (!string.IsNullOrWhiteSpace(request.ExitVehicleImageUrl))
-                            {
-                                _context.ParkingSessionImages.Add(new ParkingSessionImage
-                                {
-                                    SessionId = session.Id,
-                                    ImageUrl = request.ExitVehicleImageUrl,
-                                    ImageType = "EXIT_VEHICLE",
-                                    CapturedAt = DateTimeOffset.UtcNow
-                                });
-                            }
-
-                            _context.PlateMismatchCases.Add(new PlateMismatchCase
-                            {
-                                SessionId = session.Id,
-                                EntryPlateNumber = session.PlateNumber,
-                                ExitPlateNumber = exitPlateInput ?? "UNKNOWN",
-                                Status = "PENDING",
-                                Reason = $"OCR or Staff input plate '{exitPlateInput}' did not match entry plate '{session.PlateNumber}'.",
-                                CreatedBy = staffId,
-                                CreatedAt = DateTimeOffset.UtcNow,
-                                UpdatedAt = DateTimeOffset.UtcNow
-                            });
-                            await _context.SaveChangesAsync();
-                        }
-
                         throw new BusinessException("PLATE_MISMATCH_REQUIRES_APPROVAL");
                     }
                 }
@@ -367,48 +325,6 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
 
                     if (!isConfirmedMismatch)
                     {
-                        var alreadyLogged = await _context.PlateMismatchCases
-                            .AnyAsync(m => m.SessionId == session.Id && m.Status == "PENDING");
-
-                        if (!alreadyLogged)
-                        {
-                            // Save exit images if provided
-                            if (!string.IsNullOrWhiteSpace(request.ExitPlateImageUrl))
-                            {
-                                _context.ParkingSessionImages.Add(new ParkingSessionImage
-                                {
-                                    SessionId = session.Id,
-                                    ImageUrl = request.ExitPlateImageUrl,
-                                    ImageType = "EXIT_PLATE",
-                                    Confidence = request.OcrConfidence.HasValue ? (decimal)request.OcrConfidence.Value : null,
-                                    CapturedAt = DateTimeOffset.UtcNow
-                                });
-                            }
-                            if (!string.IsNullOrWhiteSpace(request.ExitVehicleImageUrl))
-                            {
-                                _context.ParkingSessionImages.Add(new ParkingSessionImage
-                                {
-                                    SessionId = session.Id,
-                                    ImageUrl = request.ExitVehicleImageUrl,
-                                    ImageType = "EXIT_VEHICLE",
-                                    CapturedAt = DateTimeOffset.UtcNow
-                                });
-                            }
-
-                            _context.PlateMismatchCases.Add(new PlateMismatchCase
-                            {
-                                SessionId = session.Id,
-                                EntryPlateNumber = session.PlateNumber,
-                                ExitPlateNumber = exitPlateInput ?? "UNKNOWN",
-                                Status = "PENDING",
-                                Reason = $"OCR or Staff input plate '{exitPlateInput}' did not match entry plate '{session.PlateNumber}'.",
-                                CreatedBy = staffId,
-                                CreatedAt = DateTimeOffset.UtcNow,
-                                UpdatedAt = DateTimeOffset.UtcNow
-                            });
-                            await _context.SaveChangesAsync();
-                        }
-
                         throw new BusinessException("PLATE_MISMATCH_REQUIRES_APPROVAL");
                     }
                 }
