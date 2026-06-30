@@ -91,12 +91,17 @@ export default function DriverBookingPage() {
     
     setIsSubmitting(true);
     try {
-      // Map vehicleTypeId logic (assuming from name or object)
-      const vehicleTypeId = selectedVehicle.vehicleTypeName === "Ô Tô" ? 1 : 2; 
+      // Dùng trực tiếp vehicleTypeId hoặc map sang ID 5 (Ô Tô) / 3 (Xe Máy) theo C# Backend
+      const vehicleTypeId = selectedVehicle.vehicleTypeId || (selectedVehicle.vehicleTypeName === "Ô Tô" ? 5 : 3); 
+
+      // Tìm floorId từ danh sách khu vực đã chọn
+      const selectedAreaObj = areas.find(a => a.id === selectedAreaId || a.code === selectedAreaId);
+      const floorId = selectedAreaObj?.floorId || 1;
 
       const res = await reservationService.createReservation(
         selectedVehicle.plateNumber || selectedVehicle.plate,
         vehicleTypeId,
+        floorId,
         selectedAreaId,
         durationHours,
         selectedSlotId // Truyền thêm slotId cho Ô tô

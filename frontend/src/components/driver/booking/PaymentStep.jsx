@@ -52,14 +52,29 @@ export default function PaymentStep({ activeReservation, onPaymentComplete, onCa
       <div className="bg-slate-50 rounded-2xl p-6 border-2 border-dashed border-slate-200 text-center relative overflow-hidden group">
 
         
-        <div className="bg-white p-4 rounded-xl shadow-sm inline-block border border-slate-100 mb-4 relative z-10">
-          {/* TO-DO: Replace `mockQrUrl` with actual dynamic QR image from payment gateway API */}
-          <img 
-            src={mockQrUrl} 
-            alt="Payment QR" 
-            className="w-48 h-48 object-contain"
-          />
-        </div>
+        {activeReservation?.checkoutUrl ? (
+          <div className="my-4 relative z-10">
+            <a 
+              href={activeReservation.checkoutUrl} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition-all text-sm animate-bounce"
+            >
+              🚀 Mở trang thanh toán PayOS
+            </a>
+            <p className="text-xs text-slate-500 mt-2 font-semibold">
+              Bấm nút trên để mở cổng thanh toán PayOS Sandbox.
+            </p>
+          </div>
+        ) : (
+          <div className="bg-white p-4 rounded-xl shadow-sm inline-block border border-slate-100 mb-4 relative z-10">
+            <img 
+              src={mockQrUrl} 
+              alt="Payment QR" 
+              className="w-48 h-48 object-contain"
+            />
+          </div>
+        )}
         
         <div className="space-y-3 relative z-10">
           <div className="flex justify-between items-center text-sm px-4">
