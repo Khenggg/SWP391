@@ -1,11 +1,11 @@
 package com.parkingbuilding.support.sharedreadmodel.repository;
 
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.repository.NoRepositoryBean;
 import org.springframework.data.repository.Repository;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.Optional;
 
 @NoRepositoryBean
 @Transactional(readOnly = true)

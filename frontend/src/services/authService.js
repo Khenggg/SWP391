@@ -7,7 +7,7 @@ export const authService = {
     try {
       const response = await coreAxiosClient.post("/auth/login", { username, password });
       if (response.success && response.data) {
-        return response.data; // contains { token, user }
+        return response.data; // contains { accessToken, user }
       }
       throw new Error(response.message || "Tên đăng nhập hoặc mật khẩu không chính xác.");
     } catch (err) {

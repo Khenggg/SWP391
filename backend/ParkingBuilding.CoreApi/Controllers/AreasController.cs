@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using ParkingBuilding.CoreApi.Application.ParkingStructure.Areas;
+using Microsoft.AspNetCore.Authorization;
+using System.Threading.Tasks;
 
 namespace ParkingBuilding.CoreApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
-public class AreasController : ControllerBase
+[Route("api/core/areas")]
+public class AreasController : BaseApiController
 {
     private readonly AreaService _service;
 
@@ -14,19 +16,30 @@ public class AreasController : ControllerBase
         _service = service;
     }
 
+    // GET ALL
+    [HttpGet]
+    [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
+    public async Task<IActionResult> GetAll()
+    {
+        var result = await _service.GetAllAsync();
+        return Success(result, "Get areas successfully.");
+    }
+
     // CREATE
     [HttpPost]
+    [Authorize(Roles = "MANAGER,ADMIN")]
     public async Task<IActionResult> Create([FromBody] CreateAreaRequest request)
     {
         var result = await _service.CreateAsync(request);
-        return CreatedAtAction(nameof(Create), result);
+        return CreatedSuccess(result, "Create area successfully.");
     }
 
     // UPDATE
     [HttpPut("{id}")]
+    [Authorize(Roles = "MANAGER,ADMIN")]
     public async Task<IActionResult> Update(long id, [FromBody] UpdateAreaRequest request)
     {
         var result = await _service.UpdateAsync(id, request);
-        return Ok(result);
+        return Success(result, "Update area successfully.");
     }
 }

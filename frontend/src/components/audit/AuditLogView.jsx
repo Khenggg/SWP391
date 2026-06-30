@@ -27,7 +27,7 @@ export default function AuditLogView({ mode = "manager" }) {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const params = {};
+      const params = { size: 1000 };
       if (filterKeyword) params.keyword = filterKeyword;
       if (filterAction !== "ALL") params.action = filterAction;
       if (filterTarget !== "ALL") params.targetType = filterTarget;
@@ -68,7 +68,7 @@ export default function AuditLogView({ mode = "manager" }) {
   const handleExport = async () => {
     try {
       toast.info("Đang xuất file Excel...");
-      const params = {};
+      const params = { size: 1000 };
       if (filterKeyword) params.keyword = filterKeyword;
       if (filterAction !== "ALL") params.action = filterAction;
       if (filterTarget !== "ALL") params.targetType = filterTarget;

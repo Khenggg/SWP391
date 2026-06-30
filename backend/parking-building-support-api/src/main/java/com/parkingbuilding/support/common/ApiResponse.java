@@ -23,4 +23,12 @@ public record ApiResponse<T>(
                 data,
                 LocalDateTime.now());
     }
+
+    public static ApiResponse<Void> ok(String message) {
+        return new ApiResponse<>(
+                true,
+                message,
+                null,
+                LocalDateTime.now());
+    }
 }

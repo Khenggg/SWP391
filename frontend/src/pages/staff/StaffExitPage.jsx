@@ -194,7 +194,7 @@ export default function StaffExitPage() {
 
   const canExit = useMemo(() => {
     if (!paymentReady) return false;
-    return !hasMismatch || mismatchCase?.status === "APPROVED";
+    return !hasMismatch || mismatchCase?.status === "CONFIRMED";
   }, [paymentReady, hasMismatch, mismatchCase]);
 
   const handlePayCash = async () => {

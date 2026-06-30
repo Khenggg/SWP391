@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { X, Check, XCircle, HelpCircle } from "lucide-react";
+import React from "react";
+import { X, Check, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format";
@@ -16,206 +16,139 @@ const PRIORITY_BADGE = {
   LOW: "bg-emerald-100 text-emerald-600 border-emerald-200",
 };
 
-export default function MismatchSidePanel({ 
-  item, 
+function getMismatchType(entryPlate, exitPlate) {
+  const normalizedEntry = String(entryPlate || "").replace(/[^A-Z0-9]/gi, "");
+  const normalizedExit = String(exitPlate || "").replace(/[^A-Z0-9]/gi, "");
+
+  if (!normalizedEntry || !normalizedExit) return "--";
+  if (normalizedEntry === normalizedExit) return "Khop";
+  if (normalizedEntry.slice(0, -1) === normalizedExit.slice(0, -1)) return "Khac mot phan";
+  return "Khac hoan toan";
+}
+
+export default function MismatchSidePanel({
+  item,
   onClose,
   onApprove,
   onReject,
-  onRequestMoreInfo
+  isSubmitting = false,
 }) {
   if (!item) return null;
 
-  const [activeTab, setActiveTab] = useState("INFO");
-
-  const caseCode = item.caseCode || `MM-${new Date(item.createdAt || new Date()).getFullYear()}-${(item.id || 0).toString().padStart(5, '0')}`;
+  const caseCode = item.caseCode || `MM-${String(item.id || "").padStart(5, "0")}`;
   const priority = item.priority || "MEDIUM";
-  const priorityLabel = priority === "HIGH" ? "Cao" : priority === "MEDIUM" ? "Trung bình" : "Thấp";
-  const statusDisplay = item.status === "PENDING" ? "CHỜ PHÊ DUYỆT" : item.status === "CONFIRMED" ? "ĐÃ PHÊ DUYỆT" : "ĐÃ TỪ CHỐI";
-  
-  // Mock data for UI that is not directly in DB spec for plate_mismatch_cases
-  const creatorRole = item.creatorRole || "STAFF";
-  const sessionStatus = item.sessionStatus || "ACTIVE";
-  
-  const entryTime = item.entryTime ? formatDateTime(item.entryTime) : "01/06/2026 08:00:00";
-  const exitTime = item.createdAt ? formatDateTime(item.createdAt) : formatDateTime(new Date());
-
-  const cardGroup = item.cardGroup || "Thẻ tháng";
-  const cardType = item.cardType || "Thẻ tháng ô tô";
+  const priorityLabel = priority === "HIGH" ? "Cao" : priority === "LOW" ? "Thap" : "Trung binh";
+  const statusLabel = item.status === "PENDING" ? "Cho phe duyet" : item.status === "CONFIRMED" ? "Da phe duyet" : "Da tu choi";
 
   return (
-    <div className="w-[500px] bg-slate-50/50 border-l border-slate-200 flex flex-col shadow-xl flex-shrink-0 animate-in slide-in-from-right-4 h-full">
-      <div className="flex items-center justify-between p-4 bg-white border-b border-slate-200">
-        <h3 className="font-bold text-lg text-slate-800">Chi tiết yêu cầu #{caseCode}</h3>
+    <div className="flex h-full w-[500px] flex-shrink-0 flex-col border-l border-slate-200 bg-slate-50/50 shadow-xl">
+      <div className="flex items-center justify-between border-b border-slate-200 bg-white p-4">
+        <h3 className="text-lg font-bold text-slate-800">Chi tiet ho so #{caseCode}</h3>
         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-slate-100" onClick={onClose}>
-          <X className="w-5 h-5" />
+          <X className="h-5 w-5" />
         </Button>
       </div>
 
-      <div className="flex items-center gap-6 border-b border-slate-200 px-6 bg-white">
-        {[
-          { id: "INFO", label: "Thông tin yêu cầu" },
-          { id: "HISTORY", label: "Lịch sử xử lý" },
-          { id: "ATTACHMENTS", label: "Tệp đính kèm (2)" }
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`py-3 text-sm font-semibold relative transition-colors ${
-              activeTab === tab.id 
-                ? "text-blue-600 border-b-2 border-blue-600" 
-                : "text-slate-500 hover:text-slate-800"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-      
-      <div className="p-6 flex-1 overflow-y-auto space-y-8 text-sm">
-        {activeTab === "INFO" ? (
-          <>
-            {/* Thông tin chung */}
-            <div className="space-y-4">
-              <h4 className="font-bold text-base text-slate-800 border-b border-slate-200 pb-2">Thông tin chung</h4>
-              <div className="grid grid-cols-[140px_1fr] gap-y-3 items-center">
-                <span className="text-slate-500 text-sm">Mã yêu cầu</span>
-                <span className="font-mono text-slate-800 font-medium">{caseCode}</span>
+      <div className="flex-1 space-y-8 overflow-y-auto p-6 text-sm">
+        <section className="space-y-4">
+          <h4 className="border-b border-slate-200 pb-2 text-base font-bold text-slate-800">Thong tin chung</h4>
+          <div className="grid grid-cols-[140px_1fr] gap-y-3">
+            <span className="text-slate-500">Ma yeu cau</span>
+            <span className="font-mono font-medium text-slate-800">{caseCode}</span>
 
-                <span className="text-slate-500 text-sm">Trạng thái</span>
-                <div>
-                  <Badge variant="outline" className={`px-2 py-0.5 text-[10px] font-bold border uppercase ${STATUS_BADGE[item.status]}`}>
-                    {statusDisplay}
-                  </Badge>
-                </div>
-
-                <span className="text-slate-500 text-sm">Mức độ ưu tiên</span>
-                <div>
-                  <Badge variant="outline" className={`px-2 py-0.5 text-[10px] font-bold border ${PRIORITY_BADGE[priority]}`}>
-                    {priorityLabel}
-                  </Badge>
-                </div>
-
-                <span className="text-slate-500 text-sm">Thời gian tạo</span>
-                <span className="text-slate-800 font-medium">{item.createdAt ? formatDateTime(item.createdAt) : ''}</span>
-
-                <span className="text-slate-500 text-sm">Người tạo (Staff)</span>
-                <div className="flex items-center gap-2">
-                  <div className="h-6 w-6 rounded-full bg-slate-200 overflow-hidden flex-shrink-0">
-                    <img 
-                      src={`https://api.dicebear.com/7.x/notionists/svg?seed=${item.reporterName || item.createdBy}`} 
-                      alt="avatar" 
-                      className="w-full h-full object-cover" 
-                    />
-                  </div>
-                  <span className="text-slate-800 font-semibold">{item.reporterName || item.createdBy || "Staff"}</span>
-                  <Badge variant="outline" className={`px-1.5 py-0 text-[9px] w-fit font-bold ${creatorRole === 'MANAGER' ? 'text-blue-600 border-blue-200 bg-blue-50' : 'text-emerald-600 border-emerald-200 bg-emerald-50'}`}>
-                    {creatorRole}
-                  </Badge>
-                </div>
-
-                <span className="text-slate-500 text-sm">Kênh tạo</span>
-                <span className="text-slate-800 font-medium">Hệ thống (Staff Portal)</span>
-              </div>
+            <span className="text-slate-500">Trang thai</span>
+            <div>
+              <Badge variant="outline" className={`border px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_BADGE[item.status]}`}>
+                {statusLabel}
+              </Badge>
             </div>
 
-            {/* Thông tin phiên đỗ xe */}
-            <div className="space-y-4">
-              <h4 className="font-bold text-base text-slate-800 border-b border-slate-200 pb-2">Thông tin phiên đỗ xe</h4>
-              <div className="grid grid-cols-[140px_1fr] gap-y-3 items-center">
-                <span className="text-slate-500 text-sm">Mã phiên</span>
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-slate-800 font-medium">{item.sessionCode || "PS-000456"}</span>
-                  <Button variant="link" className="h-auto p-0 text-blue-600 text-xs bg-blue-50 px-2 py-0.5 rounded-md hover:no-underline hover:bg-blue-100 font-bold">Xem chi tiết phiên</Button>
-                </div>
-
-                <span className="text-slate-500 text-sm">Vào bãi</span>
-                <span className="text-slate-800 font-medium">{entryTime} - Gate 1</span>
-
-                <span className="text-slate-500 text-sm">Ra bãi (đề nghị)</span>
-                <span className="text-slate-800 font-medium">{exitTime} - Gate 1</span>
-
-                <span className="text-slate-500 text-sm">Thời gian đỗ</span>
-                <span className="text-slate-800 font-medium">2 giờ 13 phút</span>
-
-                <span className="text-slate-500 text-sm">Loại khách</span>
-                <span className="text-slate-800 font-medium">{cardGroup === 'Thẻ tháng' ? 'Thuê bao tháng' : 'Vãng lai'}</span>
-
-                <span className="text-slate-500 text-sm">Trạng thái phiên</span>
-                <div>
-                  <Badge variant="outline" className="px-2 py-0.5 text-[10px] font-bold border border-emerald-200 bg-emerald-50 text-emerald-700">
-                    {sessionStatus}
-                  </Badge>
-                </div>
-              </div>
+            <span className="text-slate-500">Muc do uu tien</span>
+            <div>
+              <Badge variant="outline" className={`border px-2 py-0.5 text-[10px] font-bold ${PRIORITY_BADGE[priority]}`}>
+                {priorityLabel}
+              </Badge>
             </div>
 
-            {/* Thông tin thẻ và xe */}
-            <div className="space-y-4">
-              <h4 className="font-bold text-base text-slate-800 border-b border-slate-200 pb-2">Thông tin thẻ và xe</h4>
-              <div className="grid grid-cols-[140px_1fr] gap-y-3 items-center">
-                <span className="text-slate-500 text-sm">Mã thẻ</span>
-                <span className="text-slate-800 font-medium">{item.cardCode || "CARD-UNKNOWN"}</span>
+            <span className="text-slate-500">Thoi gian tao</span>
+            <span className="font-medium text-slate-800">{item.createdAt ? formatDateTime(item.createdAt) : "--"}</span>
 
-                <span className="text-slate-500 text-sm">Chủ thẻ</span>
-                <span className="text-slate-800 font-medium">{item.cardOwner || "Nguyễn Văn A"}</span>
-
-                <span className="text-slate-500 text-sm">Nhóm thẻ</span>
-                <div>
-                  <Badge variant="outline" className="px-2 py-0.5 text-[10px] font-bold border border-purple-200 bg-purple-50 text-purple-700">
-                    {cardGroup}
-                  </Badge>
-                </div>
-
-                <span className="text-slate-500 text-sm">Loại thẻ</span>
-                <span className="text-slate-800 font-medium">{cardType}</span>
-
-                <span className="text-slate-500 text-sm">Biển số đăng ký trên thẻ</span>
-                <span className="font-mono text-slate-800 font-bold">{item.entryPlateNumber || "N/A"}</span>
-              </div>
-            </div>
-
-            {/* Thông tin lệch biển số */}
-            <div className="space-y-4">
-              <h4 className="font-bold text-base text-slate-800 border-b border-slate-200 pb-2">Thông tin lệch biển số</h4>
-              <div className="grid grid-cols-[140px_1fr] gap-y-3">
-                <span className="text-slate-500 text-sm">Biển số thực tế <br/>(camera/nhập tay)</span>
-                <span className="font-mono font-bold text-red-600">{item.exitPlateNumber || "N/A"}</span>
-
-                <span className="text-slate-500 text-sm">Loại lệch</span>
-                <span className="text-slate-800 font-medium">Khác số</span>
-
-                <span className="text-slate-500 text-sm">Lý do đề nghị</span>
-                <span className="text-slate-800 font-semibold">{item.reason || "Đi nhầm xe của người thân"}</span>
-
-                <span className="text-slate-500 text-sm">Ghi chú</span>
-                <span className="text-slate-700 text-sm leading-relaxed">{item.note || "Xe màu đen, cùng người sử dụng."}</span>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="flex items-center justify-center h-40 text-slate-400 italic">
-            Chức năng đang được phát triển...
+            <span className="text-slate-500">Nguoi tao</span>
+            <span className="font-medium text-slate-800">{item.reporterName || item.createdBy || "--"}</span>
           </div>
-        )}
+        </section>
+
+        <section className="space-y-4">
+          <h4 className="border-b border-slate-200 pb-2 text-base font-bold text-slate-800">Thong tin phien</h4>
+          <div className="grid grid-cols-[140px_1fr] gap-y-3">
+            <span className="text-slate-500">Ma phien</span>
+            <span className="font-mono font-medium text-slate-800">{item.sessionCode || "--"}</span>
+
+            <span className="text-slate-500">Ma the</span>
+            <span className="font-medium text-slate-800">{item.cardCode || "--"}</span>
+
+            <span className="text-slate-500">Bien vao</span>
+            <span className="font-mono font-medium text-slate-800">{item.entryPlateNumber || "--"}</span>
+
+            <span className="text-slate-500">Bien ra</span>
+            <span className="font-mono font-medium text-red-600">{item.exitPlateNumber || "--"}</span>
+
+            <span className="text-slate-500">Thoi gian vao</span>
+            <span className="font-medium text-slate-800">{item.entryTime ? formatDateTime(item.entryTime) : "--"}</span>
+
+            <span className="text-slate-500">Thoi gian phat sinh</span>
+            <span className="font-medium text-slate-800">{item.createdAt ? formatDateTime(item.createdAt) : "--"}</span>
+
+            <span className="text-slate-500">Loai lech</span>
+            <span className="font-medium text-slate-800">{getMismatchType(item.entryPlateNumber, item.exitPlateNumber)}</span>
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <h4 className="border-b border-slate-200 pb-2 text-base font-bold text-slate-800">Xac minh va xu ly</h4>
+          <div className="grid grid-cols-[140px_1fr] gap-y-3">
+            <span className="text-slate-500">Ly do</span>
+            <span className="font-semibold text-slate-800">{item.reason || "--"}</span>
+
+            <span className="text-slate-500">Ghi chu</span>
+            <span className="leading-relaxed text-slate-700">{item.note || "--"}</span>
+
+            <span className="text-slate-500">Nguoi duyet</span>
+            <span className="font-medium text-slate-800">{item.decidedBy || "--"}</span>
+
+            <span className="text-slate-500">Thoi gian duyet</span>
+            <span className="font-medium text-slate-800">{item.decidedAt ? formatDateTime(item.decidedAt) : "--"}</span>
+
+            <span className="text-slate-500">Ly do quyet dinh</span>
+            <span className="leading-relaxed text-slate-700">{item.decisionReason || "--"}</span>
+          </div>
+        </section>
       </div>
 
-      {/* Footer Actions */}
-      <div className="p-4 bg-white border-t border-slate-200 space-y-3">
+      <div className="space-y-3 border-t border-slate-200 bg-white p-4">
         {item.status === "PENDING" && (
-          <div className="flex items-center gap-3 w-full">
-            <Button variant="outline" className="flex-1 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 h-11 font-semibold" onClick={() => onReject(item)}>
-              <XCircle className="w-5 h-5 mr-2" /> Từ chối
+          <div className="flex w-full items-center gap-3">
+            <Button
+              variant="outline"
+              className="h-11 flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+              onClick={() => onReject(item)}
+              disabled={isSubmitting}
+            >
+              <XCircle className="mr-2 h-5 w-5" /> Tu choi
             </Button>
-            {onRequestMoreInfo && (
-              <Button variant="outline" className="flex-1 text-amber-600 border-amber-200 hover:bg-amber-50 hover:text-amber-700 h-11 font-semibold" onClick={() => onRequestMoreInfo(item)}>
-                <HelpCircle className="w-5 h-5 mr-2" /> Yêu cầu bổ sung
-              </Button>
-            )}
-            <Button variant="outline" className="flex-1 text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 bg-emerald-50 h-11 font-semibold" onClick={() => onApprove(item)}>
-              <Check className="w-5 h-5 mr-2" /> Phê duyệt
+            <Button
+              variant="outline"
+              className="h-11 flex-1 border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700"
+              onClick={() => onApprove(item)}
+              disabled={isSubmitting}
+            >
+              <Check className="mr-2 h-5 w-5" /> Phe duyet
             </Button>
           </div>
         )}
+        <p className="text-[11px] text-slate-500">
+          Trang nay chi giu cac thao tac co nghiep vu that: phe duyet, tu choi, dong panel.
+        </p>
       </div>
     </div>
   );

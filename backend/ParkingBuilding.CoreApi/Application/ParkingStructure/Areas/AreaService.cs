@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
+using ParkingBuilding.CoreApi.Contracts.Common;
 using ParkingBuilding.CoreApi.Domain.Entities;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
 
@@ -18,20 +20,20 @@ public class AreaService
     {
         // ===== 1. VALIDATE INPUT =====
         if (string.IsNullOrWhiteSpace(request.AreaCode))
-            throw new ArgumentException("AreaCode is required");
+            throw new BusinessException(ErrorCodes.AreaCodeRequired);
 
         if (string.IsNullOrWhiteSpace(request.AreaName))
-            throw new ArgumentException("AreaName is required");
+            throw new BusinessException(ErrorCodes.AreaNameRequired);
 
         if (request.TotalCapacity < 0)
-            throw new ArgumentException("TotalCapacity must be >= 0");
+            throw new BusinessException(ErrorCodes.AreaCapacityInvalid);
 
         // ===== 2. CHECK FLOOR =====
         var floorExists = await _context.Floors
             .AnyAsync(x => x.Id == request.FloorId);
 
         if (!floorExists)
-            throw new KeyNotFoundException("Floor not found");
+            throw new BusinessException(ErrorCodes.FloorNotFound, StatusCodes.Status404NotFound);
 
         // ===== 3. NORMALIZE =====
         var code = request.AreaCode.Trim().ToUpper();
@@ -41,7 +43,7 @@ public class AreaService
             .AnyAsync(x => x.FloorId == request.FloorId && x.AreaCode == code);
 
         if (exists)
-            throw new InvalidOperationException("Area code already exists in this floor");
+            throw new BusinessException(ErrorCodes.AreaCodeExists, StatusCodes.Status409Conflict);
 
         // ===== 5. VEHICLE TYPES (FIX DISTINCT) =====
         var vehicleTypeIds = request.VehicleTypeIds
@@ -54,7 +56,7 @@ public class AreaService
                 .CountAsync(x => vehicleTypeIds.Contains(x.Id));
 
             if (validCount != vehicleTypeIds.Count)
-                throw new ArgumentException("Invalid VehicleTypeIds");
+                throw new BusinessException(ErrorCodes.VehicleTypeNotFound);
         }
 
         // ===== 6. CREATE ENTITY =====
@@ -77,13 +79,14 @@ public class AreaService
         // ===== 7. MANY-TO-MANY =====
         if (vehicleTypeIds.Any())
         {
-            var mappings = vehicleTypeIds.Select(vtId => new AreaVehicleType
+            foreach (var vtId in vehicleTypeIds)
             {
-                AreaId = entity.Id,
-                VehicleTypeId = vtId
-            });
-
-            _context.AreaVehicleTypes.AddRange(mappings);
+                entity.AreaVehicleTypes.Add(new AreaVehicleType
+                {
+                    Area = entity,
+                    VehicleTypeId = vtId
+                });
+            }
         }
 
         // ===== 8. SAVE 1 LẦN =====
@@ -110,24 +113,24 @@ public class AreaService
             .FirstOrDefaultAsync(x => x.Id == id);
 
         if (entity == null)
-            throw new KeyNotFoundException("Area not found");
+            throw new BusinessException(ErrorCodes.AreaNotFound, StatusCodes.Status404NotFound);
 
         // ===== 2. VALIDATE =====
         if (string.IsNullOrWhiteSpace(request.AreaName))
-            throw new ArgumentException("AreaName is required");
+            throw new BusinessException(ErrorCodes.AreaNameRequired);
 
         if (string.IsNullOrWhiteSpace(request.Status))
-            throw new ArgumentException("Status is required");
+            throw new BusinessException(ErrorCodes.InvalidStatus);
 
         if (request.TotalCapacity < 0)
-            throw new ArgumentException("TotalCapacity must be >= 0");
+            throw new BusinessException(ErrorCodes.AreaCapacityInvalid);
 
         // ===== 3. CAPACITY RULE =====
         if (request.TotalCapacity < entity.CurrentRealOccupancy)
-            throw new InvalidOperationException("TotalCapacity < CurrentRealOccupancy");
+            throw new BusinessException(ErrorCodes.AreaCapacityBelowOccupancy);
 
         if (request.TotalCapacity < entity.CurrentBookedSlots)
-            throw new InvalidOperationException("TotalCapacity < CurrentBookedSlots");
+            throw new BusinessException(ErrorCodes.AreaCapacityBelowBookings);
 
         // ===== 4. VEHICLE TYPES (FIX DISTINCT) =====
         var vehicleTypeIds = request.VehicleTypeIds
@@ -140,7 +143,7 @@ public class AreaService
                 .CountAsync(x => vehicleTypeIds.Contains(x.Id));
 
             if (validCount != vehicleTypeIds.Count)
-                throw new ArgumentException("Invalid VehicleTypeIds");
+                throw new BusinessException(ErrorCodes.VehicleTypeNotFound);
         }
 
         // ===== 5. UPDATE BASIC =====
@@ -186,5 +189,20 @@ public class AreaService
             TotalCapacity = entity.TotalCapacity,
             Status = entity.Status
         };
+    }
+
+    public async Task<List<AreaResponse>> GetAllAsync()
+    {
+        return await _context.Areas
+            .Select(x => new AreaResponse
+            {
+                Id = x.Id,
+                FloorId = x.FloorId,
+                AreaCode = x.AreaCode,
+                AreaName = x.AreaName,
+                TotalCapacity = x.TotalCapacity,
+                Status = x.Status
+            })
+            .ToListAsync();
     }
 }

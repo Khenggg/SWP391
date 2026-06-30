@@ -48,6 +48,13 @@ const decrementAreaOccupancy = (areaCode) => {
 
 export const driverHandlers = [
   ...enabled(
+    MOCK_FLAGS.DRIVER_REGISTER || true,
+    http.post(`${API_BASE_URLS.core}/driver/register`, async ({ request }) => {
+      await delay(500);
+      return ok({ message: "Register successful" });
+    })
+  ),
+  ...enabled(
     MOCK_FLAGS.DRIVER_BOOKINGS,
     http.get(`${API_BASE_URLS.core}/driver/me`, async ({ request }) => {
       await delay(250);
