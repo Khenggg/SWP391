@@ -21,6 +21,7 @@ using ParkingBuilding.CoreApi.Application.ParkingStructure.Floors;
 using ParkingBuilding.CoreApi.Application.ParkingStructure.Areas;
 using ParkingBuilding.CoreApi.Application.ParkingStructure.Slots;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.LocationSuggestion;
+using ParkingBuilding.CoreApi.Application.ParkingSessions.Exit;
 
 // THÊM DÒNG NÀY: Để nhận diện lớp dịch vụ vào bãi xe
 using ParkingBuilding.CoreApi.Application.ParkingSessions.Entry;
@@ -29,6 +30,7 @@ using ParkingBuilding.CoreApi.Application.MonthlyPasses;
 using ParkingBuilding.CoreApi.Application.Payments;
 using ParkingBuilding.CoreApi.Application.Storage;
 using ParkingBuilding.CoreApi.Application.LostCards.Documents;
+using ParkingBuilding.CoreApi.Application.FeeCalculation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -78,6 +80,10 @@ builder.Services.AddHostedService<ReservationExpiryWorker>();
 // Register Monthly Pass services
 builder.Services.AddScoped<IMonthlyPassService, MonthlyPassService>();
 builder.Services.AddScoped<IMonthlyEntryTokenService, MonthlyEntryTokenService>();
+builder.Services.AddScoped<IExitService, ExitService>();
+// Tìm đến đoạn khai báo các Service và thêm dòng này vào:
+builder.Services.AddScoped<IFeeCalculationService, FeeCalculationService>();
+
 
 builder.Services.Configure<ReservationBookingOptions>(options =>
 {
