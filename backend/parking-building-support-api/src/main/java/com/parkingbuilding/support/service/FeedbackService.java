@@ -29,9 +29,7 @@ public class FeedbackService {
         feedback.setContent(request.getContent());
         feedback.setStatus(FeedbackStatus.PENDING);
 
-        System.out.println("Saving feedback...");
         FeedbackEntity saved = feedbackRepository.save(feedback);
-        System.out.println("Saved feedback with id " + saved.getId());
 
         return new FeedbackResponse(
                 saved.getId(),

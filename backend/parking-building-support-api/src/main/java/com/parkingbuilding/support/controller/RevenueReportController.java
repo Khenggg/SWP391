@@ -1,10 +1,10 @@
 package com.parkingbuilding.support.controller;
 
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.parkingbuilding.support.common.ApiResponse;
 import com.parkingbuilding.support.dto.request.RevenueReportRequest;
 import com.parkingbuilding.support.dto.response.RevenueReportResponse;
 import com.parkingbuilding.support.service.RevenueReportService;
@@ -20,10 +20,10 @@ public class RevenueReportController {
     private final RevenueReportService revenueReportService;
 
     @GetMapping
-    public ResponseEntity<RevenueReportResponse> getRevenueReport(
+    public ApiResponse<RevenueReportResponse> getRevenueReport(
             RevenueReportRequest request) {
 
-        return ResponseEntity.ok(
+        return ApiResponse.ok(
                 revenueReportService.getReport(request));
     }
 }

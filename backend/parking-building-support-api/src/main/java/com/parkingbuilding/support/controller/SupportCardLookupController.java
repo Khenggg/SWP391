@@ -1,6 +1,6 @@
 package com.parkingbuilding.support.controller;
 
-import org.apache.tomcat.util.net.openssl.ciphers.Authentication;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,10 +22,8 @@ public class SupportCardLookupController {
     @GetMapping("/{qrToken}/active-session")
     public ApiResponse<ActiveSessionResponse> getActiveSession(
             @PathVariable String qrToken,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         return ApiResponse.ok(
-                service.getActiveSession(qrToken)
-        );
+                service.getActiveSession(qrToken));
     }
 }
