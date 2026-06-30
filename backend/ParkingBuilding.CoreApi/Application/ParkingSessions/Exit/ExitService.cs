@@ -68,41 +68,113 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
 
             return await strategy.ExecuteAsync(async () =>
             {
+                var session = await _context.ParkingSessions
+                    .Include(s => s.ParkingCard)
+                    .FirstOrDefaultAsync(s => s.Id == sessionId);
+
+                if (session == null || session.Status != "ACTIVE")
+                {
+                    throw new BusinessException(ErrorCodes.SessionNotFound);
+                }
+
+                if (session.CustomerType != "CASUAL")
+                {
+                    throw new BusinessException(ErrorCodes.InvalidRequest);
+                }
+
+                var gate = await _context.Gates.FindAsync(request.ExitGateId);
+                if (gate == null || gate.GateType != "EXIT" || gate.Status != "ACTIVE")
+                {
+                    throw new BusinessException("INVALID_EXIT_GATE");
+                }
+
+                // Plate verification before transaction to prevent rollback of mismatch case log
+                var normalizedEntry = NormalizePlate(session.PlateNumber);
+                var exitPlateInput = !string.IsNullOrWhiteSpace(request.ExitPlateNumber) ? request.ExitPlateNumber : request.DetectedPlateNumber;
+                var normalizedExit = NormalizePlate(exitPlateInput);
+                if (!string.IsNullOrEmpty(normalizedEntry) && normalizedEntry != normalizedExit)
+                {
+                    var isConfirmedMismatch = await _context.PlateMismatchCases
+                        .AnyAsync(m => m.SessionId == session.Id && m.Status == "CONFIRMED");
+
+                    if (!isConfirmedMismatch)
+                    {
+                        var alreadyLogged = await _context.PlateMismatchCases
+                            .AnyAsync(m => m.SessionId == session.Id && m.Status == "PENDING");
+
+                        if (!alreadyLogged)
+                        {
+                            // Save exit images if provided
+                            if (!string.IsNullOrWhiteSpace(request.ExitPlateImageUrl))
+                            {
+                                _context.ParkingSessionImages.Add(new ParkingSessionImage
+                                {
+                                    SessionId = session.Id,
+                                    ImageUrl = request.ExitPlateImageUrl,
+                                    ImageType = "EXIT_PLATE",
+                                    Confidence = request.OcrConfidence.HasValue ? (decimal)request.OcrConfidence.Value : null,
+                                    CapturedAt = DateTimeOffset.UtcNow
+                                });
+                            }
+                            if (!string.IsNullOrWhiteSpace(request.ExitVehicleImageUrl))
+                            {
+                                _context.ParkingSessionImages.Add(new ParkingSessionImage
+                                {
+                                    SessionId = session.Id,
+                                    ImageUrl = request.ExitVehicleImageUrl,
+                                    ImageType = "EXIT_VEHICLE",
+                                    CapturedAt = DateTimeOffset.UtcNow
+                                });
+                            }
+
+                            _context.PlateMismatchCases.Add(new PlateMismatchCase
+                            {
+                                SessionId = session.Id,
+                                EntryPlateNumber = session.PlateNumber,
+                                ExitPlateNumber = exitPlateInput ?? "UNKNOWN",
+                                Status = "PENDING",
+                                Reason = $"OCR or Staff input plate '{exitPlateInput}' did not match entry plate '{session.PlateNumber}'.",
+                                CreatedBy = staffId,
+                                CreatedAt = DateTimeOffset.UtcNow,
+                                UpdatedAt = DateTimeOffset.UtcNow
+                            });
+                            await _context.SaveChangesAsync();
+                        }
+
+                        throw new BusinessException("PLATE_MISMATCH_REQUIRES_APPROVAL");
+                    }
+                }
+
                 using var transaction = await _context.Database.BeginTransactionAsync();
 
                 try
                 {
-                    var session = await _context.ParkingSessions
-                        .Include(s => s.ParkingCard)
-                        .FirstOrDefaultAsync(s => s.Id == sessionId);
+                    // Save exit images if not already saved during plate mismatch logic
+                    var imagesAlreadySaved = await _context.ParkingSessionImages
+                        .AnyAsync(i => i.SessionId == session.Id && (i.ImageType == "EXIT_PLATE" || i.ImageType == "EXIT_VEHICLE"));
 
-                    if (session == null || session.Status != "ACTIVE")
+                    if (!imagesAlreadySaved)
                     {
-                        throw new BusinessException(ErrorCodes.SessionNotFound);
-                    }
-
-                    if (session.CustomerType != "CASUAL")
-                    {
-                        throw new BusinessException(ErrorCodes.InvalidRequest);
-                    }
-
-                    var gate = await _context.Gates.FindAsync(request.ExitGateId);
-                    if (gate == null || gate.GateType != "EXIT" || gate.Status != "ACTIVE")
-                    {
-                        throw new BusinessException("INVALID_EXIT_GATE");
-                    }
-
-                    // Plate verification
-                    var normalizedEntry = NormalizePlate(session.PlateNumber);
-                    var normalizedExit = NormalizePlate(request.ExitPlateNumber);
-                    if (!string.IsNullOrEmpty(normalizedEntry) && normalizedEntry != normalizedExit)
-                    {
-                        var isConfirmedMismatch = await _context.PlateMismatchCases
-                            .AnyAsync(m => m.SessionId == session.Id && m.Status == "CONFIRMED");
-
-                        if (!isConfirmedMismatch)
+                        if (!string.IsNullOrWhiteSpace(request.ExitPlateImageUrl))
                         {
-                            throw new BusinessException("PLATE_MISMATCH_REQUIRES_APPROVAL");
+                            _context.ParkingSessionImages.Add(new ParkingSessionImage
+                            {
+                                SessionId = session.Id,
+                                ImageUrl = request.ExitPlateImageUrl,
+                                ImageType = "EXIT_PLATE",
+                                Confidence = request.OcrConfidence.HasValue ? (decimal)request.OcrConfidence.Value : null,
+                                CapturedAt = DateTimeOffset.UtcNow
+                            });
+                        }
+                        if (!string.IsNullOrWhiteSpace(request.ExitVehicleImageUrl))
+                        {
+                            _context.ParkingSessionImages.Add(new ParkingSessionImage
+                            {
+                                SessionId = session.Id,
+                                ImageUrl = request.ExitVehicleImageUrl,
+                                ImageType = "EXIT_VEHICLE",
+                                CapturedAt = DateTimeOffset.UtcNow
+                            });
                         }
                     }
 
@@ -258,47 +330,119 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
 
             return await strategy.ExecuteAsync(async () =>
             {
+                var session = await _context.ParkingSessions
+                    .Include(s => s.ParkingCard)
+                    .FirstOrDefaultAsync(s => s.Id == sessionId);
+
+                if (session == null || session.Status != "ACTIVE")
+                {
+                    throw new BusinessException(ErrorCodes.SessionNotFound);
+                }
+
+                if (session.CustomerType != "MONTHLY" || !session.MonthlyPassId.HasValue)
+                {
+                    throw new BusinessException(ErrorCodes.InvalidRequest);
+                }
+
+                var gate = await _context.Gates.FindAsync(request.ExitGateId);
+                if (gate == null || gate.GateType != "EXIT" || gate.Status != "ACTIVE")
+                {
+                    throw new BusinessException("INVALID_EXIT_GATE");
+                }
+
+                var pass = await _context.MonthlyPasses.FindAsync(session.MonthlyPassId.Value);
+                if (pass == null || pass.Status != "ACTIVE")
+                {
+                    throw new BusinessException("MONTHLY_PASS_EXPIRED");
+                }
+
+                // Plate verification before transaction to prevent rollback of mismatch case log
+                var normalizedEntry = NormalizePlate(session.PlateNumber);
+                var exitPlateInput = !string.IsNullOrWhiteSpace(request.ExitPlateNumber) ? request.ExitPlateNumber : request.DetectedPlateNumber;
+                var normalizedExit = NormalizePlate(exitPlateInput);
+                if (!string.IsNullOrEmpty(normalizedEntry) && normalizedEntry != normalizedExit)
+                {
+                    var isConfirmedMismatch = await _context.PlateMismatchCases
+                        .AnyAsync(m => m.SessionId == session.Id && m.Status == "CONFIRMED");
+
+                    if (!isConfirmedMismatch)
+                    {
+                        var alreadyLogged = await _context.PlateMismatchCases
+                            .AnyAsync(m => m.SessionId == session.Id && m.Status == "PENDING");
+
+                        if (!alreadyLogged)
+                        {
+                            // Save exit images if provided
+                            if (!string.IsNullOrWhiteSpace(request.ExitPlateImageUrl))
+                            {
+                                _context.ParkingSessionImages.Add(new ParkingSessionImage
+                                {
+                                    SessionId = session.Id,
+                                    ImageUrl = request.ExitPlateImageUrl,
+                                    ImageType = "EXIT_PLATE",
+                                    Confidence = request.OcrConfidence.HasValue ? (decimal)request.OcrConfidence.Value : null,
+                                    CapturedAt = DateTimeOffset.UtcNow
+                                });
+                            }
+                            if (!string.IsNullOrWhiteSpace(request.ExitVehicleImageUrl))
+                            {
+                                _context.ParkingSessionImages.Add(new ParkingSessionImage
+                                {
+                                    SessionId = session.Id,
+                                    ImageUrl = request.ExitVehicleImageUrl,
+                                    ImageType = "EXIT_VEHICLE",
+                                    CapturedAt = DateTimeOffset.UtcNow
+                                });
+                            }
+
+                            _context.PlateMismatchCases.Add(new PlateMismatchCase
+                            {
+                                SessionId = session.Id,
+                                EntryPlateNumber = session.PlateNumber,
+                                ExitPlateNumber = exitPlateInput ?? "UNKNOWN",
+                                Status = "PENDING",
+                                Reason = $"OCR or Staff input plate '{exitPlateInput}' did not match entry plate '{session.PlateNumber}'.",
+                                CreatedBy = staffId,
+                                CreatedAt = DateTimeOffset.UtcNow,
+                                UpdatedAt = DateTimeOffset.UtcNow
+                            });
+                            await _context.SaveChangesAsync();
+                        }
+
+                        throw new BusinessException("PLATE_MISMATCH_REQUIRES_APPROVAL");
+                    }
+                }
+
                 using var transaction = await _context.Database.BeginTransactionAsync();
 
                 try
                 {
-                    var session = await _context.ParkingSessions
-                        .Include(s => s.ParkingCard)
-                        .FirstOrDefaultAsync(s => s.Id == sessionId);
+                    // Save exit images if not already saved during plate mismatch logic
+                    var imagesAlreadySaved = await _context.ParkingSessionImages
+                        .AnyAsync(i => i.SessionId == session.Id && (i.ImageType == "EXIT_PLATE" || i.ImageType == "EXIT_VEHICLE"));
 
-                    if (session == null || session.Status != "ACTIVE")
+                    if (!imagesAlreadySaved)
                     {
-                        throw new BusinessException(ErrorCodes.SessionNotFound);
-                    }
-
-                    if (session.CustomerType != "MONTHLY" || !session.MonthlyPassId.HasValue)
-                    {
-                        throw new BusinessException(ErrorCodes.InvalidRequest);
-                    }
-
-                    var gate = await _context.Gates.FindAsync(request.ExitGateId);
-                    if (gate == null || gate.GateType != "EXIT" || gate.Status != "ACTIVE")
-                    {
-                        throw new BusinessException("INVALID_EXIT_GATE");
-                    }
-
-                    var pass = await _context.MonthlyPasses.FindAsync(session.MonthlyPassId.Value);
-                    if (pass == null || pass.Status != "ACTIVE")
-                    {
-                        throw new BusinessException("MONTHLY_PASS_EXPIRED");
-                    }
-
-                    // Plate verification
-                    var normalizedEntry = NormalizePlate(session.PlateNumber);
-                    var normalizedExit = NormalizePlate(request.ExitPlateNumber);
-                    if (!string.IsNullOrEmpty(normalizedEntry) && normalizedEntry != normalizedExit)
-                    {
-                        var isConfirmedMismatch = await _context.PlateMismatchCases
-                            .AnyAsync(m => m.SessionId == session.Id && m.Status == "CONFIRMED");
-
-                        if (!isConfirmedMismatch)
+                        if (!string.IsNullOrWhiteSpace(request.ExitPlateImageUrl))
                         {
-                            throw new BusinessException("PLATE_MISMATCH_REQUIRES_APPROVAL");
+                            _context.ParkingSessionImages.Add(new ParkingSessionImage
+                            {
+                                SessionId = session.Id,
+                                ImageUrl = request.ExitPlateImageUrl,
+                                ImageType = "EXIT_PLATE",
+                                Confidence = request.OcrConfidence.HasValue ? (decimal)request.OcrConfidence.Value : null,
+                                CapturedAt = DateTimeOffset.UtcNow
+                            });
+                        }
+                        if (!string.IsNullOrWhiteSpace(request.ExitVehicleImageUrl))
+                        {
+                            _context.ParkingSessionImages.Add(new ParkingSessionImage
+                            {
+                                SessionId = session.Id,
+                                ImageUrl = request.ExitVehicleImageUrl,
+                                ImageType = "EXIT_VEHICLE",
+                                CapturedAt = DateTimeOffset.UtcNow
+                            });
                         }
                     }
 

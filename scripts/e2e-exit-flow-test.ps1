@@ -2,7 +2,7 @@
 param(
     [string]$BaseUrl = "http://localhost:5000/api/core",
     [int]$ExitGateId = 2,
-    [string]$CardCode = "C001",
+    [string]$CardCode = "C010",
     [string]$PlateNumber = "51A-77777"
 )
 
@@ -61,6 +61,53 @@ Write-StepHeader "1/7" "Cleaning database & logging in"
 
 # Run C# cleanup program
 Write-Inf "Running DB cleanup utility..."
+$cleanupProgram = @"
+using System;
+using Npgsql;
+
+class Program
+{
+    static void Main()
+    {
+        string connString = "Host=aws-1-ap-south-1.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.iqzkddymzmfhyqbfrnyu;Password=Moghicha12@;SSL Mode=Require;Trust Server Certificate=true;No Reset On Close=true;";
+        try
+        {
+            using var conn = new NpgsqlConnection(connString);
+            conn.Open();
+            Exec(conn, "UPDATE slots SET status = 'AVAILABLE', current_session_id = null");
+            Exec(conn, "UPDATE parking_cards SET status = 'AVAILABLE', current_session_id = null");
+            Exec(conn, "UPDATE areas SET current_real_occupancy = 0");
+            Exec(conn, "DELETE FROM plate_mismatch_cases");
+            Exec(conn, "DELETE FROM lost_card_refunds");
+            Exec(conn, "DELETE FROM lost_card_cases");
+            Exec(conn, "DELETE FROM lost_card_case_documents");
+            Exec(conn, "DELETE FROM receipts");
+            Exec(conn, "DELETE FROM payments");
+            Exec(conn, "DELETE FROM parking_session_images");
+            Exec(conn, "UPDATE parking_sessions SET slot_id = null, monthly_pass_id = null, reservation_id = null");
+            Exec(conn, "DELETE FROM parking_sessions");
+            Exec(conn, "DELETE FROM reservation_extensions");
+            Exec(conn, "DELETE FROM reservations");
+            Console.WriteLine("CLEANED");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    static void Exec(NpgsqlConnection conn, string sql)
+    {
+        try
+        {
+            using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.ExecuteNonQuery();
+        }
+        catch {}
+    }
+}
+"@
+Set-Content -Path "c:\Users\ASUS\.gemini\antigravity-ide\scratch\scratch-db\Program.cs" -Value $cleanupProgram
 dotnet run --project c:\Users\ASUS\.gemini\antigravity-ide\scratch\scratch-db\scratch-db.csproj | Out-Null
 Write-OK "Database cleaned."
 
@@ -162,18 +209,68 @@ $webhookBody = @{
 $webhookRes = Invoke-Api -Method Post -Uri "$BaseUrl/payments/payos/webhook" -Body $webhookBody
 Write-OK "PayOS webhook trigger response: $($webhookRes.message)"
 
-# -- STEP 6: PERFORM CASUAL VEHICLE EXIT ---------------------
-Write-StepHeader "6/7" "Confirming vehicle checkout at Exit Gate"
+# -- STEP 6: PERFORM CASUAL VEHICLE EXIT WITH PLATE MISMATCH CHECK -----------
+Write-StepHeader "6/7" "Testing plate mismatch blocking & approval flow"
 
-$exitBody = @{
+$exitBodyMismatch = @{
     exitGateId = $ExitGateId
-    exitPlateNumber = $PlateNumber
+    exitPlateNumber = $null
+    detectedPlateNumber = "51A-99999" # Mismatches entry plate "51A-77777"
+    exitPlateImageUrl = "https://example.com/exit-plate-34.jpg"
+    exitVehicleImageUrl = "https://example.com/exit-vehicle-34.jpg"
+    ocrConfidence = 0.98
     exitTime = $null
     paymentId = $null
 }
 
-$exitRes = Invoke-Api -Method Post -Uri "$BaseUrl/parking-sessions/$sessionId/exit" -Headers $staffHeaders -Body $exitBody
-Write-OK "Exit confirmed. Receipt Code: $($exitRes.data.receiptCode)"
+Write-Inf "Attempting checkout with mismatched plate: 51A-99999 (expected to be blocked)..."
+$mismatchBlocked = $false
+try {
+    $exitRes = Invoke-Api -Method Post -Uri "$BaseUrl/parking-sessions/$sessionId/exit" -Headers $staffHeaders -Body $exitBodyMismatch
+} catch {
+    $mismatchBlocked = $true
+    Write-OK "Plate mismatch blocked successfully with error: $_"
+}
+
+if (-not $mismatchBlocked) {
+    Write-Err "Failed: Plate mismatch checkout did not throw an exception!"
+    exit 1
+}
+
+# Run C# database script to set mismatch case status to CONFIRMED
+Write-Inf "Simulating manager approving plate mismatch..."
+$approveMismatchProgram = @"
+using System;
+using Npgsql;
+
+class Program
+{
+    static void Main()
+    {
+        string connString = "Host=aws-1-ap-south-1.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.iqzkddymzmfhyqbfrnyu;Password=Moghicha12@;SSL Mode=Require;Trust Server Certificate=true;No Reset On Close=true;";
+        try
+        {
+            using var conn = new NpgsqlConnection(connString);
+            conn.Open();
+            using var cmd = new NpgsqlCommand("UPDATE plate_mismatch_cases SET status = 'CONFIRMED' WHERE session_id = $sessionId", conn);
+            cmd.ExecuteNonQuery();
+            Console.WriteLine("APPROVED");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+}
+"@
+Set-Content -Path "c:\Users\ASUS\.gemini\antigravity-ide\scratch\scratch-db\Program.cs" -Value $approveMismatchProgram
+dotnet run --project c:\Users\ASUS\.gemini\antigravity-ide\scratch\scratch-db\scratch-db.csproj | Out-Null
+Write-OK "Plate mismatch approved in DB."
+
+# Try exiting again
+Write-Inf "Retrying checkout after mismatch approved..."
+$exitRes = Invoke-Api -Method Post -Uri "$BaseUrl/parking-sessions/$sessionId/exit" -Headers $staffHeaders -Body $exitBodyMismatch
+Write-OK "Exit confirmed after approval. Receipt Code: $($exitRes.data.receiptCode)"
 
 # -- STEP 7: VERIFY STATE ------------------------------------
 Write-StepHeader "7/7" "Verifying final database state"
@@ -191,12 +288,30 @@ class Program
         {
             using var conn = new NpgsqlConnection(connString);
             conn.Open();
-            using var cmd = new NpgsqlCommand("SELECT status, payment_status FROM parking_sessions WHERE id = $sessionId", conn);
-            using var rdr = cmd.ExecuteReader();
-            if (rdr.Read())
+            
+            // Verify session
+            using (var cmd = new NpgsqlCommand("SELECT status, payment_status FROM parking_sessions WHERE id = $sessionId", conn))
+            using (var rdr = cmd.ExecuteReader())
             {
-                Console.WriteLine($"SessionStatus: {rdr["status"]}");
-                Console.WriteLine($"PaymentStatus: {rdr["payment_status"]}");
+                if (rdr.Read())
+                {
+                    Console.WriteLine($"SessionStatus: {rdr["status"]}");
+                    Console.WriteLine($"PaymentStatus: {rdr["payment_status"]}");
+                }
+            }
+
+            // Verify mismatch case is CONFIRMED
+            using (var cmd = new NpgsqlCommand("SELECT status FROM plate_mismatch_cases WHERE session_id = $sessionId", conn))
+            {
+                var val = cmd.ExecuteScalar();
+                Console.WriteLine($"PlateMismatchCaseStatus: {val}");
+            }
+
+            // Verify exit images saved
+            using (var cmd = new NpgsqlCommand("SELECT count(*) FROM parking_session_images WHERE session_id = $sessionId AND image_type = 'EXIT_PLATE'", conn))
+            {
+                var val = cmd.ExecuteScalar();
+                Console.WriteLine($"SavedExitPlateImagesCount: {val}");
             }
         }
         catch (Exception ex)

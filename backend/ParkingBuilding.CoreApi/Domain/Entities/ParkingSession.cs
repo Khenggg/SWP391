@@ -70,4 +70,7 @@ public class ParkingSession
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public virtual ICollection<ParkingSessionImage> ParkingSessionImages { get; set; } = new List<ParkingSessionImage>();
+
+    public virtual Slot? Slot { get; set; }
+    public virtual Area? Area { get; set; }
 }
