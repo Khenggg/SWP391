@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { parkingService } from "@/services/parkingService";
-import { MapPin, Phone, Clock, Shield, CarFront, DollarSign, List, Info } from "lucide-react";
+import { MapPin, Phone, Clock, Shield, CarFront, DollarSign, List, Info, AlertTriangle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 const STATUS_CONFIG = {
-  OPEN:        { label: "Đang mở cửa",  dot: "bg-green-500",  badge: "bg-green-100 text-green-700 border border-green-200" },
-  CLOSED:      { label: "Đã đóng cửa", dot: "bg-red-500",    badge: "bg-red-100 text-red-700 border border-red-200" },
-  MAINTENANCE: { label: "Bảo trì",      dot: "bg-yellow-500", badge: "bg-yellow-100 text-yellow-700 border border-yellow-200" },
+  OPEN:        { label: "Đang mở cửa",  dot: "bg-green-500",  badge: "bg-green-100 text-green-700 border-green-200" },
+  CLOSED:      { label: "Đã đóng cửa", dot: "bg-red-500",    badge: "bg-red-100 text-red-700 border-red-200" },
+  MAINTENANCE: { label: "Bảo trì",      dot: "bg-yellow-500", badge: "bg-yellow-100 text-yellow-700 border-yellow-200" },
 };
 
 const SERVICES = [
@@ -18,7 +21,7 @@ const SERVICES = [
 
 function StatCard({ icon, title, value, sub, live }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
+    <Card className="flex items-center gap-4 hover:shadow-md transition-shadow p-5 border-gray-100">
       <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
         {icon}
       </div>
@@ -32,7 +35,7 @@ function StatCard({ icon, title, value, sub, live }) {
           </p>
         )}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -81,9 +84,10 @@ export default function ParkingInfoPage() {
           <div className="flex flex-wrap gap-3">
             <Link
               to="/available-slots"
-              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm transition-colors"
             >
-              <CarFront size={16} /> Xem chỗ trống
+              <Button className="font-semibold text-sm h-11 px-5">
+                <CarFront size={16} className="mr-2" /> Xem chỗ trống
+              </Button>
             </Link>
           </div>
         </div>
@@ -96,10 +100,10 @@ export default function ParkingInfoPage() {
             {[1,2,3,4].map(i => <div key={i} className="h-24 bg-white rounded-2xl border border-gray-100" />)}
           </div>
         ) : error ? (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-5 text-center">
-            <p className="text-red-600 text-sm font-semibold mb-2">{error}</p>
-            <button onClick={fetchInfo} className="text-sm text-blue-600 font-semibold hover:underline">Thử lại</button>
-          </div>
+          <Card className="bg-red-50 border border-red-200 p-5 text-center shadow-none">
+            <p className="text-red-600 text-sm font-semibold mb-3">{error}</p>
+            <Button variant="outline" onClick={fetchInfo} className="h-8 text-xs text-blue-600 font-semibold hover:text-blue-700">Thử lại</Button>
+          </Card>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard
@@ -134,7 +138,7 @@ export default function ParkingInfoPage() {
       {/* ===== CONTACT INFO STRIP ===== */}
       {!isLoading && !error && info && (
         <div className="max-w-7xl mx-auto px-6 mt-6">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-wrap gap-6 items-center">
+          <Card className="p-4 flex flex-wrap gap-6 items-center shadow-sm border-gray-100">
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <MapPin size={15} className="text-blue-600 flex-shrink-0" />
               <span>{info.address}</span>
@@ -148,12 +152,12 @@ export default function ParkingInfoPage() {
               <span>Mở cửa: {info.openingHours}</span>
             </div>
             {info.status && (
-              <span className={`ml-auto px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${statusCfg.badge}`}>
+              <Badge className={`ml-auto px-3 py-1 font-bold flex items-center gap-1.5 ${statusCfg.badge}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
                 {statusCfg.label}
-              </span>
+              </Badge>
             )}
-          </div>
+          </Card>
         </div>
       )}
 
@@ -165,18 +169,19 @@ export default function ParkingInfoPage() {
             <Link
               key={svc.label}
               to={svc.to}
-              className="group bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col gap-3 hover:shadow-md hover:border-blue-200 transition-all"
             >
-              <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                {svc.icon}
-              </div>
-              <div>
-                <p className="font-bold text-sm text-gray-800 mb-1">{svc.label}</p>
-                <p className="text-xs text-gray-500 leading-relaxed">{svc.desc}</p>
-              </div>
-              <span className="text-blue-600 text-sm font-bold flex items-center gap-1 mt-auto group-hover:gap-2 transition-all">
-                → 
-              </span>
+              <Card className="group h-full p-5 flex flex-col gap-3 hover:shadow-md hover:border-blue-200 transition-all border-gray-100">
+                <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                  {svc.icon}
+                </div>
+                <div>
+                  <p className="font-bold text-sm text-gray-800 mb-1">{svc.label}</p>
+                  <p className="text-xs text-gray-500 leading-relaxed">{svc.desc}</p>
+                </div>
+                <span className="text-blue-600 text-sm font-bold flex items-center gap-1 mt-auto group-hover:gap-2 transition-all">
+                  → 
+                </span>
+              </Card>
             </Link>
           ))}
         </div>

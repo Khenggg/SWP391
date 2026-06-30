@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { parkingService } from "@/services/parkingService";
 import { CarFront, AlertTriangle, RefreshCw, CheckCircle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 // ─── Slot Chip ────────────────────────────────────────────────────────────────
 function SlotChip({ code }) {
@@ -15,7 +18,7 @@ function SlotChip({ code }) {
 // ─── Area Section ─────────────────────────────────────────────────────────────
 function AreaSection({ areaCode, areaName, vehicleTypeName, slots }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+    <Card className="overflow-hidden shadow-sm">
       {/* Area Header */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gray-50">
         <div className="flex items-center gap-2">
@@ -23,18 +26,18 @@ function AreaSection({ areaCode, areaName, vehicleTypeName, slots }) {
           <span className="text-xs text-gray-400">•</span>
           <span className="text-sm font-bold text-gray-700">{areaName}</span>
           {vehicleTypeName && (
-            <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[10px] font-bold border border-blue-100">
+            <Badge className="ml-1 px-2 py-0.5 font-bold bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100">
               {vehicleTypeName}
-            </span>
+            </Badge>
           )}
         </div>
-        <span className="text-xs font-bold text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+        <Badge className="font-bold text-green-600 bg-green-50 border border-green-200 hover:bg-green-100">
           {slots.length} chỗ trống
-        </span>
+        </Badge>
       </div>
 
       {/* Slot Grid */}
-      <div className="p-4">
+      <CardContent className="p-4">
         {slots.length === 0 ? (
           <p className="text-xs text-gray-400 text-center py-2 italic">Không còn chỗ trống</p>
         ) : (
@@ -44,19 +47,19 @@ function AreaSection({ areaCode, areaName, vehicleTypeName, slots }) {
             ))}
           </div>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
 // ─── Floor Summary Card ───────────────────────────────────────────────────────
 function FloorCard({ floorCode, floorName, count }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
+    <Card className="shadow-sm p-4 text-center">
       <p className="text-3xl font-black text-blue-600">{count}</p>
       <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mt-1">{floorName}</p>
       <p className="text-[10px] text-gray-400 mt-0.5">chỗ trống</p>
-    </div>
+    </Card>
   );
 }
 
@@ -114,9 +117,9 @@ export default function AvailableSlotsPage() {
             </div>
             <h1 className="text-2xl font-black text-gray-900">Chỗ Trống Hiện Tại</h1>
             {!isLoading && !error && (
-              <span className="ml-2 px-3 py-1 bg-green-100 text-green-700 border border-green-200 rounded-full text-xs font-bold">
+              <Badge className="ml-2 px-3 py-1 bg-green-100 text-green-700 border border-green-200 font-bold hover:bg-green-200">
                 {totalAvailable} chỗ trống
-              </span>
+              </Badge>
             )}
           </div>
           <p className="text-gray-500 text-sm">Danh sách các vị trí đỗ xe còn trống theo thời gian thực.</p>
@@ -140,34 +143,36 @@ export default function AvailableSlotsPage() {
         )}
 
         {/* Filter Bar */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-wrap items-center gap-3">
+        <Card className="shadow-sm p-4 flex flex-wrap items-center gap-3">
           <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tầng:</span>
-          <button
+          <Button
+            variant={filterFloor === "ALL" ? "default" : "outline"}
+            size="sm"
             onClick={() => setFilterFloor("ALL")}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-              filterFloor === "ALL" ? "bg-blue-600 text-white border-blue-600" : "text-gray-600 border-gray-200 hover:border-blue-300 hover:text-blue-600"
-            }`}
+            className={`rounded-full ${filterFloor === "ALL" ? "bg-blue-600 hover:bg-blue-700" : ""}`}
           >
             Tất cả
-          </button>
+          </Button>
           {floors.map((f) => (
-            <button
+            <Button
               key={f.code}
+              variant={filterFloor === f.code ? "default" : "outline"}
+              size="sm"
               onClick={() => setFilterFloor(f.code)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                filterFloor === f.code ? "bg-blue-600 text-white border-blue-600" : "text-gray-600 border-gray-200 hover:border-blue-300 hover:text-blue-600"
-              }`}
+              className={`rounded-full ${filterFloor === f.code ? "bg-blue-600 hover:bg-blue-700" : ""}`}
             >
               {f.code}
-            </button>
+            </Button>
           ))}
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={load}
-            className="ml-auto flex items-center gap-1.5 text-xs text-gray-400 hover:text-blue-600 font-semibold transition-colors"
+            className="ml-auto text-gray-400 hover:text-blue-600"
           >
-            <RefreshCw size={13} /> Làm mới
-          </button>
-        </div>
+            <RefreshCw size={13} className="mr-1.5" /> Làm mới
+          </Button>
+        </Card>
 
         {/* Content */}
         {isLoading ? (
@@ -175,19 +180,19 @@ export default function AvailableSlotsPage() {
             {[1, 2, 3].map((i) => <div key={i} className="h-32 bg-gray-200 rounded-xl" />)}
           </div>
         ) : error ? (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-10 text-center">
+          <Card className="bg-red-50 border-red-200 p-10 text-center shadow-none">
             <AlertTriangle size={32} className="text-red-400 mx-auto mb-3" />
             <p className="text-red-600 text-sm font-semibold mb-3">{error}</p>
-            <button onClick={load} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors">
+            <Button variant="destructive" onClick={load}>
               Thử lại
-            </button>
-          </div>
+            </Button>
+          </Card>
         ) : filteredAreas.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
+          <Card className="p-16 text-center shadow-none border-gray-100">
             <CarFront size={40} className="text-gray-300 mx-auto mb-3" />
             <p className="font-bold text-gray-600">Không có chỗ trống</p>
             <p className="text-sm text-gray-400 mt-1">Không còn vị trí trống cho bộ lọc này.</p>
-          </div>
+          </Card>
         ) : (
           <div className="space-y-4">
             {filteredAreas.map((area) => {

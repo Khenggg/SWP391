@@ -4,6 +4,7 @@ import { driverHandlers } from "./handlers/driver";
 import { managerHandlers } from "./handlers/manager";
 import { staffHandlers } from "./handlers/staff";
 import { adminHandlers } from "./handlers/admin";
+import { reservationHandlers } from "./handlers/reservation";
 
 export const handlers = [
   ...authHandlers,
@@ -12,4 +13,5 @@ export const handlers = [
   ...managerHandlers,
   ...staffHandlers,
   ...adminHandlers,
+  ...reservationHandlers,
 ];

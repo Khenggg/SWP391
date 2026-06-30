@@ -50,8 +50,4 @@ public class PublicPricingService {
                         .build())
                 .toList();
     }
-
-    public List<VehicleTypeReadEntity> getVehicleTypes() {
-        return vehicleTypeRepository.findByIsActiveTrue();
-    }
 }

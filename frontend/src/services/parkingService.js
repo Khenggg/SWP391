@@ -54,23 +54,20 @@ export const parkingService = {
 
   // Manager/Common APIs
   getFloors: async () => {
-    // For convenience and simplicity, retrieve from /available-slots
-    const res = await publicAxiosClient.get("/available-slots");
-    return res.success ? res.data.floors : [];
+    // API GET ĐÃ CÓ TỪ BACKEND
+    const res = await coreAxiosClient.get("/floors");
+    return res.success ? res.data : [];
   },
 
   getAreas: async () => {
-    const res = await publicAxiosClient.get("/available-slots");
-    return res.success ? res.data.areas : [];
+    // API GET CHƯA HOÀN THIỆN TỪ BACKEND (Giả lập tạm qua MSW)
+    const res = await coreAxiosClient.get("/areas");
+    return res.success ? res.data : [];
   },
 
   getSlots: async () => {
-    const res = await publicAxiosClient.get("/available-slots");
-    return res.success ? res.data.slots : [];
-  },
-
-  getGates: async () => {
-    const res = await coreAxiosClient.get("/manager/structures/gates");
+    // API GET CHƯA HOÀN THIỆN TỪ BACKEND (Giả lập tạm qua MSW)
+    const res = await coreAxiosClient.get("/slots");
     return res.success ? res.data : [];
   },
 
@@ -81,20 +78,38 @@ export const parkingService = {
 
   // Add / Edit structures (Manager actions)
   addFloor: async (floorData) => {
-    const res = await coreAxiosClient.post("/manager/structures/floors", floorData);
+    const res = await coreAxiosClient.post("/floors", floorData);
     if (res.success) return res.data;
     throw new Error(res.message || "Thêm tầng thất bại");
   },
 
   updateFloor: async (id, floorData) => {
-    const res = await coreAxiosClient.put(`/manager/structures/floors/${id}`, floorData);
+    const res = await coreAxiosClient.put(`/floors/${id}`, floorData);
     if (res.success) return res.data;
     throw new Error(res.message || "Cập nhật tầng thất bại");
   },
 
-  updateSlotStatus: async (id, status) => {
-    const res = await coreAxiosClient.put(`/manager/structures/slots/${id}/status`, { status });
+  addArea: async (areaData) => {
+    const res = await coreAxiosClient.post("/areas", areaData);
     if (res.success) return res.data;
-    throw new Error(res.message || "Cập nhật slot thất bại");
+    throw new Error(res.message || "Thêm khu vực thất bại");
+  },
+
+  updateArea: async (id, areaData) => {
+    const res = await coreAxiosClient.put(`/areas/${id}`, areaData);
+    if (res.success) return res.data;
+    throw new Error(res.message || "Cập nhật khu vực thất bại");
+  },
+
+  addSlot: async (slotData) => {
+    const res = await coreAxiosClient.post("/slots", slotData);
+    if (res.success) return res.data;
+    throw new Error(res.message || "Thêm slot thất bại");
+  },
+
+  updateSlotStatus: async (id, status) => {
+    const res = await coreAxiosClient.patch(`/slots/${id}/status`, { status });
+    if (res.success) return res.data;
+    throw new Error(res.message || "Cập nhật trạng thái slot thất bại");
   }
 };

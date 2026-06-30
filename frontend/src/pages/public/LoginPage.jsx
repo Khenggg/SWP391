@@ -5,6 +5,8 @@ import { authService } from "@/services/authService";
 import { Button } from "@/components/ui/button";
 import { USER_ROLES } from "@/constants";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert } from "@/components/ui/alert";
 import AuthSplitLayout from "@/components/layout/AuthSplitLayout";
 
 const LOGIN_FEATURES = [
@@ -81,10 +83,7 @@ export default function LoginPage({ onLoginSuccess }) {
       </div>
 
       {error && (
-        <div className="mb-6 flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          <ShieldAlert className="h-5 w-5 shrink-0 text-red-500" />
-          <div>{error}</div>
-        </div>
+        <Alert variant="destructive">{error}</Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -114,26 +113,20 @@ export default function LoginPage({ onLoginSuccess }) {
             className="pl-11 pr-11 py-6 text-sm text-gray-900 placeholder-gray-400 bg-white border-gray-200 rounded-xl focus-visible:ring-1 focus-visible:ring-blue-600 focus-visible:border-blue-600 shadow-sm"
             placeholder="Mật khẩu"
           />
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer z-10"
+            className="absolute inset-y-0 right-0 flex items-center pr-4 pl-4 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer z-10 bg-transparent hover:bg-transparent"
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
+          </Button>
         </div>
 
         <div className="flex items-center justify-between pt-1 pb-2">
           <label className="flex items-center gap-2 cursor-pointer group">
-            <div className="relative flex items-center justify-center w-5 h-5 rounded border border-gray-300 bg-white group-hover:border-blue-500 transition-colors">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="absolute opacity-0 cursor-pointer w-full h-full"
-              />
-              {rememberMe && <div className="w-3 h-3 bg-blue-600 rounded-sm"></div>}
-            </div>
+            <Checkbox checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
             <span className="text-sm font-medium text-gray-600 select-none">Ghi nhớ đăng nhập</span>
           </label>
           <Link to="/forgot-password" className="text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors">

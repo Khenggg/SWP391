@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { User, Mail, Phone, Lock, Eye, EyeOff, ShieldAlert, Users, Car, CalendarCheck, Shield, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert } from "@/components/ui/alert";
 import AuthSplitLayout from "@/components/layout/AuthSplitLayout";
 
 const REGISTER_FEATURES = [
@@ -93,17 +95,11 @@ export default function RegisterPage() {
       </div>
 
       {error && (
-        <div className="mb-6 flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          <ShieldAlert className="h-5 w-5 shrink-0 text-red-500" />
-          <div>{error}</div>
-        </div>
+        <Alert variant="destructive">{error}</Alert>
       )}
 
       {infoMessage && (
-        <div className="mb-6 flex items-start gap-2.5 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-          <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 text-white font-bold text-xs">i</div>
-          <div>{infoMessage}</div>
-        </div>
+        <Alert variant="default">{infoMessage}</Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -165,13 +161,15 @@ export default function RegisterPage() {
             className="pl-11 pr-11 py-5 text-sm text-gray-900 placeholder-gray-400 bg-white border-gray-200 rounded-xl focus-visible:ring-1 focus-visible:ring-blue-600 focus-visible:border-blue-600 shadow-sm"
             placeholder="Mật khẩu"
           />
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer z-10"
+            className="absolute inset-y-0 right-0 flex items-center pr-4 pl-4 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer z-10 bg-transparent hover:bg-transparent"
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
+          </Button>
         </div>
 
         <div className="relative group">
@@ -187,26 +185,20 @@ export default function RegisterPage() {
             className="pl-11 pr-11 py-5 text-sm text-gray-900 placeholder-gray-400 bg-white border-gray-200 rounded-xl focus-visible:ring-1 focus-visible:ring-blue-600 focus-visible:border-blue-600 shadow-sm"
             placeholder="Xác nhận mật khẩu"
           />
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer z-10"
+            className="absolute inset-y-0 right-0 flex items-center pr-4 pl-4 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer z-10 bg-transparent hover:bg-transparent"
           >
             {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
+          </Button>
         </div>
 
         <div className="pt-2 pb-3">
           <label className="flex items-start gap-2.5 cursor-pointer group">
-            <div className="relative flex items-center justify-center w-5 h-5 rounded border border-gray-300 bg-white group-hover:border-blue-500 transition-colors mt-0.5 shrink-0">
-              <input
-                type="checkbox"
-                checked={agreeTerms}
-                onChange={(e) => setAgreeTerms(e.target.checked)}
-                className="absolute opacity-0 cursor-pointer w-full h-full"
-              />
-              {agreeTerms && <div className="w-3 h-3 bg-blue-600 rounded-sm"></div>}
-            </div>
+            <Checkbox checked={agreeTerms} onChange={(e) => setAgreeTerms(e.target.checked)} className="mt-0.5" />
             <span className="text-xs text-gray-600 leading-relaxed">
               Tôi đồng ý với <a href="#" className="text-blue-600 font-medium hover:underline">điều khoản sử dụng</a> và <a href="#" className="text-blue-600 font-medium hover:underline">chính sách bảo mật</a>
             </span>

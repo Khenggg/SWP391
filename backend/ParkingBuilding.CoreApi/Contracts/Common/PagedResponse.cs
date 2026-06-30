@@ -1,4 +1,4 @@
-using System;
+sing System;
 using System.Collections.Generic;
 
 namespace ParkingBuilding.CoreApi.Contracts.Common

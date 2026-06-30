@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Mail, Shield, Clock, Send, Info, ArrowLeft, ArrowRight, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Alert } from "@/components/ui/alert";
 import AuthSplitLayout from "@/components/layout/AuthSplitLayout";
 
 const FORGOT_PASSWORD_FEATURES = [
@@ -67,17 +68,11 @@ export default function ForgotPasswordPage() {
       </div>
 
       {error && (
-        <div className="mb-6 flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          <div className="mt-0.5 font-bold">!</div>
-          <div>{error}</div>
-        </div>
+        <Alert variant="destructive">{error}</Alert>
       )}
 
       {successMessage && (
-        <div className="mb-6 flex items-start gap-2.5 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-          <Info className="h-5 w-5 shrink-0 text-blue-600" />
-          <div>{successMessage}</div>
-        </div>
+        <Alert variant="default">{successMessage}</Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -139,15 +134,14 @@ export default function ForgotPasswordPage() {
         </Link>
       </div>
 
-      <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 flex items-start gap-3 mt-8">
-        <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 text-white font-bold text-xs mt-0.5">i</div>
+      <Alert variant="default" className="mt-8">
         <div>
           <h4 className="text-sm font-bold text-blue-900 mb-1">Vui lòng kiểm tra email của bạn</h4>
           <p className="text-xs font-medium text-blue-900/80 leading-relaxed">
             Sau khi gửi yêu cầu, vui lòng kiểm tra hộp thư đến và cả thư mục Spam để không bỏ lỡ email từ hệ thống.
           </p>
         </div>
-      </div>
+      </Alert>
     </AuthSplitLayout>
   );
 }

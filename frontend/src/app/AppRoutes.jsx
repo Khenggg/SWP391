@@ -28,6 +28,7 @@ import ReportsPage from "../pages/manager/ReportsPage";
 import LostCardApprovalsPage from "../pages/manager/LostCardApprovalsPage";
 import MismatchApprovalsPage from "../pages/manager/MismatchApprovalsPage";
 import AuditLogsPage from "../pages/manager/AuditLogsPage";
+import AdminAuditLogPage from "../pages/admin/AdminAuditLogPage";
 
 import StaffEntryPage from "../pages/staff/StaffEntryPage";
 import StaffExitPage from "../pages/staff/StaffExitPage";
@@ -38,7 +39,6 @@ import DriverProfilePage from "../pages/driver/DriverProfilePage";
 import DriverVehiclesPage from "../pages/driver/DriverVehiclesPage";
 import DriverHistoryPage from "../pages/driver/DriverHistoryPage";
 import DriverBookingPage from "../pages/driver/DriverBookingPage";
-import EntryPageTest from "../pages/EntryPageTest";
 
 const RequireAuth = ({ isAuthenticated }) => {
   return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
@@ -81,9 +81,6 @@ export default function AppRoutes({ isAuthenticated, userRole, currentUser, onLo
           }
         />
       </Route>
-
-      <Route path="/entry-test" element={<EntryPageTest />} />
-
       <Route element={<RequireAuth isAuthenticated={isAuthenticated} />}>
         <Route element={<AppShell currentUser={currentUser} onLogout={onLogout} />}>
           <Route element={<RequireRole userRole={userRole} allowedRoles={[USER_ROLES.MANAGER]} />}>
@@ -100,7 +97,7 @@ export default function AppRoutes({ isAuthenticated, userRole, currentUser, onLo
 
           <Route element={<RequireRole userRole={userRole} allowedRoles={[USER_ROLES.ADMIN]} />}>
             <Route path="/admin/users" element={<UserManagementPage />} />
-            <Route path="/admin/audit-logs" element={<AuditLogsPage scope="admin" />} />
+            <Route path="/admin/audit-logs" element={<AdminAuditLogPage />} />
             <Route path="/admin/sessions-administration" element={<SessionsAdministrationPage />} />
           </Route>
 

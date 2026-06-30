@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { pricingService } from "@/services/pricingService";
-import { parkingService } from "@/services/parkingService";
 import { DollarSign, Moon, Sun, CreditCard, AlertTriangle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import EmptyState from "@/components/ui/empty-state";
 
 function formatVND(amount) {
   if (!amount && amount !== 0) return "–";
@@ -60,24 +62,22 @@ export default function PublicPricingPage() {
 
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
         {/* Filter */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-wrap items-center gap-3">
+        <Card className="shadow-sm p-4 flex flex-wrap items-center gap-3">
           <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Loại xe:</span>
           <div className="flex flex-wrap gap-2">
             {vehicleOptions.map((v) => (
-              <button
+              <Button
                 key={v}
+                variant={filterVehicle === v ? "default" : "outline"}
+                size="sm"
                 onClick={() => setFilterVehicle(v)}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors border ${
-                  filterVehicle === v
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-white text-gray-600 border-gray-200 hover:border-blue-400 hover:text-blue-600"
-                }`}
+                className={`rounded-full ${filterVehicle === v ? "bg-blue-600 hover:bg-blue-700" : "hover:text-blue-600 hover:border-blue-400"}`}
               >
                 {v === "ALL" ? "Tất cả" : v}
-              </button>
+              </Button>
             ))}
           </div>
-        </div>
+        </Card>
 
         {/* Cards */}
         {isLoading ? (
@@ -85,25 +85,26 @@ export default function PublicPricingPage() {
             {[1, 2, 3].map((i) => <div key={i} className="h-64 bg-gray-200 rounded-2xl" />)}
           </div>
         ) : error ? (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-10 text-center">
+          <Card className="bg-red-50 border-red-200 p-10 text-center shadow-none">
             <AlertTriangle size={32} className="text-red-400 mx-auto mb-3" />
             <p className="text-red-600 text-sm font-semibold mb-3">{error}</p>
-            <button onClick={load} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors">
+            <Button variant="destructive" onClick={load}>
               Thử lại
-            </button>
-          </div>
+            </Button>
+          </Card>
         ) : displayed.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-16 text-center">
-            <DollarSign size={40} className="text-gray-300 mx-auto mb-3" />
-            <p className="font-bold text-gray-700 text-lg">Chưa có bảng giá</p>
-            <p className="text-sm text-gray-400 mt-1">Không tìm thấy thông tin cho loại xe này.</p>
-          </div>
+          <EmptyState 
+            icon={<DollarSign size={40} className="text-gray-300" />} 
+            title="Chưa có bảng giá" 
+            description="Không tìm thấy thông tin cho loại xe này." 
+            className="border-gray-100"
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {displayed.map((rule) => (
-              <div
+              <Card
                 key={rule.pricingRuleId ?? rule.id}
-                className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all overflow-hidden"
+                className="shadow-sm hover:shadow-md hover:border-blue-200 transition-all overflow-hidden"
               >
                 {/* Card Header */}
                 <div className="bg-blue-600 px-6 py-4">
@@ -111,7 +112,7 @@ export default function PublicPricingPage() {
                 </div>
 
                 {/* Card Body */}
-                <div className="p-5 space-y-3">
+                <CardContent className="p-5 space-y-3">
                   {/* Monthly Highlight */}
                   <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
                     <div className="flex items-center gap-1.5 mb-1">
@@ -147,8 +148,8 @@ export default function PublicPricingPage() {
                     <span className="text-xs font-semibold text-red-600">Phí mất thẻ</span>
                     <span className="text-sm font-black text-red-700">{formatVND(rule.lostCardFee)}</span>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}

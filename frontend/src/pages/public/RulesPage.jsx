@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { List, Search, ChevronDown } from "lucide-react";
+import { List, Search, ChevronDown, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import EmptyState from "@/components/ui/empty-state";
 
 // ─── STATIC RULES DATA ────────────────────────────────────────────────────────
 const STATIC_RULES = [
@@ -93,26 +95,33 @@ export default function RulesPage() {
       <div className="max-w-4xl mx-auto px-6 py-8 space-y-5">
         {/* Search */}
         <div className="relative">
-          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
+          <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 z-10">
+            <Search size={15} />
+          </span>
+          <Input
             type="text"
             placeholder="Tìm kiếm quy định..."
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+            className="w-full pl-10 pr-10 py-6 rounded-xl border-gray-200 bg-white text-sm text-gray-700 placeholder-gray-400 focus-visible:ring-2 focus-visible:ring-blue-500 shadow-sm"
           />
           {searchText && (
-            <button onClick={() => setSearchText("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full w-6 h-6 flex items-center justify-center text-xs">✕</button>
+            <button 
+              onClick={() => setSearchText("")} 
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full w-6 h-6 flex items-center justify-center text-xs z-10"
+            >
+              <X size={14} />
+            </button>
           )}
         </div>
 
         {/* Content */}
         {filteredRules.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-16 text-center">
-            <Search size={36} className="text-gray-300 mx-auto mb-3" />
-            <p className="font-bold text-gray-700">Không tìm thấy quy định</p>
-            <p className="text-sm text-gray-400 mt-1">Thử sử dụng từ khóa ngắn gọn hơn.</p>
-          </div>
+          <EmptyState 
+            icon={<Search size={36} />} 
+            title="Không tìm thấy quy định" 
+            description="Thử sử dụng từ khóa ngắn gọn hơn." 
+          />
         ) : (
           <div className="space-y-3">
             {filteredRules.map((section) => {
