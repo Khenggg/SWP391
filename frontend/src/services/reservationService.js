@@ -26,6 +26,7 @@ export const reservationService = {
           status: latest.reservationStatus,
           paymentStatus: latest.paymentStatus,
           checkoutUrl: latest.checkoutUrl,
+          qrCode: latest.qrCode,
           reservationEndTime: latest.expiresAt || reservation.reservationEndTime
         };
         sessionStorage.setItem("activeReservation", JSON.stringify(updated));
@@ -128,7 +129,8 @@ export const reservationService = {
         reservationEndTime: reservation.expiresAt || reservation.reservationEndTime,
         checkoutUrl: payment?.checkoutUrl,
         orderCode: payment?.orderCode,
-        paymentId: payment?.paymentId
+        paymentId: payment?.paymentId,
+        qrCode: payment?.qrCode
       };
       
       // Lưu vào cache local để hỗ trợ getActiveReservation
