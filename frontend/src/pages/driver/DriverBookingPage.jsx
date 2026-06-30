@@ -148,6 +148,23 @@ export default function DriverBookingPage() {
       alert(error.message || "Hủy thất bại");
     }
   };
+
+  const handleExpireReservation = async () => {
+    if (!activeReservation) return;
+    try {
+      // Hủy ngầm định trên backend để nhả slot đỗ
+      await reservationService.cancelReservation(activeReservation.id).catch(() => null);
+    } finally {
+      sessionStorage.removeItem("activeReservation");
+      setActiveReservation(null);
+      setCurrentStep(1); // Trở về bước 1
+      setSelectedVehicle(null);
+      setSelectedAreaId(null);
+      setSelectedSlotId(null);
+      alert("Hết thời gian thanh toán (10 phút). Đơn đặt chỗ đã tự động bị hủy.");
+    }
+  };
+
   const handlePaymentComplete = async () => {
     // Tải lại active reservation để cập nhật trạng thái sang CONFIRMED
     const updatedRes = await reservationService.getActiveReservation().catch(() => null);
@@ -331,6 +348,7 @@ export default function DriverBookingPage() {
                   activeReservation={activeReservation} 
                   onPaymentComplete={handlePaymentComplete}
                   onCancel={handleCancelReservation}
+                  onExpire={handleExpireReservation}
                 />
               )}
             </div>

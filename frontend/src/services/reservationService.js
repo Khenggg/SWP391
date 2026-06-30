@@ -27,6 +27,7 @@ export const reservationService = {
           paymentStatus: latest.paymentStatus,
           checkoutUrl: latest.checkoutUrl,
           qrCode: latest.qrCode,
+          remainingSeconds: latest.remainingSeconds,
           reservationEndTime: latest.expiresAt || reservation.reservationEndTime
         };
         sessionStorage.setItem("activeReservation", JSON.stringify(updated));
@@ -130,7 +131,8 @@ export const reservationService = {
         checkoutUrl: payment?.checkoutUrl,
         orderCode: payment?.orderCode,
         paymentId: payment?.paymentId,
-        qrCode: payment?.qrCode
+        qrCode: payment?.qrCode,
+        remainingSeconds: payment?.expiredAt ? Math.max(0, Math.floor((new Date(payment.expiredAt).getTime() - Date.now()) / 1000)) : 600
       };
       
       // Lưu vào cache local để hỗ trợ getActiveReservation
