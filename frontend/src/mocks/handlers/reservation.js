@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
-import { API_BASE_URLS } from "../mockConfig";
+import { API_BASE_URLS, MOCK_FLAGS } from "../mockConfig";
+import { enabled } from "./helpers";
 
 const MOCK_ACTIVE_RESERVATION = null; // Default: no active reservation
 
@@ -46,27 +47,32 @@ let currentActive = null;
 let idCounter = 4;
 
 export const reservationHandlers = [
+  // GET Active Reservation
   ...enabled(
     MOCK_FLAGS.DRIVER_BOOKINGS,
-    // GET Active Reservation
     http.get(`${API_BASE_URLS.core}/reservations/active`, () => {
       if (currentActive) {
         return HttpResponse.json({ success: true, data: currentActive });
       }
       return HttpResponse.json({ success: false, message: "No active reservation" }, { status: 404 });
-    }),
+    })
+  ),
 
-    // GET History
+  // GET History
+  ...enabled(
+    MOCK_FLAGS.DRIVER_BOOKINGS,
     http.get(`${API_BASE_URLS.core}/reservations`, () => {
       return HttpResponse.json({
         success: true,
         data: MOCK_HISTORY
       });
-    }),
+    })
+  ),
 
-    // GET Available Slots
+  // GET Available Slots
+  ...enabled(
+    MOCK_FLAGS.DRIVER_BOOKINGS,
     http.get(`${API_BASE_URLS.core}/reservations/available-slots`, () => {
-      // Generate some mock slots like in public mock
       const mockSlots = [
         { id: 101, slotCode: "B2-A-001", areaId: 1, areaName: "B2-A", allowedVehicleTypeId: 1, status: "AVAILABLE" },
         { id: 102, slotCode: "B2-A-002", areaId: 1, areaName: "B2-A", allowedVehicleTypeId: 1, status: "AVAILABLE" },
@@ -76,9 +82,12 @@ export const reservationHandlers = [
         success: true,
         data: mockSlots
       });
-    }),
+    })
+  ),
 
-    // POST Create Reservation
+  // POST Create Reservation
+  ...enabled(
+    MOCK_FLAGS.DRIVER_BOOKINGS,
     http.post(`${API_BASE_URLS.core}/reservations`, async ({ request }) => {
       const data = await request.json();
       
@@ -114,9 +123,12 @@ export const reservationHandlers = [
         success: true,
         data: currentActive
       });
-    }),
+    })
+  ),
 
-    // POST Cancel
+  // POST Cancel
+  ...enabled(
+    MOCK_FLAGS.DRIVER_BOOKINGS,
     http.post(`${API_BASE_URLS.core}/reservations/:id/cancel`, ({ params }) => {
       if (!currentActive || currentActive.id !== parseInt(params.id)) {
         return HttpResponse.json({ success: false, message: "Không tìm thấy reservation để hủy" }, { status: 404 });
@@ -127,9 +139,12 @@ export const reservationHandlers = [
       currentActive = null;
 
       return HttpResponse.json({ success: true, message: "Hủy thành công" });
-    }),
+    })
+  ),
 
-    // POST Pay
+  // POST Pay
+  ...enabled(
+    MOCK_FLAGS.DRIVER_BOOKINGS,
     http.post(`${API_BASE_URLS.core}/reservations/:id/pay`, ({ params }) => {
       if (!currentActive || currentActive.id !== parseInt(params.id)) {
         return HttpResponse.json({ success: false, message: "Không tìm thấy reservation để thanh toán" }, { status: 404 });
