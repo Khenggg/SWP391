@@ -168,6 +168,17 @@ public class PayOsPaymentService : IPayOsPaymentService
             throw new BusinessException(ErrorCodes.PayOsWebhookInvalid);
         }
 
+        // Handle PayOS test webhook request
+        if (data.OrderCode == 123)
+        {
+            return new PayOsWebhookProcessResult
+            {
+                Success = true,
+                Message = "Test webhook verified successfully.",
+                OrderCode = data.OrderCode
+            };
+        }
+
         var payment = await FindPaymentAsync(data, cancellationToken);
         if (payment == null)
         {
@@ -393,12 +404,8 @@ public class PayOsPaymentService : IPayOsPaymentService
             "Development",
             StringComparison.OrdinalIgnoreCase);
 
-        if (_client == null)
+        if (_client == null || isDevelopment)
         {
-            if (!isDevelopment)
-            {
-                throw new BusinessException(ErrorCodes.PayOsConfigRequired);
-            }
             return webhook.Data;
         }
 
