@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.parkingbuilding.support.common.ApiResponse;
 import com.parkingbuilding.support.dto.request.FeedbackUpdateRequest;
 import com.parkingbuilding.support.dto.response.FeedbackDetailResponse;
 import com.parkingbuilding.support.enums.FeedbackStatus;
@@ -33,28 +34,28 @@ public class FeedbackManagementController {
     private final FeedbackManagementService feedbackManagementService;
 
     @GetMapping
-    public ResponseEntity<List<FeedbackEntity>> getAll(
+    public ApiResponse<List<FeedbackEntity>> getAll(
             @RequestParam(required = false) FeedbackStatus status) {
 
         if (status == null) {
-            return ResponseEntity.ok(
+            return ApiResponse.ok(
                     feedbackManagementService.getAllFeedbacks());
         }
 
-        return ResponseEntity.ok(
+        return ApiResponse.ok(
                 feedbackManagementService.getFeedbackByStatus(status));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<FeedbackDetailResponse> getDetail(
+    public ApiResponse<FeedbackDetailResponse> getDetail(
             @PathVariable Long id) {
 
-        return ResponseEntity.ok(
+        return ApiResponse.ok(
                 feedbackManagementService.getFeedback(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<FeedbackDetailResponse> updateFeedback(
+    public ApiResponse<FeedbackDetailResponse> updateFeedback(
             @PathVariable Long id,
             @Valid @RequestBody FeedbackUpdateRequest request,
             Authentication authentication) {
@@ -71,7 +72,7 @@ public class FeedbackManagementController {
             }
         }
 
-        return ResponseEntity.ok(
+        return ApiResponse.ok(
                 feedbackManagementService.updateFeedback(
                         id,
                         request,

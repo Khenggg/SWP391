@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.parkingbuilding.support.common.ApiResponse;
 import com.parkingbuilding.support.dto.response.DashboardResponse;
 import com.parkingbuilding.support.service.DashboardService;
 
@@ -20,7 +21,9 @@ public class DashboardController {
     private final DashboardService dashboardService;
 
     @GetMapping
-    public ResponseEntity<DashboardResponse> getDashboard() {
-        return ResponseEntity.ok(dashboardService.getDashboard());
+    public ApiResponse<DashboardResponse> getDashboard() {
+
+        return ApiResponse.ok(
+                dashboardService.getDashboard());
     }
 }
