@@ -166,7 +166,10 @@ public static class ErrorCodes
     public const string PaymentMustBePersisted = "PAYMENT_MUST_BE_PERSISTED";
     public const string PaymentNotFound = "PAYMENT_NOT_FOUND";
     public const string PaymentReservationNotFound = "PAYMENT_RESERVATION_NOT_FOUND";
+    public const string PaymentSessionNotFound = "PAYMENT_SESSION_NOT_FOUND";
     public const string PaymentNotPending = "PAYMENT_NOT_PENDING";
+    public const string PaymentAlreadyFinal = "PAYMENT_ALREADY_FINAL";
+    public const string PaymentAmountMismatch = "PAYMENT_AMOUNT_MISMATCH";
     public const string PayOsWebhookInvalid = "PAYOS_WEBHOOK_INVALID";
     public const string PayOsAmountMismatch = "PAYOS_AMOUNT_MISMATCH";
     public const string LostCardCaseNotFound = "LOST_CARD_CASE_NOT_FOUND";
