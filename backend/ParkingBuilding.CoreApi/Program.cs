@@ -21,6 +21,7 @@ using ParkingBuilding.CoreApi.Application.ParkingStructure.Floors;
 using ParkingBuilding.CoreApi.Application.ParkingStructure.Areas;
 using ParkingBuilding.CoreApi.Application.ParkingStructure.Slots;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.LocationSuggestion;
+using ParkingBuilding.CoreApi.Application.LostCards; // Đảm bảo namespace này khớp với nơi bạn dự định đặt Service
 
 // THÊM DÒNG NÀY: Để nhận diện lớp dịch vụ vào bãi xe
 using ParkingBuilding.CoreApi.Application.ParkingSessions.Entry;
@@ -79,6 +80,8 @@ builder.Services.AddHostedService<ReservationExpiryWorker>();
 // Register Monthly Pass services
 builder.Services.AddScoped<IMonthlyPassService, MonthlyPassService>();
 builder.Services.AddScoped<IMonthlyEntryTokenService, MonthlyEntryTokenService>();
+
+builder.Services.AddScoped<ILostCardService, LostCardService>();
 
 builder.Services.Configure<ReservationBookingOptions>(options =>
 {
