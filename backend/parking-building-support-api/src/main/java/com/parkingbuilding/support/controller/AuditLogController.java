@@ -18,7 +18,7 @@ import com.parkingbuilding.support.service.AuditLogService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/audit-logs")
+@RequestMapping("/api/support/audit-logs")
 @RequiredArgsConstructor
 @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER')")
 public class AuditLogController {
@@ -27,8 +27,7 @@ public class AuditLogController {
 
     @GetMapping
     public ApiResponse<PagedResponse<AuditLogResponse>> search(
-            @ModelAttribute AuditLogSearchRequest request
-    ) {
+            @ModelAttribute AuditLogSearchRequest request) {
         Page<AuditLogResponse> page = auditLogService.search(request);
 
         return ApiResponse.ok(new PagedResponse<>(
@@ -36,8 +35,7 @@ public class AuditLogController {
                 page.getNumber(),
                 page.getSize(),
                 page.getTotalElements(),
-                page.getTotalPages()
-        ));
+                page.getTotalPages()));
     }
 
     @GetMapping("/{id}")
@@ -45,4 +43,3 @@ public class AuditLogController {
         return ApiResponse.ok(auditLogService.getDetail(id));
     }
 }
-

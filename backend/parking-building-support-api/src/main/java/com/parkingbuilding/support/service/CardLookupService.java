@@ -13,6 +13,7 @@ import com.parkingbuilding.support.sharedreadmodel.entity.ParkingSession;
 import com.parkingbuilding.support.sharedreadmodel.repository.ParkingCardReadRepository;
 import com.parkingbuilding.support.sharedreadmodel.repository.ParkingSessionReadRepository;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -26,15 +27,15 @@ public class CardLookupService {
     public ActiveSessionResponse getActiveSession(String qrToken) {
 
         ParkingCardReadEntity card = cardRepo.findByQrToken(qrToken)
-                .orElseThrow(() -> new RuntimeException("Card not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Card not found"));
 
         if (!"IN_USE".equals(card.getStatus())) {
-            throw new RuntimeException("Card not found");
+            throw new EntityNotFoundException("Card not found");
         }
 
         ParkingSession session = sessionRepo
                 .findByCardIdAndStatus(card.getId(), "ACTIVE")
-                .orElseThrow(() -> new RuntimeException("No active session"));
+                .orElseThrow(() -> new EntityNotFoundException("No active session"));
 
         return map(card, session);
     }
@@ -49,9 +50,8 @@ public class CardLookupService {
                 .maskedPlateNumber(maskPlate(session.getPlateNumber()))
                 .vehicleType(
                         session.getVehicleType().getId() != null
-                        ? session.getVehicleType().getName()
-                        : null
-                )
+                                ? session.getVehicleType().getName()
+                                : null)
                 .entryTime(session.getEntryTime())
                 .temporaryFeePreview(calculateFee(session))
                 .status(session.getStatus())

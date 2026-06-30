@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.parkingbuilding.support.common.response.ErrorResponse;
 
+import jakarta.persistence.EntityNotFoundException;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -30,13 +32,23 @@ public class GlobalExceptionHandler {
                                                 errors));
         }
 
+        @ExceptionHandler(EntityNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleNotFound(EntityNotFoundException ex) {
+
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                .body(ErrorResponse.of(
+                                                ex.getMessage(),
+                                                404,
+                                                null));
+        }
+
         @ExceptionHandler(RuntimeException.class)
         public ResponseEntity<ErrorResponse> handleRuntime(RuntimeException ex) {
 
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                                 .body(ErrorResponse.of(
                                                 ex.getMessage(),
-                                                404,
+                                                400,
                                                 null));
         }
 
@@ -49,4 +61,5 @@ public class GlobalExceptionHandler {
                                                 500,
                                                 null));
         }
+
 }

@@ -13,7 +13,7 @@ import com.parkingbuilding.support.service.DashboardService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/dashboard")
+@RequestMapping("/api/support/dashboard")
 @RequiredArgsConstructor
 @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MANAGER')")
 public class DashboardController {
