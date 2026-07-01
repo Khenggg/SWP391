@@ -30,6 +30,7 @@ using ParkingBuilding.CoreApi.Application.Payments;
 using ParkingBuilding.CoreApi.Application.Storage;
 using ParkingBuilding.CoreApi.Application.LostCards.Documents;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.Exit;
+using ParkingBuilding.CoreApi.Application.Mismatches;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -79,6 +80,8 @@ builder.Services.AddHostedService<ReservationExpiryWorker>();
 // Register Monthly Pass services
 builder.Services.AddScoped<IMonthlyPassService, MonthlyPassService>();
 builder.Services.AddScoped<IMonthlyEntryTokenService, MonthlyEntryTokenService>();
+
+builder.Services.AddScoped<IMismatchService, MismatchService>();
 
 builder.Services.Configure<ReservationBookingOptions>(options =>
 {

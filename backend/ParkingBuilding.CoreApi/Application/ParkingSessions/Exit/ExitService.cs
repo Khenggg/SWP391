@@ -9,6 +9,7 @@ using ParkingBuilding.CoreApi.Infrastructure.Persistence;
 using ParkingBuilding.CoreApi.Contracts.Common;
 using ParkingBuilding.CoreApi.Application.Audit;
 using ParkingBuilding.CoreApi.Application.Audit.Dtos;
+using ParkingBuilding.CoreApi.Application.Mismatches;
 
 namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
 {
@@ -18,14 +19,18 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
         private readonly IFeeCalculationService _feeCalculationService;
         private readonly IAuditWriterService _auditWriter;
 
+        private readonly IMismatchService _mismatchService;
+
         public ExitService(
             ParkingDbContext context,
             IFeeCalculationService feeCalculationService,
-            IAuditWriterService auditWriter)
+            IAuditWriterService auditWriter,
+            IMismatchService mismatchService) // Thêm tham số này
         {
             _context = context;
             _feeCalculationService = feeCalculationService;
             _auditWriter = auditWriter;
+            _mismatchService = mismatchService; // Gán giá trị
         }
 
         public async Task<ParkingSession> FindActiveSessionByCardCodeAsync(string cardCode)
@@ -88,19 +93,35 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                     throw new BusinessException("INVALID_EXIT_GATE");
                 }
 
-                // Plate verification before transaction to prevent rollback of mismatch case log
+                // Plate verification
                 var normalizedEntry = NormalizePlate(session.PlateNumber);
                 var exitPlateInput = !string.IsNullOrWhiteSpace(request.ExitPlateNumber) ? request.ExitPlateNumber : request.DetectedPlateNumber;
                 var normalizedExit = NormalizePlate(exitPlateInput);
+
                 if (!string.IsNullOrEmpty(normalizedEntry) && normalizedEntry != normalizedExit)
                 {
-                    var isConfirmedMismatch = await _context.PlateMismatchCases
-                        .AnyAsync(m => m.SessionId == session.Id && m.Status == "CONFIRMED");
+                    // Kiểm tra xem đã có case nào cho session này chưa
+                    var existingCase = await _context.PlateMismatchCases
+                        .FirstOrDefaultAsync(m => m.SessionId == session.Id);
 
-                    if (!isConfirmedMismatch)
+                    if (existingCase == null)
                     {
-                        throw new BusinessException("PLATE_MISMATCH_REQUIRES_APPROVAL");
+                        // Chưa có -> Tạo mới case PENDING để Manager vào F050 xử lý
+                        await _mismatchService.CreateMismatchCaseAsync(session.Id, session.PlateNumber, exitPlateInput, staffId, "Mismatch detected at exit");
+                        throw new BusinessException("PLATE_MISMATCH_DETECTED_AND_REPORTED");
                     }
+
+                    if (existingCase.Status == "PENDING")
+                    {
+                        throw new BusinessException("PLATE_MISMATCH_PENDING_APPROVAL");
+                    }
+
+                    if (existingCase.Status == "REJECTED")
+                    {
+                        throw new BusinessException("PLATE_MISMATCH_REJECTED");
+                    }
+
+                    // Nếu Status là CONFIRMED -> Cho phép tiếp tục luồng code bên dưới
                 }
 
                 using var transaction = await _context.Database.BeginTransactionAsync();
