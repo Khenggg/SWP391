@@ -5,6 +5,7 @@ import { managerHandlers } from "./handlers/manager";
 import { staffHandlers } from "./handlers/staff";
 import { adminHandlers } from "./handlers/admin";
 import { reservationHandlers } from "./handlers/reservation";
+import { exitHandlers } from "./handlers/exit";
 
 export const handlers = [
   ...authHandlers,
@@ -14,4 +15,5 @@ export const handlers = [
   ...staffHandlers,
   ...adminHandlers,
   ...reservationHandlers,
+  ...exitHandlers,
 ];
