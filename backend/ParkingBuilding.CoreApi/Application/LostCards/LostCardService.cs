@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using ParkingBuilding.CoreApi.Domain.Entities;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
+using ParkingBuilding.CoreApi.Application.LostCards;
+using ParkingBuilding.CoreApi.Contracts.Common;
 
 namespace ParkingBuilding.CoreApi.Application.LostCards;
 

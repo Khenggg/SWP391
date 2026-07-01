@@ -1,9 +1,13 @@
-using ParkingBuilding.CoreApi.Domain.Enums;
-
-namespace ParkingBuilding.CoreApi.Application.LostCards;
-
-public class ProcessLostCardRequest
+namespace ParkingBuilding.CoreApi.Application.LostCards
 {
-    public LostCardCaseStatus Action { get; set; } // APPROVED hoặc REJECTED
-    public string? RejectionReason { get; set; } // Bắt buộc nếu Action là REJECTED
+    public class ProcessLostCardRequest
+    {
+        // Action để biết người dùng muốn Duyệt hay Từ chối
+        public Domain.Enums.LostCardCaseStatus Action { get; set; } // Đổi từ string sang Enum
+
+        public string? RejectionReason { get; set; } // Nếu từ chối, cần lý do
+
+        // Nếu trường hợp cần cập nhật phí sau khi duyệt
+        public decimal? FinalFee { get; set; }
+    }
 }

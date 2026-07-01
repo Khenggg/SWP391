@@ -1,4 +1,5 @@
 using ParkingBuilding.CoreApi.Domain.Entities;
+using ParkingBuilding.CoreApi.Infrastructure.Persistence;
 
 namespace ParkingBuilding.CoreApi.Application.LostCards;
 

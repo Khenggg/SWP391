@@ -20,16 +20,19 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence
         public DbSet<Slot> Slots { get; set; }
         public DbSet<Gate> Gates { get; set; }
         public DbSet<ParkingSession> ParkingSessions { get; set; }
-        public DbSet<DriverProfile> DriverProfiles { get; set; } // Hoặc tên DbSet tương ứng trong context
+        public DbSet<ParkingSessionImage> ParkingSessionImages { get; set; }
+        public DbSet<Payment> Payments { get; set; }
+        public DbSet<Receipt> Receipts { get; set; }
         public DbSet<MonthlyPass> MonthlyPasses { get; set; }
+        public DbSet<DriverProfile> DriverProfiles { get; set; } // Hoặc tên DbSet tương ứng trong context
         public DbSet<Vehicle> Vehicles { get; set; }
         public DbSet<Reservation> Reservations { get; set; }
         public DbSet<ReservationExtension> ReservationExtensions { get; set; }
-        public DbSet<Payment> Payments { get; set; }
-        public DbSet<ParkingSessionImage> ParkingSessionImages { get; set; }
+
+        public DbSet<LostCardCase> LostCardCases { get; set; }
         public DbSet<LostCardCaseDocument> LostCardCaseDocuments { get; set; }
-        public DbSet<Receipt> Receipts { get; set; }
         public DbSet<PlateMismatchCase> PlateMismatchCases { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
