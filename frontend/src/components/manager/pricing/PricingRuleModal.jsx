@@ -25,6 +25,18 @@ const STATUS_BADGE = {
   "EXPIRED": "bg-gray-100 text-gray-500 border-gray-200"
 };
 
+const MoneyField = ({ label, name, form, setField, formErrors }) => (
+  <div className="space-y-1">
+    <label className="block text-xs font-semibold text-slate-700">{label} <span className="text-red-500">*</span></label>
+    <div className="relative">
+      <Input type="number" min="0" value={form[name] || ""} onChange={(e) => setField(name, e.target.value)}
+        className={`pr-8 ${formErrors[name] ? "border-red-400 bg-red-50 focus-visible:ring-red-400" : ""}`} />
+      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold">đ</span>
+    </div>
+    {formErrors[name] && <p className="text-red-500 text-xs">{formErrors[name]}</p>}
+  </div>
+);
+
 export default function PricingRuleModal({
   isOpen,
   onClose,
@@ -35,17 +47,6 @@ export default function PricingRuleModal({
   handleSave,
   vehicleTypes
 }) {
-  const MoneyField = ({ label, name }) => (
-    <div className="space-y-1">
-      <label className="block text-xs font-semibold text-slate-700">{label} <span className="text-red-500">*</span></label>
-      <div className="relative">
-        <Input type="number" min="0" value={form[name] || ""} onChange={(e) => setField(name, e.target.value)}
-          className={`pr-8 ${formErrors[name] ? "border-red-400 bg-red-50 focus-visible:ring-red-400" : ""}`} />
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold">đ</span>
-      </div>
-      {formErrors[name] && <p className="text-red-500 text-xs">{formErrors[name]}</p>}
-    </div>
-  );
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -67,10 +68,11 @@ export default function PricingRuleModal({
             {formErrors.vehicleTypeId && <p className="text-red-500 text-xs">{formErrors.vehicleTypeId}</p>}
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <MoneyField label="Giá ban ngày" name="dayPrice" />
-            <MoneyField label="Giá ban đêm" name="nightPrice" />
-            <MoneyField label="Giá vé tháng" name="monthlyPrice" />
-            <MoneyField label="Phí mất thẻ" name="lostCardFee" />
+            <MoneyField label="Giá ban ngày" name="dayPrice" form={form} setField={setField} formErrors={formErrors} />
+            <MoneyField label="Giá ban đêm" name="nightPrice" form={form} setField={setField} formErrors={formErrors} />
+            <MoneyField label="Giá vé tháng" name="monthlyPrice" form={form} setField={setField} formErrors={formErrors} />
+            <MoneyField label="Phí đặt chỗ (Giờ)" name="reservationHourlyPrice" form={form} setField={setField} formErrors={formErrors} />
+            <MoneyField label="Phí mất thẻ" name="lostCardFee" form={form} setField={setField} formErrors={formErrors} />
           </div>
           <div className="space-y-1">
             <label className="block text-xs font-semibold text-slate-700">Hiệu lực từ <span className="text-red-500">*</span></label>

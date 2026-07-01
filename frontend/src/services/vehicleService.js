@@ -25,13 +25,15 @@ export const vehicleService = {
   },
 
   updateMonthlyPassStatus: async (passId, newStatus) => {
-    const response = await coreAxiosClient.patch(`/monthly-passes/${passId}/status`, { status: newStatus });
+    const response = await coreAxiosClient.patch(`/monthly-passes/${passId}/status`, `"${newStatus}"`, {
+      headers: { 'Content-Type': 'application/json' }
+    });
     if (response.success) return response.data;
     throw new Error(response.message || "Cập nhật trạng thái vé tháng thất bại");
   },
 
   renewMonthlyPass: async (passId, newEndDate) => {
-    const response = await coreAxiosClient.post(`/monthly-passes/${passId}/renew`, { endDate: newEndDate });
+    const response = await coreAxiosClient.post(`/monthly-passes/${passId}/renew`, { newEndDate: newEndDate });
     if (response.success) return response.data;
     throw new Error(response.message || "Gia hạn vé tháng thất bại");
   }

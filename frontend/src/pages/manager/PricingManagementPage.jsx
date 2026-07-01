@@ -31,7 +31,7 @@ const STATUS_BADGE = {
   "EXPIRED": "bg-gray-100 text-gray-500 border-gray-200"
 };
 
-const EMPTY_FORM = { vehicleTypeId: "", dayPrice: "", nightPrice: "", monthlyPrice: "", lostCardFee: "", effectiveFrom: "", status: COMMON_STATUS.ACTIVE };
+const EMPTY_FORM = { vehicleTypeId: "", dayPrice: "", nightPrice: "", monthlyPrice: "", lostCardFee: "", reservationHourlyPrice: "", effectiveFrom: "", status: COMMON_STATUS.ACTIVE };
 
 export default function PricingManagementPage() {
   const [rules, setRules] = useState([]);
@@ -86,7 +86,7 @@ export default function PricingManagementPage() {
     const errs = {};
     if (!data.vehicleTypeId) errs.vehicleTypeId = "Bắt buộc";
     if (!data.effectiveFrom) errs.effectiveFrom = "Bắt buộc";
-    const fields = ["dayPrice", "nightPrice", "monthlyPrice", "lostCardFee"];
+    const fields = ["dayPrice", "nightPrice", "monthlyPrice", "lostCardFee", "reservationHourlyPrice"];
     fields.forEach((f) => {
       if (data[f] === "" || data[f] === undefined) { errs[f] = "Bắt buộc"; }
       else if (Number(data[f]) < 0) { errs[f] = "Phải >= 0"; }
@@ -109,6 +109,7 @@ export default function PricingManagementPage() {
       nightPrice: String(rule.nightPrice),
       monthlyPrice: String(rule.monthlyPrice),
       lostCardFee: String(rule.lostCardFee),
+      reservationHourlyPrice: String(rule.reservationHourlyPrice || 0),
       effectiveFrom: rule.effectiveFrom?.split('T')[0] || rule.effectiveFrom?.split(' ')[0],
       status: rule.status
     });
@@ -124,6 +125,7 @@ export default function PricingManagementPage() {
       nightPrice: String(rule.nightPrice),
       monthlyPrice: String(rule.monthlyPrice),
       lostCardFee: String(rule.lostCardFee),
+      reservationHourlyPrice: String(rule.reservationHourlyPrice || 0),
       effectiveFrom: "", // clear date for duplicate
       status: COMMON_STATUS.ACTIVE
     });
@@ -151,6 +153,7 @@ export default function PricingManagementPage() {
       dayPrice: Number(form.dayPrice),
       nightPrice: Number(form.nightPrice),
       monthlyPrice: Number(form.monthlyPrice),
+      reservationHourlyPrice: Number(form.reservationHourlyPrice),
       lostCardFee: Number(form.lostCardFee),
       effectiveFrom: form.effectiveFrom,
       status: form.status
