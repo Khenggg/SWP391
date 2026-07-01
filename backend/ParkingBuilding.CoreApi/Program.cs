@@ -29,6 +29,7 @@ using ParkingBuilding.CoreApi.Application.MonthlyPasses;
 using ParkingBuilding.CoreApi.Application.Payments;
 using ParkingBuilding.CoreApi.Application.Storage;
 using ParkingBuilding.CoreApi.Application.LostCards.Documents;
+using ParkingBuilding.CoreApi.Application.ParkingSessions.Exit;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -126,6 +127,9 @@ builder.Services.Configure<SupabaseStorageOptions>(options =>
 });
 builder.Services.AddHttpClient<IStorageService, SupabaseStorageService>();
 builder.Services.AddScoped<ILostCardDocumentService, LostCardDocumentService>();
+builder.Services.AddScoped<IFeeCalculationService, FeeCalculationService>();
+builder.Services.AddScoped<IExitService, ExitService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 // Cau hinh JWT Authentication
 var jwtSecret = builder.Configuration["JWT_SECRET"] ?? builder.Configuration["Jwt:Secret"];

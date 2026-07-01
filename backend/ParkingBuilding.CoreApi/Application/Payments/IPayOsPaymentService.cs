@@ -10,6 +10,11 @@ public interface IPayOsPaymentService
         Reservation reservation,
         CancellationToken cancellationToken = default);
 
+    Task<PayOsPaymentResponse> CreateExitPaymentLinkAsync(
+        Payment payment,
+        ParkingSession session,
+        CancellationToken cancellationToken = default);
+
     Task<PayOsWebhookProcessResult> ProcessWebhookAsync(
         Webhook webhook,
         CancellationToken cancellationToken = default);
