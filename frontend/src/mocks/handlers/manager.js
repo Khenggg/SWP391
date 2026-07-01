@@ -2,6 +2,7 @@ import { delay, http } from "msw";
 import { API_BASE_URLS, MOCK_FLAGS } from "../mockConfig";
 import { ok, badRequest, notFound, enabled } from "./helpers";
 import { db } from "./db";
+import { sessionDb } from "./sessionUtils";
 let mockDashboardRevenue = 3980000;
 let mockDashboardEntries = 187;
 let mockDashboardExits = 172;
@@ -323,53 +324,125 @@ export const managerHandlers = [
   // =========================================================================
   ...enabled(
     MOCK_FLAGS.MANAGER_DASHBOARD,
-    http.get(`${API_BASE_URLS.core}/manager/dashboard/stats`, async () => {
+    http.get(`${API_BASE_URLS.support}/dashboard`, async () => {
       await delay(250);
+      
+      // Count actual maintenance/locked slots from db to sync with Structures page
+      const allSlots = db.getSlots();
+      const maintenanceCount = allSlots.filter(s => s.status === 'MAINTENANCE' || s.status === 'LOCKED').length;
+
       // Simulate real-time increment on some requests
       if (Math.random() > 0.4) {
-        mockDashboardRevenue += Math.floor(Math.random() * 4) * 5000; // Increment 0đ - 15,000đ
+        mockDashboardRevenue += Math.floor(Math.random() * 4) * 5000;
         mockDashboardEntries += Math.random() > 0.6 ? 1 : 0;
         mockDashboardExits += Math.random() > 0.65 ? 1 : 0;
-        if (Math.random() > 0.95) {
-          mockDashboardIncidents += 1;
-        }
       }
+
+      const total = 1000;
+      const activeSessions = 350;
+      const available = total - activeSessions - maintenanceCount;
+
+      const lostCardPending = sessionDb.getLostCards().filter(c => c.status === "PENDING").length;
+      const plateMismatchPending = sessionDb.getMismatch().filter(c => c.status === "PENDING").length;
+
       return ok({
-        revenueToday: mockDashboardRevenue,
-        entriesToday: mockDashboardEntries,
-        exitsToday: mockDashboardExits,
-        incidents: mockDashboardIncidents
+        slot: {
+          total: total,
+          available: available,
+          occupied: activeSessions,
+          reserved: 0,
+          locked: 0,
+          maintenance: maintenanceCount
+        },
+        traffic: {
+          entriesToday: mockDashboardEntries,
+          exitsToday: mockDashboardExits,
+          activeSessions: 350
+        },
+        revenue: {
+          todayRevenue: mockDashboardRevenue
+        },
+        card: {
+          available: 100,
+          inUse: 350,
+          lost: 2,
+          damaged: 1,
+          inactive: 0
+        },
+        pending: {
+          lostCardPending: lostCardPending,
+          plateMismatchPending: plateMismatchPending,
+          totalPending: lostCardPending + plateMismatchPending
+        }
       });
     })
   ),
-
+    // =========================================================================
+    // SUPPORT REPORTS
+    // =========================================================================
+    ...enabled(
+      MOCK_FLAGS.MANAGER_DASHBOARD,
+      http.get(`${API_BASE_URLS.support}/reports/revenue`, async () => {
+        return ok({
+          totalRevenue: 285250000,
+          totalPayments: 15000,
+          paidPayments: 14900,
+          pendingPayments: 100,
+          cancelledPayments: 0,
+        });
+      })
+    ),
+    ...enabled(
+      MOCK_FLAGS.MANAGER_DASHBOARD,
+      http.get(`${API_BASE_URLS.support}/reports/traffic`, async () => {
+        return ok({
+          totalEntries: 12548,
+          totalExits: 12127,
+          activeSessions: 1286,
+          completedSessions: 12127,
+        });
+      })
+    ),
+    ...enabled(
+      MOCK_FLAGS.MANAGER_DASHBOARD,
+      http.get(`${API_BASE_URLS.support}/reports/occupancy`, async () => {
+        return ok({
+          totalCapacity: 1880,
+          occupied: 1286,
+          reserved: 0,
+          available: 594,
+          occupancyRate: 68.4,
+        });
+      })
+    ),
+    ...enabled(
+      MOCK_FLAGS.MANAGER_DASHBOARD,
+      http.get(`${API_BASE_URLS.support}/reports/card-session`, async () => {
+        return ok({
+          summary: {
+            available: 1000,
+            inUse: 1286,
+            lost: 36,
+            damaged: 10,
+            inactive: 5,
+          },
+          sessions: [],
+        });
+      })
+    ),
   ...enabled(
     MOCK_FLAGS.MANAGER_DASHBOARD,
-    http.get(`${API_BASE_URLS.core}/manager/dashboard/recent-activities`, async () => {
-      await delay(200);
-      // Occasionally simulate a new vehicle entering the building
-      if (Math.random() > 0.7) {
-        const plates = ["51K-777.77", "30G-654.32", "43A-999.88", "14A-123.45", "99A-555.55", "30F-555.55", "51H-123.45"];
-        const types = ["Ô Tô", "Xe Máy"];
-        const gates = ["GATE-IN-01", "GATE-IN-02"];
-        const newPlate = plates[Math.floor(Math.random() * plates.length)];
-        const newType = types[Math.floor(Math.random() * types.length)];
-        const newGate = gates[Math.floor(Math.random() * gates.length)];
-        const now = new Date();
-        const newTime = now.toTimeString().split(" ")[0];
-
-        mockRecentActivities.unshift({
-          type: newType,
-          plate: newPlate,
-          gate: newGate,
-          time: newTime
-        });
-
-        if (mockRecentActivities.length > 5) {
-          mockRecentActivities.pop();
-        }
-      }
-      return ok(mockRecentActivities);
+    http.get(`${API_BASE_URLS.support}/audit-logs`, async () => {
+      return ok({
+        items: [
+          { id: 1, timestamp: "2025-06-21T14:28:35", action: "ENTRY", targetId: "IN250621142835", plate: "30F-123.45", slot: "B1 - A03", username: "Trần Minh Đức", status: "SUCCESS" },
+          { id: 2, timestamp: "2025-06-21T14:22:11", action: "EXIT", targetId: "OUT250621142211", plate: "51H-567.89", slot: "B2 - B12", username: "Lê Hoàng Nam", status: "SUCCESS" },
+          { id: 3, timestamp: "2025-06-21T14:18:45", action: "LOST_CARD", targetId: "LT250621141845", plate: "-", slot: "B3 - Khu C", username: "Phạm Thùy Linh", status: "PENDING" },
+          { id: 4, timestamp: "2025-06-21T14:10:02", action: "MISMATCH", targetId: "LP250621141002", plate: "30A-987.65", slot: "Tầng 1 - D05", username: "Nguyễn Văn Huy", status: "VERIFYING" },
+          { id: 5, timestamp: "2025-06-21T14:05:17", action: "MAINTENANCE", targetId: "MT250621140517", plate: "-", slot: "B1 - A10", username: "Kỹ thuật 01", status: "PROCESSING" }
+        ],
+        page: 1, size: 5, totalElements: 5, totalPages: 1
+      });
     })
   ),
 ];

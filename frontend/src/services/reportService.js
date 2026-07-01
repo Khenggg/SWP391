@@ -1,48 +1,38 @@
 import supportAxiosClient from "../api/supportAxiosClient";
 
-export const reportService = {
-  getSummary: async (params) => {
-    // Note: Assuming summary endpoint exists on support backend based on worklog
-    const response = await supportAxiosClient.get("/reports/summary", { params });
-    if (response.success) return response.data;
-    throw new Error(response.message || "Không thể lấy tổng quan báo cáo");
-  },
+// Note: supportAxiosClient interceptor already unwraps response.data,
+// so `response` here equals `{ success, message, data }` from the backend.
+const unwrap = (response) => {
+  if (response?.success) return response.data;
+  throw new Error(response?.message || "Lỗi không xác định từ server");
+};
 
+export const reportService = {
   getRevenue: async (params) => {
     const response = await supportAxiosClient.get("/reports/revenue", { params });
-    if (response.success) return response.data;
-    throw new Error(response.message || "Không thể lấy báo cáo doanh thu");
+    return unwrap(response);
   },
 
   getTraffic: async (params) => {
     const response = await supportAxiosClient.get("/reports/traffic", { params });
-    if (response.success) return response.data;
-    throw new Error(response.message || "Không thể lấy báo cáo lưu lượng");
+    return unwrap(response);
   },
 
   getOccupancy: async (params) => {
     const response = await supportAxiosClient.get("/reports/occupancy", { params });
-    if (response.success) return response.data;
-    throw new Error(response.message || "Không thể lấy báo cáo công suất");
+    return unwrap(response);
   },
 
-  getCardsReport: async (params) => {
-    const response = await supportAxiosClient.get("/reports/cards", { params });
-    if (response.success) return response.data;
-    throw new Error(response.message || "Không thể lấy báo cáo thẻ");
-  },
-
-  getSessionsReport: async (params) => {
-    const response = await supportAxiosClient.get("/reports/sessions", { params });
-    if (response.success) return response.data;
-    throw new Error(response.message || "Không thể lấy báo cáo phiên");
+  getCardSessionReport: async (params) => {
+    const response = await supportAxiosClient.get("/reports/card-session", { params });
+    return unwrap(response);
   },
 
   exportExcel: async (params) => {
-    const response = await supportAxiosClient.get("/reports/export-excel", { 
+    const response = await supportAxiosClient.get("/reports/export-excel", {
       params,
-      responseType: 'blob' // Assuming this returns a file
+      responseType: "blob",
     });
-    return response; 
-  }
+    return response;
+  },
 };

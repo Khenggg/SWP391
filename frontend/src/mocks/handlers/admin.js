@@ -128,6 +128,13 @@ export const adminHandlers = [
     return ok(sessionDb.getLostCards());
   }),
 
+  http.get(`${API_BASE_URLS.core}/lost-card-cases/:caseId`, async ({ params }) => {
+    await delay(150);
+    const item = sessionDb.getLostCards().find((caseItem) => Number(caseItem.id) === Number(params.caseId));
+    if (!item) return notFound("Khong tim thay ho so bao mat the.");
+    return ok(item);
+  }),
+
   http.post(`${API_BASE_URLS.core}/lost-card-cases/:caseId/approve`, async ({ params, request }) => {
     await delay(200);
     const { reason } = await request.json();
@@ -135,6 +142,7 @@ export const adminHandlers = [
     const item = cases.find((caseItem) => Number(caseItem.id) === Number(params.caseId));
     if (!item) return notFound("Không tìm thấy hồ sơ báo mất thẻ.");
 
+    if (item.status !== "PENDING") return badRequest("Ho so nay khong con o trang thai cho duyet.");
     item.status = "APPROVED";
     item.decidedAt = new Date().toISOString();
     item.decidedBy = "manager01";
@@ -150,6 +158,7 @@ export const adminHandlers = [
     const item = cases.find((caseItem) => Number(caseItem.id) === Number(params.caseId));
     if (!item) return notFound("Không tìm thấy hồ sơ báo mất thẻ.");
 
+    if (item.status !== "PENDING") return badRequest("Ho so nay khong con o trang thai cho duyet.");
     item.status = "REJECTED";
     item.decidedAt = new Date().toISOString();
     item.decidedBy = "manager01";
@@ -170,6 +179,7 @@ export const adminHandlers = [
     const item = cases.find((caseItem) => Number(caseItem.sessionId || caseItem.id) === Number(params.caseId));
     if (!item) return notFound("Không tìm thấy hồ sơ lệch biển số.");
 
+    if (item.status !== "PENDING") return badRequest("Ho so nay khong con o trang thai cho duyet.");
     item.status = "CONFIRMED";
     item.decidedAt = new Date().toISOString();
     item.decidedBy = "manager01";
@@ -186,6 +196,7 @@ export const adminHandlers = [
     const item = cases.find((caseItem) => Number(caseItem.sessionId || caseItem.id) === Number(params.caseId));
     if (!item) return notFound("Không tìm thấy hồ sơ lệch biển số.");
 
+    if (item.status !== "PENDING") return badRequest("Ho so nay khong con o trang thai cho duyet.");
     item.status = "REJECTED";
     item.decidedAt = new Date().toISOString();
     item.decidedBy = "manager01";

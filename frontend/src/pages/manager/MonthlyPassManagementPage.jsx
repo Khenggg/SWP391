@@ -112,8 +112,6 @@ export default function MonthlyPassManagementPage() {
     const days = Math.ceil(diff / (1000 * 3600 * 24));
     return days >= 0 && days <= 7;
   }).length;
-  // Giả lập renew count (không có API thật thì fix nhẹ)
-  const countRenewed = 205;
 
   const validate = (data) => {
     const errs = {};
@@ -224,7 +222,7 @@ export default function MonthlyPassManagementPage() {
         </div>
 
         {/* Top Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
             <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 flex-shrink-0">
               <Calendar className="w-5 h-5" />
@@ -268,15 +266,6 @@ export default function MonthlyPassManagementPage() {
             <div>
               <p className="text-xs font-semibold text-slate-500 uppercase">Bị khóa</p>
               <p className="text-xl font-bold text-slate-800">{countLocked.toLocaleString()}</p>
-            </div>
-          </div>
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-            <div className="h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 flex-shrink-0">
-              <RefreshCw className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase">Gia hạn tháng này</p>
-              <p className="text-xl font-bold text-slate-800">{countRenewed.toLocaleString()}</p>
             </div>
           </div>
         </div>

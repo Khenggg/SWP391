@@ -21,7 +21,7 @@ export default function PublicPricingPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await pricingService.getPricingRules();
+      const data = await pricingService.getPublicPricing();
       setRules(data);
       
       // Lấy danh sách loại xe duy nhất từ dữ liệu bảng giá trả về

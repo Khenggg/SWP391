@@ -1,11 +1,13 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { User, Mail, Phone, Lock, Eye, EyeOff, ShieldAlert, Users, Car, CalendarCheck, Shield, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert } from "@/components/ui/alert";
 import AuthSplitLayout from "@/components/layout/AuthSplitLayout";
+import { driverService } from "@/services/driverService";
+import { toast } from "sonner";
 
 const REGISTER_FEATURES = [
   {
@@ -44,6 +46,7 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [infoMessage, setInfoMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -67,11 +70,20 @@ export default function RegisterPage() {
 
     setIsLoading(true);
 
-    // Giả lập thời gian xử lý và hiển thị thông báo tính năng chưa khả dụng
-    setTimeout(() => {
+    try {
+      await driverService.registerDriver({
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password
+      });
+      toast.success("Đăng ký tài khoản thành công!");
+      navigate("/login");
+    } catch (err) {
+      setError(err.message || "Đăng ký thất bại. Vui lòng thử lại.");
+    } finally {
       setIsLoading(false);
-      setInfoMessage("Tính năng đăng ký tài khoản đang được phát triển và hiện chưa khả dụng. Vui lòng thử lại sau.");
-    }, 1500);
+    }
   };
 
   return (
@@ -220,15 +232,6 @@ export default function RegisterPage() {
           )}
         </Button>
       </form>
-
-      <div className="relative mt-8 mb-6">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-200"></div>
-        </div>
-        <div className="relative flex justify-center text-sm">
-          <span className="bg-white px-4 text-gray-400">hoặc</span>
-        </div>
-      </div>
 
       <div className="text-center">
         <span className="text-sm text-gray-600">Đã có tài khoản? </span>

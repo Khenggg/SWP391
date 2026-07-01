@@ -47,8 +47,9 @@ export default function LoginPage({ onLoginSuccess }) {
     setIsLoading(true);
 
     try {
-      const { token, user } = await authService.login(username, password);
-      onLoginSuccess(token, user);
+      const { accessToken, token, user } = await authService.login(username, password);
+
+      onLoginSuccess(accessToken || token, user);
 
       if (user.role === USER_ROLES.ADMIN) {
         navigate("/admin/users");
@@ -149,15 +150,6 @@ export default function LoginPage({ onLoginSuccess }) {
           )}
         </Button>
       </form>
-
-      <div className="relative mt-8 mb-6">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-200"></div>
-        </div>
-        <div className="relative flex justify-center text-sm">
-          <span className="bg-white px-4 text-gray-400">hoặc</span>
-        </div>
-      </div>
 
       <div className="text-center mb-8">
         <span className="text-sm text-gray-600">Chưa có tài khoản? </span>
