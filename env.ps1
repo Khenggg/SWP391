@@ -15,21 +15,21 @@ $ErrorActionPreference = "Stop"
 # ban muon chay nhanh ma khong can nhap prompt moi lan.
 # De trong "" thi script se hoi luc chay.
 # ============================================================
-$LocalPayOsClientId = ""
-$LocalPayOsApiKey = ""
-$LocalPayOsChecksumKey = ""
+$LocalPayOsClientId = "c166c566-3e1b-4d2e-8467-6befb1d2b902"
+$LocalPayOsApiKey = "e1180476-093a-40b7-81fa-276ea66cad4c"
+$LocalPayOsChecksumKey = "01d687c39f1fe9d5eaaf7d3d5d716fe43d048d0cebf2e2518ed10d4861af79c9"
 
-$LocalSupabaseUrl = ""
-$LocalSupabaseServiceRoleKey = ""
+$LocalSupabaseUrl = "https://iqzkddymzmfhyqbfrnyu.supabase.co"
+$LocalSupabaseServiceRoleKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlxemtkZHltem1maHlxYmZybnl1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTA4NTE2NiwiZXhwIjoyMDk0NjYxMTY2fQ.Zfwq4eDCFFbAAxXaALCuIHOtBW9uyl0pfHqcdGYW2eU"
 $LocalSupabaseBucket = "parking-image"
 
 # Neu dung tunnel local, dien vi du:
 # $LocalPublicWebhookBaseUrl = "https://abc.ngrok-free.app"
-$LocalPublicWebhookBaseUrl = ""
+$LocalPublicWebhookBaseUrl = "https://ooze-promotion-smoking.ngrok-free.dev"
 
 # Neu muon override DB bang env var, dien connection string vao day.
 # De trong "" thi app dung appsettings.Development.json.
-$LocalDefaultConnection = ""
+$LocalDefaultConnection = "Host=aws-1-ap-south-1.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.iqzkddymzmfhyqbfrnyu;Password=Moghicha12@;SSL Mode=Require;Trust Server Certificate=true;No Reset On Close=true;"
 
 function Set-DefaultEnv {
     param(

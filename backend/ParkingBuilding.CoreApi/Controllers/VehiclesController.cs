@@ -40,18 +40,37 @@ namespace ParkingBuilding.CoreApi.Controllers
 
             var vehicles = await _context.Vehicles
                 .Where(v => v.DriverId == driverProfile.Id && v.Status == "ACTIVE")
-                .Select(v => new
-                {
-                    v.Id,
-                    v.PlateNumber,
-                    v.VehicleTypeId,
-                    VehicleTypeName = v.VehicleType.Name,
-                    v.Description,
-                    v.Status
-                })
+                .Include(v => v.VehicleType)
                 .ToListAsync();
 
-            return Success(vehicles, "Get vehicles successfully.");
+            var normalizedPlates = vehicles.Select(v => v.NormalizedPlateNumber).ToList();
+
+            var monthlyPasses = await _context.MonthlyPasses
+                .Where(mp => normalizedPlates.Contains(mp.NormalizedPlateNumber))
+                .ToListAsync();
+
+            var result = vehicles.Select(v => {
+                var pass = monthlyPasses
+                    .Where(mp => mp.NormalizedPlateNumber == v.NormalizedPlateNumber)
+                    .OrderByDescending(mp => mp.EndDate)
+                    .FirstOrDefault();
+
+                return new
+                {
+                    v.Id,
+                    Plate = v.PlateNumber,
+                    PlateNumber = v.PlateNumber,
+                    v.VehicleTypeId,
+                    VehicleTypeName = v.VehicleType != null ? v.VehicleType.Name : (v.VehicleTypeId == 5 ? "Ô Tô" : "Xe Máy"),
+                    v.Description,
+                    Status = pass != null ? pass.Status : "INACTIVE",
+                    OwnerName = pass != null ? pass.OwnerName : driverProfile.FullName,
+                    StartDate = pass != null ? pass.StartDate.ToString("yyyy-MM-dd") : null,
+                    EndDate = pass != null ? pass.EndDate.ToString("yyyy-MM-dd") : null
+                };
+            }).ToList();
+
+            return Success(result, "Get vehicles successfully.");
         }
 
         [HttpPost]

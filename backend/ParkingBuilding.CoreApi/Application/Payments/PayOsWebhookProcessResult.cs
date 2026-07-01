@@ -7,6 +7,7 @@ public class PayOsWebhookProcessResult
     public string Message { get; set; } = string.Empty;
     public long? PaymentId { get; set; }
     public long? ReservationId { get; set; }
+    public long? SessionId { get; set; }
     public long? OrderCode { get; set; }
     public string? PaymentStatus { get; set; }
     public string? ReservationStatus { get; set; }

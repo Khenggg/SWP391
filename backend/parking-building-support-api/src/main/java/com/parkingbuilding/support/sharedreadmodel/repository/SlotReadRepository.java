@@ -1,6 +1,7 @@
 package com.parkingbuilding.support.sharedreadmodel.repository;
 
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,6 +15,8 @@ public interface SlotReadRepository extends ReadOnlyRepository<SlotReadEntity, L
     long countByStatus(String status);
 
     List<SlotReadEntity> findByStatus(String status);
+
+    List<SlotReadEntity> findByIdIn(Set<Long> ids);
 
     @Query("""
     SELECT COUNT(s)

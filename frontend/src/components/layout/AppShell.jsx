@@ -60,7 +60,7 @@ const MENUS = {
     { label: "Hồ sơ", path: "/driver/profile", icon: UserRoundCog },
     { label: "Đặt chỗ", path: "/driver/booking", icon: CalendarClock },
     { label: "Xe của tôi", path: "/driver/vehicles", icon: CarFront },
-    { label: "Lịch sử", path: "/driver/history", icon: BookOpenCheck },
+    { label: "Lịch sử booking", path: "/driver/history", icon: BookOpenCheck },
   ],
 };
 

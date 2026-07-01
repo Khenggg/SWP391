@@ -75,7 +75,8 @@ function normalizeBookingId(value) {
 }
 
 function isBookingQrValue(value) {
-  return /^BK-\d+/i.test(normalizeBookingId(value));
+  const normalized = normalizeBookingId(value);
+  return /^BK-/i.test(normalized) || /^RES-/i.test(normalized);
 }
 
 function getSimNow() {
@@ -109,7 +110,8 @@ function formatMoney(value) {
 
 function getBookingWindow(booking) {
   if (!booking) return null;
-  if (booking.status !== "PAID") {
+  const status = String(booking.status || "").trim().toUpperCase();
+  if (status !== "PAID" && status !== "CONFIRMED" && status !== "CONFIRM") {
     return {
       variant: "invalid",
       label: "Không hợp lệ",
@@ -127,8 +129,8 @@ function getBookingWindow(booking) {
   if (!checkInExpiry || !graceExpiry || !warningStart) {
     return {
       variant: "valid",
-      label: "Đã thanh toán",
-      message: "Booking đã thanh toán, chưa có đủ dữ liệu thời hạn.",
+      label: "Hợp lệ",
+      message: "Booking hợp lệ, chưa có đủ dữ liệu thời hạn.",
     };
   }
 
@@ -179,6 +181,8 @@ export default function StaffEntryPage() {
   const staffName = currentUser?.fullName || currentUser?.username || "Nhân viên Trực";
 
   const [paidBookings, setPaidBookings] = useState([]);
+  const [isBookingMode, setIsBookingMode] = useState(false);
+  const [searchBookingId, setSearchBookingId] = useState("");
   const [selectedBookingId, setSelectedBookingId] = useState("");
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [bookingScan, setBookingScan] = useState(initialBookingScan);
@@ -192,6 +196,96 @@ export default function StaffEntryPage() {
   const [isBookingDetailsOpen, setIsBookingDetailsOpen] = useState(false);
   
   const [currentTime, setCurrentTime] = useState(formatDateTime(new Date()));
+
+  const handleSearchBooking = useCallback(
+    async (id) => {
+      const trimmedId = normalizeBookingId(id);
+      if (!trimmedId) {
+        toast.error("Vui lòng nhập mã đặt chỗ.");
+        return;
+      }
+
+      setIsBookingLoading(true);
+      setSelectedBooking(null);
+      setSelectedBookingId("");
+      setBookingScan({
+        requestedId: trimmedId,
+        status: "checking",
+        message: `Đang tìm kiếm mã đặt chỗ ${trimmedId}...`,
+      });
+
+      try {
+        let matchedBooking = paidBookings.find(
+          (b) => normalizeBookingId(b.id) === trimmedId
+        );
+
+        if (!matchedBooking) {
+          try {
+            matchedBooking = await bookingService.getBookingForStaff(trimmedId);
+          } catch (err) {
+            matchedBooking = null;
+          }
+        }
+
+        if (!matchedBooking) {
+          setBookingScan({
+            requestedId: trimmedId,
+            status: "not-found",
+            message: "Không tìm thấy mã đặt chỗ hoặc đặt chỗ chưa được thanh toán/xác nhận.",
+          });
+          toast.warning(`Không tìm thấy mã đặt chỗ ${trimmedId} đang chờ vào.`);
+          return;
+        }
+
+        const status = String(matchedBooking.status || "").trim().toUpperCase();
+        const isValidStatus = ["CONFIRMED", "CONFIRM", "PAID"].includes(status);
+
+        if (!isValidStatus) {
+          setBookingScan({
+            requestedId: matchedBooking.id,
+            status: "invalid",
+            message: `Đặt chỗ có trạng thái ${matchedBooking.status} không hợp lệ.`,
+          });
+          toast.warning(`Mã đặt chỗ ${matchedBooking.id} có trạng thái ${matchedBooking.status} không hợp lệ.`);
+          return;
+        }
+
+        const windowInfo = getBookingWindow(matchedBooking);
+        if (windowInfo?.variant === "expired") {
+          setBookingScan({
+            requestedId: matchedBooking.id,
+            status: "expired",
+            message: windowInfo.message,
+          });
+          toast.warning(`Mã đặt chỗ ${matchedBooking.id} đã quá hạn.`);
+          return;
+        }
+
+        setSelectedBookingId(matchedBooking.id);
+        setSelectedBooking(matchedBooking);
+        setIsBookingMode(true);
+        setBookingScan({
+          requestedId: matchedBooking.id,
+          status: "matched",
+          message: windowInfo?.message || "Mã đặt chỗ hợp lệ.",
+        });
+
+        setDeviceDraft((current) => ({
+          ...current,
+          vehicleTypeName: matchedBooking.vehicleTypeName || current.vehicleTypeName || "Xe Máy",
+          plate: matchedBooking.plate || matchedBooking.plateNumber || current.plate || "",
+        }));
+
+        toast.success(`Đã xác thực mã đặt chỗ ${matchedBooking.id} thành công!`);
+      } catch (error) {
+        console.error("Lỗi tìm kiếm đặt chỗ:", error);
+        toast.error("Lỗi tìm kiếm mã đặt chỗ.");
+      } finally {
+        setIsBookingLoading(false);
+      }
+    },
+    [paidBookings]
+  );
 
   const processedEventRef = useRef("");
 
@@ -281,41 +375,8 @@ export default function StaffEntryPage() {
           return;
         }
 
-        setBookingScan({
-          requestedId: requestedBookingId,
-          status: "checking",
-          message: `Đang đối chiếu QR ${requestedBookingId} với danh sách booking đã thanh toán.`,
-        });
-
-        const { matchedBooking } = await loadPaidBookings(requestedBookingId);
-        if (!matchedBooking) {
-          setBookingScan({
-            requestedId: requestedBookingId,
-            status: "not-found",
-            message: "Không có trong danh sách booking đã thanh toán/chờ vào. Có thể sai mã, chưa thanh toán, đã dùng hoặc quá hạn.",
-          });
-          toast.warning(`QR ${requestedBookingId} không khớp booking đang chờ vào.`);
-          return;
-        }
-
-        setDeviceDraft((current) => ({
-          ...current,
-          vehicleTypeName: event.vehicleTypeName || matchedBooking.vehicleTypeName || current.vehicleTypeName,
-          plate: event.detectedPlate || matchedBooking.plate || current.plate,
-        }));
-
-        const windowInfo = getBookingWindow(matchedBooking);
-        setBookingScan({
-          requestedId: matchedBooking.id,
-          status: windowInfo?.variant === "expired" ? "expired" : "matched",
-          message: windowInfo?.message || "Booking đã được tìm thấy.",
-        });
-
-        if (windowInfo?.variant === "expired") {
-          toast.warning(`Booking ${matchedBooking.id} đã quá hạn. Staff có thể bỏ booking và xử lý vãng lai.`);
-        } else {
-          toast.success(`Đã xác minh booking ${matchedBooking.id}. Tiếp tục quét/gán thẻ NFC.`);
-        }
+        setSearchBookingId(requestedBookingId);
+        await handleSearchBooking(requestedBookingId);
         return;
       }
 
@@ -326,7 +387,7 @@ export default function StaffEntryPage() {
 
       toast.info("Đã nhận dữ liệu camera/OCR từ thiết bị cổng vào.");
     },
-    [loadPaidBookings]
+    [loadPaidBookings, handleSearchBooking]
   );
 
   useEffect(() => {
@@ -341,6 +402,9 @@ export default function StaffEntryPage() {
     const booking = paidBookings.find((item) => item.id === id) || (selectedBooking?.id === id ? selectedBooking : null);
     setSelectedBookingId(booking?.id || "");
     setSelectedBooking(booking);
+    if (booking) {
+      setIsBookingMode(true);
+    }
     setBookingScan(
       booking
         ? {
@@ -363,6 +427,8 @@ export default function StaffEntryPage() {
     setSelectedBookingId("");
     setSelectedBooking(null);
     setBookingScan(initialBookingScan);
+    setIsBookingMode(false);
+    setSearchBookingId("");
   };
 
   const handleConfirmEntry = async () => {
@@ -410,6 +476,8 @@ export default function StaffEntryPage() {
       setSelectedBookingId("");
       setSelectedBooking(null);
       setBookingScan(initialBookingScan);
+      setIsBookingMode(false);
+      setSearchBookingId("");
       await loadPaidBookings();
     } catch (error) {
       toast.error(error.message || "Xác nhận xe vào bãi thất bại.");
@@ -422,7 +490,7 @@ export default function StaffEntryPage() {
   const isCardValid = !!deviceDraft.cardCode.trim();
   const isPlateValid = deviceDraft.plate.trim().length >= 5;
   const isVehicleTypeValid = !!deviceDraft.vehicleTypeName;
-  const allChecksPassed = isCardValid && isPlateValid && isVehicleTypeValid;
+  const allChecksPassed = isCardValid && isPlateValid && isVehicleTypeValid && (!isBookingMode || !!selectedBooking);
   const hasBooking = !!selectedBooking;
 
   return (
@@ -639,36 +707,49 @@ export default function StaffEntryPage() {
             <div className="flex bg-slate-100 p-1 rounded-lg">
               <button 
                 onClick={clearBooking}
-                className={`flex-1 py-2 text-xs font-bold rounded-md transition ${!hasBooking ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
+                className={`flex-1 py-2 text-xs font-bold rounded-md transition ${!isBookingMode ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
               >
                 Không Booking
               </button>
               <button 
-                className={`flex-1 py-2 text-xs font-bold rounded-md transition ${hasBooking ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
+                onClick={() => setIsBookingMode(true)}
+                className={`flex-1 py-2 text-xs font-bold rounded-md transition ${isBookingMode ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
               >
                 Có Booking
               </button>
             </div>
 
-            {hasBooking ? (
-               <div className="flex flex-col items-center justify-center py-6 gap-2 text-center flex-1">
+            {isBookingMode ? (
+               <div className="flex flex-col items-center justify-center py-6 gap-2 text-center flex-1 w-full">
                  <QrCode className="w-12 h-12 text-indigo-600 mb-2" />
                  <h4 className="font-black text-slate-800 uppercase">Khách Đặt Trước</h4>
-                 <p className="text-xs text-slate-500">Đã tìm thấy booking {selectedBooking.id}</p>
-                 <Select value={selectedBookingId || undefined} onValueChange={handleBookingChange}>
-                    <SelectTrigger className="w-full mt-4 h-9 font-bold text-xs border-slate-300">
-                      <SelectValue placeholder="Chọn booking" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {paidBookings.map((b) => (
-                          <SelectItem key={b.id} value={b.id}>
-                            {b.id} - {b.plate}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
+                 <p className="text-xs text-slate-500">
+                   {selectedBooking 
+                     ? `Đã tìm thấy booking ${selectedBooking.id}` 
+                     : "Vui lòng nhập mã đặt chỗ để đối chiếu"}
+                 </p>
+                 
+                 <div className="flex gap-2 w-full mt-4">
+                   <Input 
+                     placeholder="Nhập mã đặt chỗ (VD: BK-100001)" 
+                     value={searchBookingId}
+                     onChange={(e) => setSearchBookingId(e.target.value.toUpperCase())}
+                     onKeyDown={(e) => {
+                       if (e.key === "Enter") {
+                         handleSearchBooking(searchBookingId);
+                       }
+                     }}
+                     className="font-bold text-xs border-slate-300 h-9"
+                   />
+                   <Button 
+                     onClick={() => handleSearchBooking(searchBookingId)}
+                     disabled={isBookingLoading}
+                     size="sm"
+                     className="h-9 px-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shrink-0"
+                   >
+                     {isBookingLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : "Tìm kiếm"}
+                   </Button>
+                 </div>
                </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-4 gap-2 text-center flex-1">

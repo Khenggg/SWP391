@@ -679,6 +679,25 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                 .OrderByDescending(p => p.CreatedAt)
                 .FirstOrDefaultAsync();
 
+            if (payment != null
+                && payment.Provider == "PAYOS"
+                && payment.Status != "PAID")
+            {
+                payment = await _context.Payments
+                    .Include(p => p.Reservation)
+                    .Where(p => p.Id == payment.Id)
+                    .FirstOrDefaultAsync();
+
+                if (payment != null)
+                {
+                    var reconciled = await _payOsPaymentService.TryReconcileReservationPaymentAsync(payment);
+                    if (reconciled)
+                    {
+                        reservation = payment.Reservation ?? reservation;
+                    }
+                }
+            }
+
             var now = DateTimeOffset.UtcNow;
             var deadline = reservation.PaymentDeadline ?? payment?.ExpiredAt;
             var remainingSeconds = 0;
@@ -884,44 +903,48 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
             var previousReservationStatus = reservation.Status;
             var providerCancellations = new List<PayOsProviderCancellation>();
 
-            using (var transaction = await _context.Database.BeginTransactionAsync())
+            var strategy = _context.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
-                try
+                using (var transaction = await _context.Database.BeginTransactionAsync())
                 {
-                    reservation.Status = "EXPIRED";
-                    reservation.UpdatedAt = now;
-
-                    if (reservation.PaymentStatus == "PENDING")
+                    try
                     {
-                        reservation.PaymentStatus = "CANCELLED";
+                        reservation.Status = "EXPIRED";
+                        reservation.UpdatedAt = now;
 
-                        var pendingPayments = await _context.Payments
-                            .Where(p => p.ReservationId == reservation.Id && p.Status == "PENDING")
-                            .ToListAsync();
-
-                        providerCancellations = pendingPayments
-                            .Where(p => p.Provider == "PAYOS")
-                            .Select(p => new PayOsProviderCancellation(p.ProviderTransactionId, p.GatewayPayload))
-                            .ToList();
-
-                        foreach (var payment in pendingPayments)
+                        if (reservation.PaymentStatus == "PENDING")
                         {
-                            payment.Status = "CANCELLED";
-                            payment.UpdatedAt = now;
+                            reservation.PaymentStatus = "CANCELLED";
+
+                            var pendingPayments = await _context.Payments
+                                .Where(p => p.ReservationId == reservation.Id && p.Status == "PENDING")
+                                .ToListAsync();
+
+                            providerCancellations = pendingPayments
+                                .Where(p => p.Provider == "PAYOS")
+                                .Select(p => new PayOsProviderCancellation(p.ProviderTransactionId, p.GatewayPayload))
+                                .ToList();
+
+                            foreach (var payment in pendingPayments)
+                            {
+                                payment.Status = "CANCELLED";
+                                payment.UpdatedAt = now;
+                            }
                         }
+
+                        ReleaseReservationHold(reservation, previousReservationStatus);
+
+                        await _context.SaveChangesAsync();
+                        await transaction.CommitAsync();
                     }
-
-                    ReleaseReservationHold(reservation, previousReservationStatus);
-
-                    await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
+                    catch
+                    {
+                        try { await transaction.RollbackAsync(); } catch {}
+                        throw;
+                    }
                 }
-                catch
-                {
-                    try { await transaction.RollbackAsync(); } catch {}
-                    throw;
-                }
-            }
+            });
 
             foreach (var cancellation in providerCancellations)
             {

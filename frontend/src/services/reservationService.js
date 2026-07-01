@@ -1,51 +1,256 @@
 import coreAxiosClient from "../api/coreAxiosClient";
+import supportAxiosClient from "../api/supportAxiosClient";
+
+const ACTIVE_RESERVATION_SESSION_KEY = "activeReservation";
+const ACTIVE_RESERVATION_LOCAL_PREFIX = "activeReservation:";
+const TERMINAL_RESERVATION_STATUSES = new Set(["CANCELLED", "EXPIRED", "COMPLETED"]);
+const TERMINAL_PAYMENT_STATUSES = new Set(["CANCELLED", "FAILED", "NOT_REQUIRED"]);
+
+const getStoredCurrentUser = () => {
+  const raw = sessionStorage.getItem("currentUser");
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+};
+
+const getCurrentUsername = () => {
+  const user = getStoredCurrentUser();
+  return user?.username ? String(user.username).trim().toLowerCase() : "";
+};
+
+const getLocalStorageKey = (username = getCurrentUsername()) => {
+  if (!username) return null;
+  return `${ACTIVE_RESERVATION_LOCAL_PREFIX}${username}`;
+};
+
+const clearSessionReservation = () => {
+  sessionStorage.removeItem(ACTIVE_RESERVATION_SESSION_KEY);
+};
+
+const clearStoredReservation = (username = getCurrentUsername()) => {
+  clearSessionReservation();
+  const localKey = getLocalStorageKey(username);
+  if (localKey) {
+    localStorage.removeItem(localKey);
+  }
+};
+
+const parseReservation = (raw) => {
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+};
+
+const persistReservation = (reservation) => {
+  if (!reservation) return null;
+
+  const username = reservation.ownerUsername || getCurrentUsername();
+  const normalized = {
+    ...reservation,
+    ownerUsername: username
+  };
+
+  sessionStorage.setItem(ACTIVE_RESERVATION_SESSION_KEY, JSON.stringify(normalized));
+
+  const localKey = getLocalStorageKey(username);
+  if (localKey) {
+    localStorage.setItem(localKey, JSON.stringify(normalized));
+  }
+
+  return normalized;
+};
+
+const readCachedReservation = () => {
+  const username = getCurrentUsername();
+  if (!username) {
+    clearSessionReservation();
+    return null;
+  }
+
+  const sessionReservation = parseReservation(sessionStorage.getItem(ACTIVE_RESERVATION_SESSION_KEY));
+  if (sessionReservation) {
+    if (sessionReservation.ownerUsername && sessionReservation.ownerUsername !== username) {
+      clearSessionReservation();
+    } else {
+      return persistReservation(sessionReservation);
+    }
+  }
+
+  const localKey = getLocalStorageKey(username);
+  const localReservation = parseReservation(localKey ? localStorage.getItem(localKey) : null);
+  if (!localReservation) return null;
+
+  return persistReservation(localReservation);
+};
+
+const isLocallyExpired = (reservation) => {
+  if (!reservation?.reservationEndTime) return false;
+  const expiresAt = new Date(reservation.reservationEndTime).getTime();
+  if (Number.isNaN(expiresAt)) return false;
+  return expiresAt <= Date.now();
+};
+
+const isTerminalReservation = (reservationStatus, paymentStatus) =>
+  TERMINAL_RESERVATION_STATUSES.has(reservationStatus) || TERMINAL_PAYMENT_STATUSES.has(paymentStatus);
+
+const mapReservationForCache = (reservation, payment, metadata = {}) => ({
+  id: reservation.id,
+  reservationCode: reservation.reservationCode,
+  status: reservation.status,
+  paymentStatus: reservation.paymentStatus,
+  bookingAmount: reservation.bookingAmount,
+  plateNumber: reservation.plateNumber,
+  areaId: reservation.areaId,
+  slotId: reservation.slotId,
+  areaName: metadata.areaName || "Khu vực đã chọn",
+  slotName: metadata.slotName || "Slot đã chọn",
+  reservationEndTime: reservation.expiresAt || reservation.reservationEndTime,
+  checkoutUrl: payment?.checkoutUrl,
+  orderCode: payment?.orderCode,
+  paymentId: payment?.paymentId,
+  qrCode: payment?.qrCode,
+  remainingSeconds: payment?.expiredAt
+    ? Math.max(0, Math.floor((new Date(payment.expiredAt).getTime() - Date.now()) / 1000))
+    : 600
+});
+
+const mapSupportReservationForCache = (reservation, cached = {}) => ({
+  id: reservation.id,
+  reservationCode: reservation.reservationCode,
+  status: reservation.status,
+  paymentStatus: reservation.paymentStatus,
+  bookingAmount: reservation.bookingAmount,
+  plateNumber: reservation.plateNumber,
+  areaId: reservation.areaId,
+  slotId: reservation.slotId,
+  areaName: reservation.areaName || "Khu vực đã chọn",
+  slotName: reservation.slotName || "Slot đã chọn",
+  reservationEndTime: reservation.reservationEndTime,
+  checkoutUrl: reservation.checkoutUrl || cached.checkoutUrl,
+  orderCode: reservation.providerTransactionId,
+  paymentId: reservation.paymentId,
+  qrCode: reservation.qrCode || cached.qrCode,
+  remainingSeconds: reservation.remainingSeconds ?? 0
+});
+
+const mapSupportHistoryItem = (item) => ({
+  id: item.id,
+  reservationCode: item.reservationCode,
+  status: item.status,
+  paymentStatus: item.paymentStatus,
+  plateNumber: item.plateNumber,
+  vehicleTypeId: item.vehicleTypeId,
+  areaId: item.areaId,
+  areaName: item.areaName || "Khu vực đã chọn",
+  slotId: item.slotId,
+  slotName: item.slotName || "",
+  reservationStartTime: item.reservedAt || item.createdAt,
+  reservationEndTime: item.reservationEndTime,
+  createdAt: item.createdAt || item.reservedAt,
+  bookingAmount: Number(item.bookingAmount ?? 0),
+  totalAmount: Number(item.bookingAmount ?? 0),
+  providerTransactionId: item.providerTransactionId,
+  paymentId: item.paymentId
+});
+
+const fetchActiveReservationFromSupport = async () => {
+  const response = await supportAxiosClient.get("/reservations/me/active");
+  if (!response.success) {
+    return null;
+  }
+
+  if (!response.data) {
+    clearStoredReservation();
+    return null;
+  }
+
+  const cached = readCachedReservation();
+  return persistReservation(mapSupportReservationForCache(
+    response.data,
+    cached && String(cached.id) === String(response.data.id) ? cached : {}
+  ));
+};
 
 export const reservationService = {
-  // Lấy lượt đặt chỗ đang có hiệu lực từ sessionStorage và làm mới từ Backend
   getActiveReservation: async () => {
-    const cached = sessionStorage.getItem("activeReservation");
-    if (!cached) return null;
     try {
-      const reservation = JSON.parse(cached);
-      const res = await coreAxiosClient.get(`/reservations/${reservation.id}/payment-status`);
+      const supportReservation = await fetchActiveReservationFromSupport();
+      if (supportReservation) {
+        return supportReservation;
+      }
+    } catch {
+      // Fall back to cached/core reconciliation below when support API is unavailable.
+    }
+
+    const cached = readCachedReservation();
+    if (!cached) {
+      return fetchActiveReservationFromSupport().catch(() => null);
+    }
+
+    if (isTerminalReservation(cached.status, cached.paymentStatus)) {
+      clearStoredReservation(cached.ownerUsername);
+      return fetchActiveReservationFromSupport().catch(() => null);
+    }
+
+    try {
+      const res = await coreAxiosClient.get(`/reservations/${cached.id}/payment-status`);
       if (res.success && res.data) {
         const latest = res.data;
-        // Nếu đã hoàn thành, hủy, hoặc hết hạn trên backend -> xóa cache local
+
         if (
-          latest.reservationStatus === "CANCELLED" || 
-          latest.reservationStatus === "EXPIRED" || 
-          latest.reservationStatus === "COMPLETED"
+          isTerminalReservation(latest.reservationStatus, latest.paymentStatus) ||
+          latest.isExpired ||
+          (latest.reservationStatus === "CONFIRMED" && latest.expiresAt && new Date(latest.expiresAt).getTime() <= Date.now())
         ) {
-          sessionStorage.removeItem("activeReservation");
-          return null;
+          clearStoredReservation(cached.ownerUsername);
+          return fetchActiveReservationFromSupport().catch(() => null);
         }
 
-        // Cập nhật thông tin mới nhất và giữ nguyên các trường UI cũ
-        const updated = {
-          ...reservation,
+        const updated = persistReservation({
+          ...cached,
+          reservationCode: latest.reservationCode || cached.reservationCode,
           status: latest.reservationStatus,
           paymentStatus: latest.paymentStatus,
+          bookingAmount: latest.bookingAmount ?? cached.bookingAmount,
           checkoutUrl: latest.checkoutUrl,
           qrCode: latest.qrCode,
+          paymentId: latest.paymentId ?? cached.paymentId,
+          orderCode: latest.providerTransactionId ?? cached.orderCode,
           remainingSeconds: latest.remainingSeconds,
-          reservationEndTime: latest.expiresAt || reservation.reservationEndTime
-        };
-        sessionStorage.setItem("activeReservation", JSON.stringify(updated));
+          reservationEndTime: latest.expiresAt || cached.reservationEndTime
+        });
+
         return updated;
       }
-      return reservation;
-    } catch (e) {
-      return null;
+    } catch {
+      if (
+        (cached.paymentStatus === "PENDING" && Number(cached.remainingSeconds) <= 0) ||
+        (cached.status === "CONFIRMED" && isLocallyExpired(cached))
+      ) {
+        clearStoredReservation(cached.ownerUsername);
+        return fetchActiveReservationFromSupport().catch(() => null);
+      }
+
+      return fetchActiveReservationFromSupport().catch(() => cached);
     }
+
+    return cached;
   },
 
-  // Lấy danh sách slot khả dụng và khu vực khả dụng cho đặt chỗ từ Backend
   getAvailableSlots: async (vehicleTypeId = 5) => {
-    const res = await coreAxiosClient.get(`/reservations/available-locations?vehicleTypeId=${vehicleTypeId}`);
+    const vId = Number(vehicleTypeId);
+    const res = await coreAxiosClient.get(`/reservations/available-locations?vehicleTypeId=${vId}`);
     if (!res.success || !res.data) return { slots: [], areas: [] };
-    
-    // Parse slots
-    const slots = (res.data.availableSlots || []).map(s => ({
+
+    const slots = (res.data.availableSlots || []).map((s) => ({
       id: s.slotId,
       slotCode: s.slotCode,
       areaId: s.areaId,
@@ -57,8 +262,7 @@ export const reservationService = {
       status: "AVAILABLE"
     }));
 
-    // Parse areas
-    const areas = (res.data.availableAreas || []).map(a => ({
+    const areas = (res.data.availableAreas || []).map((a) => ({
       id: a.areaId,
       code: a.areaCode,
       name: a.areaName,
@@ -67,14 +271,13 @@ export const reservationService = {
       floorName: a.floorName,
       availableSlots: a.availableCapacity,
       totalSlots: a.totalCapacity,
-      vehicleTypeName: vehicleTypeId === 5 ? "Ô Tô" : "Xe Máy",
+      vehicleTypeName: vId === 5 ? "Ô Tô" : "Xe Máy",
       status: "ACTIVE"
     }));
 
-    // Đối với Ô tô (vehicleTypeId = 5), tự động trích xuất các khu vực có chứa slot trống
-    if (vehicleTypeId === 5 && slots.length > 0) {
+    if (slots.length > 0) {
       const areaIds = new Set();
-      slots.forEach(s => {
+      slots.forEach((s) => {
         if (!areaIds.has(s.areaId)) {
           areaIds.add(s.areaId);
           areas.push({
@@ -84,8 +287,8 @@ export const reservationService = {
             floorId: s.floorId,
             floorCode: s.floorCode,
             floorName: s.floorName,
-            availableSlots: slots.filter(sl => sl.areaId === s.areaId).length,
-            totalSlots: slots.filter(sl => sl.areaId === s.areaId).length,
+            availableSlots: slots.filter((sl) => sl.areaId === s.areaId).length,
+            totalSlots: slots.filter((sl) => sl.areaId === s.areaId).length,
             vehicleTypeName: "Ô Tô",
             status: "ACTIVE"
           });
@@ -93,15 +296,21 @@ export const reservationService = {
       });
     }
 
-    return { slots, areas }; 
+    return { slots, areas };
   },
 
-  // Lịch sử đặt chỗ
-  getHistory: async (page = 0, size = 10) => {
-    return [];
+  getHistory: async (_page = 0, limit = 5) => {
+    const response = await supportAxiosClient.get(`/reservations/me/history?limit=${Number(limit) || 5}`);
+    if (!response.success || !response.data) {
+      return [];
+    }
+
+    const items = Array.isArray(response.data.items) ? response.data.items : [];
+    return items
+      .filter((item) => item.status !== "CANCELLED")
+      .map(mapSupportHistoryItem);
   },
 
-  // Đặt chỗ mới
   createReservation: async (plateNumber, vehicleTypeId, floorId, areaId, durationHours, slotId, areaName, slotName) => {
     const res = await coreAxiosClient.post("/reservations", {
       plateNumber,
@@ -111,65 +320,68 @@ export const reservationService = {
       reservedDurationMinutes: durationHours * 60,
       slotId
     });
+
     if (res.success && res.data) {
-      const reservation = res.data.reservation;
-      const payment = res.data.payment;
-      
-      // Sanitize và san phẳng dữ liệu để tương thích với giao diện
-      const flatReservation = {
-        id: reservation.id,
-        reservationCode: reservation.reservationCode,
-        status: reservation.status,
-        paymentStatus: reservation.paymentStatus,
-        bookingAmount: reservation.bookingAmount,
-        plateNumber: reservation.plateNumber,
-        areaId: reservation.areaId,
-        slotId: reservation.slotId,
-        areaName: areaName || "Khu vực đã chọn",
-        slotName: slotName || "Slot đã chọn",
-        reservationEndTime: reservation.expiresAt || reservation.reservationEndTime,
-        checkoutUrl: payment?.checkoutUrl,
-        orderCode: payment?.orderCode,
-        paymentId: payment?.paymentId,
-        qrCode: payment?.qrCode,
-        remainingSeconds: payment?.expiredAt ? Math.max(0, Math.floor((new Date(payment.expiredAt).getTime() - Date.now()) / 1000)) : 600
-      };
-      
-      // Lưu vào cache local để hỗ trợ getActiveReservation
-      sessionStorage.setItem("activeReservation", JSON.stringify(flatReservation));
-      return flatReservation;
+      const flatReservation = mapReservationForCache(res.data.reservation, res.data.payment, {
+        areaName,
+        slotName
+      });
+
+      if (Number(flatReservation.bookingAmount || 0) > 0 && !flatReservation.qrCode && !flatReservation.checkoutUrl) {
+        throw new Error("PayOS chua tra QR/link thanh toan. Vui long thu lai.");
+      }
+
+      return persistReservation(flatReservation);
     }
+
     throw new Error(res.message || "Đặt chỗ thất bại");
   },
 
-  // Hủy đặt chỗ
   cancelReservation: async (id) => {
     const res = await coreAxiosClient.post(`/reservations/${id}/cancel`, { reason: "User cancelled from web UI" });
     if (res.success) {
-      sessionStorage.removeItem("activeReservation");
+      clearStoredReservation();
       return res.data;
     }
     throw new Error(res.message || "Hủy đặt chỗ thất bại");
   },
 
-  // Kiểm tra thanh toán thành công thông qua webhook và cập nhật cache
   payReservation: async (id) => {
     const res = await coreAxiosClient.get(`/reservations/${id}/payment-status`);
     if (res.success && res.data && res.data.paymentStatus === "PAID") {
-      const cached = sessionStorage.getItem("activeReservation");
+      const cached = readCachedReservation();
       if (cached) {
-        const reservation = JSON.parse(cached);
-        const updated = {
-          ...reservation,
+        return persistReservation({
+          ...cached,
           status: "CONFIRMED",
           paymentStatus: "PAID",
-          reservationEndTime: res.data.expiresAt || reservation.reservationEndTime
-        };
-        sessionStorage.setItem("activeReservation", JSON.stringify(updated));
-        return updated;
+          reservationEndTime: res.data.expiresAt || cached.reservationEndTime,
+          remainingSeconds: res.data.remainingSeconds ?? cached.remainingSeconds
+        });
       }
       return res.data;
     }
     throw new Error("Giao dịch chưa được thanh toán trên PayOS. Vui lòng thanh toán trước.");
+  },
+
+  getReservationById: async (id) => {
+    try {
+      const active = await reservationService.getActiveReservation().catch(() => null);
+      if (active && String(active.id) === String(id)) {
+        return active;
+      }
+      const history = await reservationService.getHistory(0, 100);
+      const found = history.find((item) => String(item.id) === String(id));
+      if (found) {
+        return found;
+      }
+    } catch (e) {
+      console.error("Error in getReservationById:", e);
+    }
+    return null;
+  },
+
+  clearActiveReservationCache: () => {
+    clearStoredReservation();
   }
 };

@@ -2,6 +2,7 @@ package com.parkingbuilding.support.sharedreadmodel.repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.stereotype.Repository;
 
@@ -16,5 +17,7 @@ public interface AreaReadRepository
     List<AreaReadEntity> findByFloorId(Long floorId);
 
     List<AreaReadEntity> findByStatus(String status);
+
+    List<AreaReadEntity> findByIdIn(Set<Long> ids);
 
 }

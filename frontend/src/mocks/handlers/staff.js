@@ -211,7 +211,10 @@ export const staffHandlers = [
         ];
         db.saveBookings(inMemoryBookings);
       }
-      const paidList = inMemoryBookings.filter(b => b.status === "PAID");
+      const paidList = inMemoryBookings.filter(b => {
+        const s = String(b.status || "").trim().toUpperCase();
+        return s === "PAID" || s === "CONFIRMED" || s === "CONFIRM";
+      });
       return ok(paidList);
     })
   ),
@@ -272,9 +275,9 @@ export const staffHandlers = [
         return notFound("Không tìm thấy mã đặt chỗ hoặc đặt chỗ đã được xử lý trước đó.");
       }
       
-      const booking = inMemoryBookings[index];
-      if (booking.status !== "PAID") {
-        return badRequest("Mã đặt chỗ này chưa được thanh toán.");
+      const status = String(booking.status || "").trim().toUpperCase();
+      if (status !== "PAID" && status !== "CONFIRMED" && status !== "CONFIRM") {
+        return badRequest("Mã đặt chỗ này chưa được thanh toán hoặc xác nhận.");
       }
 
       try {

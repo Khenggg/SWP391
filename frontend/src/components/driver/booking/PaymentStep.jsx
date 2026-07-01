@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import QRCode from "qrcode";
 import { CheckCircle2, Copy, AlertCircle, Loader2, CopyCheck, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { reservationService } from "../../../services/reservationService";
@@ -8,6 +9,8 @@ export default function PaymentStep({ activeReservation, onPaymentComplete, onCa
   const [errorMessage, setErrorMessage] = useState("");
   const [copiedField, setCopiedField] = useState(""); // Track which field was copied: 'account', 'amount', 'content'
   const [timeLeft, setTimeLeft] = useState(activeReservation?.remainingSeconds || 600); // 10 minutes default
+  const [qrDataUrl, setQrDataUrl] = useState("");
+  const [qrError, setQrError] = useState("");
 
   const amount = activeReservation?.bookingAmount || 10000;
   const reservationCode = activeReservation?.reservationCode || "RES382";
@@ -18,12 +21,49 @@ export default function PaymentStep({ activeReservation, onPaymentComplete, onCa
   const accountName = "NGUYEN HOANG HUNG";
   const accountNumber = "VQRQAKCTL6498";
 
-  // QR Code generator using VietQR string from PayOS (falls back to checkout URL if needed)
-  const payOsQrUrl = activeReservation?.qrCode 
-    ? `https://quickchart.io/qr?text=${encodeURIComponent(activeReservation.qrCode)}&size=220` 
-    : (activeReservation?.checkoutUrl 
-      ? `https://quickchart.io/qr?text=${encodeURIComponent(activeReservation.checkoutUrl)}&size=220` 
-      : "");
+  const qrPayload = activeReservation?.qrCode || activeReservation?.checkoutUrl || "";
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const renderQr = async () => {
+      setQrError("");
+
+      if (!qrPayload) {
+        setQrDataUrl("");
+        setQrError("Khong co du lieu QR tu PayOS.");
+        return;
+      }
+
+      try {
+        const dataUrl = await QRCode.toDataURL(qrPayload, {
+          width: 220,
+          margin: 1,
+          errorCorrectionLevel: "M",
+          color: {
+            dark: "#0f172a",
+            light: "#ffffff"
+          }
+        });
+
+        if (!cancelled) {
+          setQrDataUrl(dataUrl);
+        }
+      } catch (error) {
+        console.error("Unable to render PayOS QR:", error);
+        if (!cancelled) {
+          setQrDataUrl("");
+          setQrError("Khong the tao anh QR.");
+        }
+      }
+    };
+
+    renderQr();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [qrPayload]);
 
   // Copy helper
   const handleCopy = (text, fieldName) => {
@@ -71,7 +111,7 @@ export default function PaymentStep({ activeReservation, onPaymentComplete, onCa
 
     const intervalId = setInterval(async () => {
       try {
-        const latest = await reservationService.getActiveReservation().catch(() => null);
+        const latest = await reservationService.payReservation(activeReservation.id).catch(() => null);
         if (latest && (latest.status === "CONFIRMED" || latest.paymentStatus === "PAID")) {
           clearInterval(intervalId);
           setIsPaid(true);
@@ -157,12 +197,16 @@ export default function PaymentStep({ activeReservation, onPaymentComplete, onCa
 
             {/* QR Code Container */}
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-              {payOsQrUrl ? (
+              {qrDataUrl ? (
                 <img 
-                  src={payOsQrUrl} 
+                  src={qrDataUrl} 
                   alt="PayOS VietQR Code" 
                   className="w-48 h-48 object-contain mx-auto"
                 />
+              ) : qrError ? (
+                <div className="w-48 h-48 flex items-center justify-center text-rose-500 text-xs text-center px-4">
+                  {qrError}
+                </div>
               ) : (
                 <div className="w-48 h-48 flex items-center justify-center text-slate-400 text-xs">
                   Đang khởi tạo QR...

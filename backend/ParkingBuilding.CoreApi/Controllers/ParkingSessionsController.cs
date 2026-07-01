@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.Entry;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.LocationSuggestion;
+using ParkingBuilding.CoreApi.Application.ParkingSessions.Exit;
 using ParkingBuilding.CoreApi.Contracts.Common;
 using System;
 using System.Security.Claims;
@@ -14,13 +15,19 @@ namespace ParkingBuilding.CoreApi.Controllers
     {
         private readonly IEntryService _entryService;
         private readonly ILocationSuggestionService _suggestionService;
+        private readonly IExitService _exitService;
+        private readonly IFeeCalculationService _feeCalculationService;
 
         public ParkingSessionsController(
             IEntryService entryService,
-            ILocationSuggestionService suggestionService)
+            ILocationSuggestionService suggestionService,
+            IExitService exitService,
+            IFeeCalculationService feeCalculationService)
         {
             _entryService = entryService;
             _suggestionService = suggestionService;
+            _exitService = exitService;
+            _feeCalculationService = feeCalculationService;
         }
 
         [HttpPost("entry")]
@@ -80,6 +87,56 @@ namespace ParkingBuilding.CoreApi.Controllers
             return Success(result, "Goi y vi tri thanh cong.");
         }
 
+        [HttpGet("by-card-code/{cardCode}")]
+        [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
+        public async Task<IActionResult> GetSessionByCardCode(string cardCode)
+        {
+            var session = await _exitService.FindActiveSessionByCardCodeAsync(cardCode);
+            return Success(new
+            {
+                sessionId = session.Id,
+                sessionCode = session.SessionCode,
+                cardCode = session.ParkingCard.CardNumber,
+                plateNumber = session.PlateNumber,
+                entryTime = session.EntryTime,
+                customerType = session.CustomerType,
+                paymentStatus = session.PaymentStatus,
+                vehicleTypeId = session.VehicleTypeId,
+                floorId = session.FloorId,
+                areaId = session.AreaId,
+                slotId = session.SlotId,
+                monthlyPassId = session.MonthlyPassId,
+                reservationId = session.ReservationId
+            }, "Tim kiem phien gui xe theo the thanh cong.");
+        }
+
+        [HttpPost("{id}/calculate-fee")]
+        [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
+        public async Task<IActionResult> CalculateExitFee(long id, [FromBody] CalculateFeeRequest request)
+        {
+            var exitTime = request.ExitTime ?? DateTimeOffset.UtcNow;
+            var result = await _feeCalculationService.CalculateFeeAsync(id, exitTime, request.IncludeLostCardFee);
+            return Success(result, "Tinh phi gui xe thanh cong.");
+        }
+
+        [HttpPost("{id}/exit")]
+        [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
+        public async Task<IActionResult> CompleteCasualExit(long id, [FromBody] ExitRequest request)
+        {
+            var staffId = GetCurrentUserIdOrThrow();
+            var result = await _exitService.CompleteCasualExitAsync(id, request, staffId);
+            return Success(result, "Cho xe vang lai ra bai thanh cong.");
+        }
+
+        [HttpPost("{id}/monthly-pass-exit")]
+        [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
+        public async Task<IActionResult> CompleteMonthlyPassExit(long id, [FromBody] MonthlyPassExitRequest request)
+        {
+            var staffId = GetCurrentUserIdOrThrow();
+            var result = await _exitService.CompleteMonthlyPassExitAsync(id, request, staffId);
+            return Success(result, "Cho xe ve thang ra bai thanh cong.");
+        }
+
         [HttpPost("suggest-slot")]
         [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
         [Obsolete("Use GET /api/core/parking-sessions/location-suggestion instead.")]
@@ -137,5 +194,11 @@ namespace ParkingBuilding.CoreApi.Controllers
     {
         public long VehicleTypeId { get; set; }
         public long EntryGateId { get; set; }
+    }
+
+    public class CalculateFeeRequest
+    {
+        public DateTimeOffset? ExitTime { get; set; }
+        public bool IncludeLostCardFee { get; set; }
     }
 }

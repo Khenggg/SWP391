@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Khởi tạo instance Axios cho Public API Service (Spring Boot)
 const publicAxiosClient = axios.create({
-  baseURL: import.meta.env.VITE_PUBLIC_API_URL || "http://localhost:8080/api/public",
+  baseURL: import.meta.env.VITE_PUBLIC_API_URL || "/api/public",
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
