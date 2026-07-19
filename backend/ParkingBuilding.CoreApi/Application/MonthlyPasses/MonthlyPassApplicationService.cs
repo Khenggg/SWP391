@@ -33,31 +33,43 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
                 throw new BusinessException(ErrorCodes.DriverProfileNotFound, StatusCodes.Status404NotFound);
             }
 
-            var vehicle = await _context.Vehicles
-                .Include(v => v.VehicleType)
-                .FirstOrDefaultAsync(v => v.Id == request.VehicleId);
-            if (vehicle == null)
+            // 1. Tạo Vehicle PENDING trước
+            var normalizedPlate = request.LicensePlate.Replace("-", "").Replace(".", "").Replace(" ", "").ToUpper();
+
+            // Kiểm tra trùng biển số xe đang hoạt động
+            var duplicate = await _context.Vehicles
+                .FirstOrDefaultAsync(v => v.NormalizedPlateNumber == normalizedPlate && v.Status == "ACTIVE");
+            if (duplicate != null)
             {
-                throw new BusinessException(ErrorCodes.VehicleNotFound, StatusCodes.Status404NotFound);
+                throw new BusinessException("LICENSE_PLATE_ALREADY_EXISTS", StatusCodes.Status400BadRequest);
             }
 
-            if (vehicle.DriverId != driverProfile.Id)
+            var isCar = "CAR".Equals(request.VehicleType, StringComparison.OrdinalIgnoreCase);
+            var vehicleTypeObj = await _context.VehicleTypes
+                .FirstOrDefaultAsync(vt => vt.IsActive && vt.RequiresSlot == isCar);
+            if (vehicleTypeObj == null)
             {
-                throw new BusinessException(ErrorCodes.VehicleNotBelongToDriver, StatusCodes.Status400BadRequest);
+                throw new BusinessException("INVALID_VEHICLE_TYPE", StatusCodes.Status400BadRequest);
             }
 
-            if (vehicle.ApprovalStatus != "APPROVED")
+            var vehicle = new Vehicle
             {
-                throw new BusinessException("VEHICLE_NOT_APPROVED", StatusCodes.Status400BadRequest);
-            }
+                DriverId = driverProfile.Id,
+                PlateNumber = request.LicensePlate,
+                NormalizedPlateNumber = normalizedPlate,
+                VehicleTypeId = vehicleTypeObj.Id,
+                Brand = request.Brand,
+                Color = request.Color,
+                ApprovalStatus = "PENDING",
+                Description = request.Description,
+                Status = "ACTIVE",
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+            _context.Vehicles.Add(vehicle);
+            await _context.SaveChangesAsync();
 
-            var existingActivePass = await _context.MonthlyPasses
-                .AnyAsync(mp => mp.PlateNumber == vehicle.PlateNumber && mp.Status == "ACTIVE");
-            if (existingActivePass)
-            {
-                throw new BusinessException("VEHICLE_ALREADY_HAS_ACTIVE_PASS", StatusCodes.Status409Conflict);
-            }
-
+            // 2. Tìm bảng giá
             var activeRule = await _context.PricingRules
                 .Where(p => p.VehicleTypeId == vehicle.VehicleTypeId && p.Status == "ACTIVE")
                 .OrderByDescending(p => p.EffectiveFrom)
@@ -67,6 +79,7 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
                 throw new BusinessException(ErrorCodes.PricingRuleNotFound, StatusCodes.Status404NotFound);
             }
 
+            // 3. Tạo MonthlyPassApplication
             var application = new MonthlyPassApplication
             {
                 DriverId = driverProfile.Id,
@@ -74,6 +87,11 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
                 StartDate = DateTime.SpecifyKind(request.StartDate.Date, DateTimeKind.Utc),
                 Price = activeRule.MonthlyPrice,
                 Status = "PENDING",
+                CccdFrontImageUrl = request.CccdFrontImageUrl,
+                CccdBackImageUrl = request.CccdBackImageUrl,
+                FaceImageUrl = request.FaceImageUrl,
+                PlateImageUrl = request.PlateImageUrl,
+                Note = request.Note,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -279,6 +297,12 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
 
                 application.Status = "APPROVED_AWAITING_PAYMENT";
                 application.RejectionReason = request.Reason;
+
+                if (application.Vehicle != null)
+                {
+                    application.Vehicle.ApprovalStatus = "APPROVED";
+                    application.Vehicle.UpdatedAt = DateTimeOffset.UtcNow;
+                }
             }
             else if (request.Status == "REJECTED")
             {
@@ -288,6 +312,12 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
                 }
                 application.Status = "REJECTED";
                 application.RejectionReason = request.Reason;
+
+                if (application.Vehicle != null)
+                {
+                    application.Vehicle.ApprovalStatus = "REJECTED";
+                    application.Vehicle.UpdatedAt = DateTimeOffset.UtcNow;
+                }
             }
             else
             {
@@ -458,13 +488,59 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
 
         private MonthlyPassApplicationResponse MapToResponse(MonthlyPassApplication application)
         {
+            // Query other vehicles and passes for this driver
+            var driverVehicles = _context.Vehicles
+                .Include(v => v.VehicleType)
+                .Where(v => v.DriverId == application.DriverId && v.Status == "ACTIVE")
+                .ToList();
+
+            var monthlyPasses = _context.MonthlyPasses
+                .Where(mp => mp.DriverId == application.DriverId)
+                .ToList();
+
+            var driverVehicleStatuses = new List<DriverVehicleStatusDto>();
+            foreach (var v in driverVehicles)
+            {
+                var pass = monthlyPasses
+                    .Where(mp => mp.PlateNumber == v.PlateNumber)
+                    .OrderByDescending(mp => mp.EndDate)
+                    .FirstOrDefault();
+
+                string passStatus = "NONE";
+                DateTime? endDate = null;
+                if (pass != null)
+                {
+                    endDate = pass.EndDate;
+                    if (pass.Status == "ACTIVE" && pass.EndDate >= DateTime.UtcNow.Date)
+                    {
+                        passStatus = "ACTIVE";
+                    }
+                    else
+                    {
+                        passStatus = "EXPIRED";
+                    }
+                }
+
+                driverVehicleStatuses.Add(new DriverVehicleStatusDto
+                {
+                    Id = v.Id,
+                    LicensePlate = v.PlateNumber,
+                    VehicleTypeName = v.VehicleType?.Name ?? "Unknown",
+                    Brand = v.Brand ?? "—",
+                    Color = v.Color ?? "—",
+                    ApprovalStatus = v.ApprovalStatus ?? "PENDING",
+                    MonthlyPassStatus = passStatus,
+                    MonthlyPassEndDate = endDate
+                });
+            }
+
             return new MonthlyPassApplicationResponse
             {
                 Id = application.Id,
                 DriverId = application.DriverId,
                 VehicleId = application.VehicleId,
-                VehiclePlateNumber = application.Vehicle.PlateNumber,
-                VehicleTypeName = application.Vehicle.VehicleType?.Name ?? "Unknown",
+                VehiclePlateNumber = application.Vehicle?.PlateNumber ?? "—",
+                VehicleTypeName = application.Vehicle?.VehicleType?.Name ?? "Unknown",
                 StartDate = application.StartDate,
                 Price = application.Price,
                 Status = application.Status,
@@ -474,7 +550,21 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
                 AssignedCardId = application.AssignedCardId,
                 AssignedCardCode = application.AssignedCard?.CardNumber,
                 CreatedAt = application.CreatedAt,
-                UpdatedAt = application.UpdatedAt
+                UpdatedAt = application.UpdatedAt,
+
+                CccdFrontImageUrl = application.CccdFrontImageUrl,
+                CccdBackImageUrl = application.CccdBackImageUrl,
+                FaceImageUrl = application.FaceImageUrl,
+                PlateImageUrl = application.PlateImageUrl,
+                Note = application.Note,
+
+                DriverFullName = application.Driver?.FullName ?? "—",
+                DriverPhone = application.Driver?.Phone ?? "—",
+                DriverEmail = application.Driver?.Email ?? "—",
+                DriverApartmentNumber = application.Driver?.ApartmentNumber ?? "—",
+                DriverResidentVerified = application.Driver?.ResidentVerified ?? false,
+
+                DriverVehicles = driverVehicleStatuses
             };
         }
     }

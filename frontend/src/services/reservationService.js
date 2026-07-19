@@ -346,6 +346,24 @@ export const reservationService = {
     throw new Error(res.message || "Hủy đặt chỗ thất bại");
   },
 
+  extendReservation: async (id, addedMinutes) => {
+    const res = await coreAxiosClient.post(`/reservations/${id}/extend`, { addedMinutes });
+    if (res.success && res.data) {
+      const latest = res.data.reservation || res.data;
+      const payment = res.data.payment;
+      const cached = readCachedReservation();
+      if (cached && String(cached.id) === String(id)) {
+        const flatReservation = mapReservationForCache(latest, payment, {
+          areaName: cached.areaName,
+          slotName: cached.slotName
+        });
+        persistReservation(flatReservation);
+      }
+      return res.data;
+    }
+    throw new Error(res.message || "Gia hạn đặt chỗ thất bại");
+  },
+
   payReservation: async (id) => {
     const res = await coreAxiosClient.get(`/reservations/${id}/payment-status`);
     if (res.success && res.data && res.data.paymentStatus === "PAID") {

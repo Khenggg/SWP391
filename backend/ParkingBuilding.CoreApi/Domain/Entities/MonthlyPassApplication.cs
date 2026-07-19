@@ -31,6 +31,21 @@ namespace ParkingBuilding.CoreApi.Domain.Entities
         [Column("rejection_reason")]
         public string? RejectionReason { get; set; }
 
+        [Column("cccd_front_image_url")]
+        public string? CccdFrontImageUrl { get; set; }
+
+        [Column("cccd_back_image_url")]
+        public string? CccdBackImageUrl { get; set; }
+
+        [Column("face_image_url")]
+        public string? FaceImageUrl { get; set; }
+
+        [Column("plate_image_url")]
+        public string? PlateImageUrl { get; set; }
+
+        [Column("note")]
+        public string? Note { get; set; }
+
         [Column("payment_method")]
         public string? PaymentMethod { get; set; }
 
