@@ -1,10 +1,24 @@
 import coreAxiosClient from "../api/coreAxiosClient";
 
 export const userService = {
-  getUsers: async () => {
-    const response = await coreAxiosClient.get("/users");
+  getUsers: async ({ keyword = "", role = "", status = "", page = 1, pageSize = 20 } = {}) => {
+    const response = await coreAxiosClient.get("/users", {
+      params: {
+        keyword: keyword || undefined,
+        role: role || undefined,
+        status: status || undefined,
+        page,
+        pageSize,
+      },
+    });
     if (response.success && response.data) {
-      return response.data;
+      return {
+        items: Array.isArray(response.data) ? response.data : (response.data.items || []),
+        page: response.data.page || page,
+        pageSize: response.data.pageSize || pageSize,
+        totalItems: response.data.totalItems ?? (Array.isArray(response.data) ? response.data.length : 0),
+        totalPages: response.data.totalPages || 1,
+      };
     }
     throw new Error(response.message || "Không thể lấy danh sách người dùng.");
   },
@@ -25,16 +39,16 @@ export const userService = {
     throw new Error(response.message || "Không thể cập nhật thông tin người dùng.");
   },
 
-  updateUserRole: async (id, role) => {
-    const response = await coreAxiosClient.patch(`/users/${id}/role`, { role });
+  updateUserRole: async (id, role, reason) => {
+    const response = await coreAxiosClient.patch(`/users/${id}/role`, { role, reason });
     if (response.success && response.data) {
       return response.data;
     }
     throw new Error(response.message || "Không thể đổi vai trò người dùng.");
   },
 
-  updateUserStatus: async (id, status) => {
-    const response = await coreAxiosClient.patch(`/users/${id}/status`, { status });
+  updateUserStatus: async (id, status, reason) => {
+    const response = await coreAxiosClient.patch(`/users/${id}/status`, { status, reason });
     if (response.success && response.data) {
       return response.data;
     }

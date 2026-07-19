@@ -14,7 +14,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using ParkingBuilding.CoreApi.Application.Audit;
+using ParkingBuilding.CoreApi.Application.Authentication;
 using Microsoft.OpenApi;
+using System.IdentityModel.Tokens.Jwt;
 
 // Import đúng namespace chứa các Service
 using ParkingBuilding.CoreApi.Application.ParkingStructure.Floors;
@@ -58,6 +60,10 @@ builder.Services.AddDbContext<ParkingDbContext>(options =>
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuditWriterService, AuditWriterService>();
+builder.Services.AddScoped<IAuthSessionService, AuthSessionService>();
+builder.Services.AddScoped<IDriverRegistrationService, DriverRegistrationService>();
+builder.Services.AddSingleton<ILoginRateLimiter, InMemoryLoginRateLimiter>();
+builder.Services.AddSingleton<IRegistrationRateLimiter, InMemoryRegistrationRateLimiter>();
 builder.Services.AddHostedService<SupabaseConnectionLogger>();
 builder.Services.AddSingleton<JwtTokenGenerator>();
 
@@ -170,6 +176,33 @@ builder.Services.AddAuthentication(options =>
 
     options.Events = new JwtBearerEvents
     {
+        OnTokenValidated = async context =>
+        {
+            var userIdClaim = context.Principal?.FindFirst("user_id")?.Value
+                ?? context.Principal?.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+
+            if (!long.TryParse(userIdClaim, out var userId))
+            {
+                context.Fail("Invalid user identity.");
+                return;
+            }
+
+            var jwtId = context.Principal?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+            var sessionId = Guid.TryParse(
+                context.Principal?.FindFirst(JwtRegisteredClaimNames.Sid)?.Value,
+                out var parsedSessionId)
+                ? parsedSessionId
+                : (Guid?)null;
+
+            using var scope = context.HttpContext.RequestServices.CreateScope();
+            var authSessionService = scope.ServiceProvider.GetRequiredService<IAuthSessionService>();
+
+            if (!await authSessionService.IsUserActiveAsync(userId)
+                || await authSessionService.IsAccessTokenRevokedAsync(jwtId, sessionId))
+            {
+                context.Fail("Authentication session is no longer active.");
+            }
+        },
         OnChallenge = async context =>
         {
             context.HandleResponse();

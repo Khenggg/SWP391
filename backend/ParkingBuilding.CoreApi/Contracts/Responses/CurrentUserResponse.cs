@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace ParkingBuilding.CoreApi.Contracts.Responses
 {
     public class CurrentUserResponse
@@ -7,6 +9,7 @@ namespace ParkingBuilding.CoreApi.Contracts.Responses
         public string FullName { get; set; } = string.Empty;
         public string? Email { get; set; }
         public string Role { get; set; } = string.Empty;
+        public List<string> Roles { get; set; } = new();
         public string Status { get; set; } = string.Empty;
     }
 }

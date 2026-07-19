@@ -13,6 +13,15 @@ const getStoredCurrentUser = () => {
 };
 
 export const driverService = {
+  registerDriver: async (data) => {
+    const response = await coreAxiosClient.post("/auth/register", data);
+    if (response.success && response.data) {
+      return response.data;
+    }
+
+    throw response;
+  },
+
   getDriverProfile: async () => {
     try {
       const res = await supportAxiosClient.get("/driver/me");

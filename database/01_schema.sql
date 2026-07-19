@@ -5,18 +5,81 @@
 CREATE TABLE IF NOT EXISTS users (
     id BIGSERIAL PRIMARY KEY,
     full_name VARCHAR(150) NOT NULL,
-    username VARCHAR(100) NOT NULL,
+    username VARCHAR(30) NOT NULL,
     email VARCHAR(150),
     phone VARCHAR(30),
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(30) NOT NULL,
     status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
     last_login_at TIMESTAMPTZ,
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT ck_users_role CHECK (role IN ('ADMIN', 'MANAGER', 'STAFF', 'DRIVER')),
     CONSTRAINT ck_users_status CHECK (status IN ('ACTIVE', 'LOCKED', 'INACTIVE'))
 );
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'ck_users_username_format'
+          AND conrelid = 'users'::regclass
+    ) THEN
+        ALTER TABLE users
+            ADD CONSTRAINT ck_users_username_format CHECK (
+                char_length(username) BETWEEN 6 AND 30
+                AND username ~ '^[A-Za-z][A-Za-z0-9_-]*[A-Za-z0-9]$'
+                AND username !~ '[_-]{2}'
+            );
+    END IF;
+END $$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_users_username_lower ON users (LOWER(username));
+CREATE UNIQUE INDEX IF NOT EXISTS ux_users_email_lower ON users (LOWER(email)) WHERE email IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_users_phone ON users (phone) WHERE phone IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS auth_sessions (
+    id UUID PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at TIMESTAMPTZ NOT NULL,
+    revoked_at TIMESTAMPTZ,
+    created_by_ip VARCHAR(100),
+    revoked_by_ip VARCHAR(100),
+    revocation_reason VARCHAR(255)
+);
+
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+    id UUID PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash VARCHAR(128) NOT NULL,
+    token_family_id UUID NOT NULL REFERENCES auth_sessions(id) ON DELETE CASCADE,
+    jwt_id VARCHAR(255),
+    expires_at TIMESTAMPTZ NOT NULL,
+    revoked_at TIMESTAMPTZ,
+    replaced_by_token_hash VARCHAR(128),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_by_ip VARCHAR(100),
+    revoked_by_ip VARCHAR(100),
+    revocation_reason VARCHAR(255)
+);
+
+CREATE TABLE IF NOT EXISTS revoked_access_tokens (
+    id UUID PRIMARY KEY,
+    jwt_id VARCHAR(255) UNIQUE NOT NULL,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    revoked_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    reason VARCHAR(255)
+);
+
+-- These tables are backend-owned authentication data. Keep them protected from
+-- Supabase Data API roles; the server-side database owner performs the queries.
+ALTER TABLE auth_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE refresh_tokens ENABLE ROW LEVEL SECURITY;
+ALTER TABLE revoked_access_tokens ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS driver_profiles (
     id BIGSERIAL PRIMARY KEY,

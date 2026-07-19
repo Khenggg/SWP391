@@ -48,10 +48,21 @@ const decrementAreaOccupancy = (areaCode) => {
 
 export const driverHandlers = [
   ...enabled(
-    MOCK_FLAGS.DRIVER_REGISTER || true,
-    http.post(`${API_BASE_URLS.core}/driver/register`, async ({ request }) => {
+    MOCK_FLAGS.DRIVER_REGISTER,
+    http.post(`${API_BASE_URLS.core}/auth/register`, async ({ request }) => {
       await delay(500);
-      return ok({ message: "Register successful" });
+      const data = await request.json();
+      return ok({
+        id: Date.now(),
+        driverProfileId: Date.now() + 1,
+        fullName: data.fullName,
+        username: data.username?.trim().toLowerCase(),
+        email: data.email?.toLowerCase(),
+        phone: data.phone,
+        role: "DRIVER",
+        status: "ACTIVE",
+        createdAt: new Date().toISOString(),
+      }, "Driver registered successfully");
     })
   ),
   ...enabled(

@@ -498,9 +498,29 @@ export const adminHandlers = [
   // =========================================================================
   ...enabled(
     MOCK_FLAGS.ADMIN_USERS,
-    http.get(`${API_BASE_URLS.core}/users`, async () => {
+    http.get(`${API_BASE_URLS.core}/users`, async ({ request }) => {
       await delay(200);
-      return ok(db.getUsers());
+      const url = new URL(request.url);
+      const keyword = (url.searchParams.get("keyword") || "").trim().toLowerCase();
+      const role = url.searchParams.get("role") || "";
+      const status = url.searchParams.get("status") || "";
+      const page = Math.max(1, Number(url.searchParams.get("page") || 1));
+      const pageSize = Math.min(100, Math.max(1, Number(url.searchParams.get("pageSize") || 20)));
+      const filteredUsers = db.getUsers().filter((user) => {
+        const matchesKeyword = !keyword || [user.username, user.fullName, user.email, user.phone]
+          .some((value) => String(value || "").toLowerCase().includes(keyword));
+        return matchesKeyword
+          && (!role || user.role === role)
+          && (!status || user.status === status);
+      });
+      const totalItems = filteredUsers.length;
+      return ok({
+        items: filteredUsers.slice((page - 1) * pageSize, page * pageSize),
+        page,
+        pageSize,
+        totalItems,
+        totalPages: Math.ceil(totalItems / pageSize),
+      });
     })
   ),
 
@@ -510,14 +530,17 @@ export const adminHandlers = [
       await delay(250);
       const data = await request.json();
       let users = db.getUsers();
+      if (data.role === "DRIVER") {
+        return badRequest("The requested user role is invalid.");
+      }
       if (users.some(u => u.username.trim().toLowerCase() === data.username.trim().toLowerCase())) {
         return badRequest("Tên đăng nhập này đã tồn tại!");
       }
       const newUser = {
         id: Date.now(),
-        username: data.username.trim(),
+        username: data.username.trim().toLowerCase(),
         fullName: data.fullName.trim(),
-        email: data.email || "",
+        email: data.email?.trim().toLowerCase() || "",
         phone: data.phone || "",
         role: data.role || "STAFF",
         status: "ACTIVE",
@@ -554,14 +577,26 @@ export const adminHandlers = [
     http.patch(`${API_BASE_URLS.core}/users/:id/role`, async ({ params, request }) => {
       await delay(250);
       const userId = Number(params.id);
-      const { role } = await request.json();
+      const { role, reason } = await request.json();
       let users = db.getUsers();
       const index = users.findIndex(u => u.id === userId);
       if (index === -1) return notFound("Không tìm thấy người dùng.");
 
+      if (!reason?.trim() || role === "DRIVER") {
+        return badRequest("Role and reason are required and DRIVER is not allowed.");
+      }
+      const oldRole = users[index].role;
       users[index].role = role;
       db.saveUsers(users);
-      return ok(users[index]);
+      return ok({
+        id: users[index].id,
+        fullName: users[index].fullName,
+        username: users[index].username,
+        oldRole,
+        newRole: role,
+        reason,
+        updatedAt: new Date().toISOString(),
+      });
     })
   ),
 
@@ -570,14 +605,27 @@ export const adminHandlers = [
     http.patch(`${API_BASE_URLS.core}/users/:id/status`, async ({ params, request }) => {
       await delay(250);
       const userId = Number(params.id);
-      const { status } = await request.json();
+      const { status, reason } = await request.json();
       let users = db.getUsers();
       const index = users.findIndex(u => u.id === userId);
       if (index === -1) return notFound("Không tìm thấy người dùng.");
 
+      if (!reason?.trim()) {
+        return badRequest("Status and reason are required.");
+      }
+      const oldStatus = users[index].status;
       users[index].status = status;
       db.saveUsers(users);
-      return ok(users[index]);
+      return ok({
+        id: users[index].id,
+        fullName: users[index].fullName,
+        username: users[index].username,
+        role: users[index].role,
+        oldStatus,
+        newStatus: status,
+        reason,
+        updatedAt: new Date().toISOString(),
+      });
     })
   ),
 

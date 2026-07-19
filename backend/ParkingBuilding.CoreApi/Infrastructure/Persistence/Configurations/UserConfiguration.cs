@@ -20,7 +20,7 @@ namespace ParkingBuilding.Persistence.Configurations
             // Cấu hình các thuộc tính khớp chính xác tên cột và độ dài mã hóa chữ thường
             builder.Property(u => u.Username)
                    .HasColumnName("username")
-                   .HasMaxLength(100)
+                   .HasMaxLength(30)
                    .IsRequired();
 
             builder.Property(u => u.Email)
@@ -59,6 +59,11 @@ namespace ParkingBuilding.Persistence.Configurations
             // Mapping các trường thời gian với TIMESTAMPTZ
             builder.Property(u => u.LastLoginAt)
                    .HasColumnName("last_login_at")
+                   .HasColumnType("timestamp with time zone")
+                   .IsRequired(false);
+
+            builder.Property(u => u.DeletedAt)
+                   .HasColumnName("deleted_at")
                    .HasColumnType("timestamp with time zone")
                    .IsRequired(false);
 

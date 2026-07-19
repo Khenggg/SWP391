@@ -16,6 +16,24 @@ public static class ErrorCodes
     public const string AuthUserInactive = "AUTH_USER_INACTIVE";
     public const string AuthUserIdMissing = "AUTH_USER_ID_MISSING";
     public const string AuthUserIdInvalid = "AUTH_USER_ID_INVALID";
+    public const string AuthRefreshTokenRequired = "AUTH_REFRESH_TOKEN_REQUIRED";
+    public const string AuthRefreshTokenInvalid = "AUTH_REFRESH_TOKEN_INVALID";
+    public const string AuthLoginRateLimited = "AUTH_LOGIN_RATE_LIMITED";
+    public const string RateLimitExceeded = "RATE_LIMIT_EXCEEDED";
+
+    public const string ValidationFailed = "VALIDATION_FAILED";
+    public const string UsernameAlreadyExists = "USERNAME_ALREADY_EXISTS";
+    public const string EmailAlreadyExists = "EMAIL_ALREADY_EXISTS";
+    public const string PhoneAlreadyExists = "PHONE_ALREADY_EXISTS";
+    public const string PasswordConfirmationNotMatch = "PASSWORD_CONFIRMATION_NOT_MATCH";
+
+    public const string InvalidUserRole = "INVALID_USER_ROLE";
+    public const string InvalidUserStatus = "INVALID_USER_STATUS";
+    public const string ReasonRequired = "REASON_REQUIRED";
+    public const string CannotChangeOwnStatus = "CANNOT_CHANGE_OWN_STATUS";
+    public const string CannotDisableLastAdmin = "CANNOT_DISABLE_LAST_ADMIN";
+    public const string CannotChangeOwnRole = "CANNOT_CHANGE_OWN_ROLE";
+    public const string CannotDemoteLastAdmin = "CANNOT_DEMOTE_LAST_ADMIN";
 
     public const string UserNotFound = "USER_NOT_FOUND";
     public const string UserNotActive = "USER_NOT_ACTIVE";
