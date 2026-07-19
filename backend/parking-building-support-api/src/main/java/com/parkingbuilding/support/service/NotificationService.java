@@ -58,9 +58,7 @@ public class NotificationService {
     }
 
     @Transactional
-    public NotificationResponse create
-
-    Notification(CreateNotificationRequest request) {
+    public NotificationResponse createNotification(CreateNotificationRequest request) {
         NotificationEntity entity = NotificationEntity.builder()
                 .userId(request.getUserId())
                 .monthlyPassId(request.getMonthlyPassId())
