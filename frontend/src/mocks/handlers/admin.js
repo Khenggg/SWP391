@@ -93,7 +93,7 @@ export const adminHandlers = [
     return ok(session);
   }),
 
-  http.post(`${API_BASE_URLS.core}/parking-sessions/:sessionId/cancel`, async ({ params, request }) => {
+  http.post(`${API_BASE_URLS.core}/session-admin/:sessionId/cancel`, async ({ params, request }) => {
     await delay(200);
     const { reason } = await request.json();
     const sessions = sessionDb.getSessions();
@@ -609,7 +609,7 @@ export const adminHandlers = [
 
   ...enabled(
     MOCK_FLAGS.ADMIN_SESSIONS,
-    http.post(`${API_BASE_URLS.core}/parking-sessions/:sessionId/cancel`, async ({ params, request }) => {
+    http.post(`${API_BASE_URLS.core}/session-admin/:sessionId/cancel`, async ({ params, request }) => {
       await delay(200);
       const { reason } = await request.json();
       const sessions = sessionDb.getSessions();

@@ -276,7 +276,7 @@ export const reservationService = {
     }));
 
     if (slots.length > 0) {
-      const areaIds = new Set();
+      const areaIds = new Set(areas.map(a => a.id));
       slots.forEach((s) => {
         if (!areaIds.has(s.areaId)) {
           areaIds.add(s.areaId);

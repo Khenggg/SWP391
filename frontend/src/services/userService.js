@@ -2,7 +2,7 @@ import coreAxiosClient from "../api/coreAxiosClient";
 
 export const userService = {
   getUsers: async () => {
-    const response = await coreAxiosClient.get("/admin/users");
+    const response = await coreAxiosClient.get("/users");
     if (response.success && response.data) {
       return response.data;
     }
@@ -10,7 +10,7 @@ export const userService = {
   },
 
   addUser: async (user) => {
-    const response = await coreAxiosClient.post("/admin/users", user);
+    const response = await coreAxiosClient.post("/users", user);
     if (response.success && response.data) {
       return response.data;
     }
@@ -18,7 +18,7 @@ export const userService = {
   },
 
   updateUser: async (id, userData) => {
-    const response = await coreAxiosClient.put(`/admin/users/${id}`, userData);
+    const response = await coreAxiosClient.put(`/users/${id}`, userData);
     if (response.success && response.data) {
       return response.data;
     }
@@ -26,7 +26,7 @@ export const userService = {
   },
 
   updateUserRole: async (id, role) => {
-    const response = await coreAxiosClient.patch(`/admin/users/${id}/role`, { role });
+    const response = await coreAxiosClient.patch(`/users/${id}/role`, { role });
     if (response.success && response.data) {
       return response.data;
     }
@@ -34,7 +34,7 @@ export const userService = {
   },
 
   updateUserStatus: async (id, status) => {
-    const response = await coreAxiosClient.patch(`/admin/users/${id}/status`, { status });
+    const response = await coreAxiosClient.patch(`/users/${id}/status`, { status });
     if (response.success && response.data) {
       return response.data;
     }

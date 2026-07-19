@@ -45,5 +45,11 @@ export const driverService = {
     const res = await coreAxiosClient.put("/driver/me", data);
     if (res.success) return res.data;
     throw new Error(res.message || "Cập nhật thông tin thất bại");
+  },
+
+  registerDriver: async (data) => {
+    const res = await coreAxiosClient.post("/driver/register", data);
+    if (res.success) return res.data;
+    throw new Error(res.message || "Đăng ký thất bại");
   }
 };

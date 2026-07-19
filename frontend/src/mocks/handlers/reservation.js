@@ -50,7 +50,7 @@ export const reservationHandlers = [
   // GET Active Reservation
   ...enabled(
     MOCK_FLAGS.DRIVER_BOOKINGS,
-    http.get(`${API_BASE_URLS.core}/reservations/active`, () => {
+    http.get(`${API_BASE_URLS.support}/reservations/me/active`, () => {
       if (currentActive) {
         return HttpResponse.json({ success: true, data: currentActive });
       }
@@ -61,10 +61,13 @@ export const reservationHandlers = [
   // GET History
   ...enabled(
     MOCK_FLAGS.DRIVER_BOOKINGS,
-    http.get(`${API_BASE_URLS.core}/reservations`, () => {
+    http.get(`${API_BASE_URLS.support}/reservations/me/history`, () => {
       return HttpResponse.json({
         success: true,
-        data: MOCK_HISTORY
+        data: {
+          items: MOCK_HISTORY,
+          total: MOCK_HISTORY.length
+        }
       });
     })
   ),
@@ -72,7 +75,7 @@ export const reservationHandlers = [
   // GET Available Slots
   ...enabled(
     MOCK_FLAGS.DRIVER_BOOKINGS,
-    http.get(`${API_BASE_URLS.core}/reservations/available-slots`, () => {
+    http.get(`${API_BASE_URLS.core}/reservations/available-locations`, () => {
       const mockSlots = [
         { id: 101, slotCode: "B2-A-001", areaId: 1, areaName: "B2-A", allowedVehicleTypeId: 1, status: "AVAILABLE" },
         { id: 102, slotCode: "B2-A-002", areaId: 1, areaName: "B2-A", allowedVehicleTypeId: 1, status: "AVAILABLE" },
@@ -80,7 +83,13 @@ export const reservationHandlers = [
       ];
       return HttpResponse.json({
         success: true,
-        data: mockSlots
+        data: {
+          availableSlots: mockSlots.map(s => ({ ...s, slotId: s.id })),
+          availableAreas: [
+            { areaId: 1, areaCode: "B2-A", areaName: "Khu A Tầng B2", floorId: 1, floorCode: "B2", floorName: "Tầng B2", availableCapacity: 2, totalCapacity: 20 },
+            { areaId: 2, areaCode: "B2-B", areaName: "Khu B Tầng B2", floorId: 1, floorCode: "B2", floorName: "Tầng B2", availableCapacity: 1, totalCapacity: 20 }
+          ]
+        }
       });
     })
   ),
@@ -92,7 +101,7 @@ export const reservationHandlers = [
       const data = await request.json();
       
       // Validate
-      if (!data.plateNumber || !data.vehicleTypeId || !data.areaId || !data.durationHours || (data.vehicleTypeId === 1 && !data.slotId)) {
+      if (!data.plateNumber || !data.vehicleTypeId || !data.areaId || !data.reservedDurationMinutes || (data.vehicleTypeId === 5 && !data.slotId)) {
         return HttpResponse.json({ success: false, message: "Thiếu thông tin bắt buộc" }, { status: 400 });
       }
 
@@ -114,14 +123,26 @@ export const reservationHandlers = [
         bookingAmount: 15000,
         createdAt: new Date().toISOString(),
         reservationStartTime: new Date().toISOString(),
-        reservationEndTime: new Date(Date.now() + data.durationHours * 3600000).toISOString()
+        reservationEndTime: new Date(Date.now() + data.reservedDurationMinutes * 60000).toISOString()
       };
-
-      currentActive = newRes;
+      currentActive = {
+        ...newRes,
+        checkoutUrl: "https://payos.vn/mock-checkout",
+        qrCode: "MOCK_QR_CODE_DATA",
+        expiredAt: new Date(Date.now() + 10 * 60000).toISOString()
+      };
 
       return HttpResponse.json({
         success: true,
-        data: currentActive
+        data: {
+          reservation: currentActive,
+          payment: {
+            paymentId: idCounter + 1000,
+            checkoutUrl: "https://payos.vn/mock-checkout",
+            qrCode: "MOCK_QR_CODE_DATA",
+            expiredAt: new Date(Date.now() + 10 * 60000).toISOString()
+          }
+        }
       });
     })
   ),
@@ -130,30 +151,34 @@ export const reservationHandlers = [
   ...enabled(
     MOCK_FLAGS.DRIVER_BOOKINGS,
     http.post(`${API_BASE_URLS.core}/reservations/:id/cancel`, ({ params }) => {
-      if (!currentActive || currentActive.id !== parseInt(params.id)) {
-        return HttpResponse.json({ success: false, message: "Không tìm thấy reservation để hủy" }, { status: 404 });
+      if (currentActive && currentActive.id === parseInt(params.id)) {
+        currentActive.status = "CANCELLED";
+        MOCK_HISTORY.unshift({ ...currentActive }); // Move to history
+        currentActive = null;
       }
-      
-      currentActive.status = "CANCELLED";
-      MOCK_HISTORY.unshift({ ...currentActive }); // Move to history
-      currentActive = null;
 
       return HttpResponse.json({ success: true, message: "Hủy thành công" });
     })
   ),
 
-  // POST Pay
+  // GET Payment Status
   ...enabled(
     MOCK_FLAGS.DRIVER_BOOKINGS,
-    http.post(`${API_BASE_URLS.core}/reservations/:id/pay`, ({ params }) => {
-      if (!currentActive || currentActive.id !== parseInt(params.id)) {
-        return HttpResponse.json({ success: false, message: "Không tìm thấy reservation để thanh toán" }, { status: 404 });
+    http.get(`${API_BASE_URLS.core}/reservations/:id/payment-status`, ({ params }) => {
+      if (currentActive && currentActive.id === parseInt(params.id)) {
+        currentActive.status = "CONFIRMED";
+        currentActive.paymentStatus = "PAID";
       }
       
-      currentActive.status = "CONFIRMED";
-      currentActive.paymentStatus = "PAID";
-
-      return HttpResponse.json({ success: true, message: "Thanh toán thành công" });
+      return HttpResponse.json({
+        success: true,
+        data: {
+          paymentStatus: "PAID",
+          reservationStatus: "CONFIRMED",
+          expiresAt: new Date(Date.now() + 10 * 60000).toISOString(),
+          remainingSeconds: 600
+        }
+      });
     })
   )
 ];

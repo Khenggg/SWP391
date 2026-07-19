@@ -48,7 +48,6 @@ const MENUS = {
     { label: "Cấu hình giá", path: "/manager/pricing", icon: Settings },
     { label: "Vé tháng", path: "/manager/monthly-passes", icon: CalendarClock },
     { label: "Nhật ký", path: "/manager/audit-logs", icon: FileClock },
-    { label: "Cổng ra Staff", path: "/staff/exit", icon: ArrowRightFromLine },
     { label: "Giả lập cổng", path: "/simulator/gate", icon: RadioTower },
   ],
   [USER_ROLES.ADMIN]: [
