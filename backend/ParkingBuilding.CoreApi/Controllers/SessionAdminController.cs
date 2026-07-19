@@ -30,4 +30,30 @@ public class SessionAdminController : BaseApiController
         
         return Success(result, "Hủy phiên gửi xe thành công và giải phóng thẻ/slot.");
     }
+
+    [HttpPost("{id}/move-slot")]
+    [Authorize(Roles = "MANAGER,ADMIN")]
+    public async Task<IActionResult> MoveSessionSlot(long id, [FromBody] MoveSessionSlotRequest request)
+    {
+        var adminIdClaim = User.FindFirst("user_id")?.Value;
+        if (string.IsNullOrEmpty(adminIdClaim) || !long.TryParse(adminIdClaim, out var adminId))
+        {
+            throw new BusinessException(ErrorCodes.AuthUserIdInvalid);
+        }
+
+        var result = await _sessionAdminService.MoveSessionSlotAsync(id, request, adminId);
+        
+        return Success(result, "Chuyển vị trí đỗ xe thành công.");
+    }
+
+    [HttpGet("search")]
+    [Authorize(Roles = "MANAGER,ADMIN")]
+    public async Task<IActionResult> SearchSessions(
+        [FromQuery] string? plateNumber,
+        [FromQuery] string? status = "ACTIVE",
+        [FromQuery] string? sessionCode = null)
+    {
+        var result = await _sessionAdminService.SearchSessionsAsync(plateNumber, status, sessionCode);
+        return Success(result, "Lấy danh sách phiên đỗ xe thành công.");
+    }
 }
