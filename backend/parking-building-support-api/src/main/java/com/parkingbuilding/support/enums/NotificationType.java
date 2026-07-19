@@ -4,6 +4,6 @@ public enum NotificationType {
     MONTHLY_PASS,
     PAYMENT,
     RESERVATION,
-    PARKING,
+    PRICE_CHANGE,
     SYSTEM
 }

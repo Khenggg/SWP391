@@ -23,6 +23,7 @@ import com.parkingbuilding.support.sharedreadmodel.entity.AuditLogReadEntity;
 import com.parkingbuilding.support.sharedreadmodel.repository.AuditLogReadRepository;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 import lombok.RequiredArgsConstructor;
@@ -36,8 +37,7 @@ public class AuditLogService {
     private static final int DEFAULT_SIZE = 20;
     private static final int MAX_SIZE = 100;
     private static final Set<String> SORTABLE_FIELDS = Set.of(
-            "id", "actorUserId", "sourceService", "action", "targetType", "targetId", "createdAt"
-    );
+            "id", "actorUserId", "sourceService", "action", "targetType", "targetId", "createdAt");
 
     private final AuditLogReadRepository repository;
 
@@ -48,15 +48,14 @@ public class AuditLogService {
         AuditLogSearchRequest safeRequest = request == null ? new AuditLogSearchRequest() : request;
         Pageable pageable = PageRequest.of(
                 Math.max(safeRequest.getPage(), DEFAULT_PAGE),
-                normalizeSize(safeRequest.getSize())
-        );
+                normalizeSize(safeRequest.getSize()));
 
         return searchAuditLogs(safeRequest, pageable).map(this::map);
     }
 
     public AuditLogDetailResponse getDetail(Long id) {
         AuditLogReadEntity log = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Audit log not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Audit log not found with id: " + id));
 
         return mapToDetailResponse(log);
     }
@@ -68,12 +67,10 @@ public class AuditLogService {
 
         TypedQuery<AuditLogReadEntity> query = entityManager.createQuery(
                 "select log from AuditLogReadEntity log" + whereClause + orderClause,
-                AuditLogReadEntity.class
-        );
+                AuditLogReadEntity.class);
         TypedQuery<Long> countQuery = entityManager.createQuery(
                 "select count(log) from AuditLogReadEntity log" + whereClause,
-                Long.class
-        );
+                Long.class);
 
         params.forEach((name, value) -> {
             query.setParameter(name, value);
@@ -227,4 +224,5 @@ public class AuditLogService {
                 .createdAt(log.getCreatedAt())
                 .build();
     }
+
 }

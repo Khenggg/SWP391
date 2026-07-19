@@ -33,9 +33,8 @@ public class NotificationController {
         return notificationService.getUnread(userId);
     }
 
-    @PatchMapping("/{id}/read")
-    public void markAsRead(@PathVariable Long id) {
-        System.out.println("=== NotificationController.markAsRead id=" + id + " ===");
-        notificationService.markAsRead(id);
+    @GetMapping("/{userId}/count")
+    public Long getUnreadCount(@PathVariable Long userId) {
+        return notificationService.getUnreadCount(userId);
     }
 }
