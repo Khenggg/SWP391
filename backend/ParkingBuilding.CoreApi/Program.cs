@@ -23,6 +23,7 @@ using ParkingBuilding.CoreApi.Application.ParkingStructure.Floors;
 using ParkingBuilding.CoreApi.Application.ParkingStructure.Areas;
 using ParkingBuilding.CoreApi.Application.ParkingStructure.Slots;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.LocationSuggestion;
+using ParkingBuilding.CoreApi.Application.ParkingSessions.Admin;
 
 // THÊM DÒNG NÀY: Để nhận diện lớp dịch vụ vào bãi xe
 using ParkingBuilding.CoreApi.Application.ParkingSessions.Entry;
@@ -142,6 +143,7 @@ builder.Services.AddScoped<ILostCardDocumentService, LostCardDocumentService>();
 builder.Services.AddScoped<IFeeCalculationService, FeeCalculationService>();
 builder.Services.AddScoped<IExitService, ExitService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<ISessionAdminService, SessionAdminService>();
 
 // Cau hinh JWT Authentication
 var jwtSecret = builder.Configuration["JWT_SECRET"] ?? builder.Configuration["Jwt:Secret"];

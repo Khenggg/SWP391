@@ -12,6 +12,8 @@ public class PayOsPaymentResponse
     public string? PaymentLinkId { get; set; }
     public string? CheckoutUrl { get; set; }
     public string? QrCode { get; set; }
+    public string? AccountNumber { get; set; }
+    public string? Description { get; set; }
     public DateTimeOffset? ExpiredAt { get; set; }
     public bool IsLocalPlaceholder { get; set; }
 }

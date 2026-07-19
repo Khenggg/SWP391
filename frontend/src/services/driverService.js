@@ -179,4 +179,10 @@ export const driverService = {
     if (res.success && res.data) return res.data;
     throw new Error(res.message || "Không thể gán thẻ RFID và kích hoạt.");
   },
+
+  registerDriverAuth: async (data) => {
+    const res = await coreAxiosClient.post("/driver/register", data);
+    if (res.success) return res.data;
+    throw new Error(res.message || "Đăng ký thất bại");
+  }
 };

@@ -248,7 +248,7 @@ export default function SessionsAdministrationPage() {
                       <TableCell className="font-medium text-blue-600">{session.sessionCode}</TableCell>
                       <TableCell>{session.card?.code || session.cardCode || "-"}</TableCell>
                       <TableCell className="font-mono">{session.noPlate ? "Không biển" : (session.plateNumber || "-")}</TableCell>
-                      <TableCell>{session.vehicleType?.name || session.vehicleTypeName}</TableCell>
+                      <TableCell>{session.vehicleType?.name || session.vehicleTypeName || "-"}</TableCell>
                       <TableCell>{session.customerType === "MONTHLY" ? "Vé tháng" : "Vãng lai"}</TableCell>
                       <TableCell>
                          {session.floor?.code || session.floorCode || "-"} - {session.area?.code || session.areaCode || "-"} - {session.slot?.code || session.slotCode || "-"}
@@ -335,7 +335,7 @@ export default function SessionsAdministrationPage() {
               <div className="flex justify-between">
                 <span className="text-slate-500">Cổng vào / Cổng ra</span>
                 <span className="font-medium text-slate-900">
-                  {selectedSession.entryGate?.name || "-"} / {selectedSession.exitGate?.name || "-"}
+                  {selectedSession.entryGate?.name || selectedSession.entryGateCode || "-"} / {selectedSession.exitGate?.name || selectedSession.exitGateCode || "-"}
                 </span>
               </div>
               <div className="flex justify-between">
