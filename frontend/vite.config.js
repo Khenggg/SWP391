@@ -13,6 +13,19 @@ export default defineConfig({
   server: {
     port: 5173,
     allowedHosts: true,
+    proxy: {
+      "/api/core": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+      },
+      "/api/support": {
+        target: "http://localhost:8081",
+        changeOrigin: true,
+      },
+      "/api/public": {
+        target: "http://localhost:8081",
+        changeOrigin: true,
+      },
+    },
   },
 });
-

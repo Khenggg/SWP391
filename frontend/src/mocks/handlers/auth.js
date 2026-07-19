@@ -17,12 +17,12 @@ export const authHandlers = [
         driver02: { username: "driver02", fullName: "Trần Văn B", role: "DRIVER", phone: "0987654321", email: "driver02@booking.vn" },
       };
 
-      const userKey = username.trim().toLowerCase();
+      const userKey = (username || "").trim().toLowerCase();
       const user = seedUsers[userKey];
 
-      if (user && password === "password123") {
+      if (user && (password === "password123" || password === "123456")) {
         return ok({
-          token: `mock-token-for-${userKey}`,
+          accessToken: `mock-token-for-${userKey}`,
           user
         });
       }

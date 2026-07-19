@@ -1,11 +1,16 @@
-import coreAxiosClient from "../api/coreAxiosClient";
+import supportAxiosClient from "../api/supportAxiosClient";
 
 export const auditService = {
   getAuditLogs: async (params) => {
-    const response = await coreAxiosClient.get("/manager/audit-logs", { params });
+    const response = await supportAxiosClient.get("/audit-logs", { params });
     if (response.success) {
-      return response.data;
+      return response.data.items || [];
     }
     return [];
+  },
+  
+  exportAuditLogs: async (params) => {
+    const response = await supportAxiosClient.get("/audit-logs/export-excel", { params, responseType: 'blob' });
+    return response; 
   }
 };

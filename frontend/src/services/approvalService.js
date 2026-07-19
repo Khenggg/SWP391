@@ -1,35 +1,46 @@
 import coreAxiosClient from "../api/coreAxiosClient";
 
+function getDataOrThrow(response, fallbackMessage) {
+  if (response.success) {
+    return response.data;
+  }
+
+  throw new Error(response.message || fallbackMessage);
+}
+
 export const approvalService = {
   getLostCardCases: async () => {
-    const response = await coreAxiosClient.get("/manager/approvals/lost-cards");
-    if (response.success) {
-      return response.data;
-    }
-    return [];
+    const response = await coreAxiosClient.get("/lost-card-cases");
+    return response.success ? response.data : [];
   },
 
-  decideLostCardCase: async (caseId, { decision, reason }) => {
-    const response = await coreAxiosClient.post(`/manager/approvals/lost-cards/${caseId}/decide`, { decision, reason });
-    if (response.success) {
-      return response.data;
-    }
-    throw new Error(response.message || "Xử lý hồ sơ mất thẻ thất bại");
+  getLostCardCaseById: async (caseId) => {
+    const response = await coreAxiosClient.get(`/lost-card-cases/${caseId}`);
+    return getDataOrThrow(response, "Khong the tai chi tiet ho so mat the.");
+  },
+
+  approveLostCardCase: async (caseId, { reason }) => {
+    const response = await coreAxiosClient.post(`/lost-card-cases/${caseId}/approve`, { reason });
+    return getDataOrThrow(response, "Phe duyet ho so mat the that bai.");
+  },
+
+  rejectLostCardCase: async (caseId, { reason }) => {
+    const response = await coreAxiosClient.post(`/lost-card-cases/${caseId}/reject`, { reason });
+    return getDataOrThrow(response, "Tu choi ho so mat the that bai.");
   },
 
   getMismatchCases: async () => {
-    const response = await coreAxiosClient.get("/manager/approvals/mismatch");
-    if (response.success) {
-      return response.data;
-    }
-    return [];
+    const response = await coreAxiosClient.get("/plate-mismatch-cases");
+    return response.success ? response.data : [];
   },
 
-  decideMismatchCase: async (caseId, { decision, reason }) => {
-    const response = await coreAxiosClient.post(`/manager/approvals/mismatch/${caseId}/decide`, { decision, reason });
-    if (response.success) {
-      return response.data;
-    }
-    throw new Error(response.message || "Xử lý hồ sơ lệch biển số thất bại");
-  }
+  confirmMismatchCase: async (sessionId, { reason }) => {
+    const response = await coreAxiosClient.post(`/parking-sessions/${sessionId}/mismatch/confirm`, { reason });
+    return getDataOrThrow(response, "Phe duyet lech bien so that bai.");
+  },
+
+  rejectMismatchCase: async (sessionId, { reason }) => {
+    const response = await coreAxiosClient.post(`/parking-sessions/${sessionId}/mismatch/reject`, { reason });
+    return getDataOrThrow(response, "Tu choi lech bien so that bai.");
+  },
 };

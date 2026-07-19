@@ -10,6 +10,7 @@ using ParkingBuilding.CoreApi.Contracts.Common;
 using ParkingBuilding.CoreApi.Domain.Entities;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
 using PayOS;
+using PayOS.Models;
 using PayOS.Models.V2.PaymentRequests;
 using PayOS.Models.Webhooks;
 
@@ -38,10 +39,31 @@ public class PayOsPaymentService : IPayOsPaymentService
             {
                 ClientId = _options.ClientId!,
                 ApiKey = _options.ApiKey!,
-                ChecksumKey = _options.ChecksumKey!
+                ChecksumKey = _options.ChecksumKey!,
+                TimeoutMs = GetRequestTimeoutMs(),
+                MaxRetries = 0
             });
         }
     }
+
+    private int GetRequestTimeoutMs()
+        => Math.Clamp(_options.RequestTimeoutMs, 1000, 60000);
+
+    private RequestOptions CreateRequestOptions(CancellationToken cancellationToken)
+        => new()
+        {
+            TimeoutMs = GetRequestTimeoutMs(),
+            MaxRetries = 0,
+            CancellationToken = cancellationToken
+        };
+
+    private RequestOptions<TRequest> CreateRequestOptions<TRequest>(CancellationToken cancellationToken)
+        => new()
+        {
+            TimeoutMs = GetRequestTimeoutMs(),
+            MaxRetries = 0,
+            CancellationToken = cancellationToken
+        };
 
     private void EnsureConfiguredInProduction()
     {
@@ -110,7 +132,9 @@ public class PayOsPaymentService : IPayOsPaymentService
                 }
             };
 
-            var response = await _client.PaymentRequests.CreateAsync(request, null);
+            var response = await _client.PaymentRequests.CreateAsync(
+                request,
+                CreateRequestOptions<CreatePaymentLinkRequest>(cancellationToken));
 
             result = new PayOsPaymentResponse
             {
@@ -210,7 +234,9 @@ public class PayOsPaymentService : IPayOsPaymentService
                 }
             };
 
-            var response = await _client.PaymentRequests.CreateAsync(request, null);
+            var response = await _client.PaymentRequests.CreateAsync(
+                request,
+                CreateRequestOptions<CreatePaymentLinkRequest>(cancellationToken));
 
             result = new PayOsPaymentResponse
             {
@@ -537,6 +563,154 @@ public class PayOsPaymentService : IPayOsPaymentService
         }
     }
 
+    public async Task<bool> TryReconcileReservationPaymentAsync(
+        Payment payment,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureConfiguredInProduction();
+
+        if (_client == null
+            || payment.Provider != Provider
+            || payment.Reservation == null)
+        {
+            return false;
+        }
+
+        if (payment.Status == "PAID" && payment.Reservation.PaymentStatus == "PAID")
+        {
+            return false;
+        }
+
+        var orderCode = CreateOrderCode(payment.Id);
+        PaymentLink providerPayment;
+        try
+        {
+            providerPayment = await _client.PaymentRequests.GetAsync(
+                orderCode,
+                CreateRequestOptions(cancellationToken));
+        }
+        catch (Exception ex)
+        {
+            await _auditWriter.WriteAuditLogAsync(
+                action: "PAYOS_PAYMENT_RECONCILE_FETCH_FAILED",
+                targetType: "Payment",
+                targetId: payment.Id.ToString(),
+                newValue: JsonSerializer.Serialize(new
+                {
+                    payment.Id,
+                    payment.ReservationId,
+                    orderCode,
+                    error = ex.Message
+                }),
+                reason: "payOS reconcile fetch failed.");
+            return false;
+        }
+
+        if (providerPayment.Amount != ToPayOsAmount(payment.TotalAmount))
+        {
+            await _auditWriter.WriteAuditLogAsync(
+                action: "PAYOS_PAYMENT_RECONCILE_AMOUNT_MISMATCH",
+                targetType: "Payment",
+                targetId: payment.Id.ToString(),
+                newValue: JsonSerializer.Serialize(new
+                {
+                    paymentId = payment.Id,
+                    reservationId = payment.ReservationId,
+                    orderCode,
+                    localAmount = payment.TotalAmount,
+                    providerAmount = providerPayment.Amount,
+                    providerStatus = providerPayment.Status
+                }),
+                reason: "payOS reconcile amount mismatch.");
+            return false;
+        }
+
+        if (providerPayment.Status != PaymentLinkStatus.Paid
+            || providerPayment.AmountPaid < providerPayment.Amount)
+        {
+            return false;
+        }
+
+        var paidAt = TryResolveProviderPaidAt(providerPayment) ?? DateTimeOffset.UtcNow;
+        if (payment.Reservation.PaymentDeadline.HasValue && paidAt > payment.Reservation.PaymentDeadline.Value)
+        {
+            await _auditWriter.WriteAuditLogAsync(
+                action: "PAYOS_PAYMENT_RECONCILE_LATE_PAYMENT",
+                targetType: "Payment",
+                targetId: payment.Id.ToString(),
+                newValue: JsonSerializer.Serialize(new
+                {
+                    paymentId = payment.Id,
+                    reservationId = payment.ReservationId,
+                    orderCode,
+                    paymentDeadline = payment.Reservation.PaymentDeadline,
+                    providerPaidAt = paidAt,
+                    providerStatus = providerPayment.Status
+                }),
+                reason: "payOS reconcile detected paid state after deadline.");
+            return false;
+        }
+
+        if (IsLocalTerminalState(payment))
+        {
+            var localDecisionAt = payment.UpdatedAt > payment.Reservation.UpdatedAt
+                ? payment.UpdatedAt
+                : payment.Reservation.UpdatedAt;
+
+            if (paidAt > localDecisionAt)
+            {
+                await _auditWriter.WriteAuditLogAsync(
+                    action: "PAYOS_PAYMENT_RECONCILE_SKIPPED_TERMINAL_STATE",
+                    targetType: "Payment",
+                    targetId: payment.Id.ToString(),
+                    newValue: JsonSerializer.Serialize(new
+                    {
+                        paymentId = payment.Id,
+                        reservationId = payment.ReservationId,
+                        orderCode,
+                        paymentStatus = payment.Status,
+                        reservationStatus = payment.Reservation.Status,
+                        localDecisionAt,
+                        providerPaidAt = paidAt
+                    }),
+                    reason: "payOS reconcile skipped because provider payment happened after local terminal state.");
+                return false;
+            }
+        }
+
+        payment.Status = "PAID";
+        payment.ReceivedAmount = providerPayment.AmountPaid;
+        payment.PaidAt = paidAt;
+        payment.UpdatedAt = DateTimeOffset.UtcNow;
+        payment.GatewayPayload = MergeGatewayPayload(payment.GatewayPayload, providerPayment);
+
+        payment.Reservation.PaymentStatus = "PAID";
+        payment.Reservation.Status = "CONFIRMED";
+        payment.Reservation.ConfirmedAt ??= paidAt;
+        payment.Reservation.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        await _auditWriter.WriteAuditLogAsync(
+            action: "PAYOS_PAYMENT_RECONCILED",
+            targetType: "Payment",
+            targetId: payment.Id.ToString(),
+            newValue: JsonSerializer.Serialize(new
+            {
+                paymentId = payment.Id,
+                reservationId = payment.ReservationId,
+                orderCode,
+                providerPaymentId = providerPayment.Id,
+                providerStatus = providerPayment.Status,
+                providerAmount = providerPayment.Amount,
+                providerAmountPaid = providerPayment.AmountPaid,
+                paidAt
+            }),
+            reason: "payOS payment reconciled from provider status API.");
+
+        return true;
+    }
+
     public async Task CancelPaymentLinkAsync(
         Payment payment,
         string reason,
@@ -586,7 +760,7 @@ public class PayOsPaymentService : IPayOsPaymentService
             await _client.PaymentRequests.CancelAsync(
                 idOrOrderCode,
                 reason,
-                null);
+                CreateRequestOptions<CancelPaymentLinkRequest>(cancellationToken));
         }
         catch (Exception ex)
         {
@@ -747,6 +921,49 @@ public class PayOsPaymentService : IPayOsPaymentService
             }
         });
     }
+
+    private static string MergeGatewayPayload(string? currentPayload, PaymentLink providerPayment)
+    {
+        return JsonSerializer.Serialize(new
+        {
+            previous = TryParseJson(currentPayload),
+            reconcile = new
+            {
+                providerPayment.Id,
+                providerPayment.OrderCode,
+                providerPayment.Amount,
+                providerPayment.AmountPaid,
+                providerPayment.AmountRemaining,
+                status = providerPayment.Status.ToString(),
+                providerPayment.CreatedAt,
+                providerPayment.CancellationReason,
+                providerPayment.CanceledAt,
+                transactions = providerPayment.Transactions
+            }
+        });
+    }
+
+    private static DateTimeOffset? TryResolveProviderPaidAt(PaymentLink providerPayment)
+    {
+        if (providerPayment.Transactions == null || providerPayment.Transactions.Count == 0)
+        {
+            return null;
+        }
+
+        foreach (var transaction in providerPayment.Transactions)
+        {
+            if (DateTimeOffset.TryParse(transaction.TransactionDateTime, out var parsed))
+            {
+                return parsed.ToUniversalTime();
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsLocalTerminalState(Payment payment)
+        => payment.Status is "CANCELLED" or "FAILED"
+           || payment.Reservation?.Status is "CANCELLED" or "EXPIRED";
 
     private static JsonElement? TryParseJson(string? value)
     {

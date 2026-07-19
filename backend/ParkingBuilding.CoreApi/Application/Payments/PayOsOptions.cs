@@ -8,6 +8,7 @@ public class PayOsOptions
     public string? ReturnUrl { get; set; }
     public string? CancelUrl { get; set; }
     public string? WebhookUrl { get; set; }
+    public int RequestTimeoutMs { get; set; } = 7000;
 
     public bool IsConfigured =>
         !IsPlaceholder(ClientId)
