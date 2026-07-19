@@ -42,19 +42,13 @@ const getRoleFromToken = (token) => {
   }
 };
 
-/**
- * App - Component gốc của ứng dụng (Root Component)
- * Quản lý trạng thái đăng nhập toàn cục bằng useState và useEffect
- * Tuân thủ quy tắc không dùng Context API hay các thư viện quản lý state phức tạp.
- */
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [token, setToken] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
-  const [isInitializing, setIsInitializing] = useState(true); // Đang khôi phục phiên từ sessionStorage
+  const [isInitializing, setIsInitializing] = useState(true);
 
-  // Khôi phục trạng thái đăng nhập từ sessionStorage khi tải ứng dụng
   useEffect(() => {
     const savedToken = sessionStorage.getItem("accessToken");
     const savedUserJson = sessionStorage.getItem("currentUser");

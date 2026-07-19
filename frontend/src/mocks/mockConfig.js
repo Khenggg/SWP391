@@ -15,12 +15,14 @@ export const MOCK_FLAGS = {
   ADMIN_AUDIT: "VITE_MOCK_ADMIN_AUDIT",
   ADMIN_SESSIONS: "VITE_MOCK_ADMIN_SESSIONS",
   STAFF_EXIT: "VITE_MOCK_STAFF_EXIT",
+  NOTIFICATIONS: "VITE_MOCK_NOTIFICATIONS",
 };
 
 export const API_BASE_URLS = {
   core: import.meta.env.VITE_CORE_API_URL || "http://localhost:5000/api/core",
   public: import.meta.env.VITE_PUBLIC_API_URL || "http://localhost:8080/api/public",
   support: import.meta.env.VITE_SUPPORT_API_URL || "http://localhost:8080/api/support",
+  notifications: import.meta.env.VITE_SUPPORT_API_URL ? import.meta.env.VITE_SUPPORT_API_URL.replace('/support', '/notifications') : "http://localhost:8080/api/notifications",
 };
 
 export function isMockEnabled(flagName) {

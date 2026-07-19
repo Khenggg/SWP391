@@ -56,15 +56,15 @@ export default function VehicleSelectionStep({ vehicles, selectedVehicle, onSele
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {vehicles.map((v) => (
           <div
-            key={v.id || v.plateNumber}
+            key={v.id || v.plateNumber || v.plate}
             onClick={() => onSelectVehicle(v)}
             className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 flex flex-col items-center gap-3 ${
-              selectedVehicle?.plateNumber === v.plateNumber
+              (selectedVehicle?.plateNumber || selectedVehicle?.plate) === (v.plateNumber || v.plate)
                 ? "border-blue-500 bg-blue-50 shadow-sm"
                 : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
             }`}
           >
-            {selectedVehicle?.plateNumber === v.plateNumber && (
+            {(selectedVehicle?.plateNumber || selectedVehicle?.plate) === (v.plateNumber || v.plate) && (
               <div className="absolute top-2 right-2 bg-blue-500 text-white p-1 rounded-full">
                 <Check className="w-3 h-3" />
               </div>

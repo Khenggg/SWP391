@@ -334,7 +334,7 @@ export default function DriverBookingPage() {
 
         {/* Right Summary Panel */}
         <div className="lg:col-span-1">
-          <BookingSummaryPanel 
+          <BookingSummaryPanel
             selectedVehicle={selectedVehicle}
             durationHours={durationHours}
             selectedAreaName={selectedAreaName}
