@@ -29,7 +29,7 @@ $LocalPublicWebhookBaseUrl = "https://ooze-promotion-smoking.ngrok-free.dev"
 
 # Neu muon override DB bang env var, dien connection string vao day.
 # De trong "" thi app dung appsettings.Development.json.
-$LocalDefaultConnection = "Host=aws-1-ap-south-1.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.iqzkddymzmfhyqbfrnyu;Password=Moghicha12@;SSL Mode=Require;Trust Server Certificate=true;No Reset On Close=true;"
+$LocalDefaultConnection = "Host=aws-1-ap-south-1.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.iqzkddymzmfhyqbfrnyu;Password=Moghicha12@;SSL Mode=Require;Trust Server Certificate=true;No Reset On Close=true;Maximum Pool Size=3;"
 
 function Set-DefaultEnv {
     param(

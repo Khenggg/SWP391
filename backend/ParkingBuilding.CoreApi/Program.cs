@@ -21,7 +21,7 @@ using ParkingBuilding.CoreApi.Application.ParkingStructure.Floors;
 using ParkingBuilding.CoreApi.Application.ParkingStructure.Areas;
 using ParkingBuilding.CoreApi.Application.ParkingStructure.Slots;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.LocationSuggestion;
-using ParkingBuilding.CoreApi.Application.LostCards; // Đảm bảo namespace này khớp với nơi bạn dự định đặt Service
+using ParkingBuilding.CoreApi.Application.ParkingSessions.Admin;
 
 // THÊM DÒNG NÀY: Để nhận diện lớp dịch vụ vào bãi xe
 using ParkingBuilding.CoreApi.Application.ParkingSessions.Entry;
@@ -109,6 +109,11 @@ builder.Services.Configure<PayOsOptions>(options =>
     options.ReturnUrl = builder.Configuration["PAYOS_RETURN_URL"];
     options.CancelUrl = builder.Configuration["PAYOS_CANCEL_URL"];
     options.WebhookUrl = builder.Configuration["PAYOS_WEBHOOK_URL"];
+
+    if (int.TryParse(builder.Configuration["PAYOS_REQUEST_TIMEOUT_MS"], out var payOsTimeoutMs) && payOsTimeoutMs > 0)
+    {
+        options.RequestTimeoutMs = payOsTimeoutMs;
+    }
 });
 builder.Services.AddScoped<IPayOsPaymentService, PayOsPaymentService>();
 
@@ -133,6 +138,7 @@ builder.Services.AddScoped<ILostCardDocumentService, LostCardDocumentService>();
 builder.Services.AddScoped<IFeeCalculationService, FeeCalculationService>();
 builder.Services.AddScoped<IExitService, ExitService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<ISessionAdminService, SessionAdminService>();
 
 // Cau hinh JWT Authentication
 var jwtSecret = builder.Configuration["JWT_SECRET"] ?? builder.Configuration["Jwt:Secret"];

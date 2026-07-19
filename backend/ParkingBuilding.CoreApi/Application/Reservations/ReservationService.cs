@@ -679,6 +679,25 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                 .OrderByDescending(p => p.CreatedAt)
                 .FirstOrDefaultAsync();
 
+            if (payment != null
+                && payment.Provider == "PAYOS"
+                && payment.Status != "PAID")
+            {
+                payment = await _context.Payments
+                    .Include(p => p.Reservation)
+                    .Where(p => p.Id == payment.Id)
+                    .FirstOrDefaultAsync();
+
+                if (payment != null)
+                {
+                    var reconciled = await _payOsPaymentService.TryReconcileReservationPaymentAsync(payment);
+                    if (reconciled)
+                    {
+                        reservation = payment.Reservation ?? reservation;
+                    }
+                }
+            }
+
             var now = DateTimeOffset.UtcNow;
             var deadline = reservation.PaymentDeadline ?? payment?.ExpiredAt;
             var remainingSeconds = 0;
@@ -694,6 +713,23 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                 isExpired = reservation.Status == "EXPIRED";
             }
 
+            string? qrCode = null;
+            if (payment?.GatewayPayload != null)
+            {
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(payment.GatewayPayload);
+                    if (doc.RootElement.TryGetProperty("qrCode", out var qrProp))
+                    {
+                        qrCode = qrProp.GetString();
+                    }
+                }
+                catch
+                {
+                    // Ignore parse error
+                }
+            }
+
             return new ReservationPaymentStatusResponse
             {
                 ReservationId = reservation.Id,
@@ -705,6 +741,7 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                 Provider = payment?.Provider,
                 ProviderTransactionId = payment?.ProviderTransactionId,
                 CheckoutUrl = payment?.Status == "PENDING" ? payment?.PaymentUrl : null,
+                QrCode = payment?.Status == "PENDING" ? qrCode : null,
                 PaymentExpiredAt = payment?.ExpiredAt,
                 PaidAt = payment?.PaidAt,
                 PaymentDeadline = reservation.PaymentDeadline,
@@ -1198,6 +1235,7 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
         public string? Provider { get; set; }
         public string? ProviderTransactionId { get; set; }
         public string? CheckoutUrl { get; set; }
+        public string? QrCode { get; set; }
         public DateTimeOffset? PaymentExpiredAt { get; set; }
         public DateTimeOffset? PaidAt { get; set; }
         public DateTimeOffset? PaymentDeadline { get; set; }

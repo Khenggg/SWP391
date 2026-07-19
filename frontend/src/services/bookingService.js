@@ -7,39 +7,52 @@ export const bookingService = {
   },
 
   createBooking: async (areaCode, durationHours, simTime) => {
-    const res = await coreAxiosClient.post("/driver/bookings", { areaCode, durationHours, simTime });
+    const res = await coreAxiosClient.post("/driver/bookings", {
+      areaCode,
+      durationHours,
+      simTime,
+    });
     if (res.success) return res.data;
-    throw new Error(res.message || "Đặt chỗ thất bại");
+    throw new Error(res.message || "Dat cho that bai");
   },
 
   payBooking: async (simTime) => {
     const res = await coreAxiosClient.post("/driver/bookings/pay", { simTime });
     if (res.success) return res.data;
-    throw new Error(res.message || "Thanh toán thất bại");
+    throw new Error(res.message || "Thanh toan that bai");
   },
 
   checkIn: async (plate, simTime) => {
-    const res = await coreAxiosClient.post("/driver/bookings/check-in", { plate, simTime });
+    const res = await coreAxiosClient.post("/driver/bookings/check-in", {
+      plate,
+      simTime,
+    });
     if (res.success) return res.data;
-    throw new Error(res.message || "Check-in thất bại");
+    throw new Error(res.message || "Check-in that bai");
   },
 
   checkOut: async (simTime) => {
-    const res = await coreAxiosClient.post("/driver/bookings/check-out", { simTime });
+    const res = await coreAxiosClient.post("/driver/bookings/check-out", {
+      simTime,
+    });
     if (res.success) return res.data;
-    throw new Error(res.message || "Check-out thất bại");
+    throw new Error(res.message || "Check-out that bai");
   },
 
   cancelBooking: async (simTime) => {
-    const res = await coreAxiosClient.post("/driver/bookings/cancel", { simTime });
+    const res = await coreAxiosClient.post("/driver/bookings/cancel", {
+      simTime,
+    });
     if (res.success) return res.data;
-    throw new Error(res.message || "Hủy đặt chỗ thất bại");
+    throw new Error(res.message || "Huy dat cho that bai");
   },
 
   expireBooking: async (status) => {
-    const res = await coreAxiosClient.post("/driver/bookings/expire", { status });
+    const res = await coreAxiosClient.post("/driver/bookings/expire", {
+      status,
+    });
     if (res.success) return res.data;
-    throw new Error(res.message || "Cập nhật hết hạn đặt chỗ thất bại");
+    throw new Error(res.message || "Cap nhat het han dat cho that bai");
   },
 
   getHistory: async () => {
@@ -50,29 +63,6 @@ export const bookingService = {
   clearHistory: async () => {
     const res = await coreAxiosClient.delete("/driver/bookings/history");
     if (res.success) return res.data;
-    throw new Error(res.message || "Xóa lịch sử thất bại");
+    throw new Error(res.message || "Xoa lich su that bai");
   },
-
-  getPaidBookingsForStaff: async () => {
-    const res = await coreAxiosClient.get("/staff/bookings/paid-list");
-    return res.success ? res.data : [];
-  },
-
-  getBookingForStaff: async (bookingId) => {
-    const res = await coreAxiosClient.get(`/staff/bookings/${encodeURIComponent(bookingId)}`);
-    if (res.success) return res.data;
-    throw new Error(res.message || "Không tìm thấy booking.");
-  },
-
-  createCasualEntry: async (entryData = {}) => {
-    const res = await coreAxiosClient.post("/staff/sessions/entry", entryData);
-    if (res.success) return res.data;
-    throw new Error(res.message || "Táº¡o phiÃªn xe vÃ o vÃ£ng lai tháº¥t báº¡i");
-  },
-
-  confirmBookingScan: async (bookingId, entryData = {}) => {
-    const res = await coreAxiosClient.post("/staff/bookings/scan-confirm", { bookingId, ...entryData });
-    if (res.success) return res.data;
-    throw new Error(res.message || "Xác nhận quét mã QR đặt trước thất bại");
-  }
 };
