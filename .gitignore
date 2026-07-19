@@ -37,3 +37,12 @@ Thumbs.db
 # Test and coverage
 coverage/
 .nyc_output/
+
+# Local environment variables
+.env
+.env.local
+.env.*
+env.ps1
+env.local.ps1
+env.bat
+env.sh

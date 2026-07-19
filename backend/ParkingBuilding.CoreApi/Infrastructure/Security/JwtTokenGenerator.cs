@@ -22,7 +22,11 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Security
         {
             var issuer = _configuration["Jwt:Issuer"] ?? "ParkingBuilding.CoreApi";
             var audience = _configuration["Jwt:Audience"] ?? "ParkingBuilding.Frontend";
-            var secretKey = _configuration["Jwt:Secret"] ?? "DEVELOPMENT_SECRET_KEY_FOR_LOCAL_TESTING_ONLY_2026_SWP391";
+            var secretKey = _configuration["JWT_SECRET"] ?? _configuration["Jwt:Secret"];
+            if (string.IsNullOrEmpty(secretKey))
+            {
+                throw new System.InvalidOperationException("JWT Secret is not configured.");
+            }
             var expirationMinutesStr = _configuration["Jwt:ExpirationMinutes"];
             
             if (!int.TryParse(expirationMinutesStr, out var expirationMinutes))
@@ -35,10 +39,12 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Security
 
             var claims = new List<Claim>
             {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Username),
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim("user_id", user.Id.ToString()),
                 new Claim("username", user.Username),
-                new Claim("role", user.Role.ToString().ToUpper()) // e.g. "ADMIN", "MANAGER", "STAFF"
+                new Claim("role", user.Role.ToString().ToUpper()), // e.g. "ADMIN", "MANAGER", "STAFF"
+                new Claim("fullName", user.FullName ?? string.Empty),
+                new Claim("full_name", user.FullName ?? string.Empty)
             };
 
             var token = new JwtSecurityToken(
