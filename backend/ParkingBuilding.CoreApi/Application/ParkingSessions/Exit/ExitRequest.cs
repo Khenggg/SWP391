@@ -12,5 +12,11 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
         public string? ExitVehicleImageUrl { get; set; }
         public string? DetectedPlateNumber { get; set; }
         public double? OcrConfidence { get; set; }
+
+        public string? CardCode { get; set; }
+
+        public CasualExitRequest? CasualExit { get; set; }
+
+        public MonthlyPassExitRequest? MonthlyExit { get; set; }
     }
 }

@@ -28,8 +28,10 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence
         public DbSet<Payment> Payments { get; set; }
         public DbSet<ParkingSessionImage> ParkingSessionImages { get; set; }
         public DbSet<LostCardCaseDocument> LostCardCaseDocuments { get; set; }
-        public DbSet<Receipt> Receipts { get; set; }
+        // Thêm dòng này vào danh sách DbSet
+        public DbSet<LostCardCase> LostCardCases { get; set; }
         public DbSet<PlateMismatchCase> PlateMismatchCases { get; set; }
+        public DbSet<Receipt> Receipts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

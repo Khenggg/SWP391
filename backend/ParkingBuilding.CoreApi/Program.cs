@@ -81,6 +81,8 @@ builder.Services.AddHostedService<ReservationExpiryWorker>();
 builder.Services.AddScoped<IMonthlyPassService, MonthlyPassService>();
 builder.Services.AddScoped<IMonthlyEntryTokenService, MonthlyEntryTokenService>();
 
+builder.Services.AddScoped<ILostCardService, LostCardService>();
+
 builder.Services.Configure<ReservationBookingOptions>(options =>
 {
     options.AllowZeroBookingFee = false;
