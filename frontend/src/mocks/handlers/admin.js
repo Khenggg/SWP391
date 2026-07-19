@@ -498,7 +498,7 @@ export const adminHandlers = [
   // =========================================================================
   ...enabled(
     MOCK_FLAGS.ADMIN_USERS,
-    http.get(`${API_BASE_URLS.core}/admin/users`, async () => {
+    http.get(`${API_BASE_URLS.core}/users`, async () => {
       await delay(200);
       return ok(db.getUsers());
     })
@@ -506,7 +506,7 @@ export const adminHandlers = [
 
   ...enabled(
     MOCK_FLAGS.ADMIN_USERS,
-    http.post(`${API_BASE_URLS.core}/admin/users`, async ({ request }) => {
+    http.post(`${API_BASE_URLS.core}/users`, async ({ request }) => {
       await delay(250);
       const data = await request.json();
       let users = db.getUsers();
@@ -530,7 +530,7 @@ export const adminHandlers = [
 
   ...enabled(
     MOCK_FLAGS.ADMIN_USERS,
-    http.put(`${API_BASE_URLS.core}/admin/users/:id`, async ({ params, request }) => {
+    http.put(`${API_BASE_URLS.core}/users/:id`, async ({ params, request }) => {
       await delay(250);
       const userId = Number(params.id);
       const data = await request.json();
@@ -551,7 +551,7 @@ export const adminHandlers = [
 
   ...enabled(
     MOCK_FLAGS.ADMIN_USERS,
-    http.patch(`${API_BASE_URLS.core}/admin/users/:id/role`, async ({ params, request }) => {
+    http.patch(`${API_BASE_URLS.core}/users/:id/role`, async ({ params, request }) => {
       await delay(250);
       const userId = Number(params.id);
       const { role } = await request.json();
@@ -567,7 +567,7 @@ export const adminHandlers = [
 
   ...enabled(
     MOCK_FLAGS.ADMIN_USERS,
-    http.patch(`${API_BASE_URLS.core}/admin/users/:id/status`, async ({ params, request }) => {
+    http.patch(`${API_BASE_URLS.core}/users/:id/status`, async ({ params, request }) => {
       await delay(250);
       const userId = Number(params.id);
       const { status } = await request.json();

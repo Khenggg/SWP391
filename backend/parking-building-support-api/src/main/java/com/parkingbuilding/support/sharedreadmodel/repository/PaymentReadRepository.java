@@ -15,6 +15,8 @@ public interface PaymentReadRepository extends JpaRepository<PaymentReadEntity, 
 
     java.util.Optional<PaymentReadEntity> findTopByReservationIdOrderByCreatedAtDesc(Long reservationId);
 
+    java.util.Optional<PaymentReadEntity> findTopBySessionIdOrderByCreatedAtDesc(Long sessionId);
+
     List<PaymentReadEntity> findByReservationIdInOrderByReservationIdAscCreatedAtDesc(Collection<Long> reservationIds);
 
     List<PaymentReadEntity> findByStatus(String status);

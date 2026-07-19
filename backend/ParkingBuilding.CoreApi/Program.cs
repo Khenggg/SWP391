@@ -79,6 +79,7 @@ builder.Services.AddHostedService<ReservationExpiryWorker>();
 // Register Monthly Pass services
 builder.Services.AddScoped<IMonthlyPassService, MonthlyPassService>();
 builder.Services.AddScoped<IMonthlyEntryTokenService, MonthlyEntryTokenService>();
+builder.Services.AddScoped<MonthlyPassApplicationService>();
 
 builder.Services.Configure<ReservationBookingOptions>(options =>
 {

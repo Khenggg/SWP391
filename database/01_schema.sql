@@ -62,11 +62,15 @@ CREATE TABLE IF NOT EXISTS vehicles (
     plate_number VARCHAR(30),
     normalized_plate_number VARCHAR(30),
     vehicle_type_id BIGINT NOT NULL REFERENCES vehicle_types(id),
+    brand VARCHAR(100),
+    color VARCHAR(50),
+    approval_status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
     description TEXT,
     status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT ck_vehicles_status CHECK (status IN ('ACTIVE', 'INACTIVE'))
+    CONSTRAINT ck_vehicles_status CHECK (status IN ('ACTIVE', 'INACTIVE')),
+    CONSTRAINT ck_vehicles_approval_status CHECK (approval_status IN ('PENDING', 'APPROVED', 'REJECTED'))
 );
 
 CREATE TABLE IF NOT EXISTS parking_cards (
@@ -403,7 +407,6 @@ CREATE TABLE IF NOT EXISTS payments (
     CONSTRAINT ck_payments_source CHECK (
         (
             purpose = 'MONTHLY_PASS_RENEWAL'
-            AND monthly_pass_id IS NOT NULL
             AND session_id IS NULL
             AND reservation_id IS NULL
         )
@@ -603,4 +606,20 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     reason TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT ck_audit_logs_source_service CHECK (source_service IN ('CORE_API', 'SUPPORT_API'))
+);
+
+CREATE TABLE IF NOT EXISTS monthly_pass_applications (
+    id BIGSERIAL PRIMARY KEY,
+    driver_id BIGINT NOT NULL REFERENCES driver_profiles(id),
+    vehicle_id BIGINT NOT NULL REFERENCES vehicles(id),
+    start_date DATE NOT NULL,
+    price NUMERIC(12,2) NOT NULL DEFAULT 0,
+    status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+    rejection_reason TEXT,
+    payment_method VARCHAR(30),
+    payment_reference_no VARCHAR(120),
+    assigned_card_id BIGINT REFERENCES parking_cards(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT ck_monthly_pass_applications_status CHECK (status IN ('DRAFT', 'PENDING', 'APPROVED_AWAITING_PAYMENT', 'PAID', 'ACTIVE', 'EXPIRED', 'REJECTED'))
 );
