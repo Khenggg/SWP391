@@ -48,6 +48,69 @@ const decrementAreaOccupancy = (areaCode) => {
 
 export const driverHandlers = [
   ...enabled(
+    MOCK_FLAGS.DRIVER_REGISTER || true,
+    http.post(`${API_BASE_URLS.core}/driver/register`, async ({ request }) => {
+      await delay(500);
+      return ok({ message: "Register successful" });
+    })
+  ),
+  ...enabled(
+    MOCK_FLAGS.DRIVER_BOOKINGS,
+    http.get(`${API_BASE_URLS.core}/driver/me`, async ({ request }) => {
+      await delay(250);
+      const username = getUsernameFromHeader(request);
+      
+      let profile = {
+        fullName: "Nguyễn Văn A",
+        phone: "0987654321",
+        email: "nguyenvana@gmail.com",
+        driverType: "RESIDENT",
+        createdAt: "2024-05-15T00:00:00Z"
+      };
+
+      if (username === "driver02") {
+        profile = {
+          fullName: "Trần Văn B",
+          phone: "0912345678",
+          email: "tranvanb@gmail.com",
+          driverType: "VISITOR",
+          createdAt: "2024-06-20T00:00:00Z"
+        };
+      }
+
+      return ok(profile);
+    })
+  ),
+
+  ...enabled(
+    MOCK_FLAGS.DRIVER_BOOKINGS,
+    http.get(`${API_BASE_URLS.core}/driver/me`, async ({ request }) => {
+      await delay(250);
+      const username = getUsernameFromHeader(request);
+      
+      let profile = {
+        fullName: "Nguyễn Văn A",
+        phone: "0987654321",
+        email: "nguyenvana@gmail.com",
+        driverType: "RESIDENT",
+        createdAt: "2024-05-15T00:00:00Z"
+      };
+
+      if (username === "driver02") {
+        profile = {
+          fullName: "Trần Văn B",
+          phone: "0912345678",
+          email: "tranvanb@gmail.com",
+          driverType: "VISITOR",
+          createdAt: "2024-06-20T00:00:00Z"
+        };
+      }
+
+      return ok(profile);
+    })
+  ),
+
+  ...enabled(
     MOCK_FLAGS.DRIVER_BOOKINGS,
     http.get(`${API_BASE_URLS.core}/driver/vehicles`, async ({ request }) => {
       await delay(250);
@@ -65,6 +128,29 @@ export const driverHandlers = [
         (pass) => pass.ownerName === fullName || pass.phone === phone
       );
       return ok(vehicles);
+    })
+  ),
+
+  ...enabled(
+    MOCK_FLAGS.DRIVER_BOOKINGS,
+    http.post(`${API_BASE_URLS.core}/driver/vehicles`, async ({ request }) => {
+      await delay(250);
+      const data = await request.json();
+      
+      const inMemoryPasses = db.getMonthlyPasses();
+      const newVehicle = {
+        id: Math.floor(Math.random() * 1000),
+        plateNumber: data.plateNumber,
+        vehicleTypeName: data.vehicleTypeId === 1 ? "Ô Tô" : "Xe Máy",
+        ownerName: "Nguyễn Văn A",
+        phone: "0987654321",
+        status: "ACTIVE"
+      };
+      
+      inMemoryPasses.push(newVehicle);
+      db.saveMonthlyPasses(inMemoryPasses);
+
+      return ok(newVehicle);
     })
   ),
 

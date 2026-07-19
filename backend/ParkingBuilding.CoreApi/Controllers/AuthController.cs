@@ -10,6 +10,8 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using ParkingBuilding.CoreApi.Application.Audit;
+using ParkingBuilding.CoreApi.Contracts.Common;
+using Microsoft.AspNetCore.Http;
 
 namespace ParkingBuilding.CoreApi.Controllers
 {
@@ -41,7 +43,11 @@ namespace ParkingBuilding.CoreApi.Controllers
                     targetId: "0",
                     reason: "Username and password are required.");
 
-                return Fail("Login failed", "Username and password are required.");
+                return Failure(
+                    ErrorMessages.GetMessage(ErrorCodes.LoginInvalidCredentials),
+                    ErrorCodes.LoginInvalidCredentials,
+                    StatusCodes.Status400BadRequest,
+                    new[] { ErrorCodes.LoginInvalidCredentials });
             }
 
             var user = await _context.Users
@@ -55,7 +61,11 @@ namespace ParkingBuilding.CoreApi.Controllers
                     targetId: "0",
                     reason: $"User '{request.Username}' not found.");
 
-                return Fail("Login failed", "Incorrect username or password.");
+                return Failure(
+                    ErrorMessages.GetMessage(ErrorCodes.LoginInvalidCredentials),
+                    ErrorCodes.LoginInvalidCredentials,
+                    StatusCodes.Status400BadRequest,
+                    new[] { ErrorCodes.LoginInvalidCredentials });
             }
 
             if (user.Status != UserStatus.ACTIVE)
@@ -67,7 +77,11 @@ namespace ParkingBuilding.CoreApi.Controllers
                     actorUserId: user.Id,
                     reason: $"Inactive user account status: {user.Status.ToString().ToLower()}");
 
-                return Fail("Login failed", $"User account is {user.Status.ToString().ToLower()}.");
+                return Failure(
+                    ErrorMessages.GetMessage(ErrorCodes.AuthUserInactive),
+                    ErrorCodes.AuthUserInactive,
+                    StatusCodes.Status400BadRequest,
+                    new[] { ErrorCodes.AuthUserInactive });
             }
 
             // Verify password using BCrypt
@@ -90,7 +104,11 @@ namespace ParkingBuilding.CoreApi.Controllers
                     actorUserId: user.Id,
                     reason: "Incorrect password.");
 
-                return Fail("Login failed", "Incorrect username or password.");
+                return Failure(
+                    ErrorMessages.GetMessage(ErrorCodes.LoginInvalidCredentials),
+                    ErrorCodes.LoginInvalidCredentials,
+                    StatusCodes.Status400BadRequest,
+                    new[] { ErrorCodes.LoginInvalidCredentials });
             }
 
             // Update LastLoginAt (optional, but good practice since LastLoginAt exists)
@@ -141,18 +159,30 @@ namespace ParkingBuilding.CoreApi.Controllers
             var userIdClaim = User.FindFirst("user_id")?.Value;
             if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
             {
-                return StatusCodeResponse(401, "Unauthorized", "User ID is invalid or missing in token.");
+                return Failure(
+                    ErrorMessages.GetMessage(ErrorCodes.AuthUserIdMissing),
+                    ErrorCodes.AuthUserIdMissing,
+                    StatusCodes.Status401Unauthorized,
+                    new[] { ErrorCodes.AuthUserIdMissing });
             }
 
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null)
             {
-                return StatusCodeResponse(401, "Unauthorized", "User not found.");
+                return Failure(
+                    ErrorMessages.GetMessage(ErrorCodes.AuthUserNotFound),
+                    ErrorCodes.AuthUserNotFound,
+                    StatusCodes.Status401Unauthorized,
+                    new[] { ErrorCodes.AuthUserNotFound });
             }
 
             if (user.Status != UserStatus.ACTIVE)
             {
-                return StatusCodeResponse(401, "Unauthorized", $"User account is {user.Status.ToString().ToLower()}.");
+                return Failure(
+                    ErrorMessages.GetMessage(ErrorCodes.AuthUserInactive),
+                    ErrorCodes.AuthUserInactive,
+                    StatusCodes.Status401Unauthorized,
+                    new[] { ErrorCodes.AuthUserInactive });
             }
 
             var response = new CurrentUserResponse

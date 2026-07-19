@@ -1,14 +1,18 @@
-import React, { useEffect, useState } from "react";
-import { BellDot, CheckCircle2, XCircle } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { approvalService } from "@/services/approvalService";
-import { formatDateTime } from "@/lib/format";
-import { PageHeader, PageShell } from "@/components/layout/PageScaffold";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import MismatchFilters from "@/components/manager/mismatch/MismatchFilters";
+import MismatchTable from "@/components/manager/mismatch/MismatchTable";
+import MismatchSidePanel from "@/components/manager/mismatch/MismatchSidePanel";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -17,127 +21,274 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import EmptyState from "@/components/ui/empty-state";
+import { Input } from "@/components/ui/input";
 
 export default function MismatchApprovalsPage() {
   const [cases, setCases] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState("PENDING");
+  const [filterKeyword, setFilterKeyword] = useState("");
+  const [filterStatus, setFilterStatus] = useState("ALL");
+  const [filterPriority, setFilterPriority] = useState("ALL");
+  const [filterDateRange, setFilterDateRange] = useState("");
+  const [filterMismatchType, setFilterMismatchType] = useState("ALL");
+  const [filterCardGroup, setFilterCardGroup] = useState("ALL");
+  const [filterReason, setFilterReason] = useState("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(8);
   const [selectedCase, setSelectedCase] = useState(null);
-  const [reason, setReason] = useState("");
+  const [showReasonDialog, setShowReasonDialog] = useState(false);
+  const [decisionType, setDecisionType] = useState("");
+  const [reasonText, setReasonText] = useState("");
 
-  const loadCases = async () => setCases(await approvalService.getMismatchCases());
+  const loadCases = async () => {
+    setIsLoading(true);
+    try {
+      const data = await approvalService.getMismatchCases();
+      setCases(data || []);
+    } catch (error) {
+      console.error("Loi lay danh sach ho so lech bien so:", error);
+      toast.error("Khong the tai du lieu ho so lech bien so.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     loadCases();
   }, []);
 
-  const decide = async (decision) => {
-    if (!selectedCase || !reason.trim()) {
-      toast.error("Nhập lý do xử lý trước khi xác nhận hoặc từ chối.");
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, filterKeyword, filterStatus, filterPriority, filterMismatchType, filterCardGroup, filterReason, filterDateRange]);
+
+  const counts = {
+    PENDING: cases.filter((item) => item.status === "PENDING").length,
+    CONFIRMED: cases.filter((item) => item.status === "CONFIRMED").length,
+    REJECTED: cases.filter((item) => item.status === "REJECTED").length,
+    ALL: cases.length,
+  };
+
+  const filtered = useMemo(() => {
+    return cases.filter((item) => {
+      if (activeTab !== "ALL" && item.status !== activeTab) return false;
+      if (filterStatus !== "ALL" && item.status !== filterStatus) return false;
+      if (filterPriority !== "ALL" && (item.priority || "MEDIUM") !== filterPriority) return false;
+
+      if (filterReason !== "ALL") {
+        const reasonLower = String(item.reason || "").toLowerCase();
+        if (filterReason === "MISTAKE" && !reasonLower.includes("nham")) return false;
+        if (filterReason === "DIRTY" && !reasonLower.includes("ban") && !reasonLower.includes("mo")) return false;
+        if (filterReason === "RECOGNITION" && !reasonLower.includes("camera") && !reasonLower.includes("ocr")) return false;
+      }
+
+      if (!filterKeyword) return true;
+
+      const keyword = filterKeyword.toLowerCase();
+      return [
+        item.caseCode,
+        item.cardCode,
+        item.entryPlateNumber,
+        item.exitPlateNumber,
+        item.reporterName,
+        item.createdBy,
+      ].some((value) => String(value || "").toLowerCase().includes(keyword));
+    });
+  }, [activeTab, cases, filterKeyword, filterPriority, filterReason, filterStatus]);
+
+  const paginatedCases = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filtered.slice(startIndex, startIndex + itemsPerPage);
+  }, [currentPage, filtered, itemsPerPage]);
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
+
+  const handleResetFilters = () => {
+    setFilterKeyword("");
+    setFilterStatus("ALL");
+    setFilterPriority("ALL");
+    setFilterDateRange("");
+    setFilterMismatchType("ALL");
+    setFilterCardGroup("ALL");
+    setFilterReason("ALL");
+  };
+
+  const openDecisionDialog = (type) => {
+    setDecisionType(type);
+    setReasonText("");
+    setShowReasonDialog(true);
+  };
+
+  const confirmDecision = async () => {
+    if (!selectedCase) return;
+    if (decisionType !== "APPROVE" && !reasonText.trim()) {
+      toast.error("Vui long nhap ly do tu choi.");
       return;
     }
+
+    setIsSubmitting(true);
     try {
-      await approvalService.decideMismatchCase(selectedCase.id, { decision, reason });
-      toast.success(decision === "APPROVE" ? "Đã xác nhận lệch biển số." : "Đã từ chối hồ sơ.");
+      if (decisionType === "APPROVE") {
+        await approvalService.confirmMismatchCase(selectedCase.sessionId || selectedCase.id, { reason: reasonText });
+        toast.success("Da phe duyet ho so lech bien so.");
+      } else {
+        await approvalService.rejectMismatchCase(selectedCase.sessionId || selectedCase.id, { reason: reasonText });
+        toast.success("Da tu choi ho so lech bien so.");
+      }
+
+      setShowReasonDialog(false);
       setSelectedCase(null);
-      setReason("");
       await loadCases();
     } catch (error) {
-      toast.error(error.message || "Không thể xử lý hồ sơ.");
+      toast.error(error.message || "Xu ly ho so that bai.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const pendingCount = cases.filter((item) => item.status === "PENDING").length;
-
   return (
-    <PageShell>
-      <PageHeader
-        eyebrow="Manager · Exception approval"
-        title="Phê duyệt lệch biển số"
-        description="Xử lý cảnh báo biển số lúc ra không trùng khớp với dữ liệu lúc vào trước khi cho xe ra."
-        icon={BellDot}
-        meta={<Badge variant="secondary" className="rounded-md">{pendingCount} ca đang chờ</Badge>}
-      />
+    <div className="flex h-full gap-4">
+      <div className="flex flex-1 flex-col gap-6 overflow-hidden transition-all duration-300">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800">Duyet lech bien so</h2>
+            <p className="mt-1 text-sm text-slate-500">Xem xet va xu ly cac ho so can manager xac nhan.</p>
+          </div>
+          <Button variant="outline" className="bg-white text-slate-700" onClick={loadCases} disabled={isLoading}>
+            <RefreshCw className="mr-2 h-4 w-4" /> Lam moi
+          </Button>
+        </div>
 
-      <Card className="app-table-card">
-        <CardHeader>
-          <CardTitle>Các ca cần xác minh</CardTitle>
-          <CardDescription>Đối chiếu biển số vào/ra và ghi nhận quyết định quản lý.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {cases.length === 0 ? (
-            <EmptyState icon="MM" title="Chưa có ca lệch biển số" className="border-0 shadow-none" />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Hồ sơ</TableHead>
-                  <TableHead>Biển số vào</TableHead>
-                  <TableHead>Biển số ra</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead className="text-right">Chi tiết</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {cases.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      <div className="font-mono font-bold">{item.caseCode}</div>
-                      <div className="text-xs text-muted-foreground">{formatDateTime(item.createdAt)}</div>
-                    </TableCell>
-                    <TableCell className="font-mono font-bold">{item.entryPlateNumber}</TableCell>
-                    <TableCell className="font-mono font-bold">{item.exitPlateNumber}</TableCell>
-                    <TableCell><Badge variant={item.status === "PENDING" ? "outline" : "secondary"}>{item.status}</Badge></TableCell>
-                    <TableCell className="text-right">
-                      <Button size="sm" variant="outline" onClick={() => setSelectedCase(item)}>Xem</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+        <MismatchFilters
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          filterKeyword={filterKeyword}
+          setFilterKeyword={setFilterKeyword}
+          filterStatus={filterStatus}
+          setFilterStatus={setFilterStatus}
+          filterPriority={filterPriority}
+          setFilterPriority={setFilterPriority}
+          filterDateRange={filterDateRange}
+          setFilterDateRange={setFilterDateRange}
+          filterMismatchType={filterMismatchType}
+          setFilterMismatchType={setFilterMismatchType}
+          filterCardGroup={filterCardGroup}
+          setFilterCardGroup={setFilterCardGroup}
+          filterReason={filterReason}
+          setFilterReason={setFilterReason}
+          onSearch={loadCases}
+          onReset={handleResetFilters}
+          counts={counts}
+        />
 
-      <Dialog open={Boolean(selectedCase)} onOpenChange={(open) => !open && setSelectedCase(null)}>
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Chi tiết lệch biển số</DialogTitle>
-            <DialogDescription>Xác nhận khi có đủ căn cứ cho xe ra bãi.</DialogDescription>
-          </DialogHeader>
-          {selectedCase && (
-            <div className="flex flex-col gap-3 text-sm">
-              <Line label="Mã hồ sơ" value={selectedCase.caseCode} />
-              <Line label="Phiên" value={selectedCase.sessionCode} />
-              <Line label="Biển số vào" value={selectedCase.entryPlateNumber} />
-              <Line label="Biển số ra" value={selectedCase.exitPlateNumber} />
-              <Line label="Lý do cảnh báo" value={selectedCase.reason} />
-              <label className="flex flex-col gap-1.5">
-                <span className="app-field-label">Lý do xác nhận/từ chối</span>
-                <Input name="mismatch-decision-reason" autoComplete="off" value={reason} onChange={(event) => setReason(event.target.value)} />
-              </label>
+        <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-200 p-4">
+            <h3 className="text-sm font-bold text-slate-800">Danh sach yeu cau ({filtered.length})</h3>
+          </div>
+
+          <MismatchTable
+            cases={paginatedCases}
+            isLoading={isLoading}
+            selectedCaseId={selectedCase?.id}
+            onRowClick={setSelectedCase}
+          />
+
+          <div className="flex items-center justify-between border-t border-slate-200 bg-white p-3 text-sm text-slate-500">
+            <div>
+              Hien thi {filtered.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filtered.length)} cua {filtered.length} ket qua
             </div>
-          )}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="primary" className="h-8 bg-blue-600 px-3">
+                {currentPage} / {totalPages}
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Select
+                value={itemsPerPage.toString()}
+                onValueChange={(value) => {
+                  setItemsPerPage(Number(value));
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="ml-2 h-8 w-[100px]">
+                  <SelectValue placeholder={`${itemsPerPage} / trang`} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="8">8 / trang</SelectItem>
+                  <SelectItem value="15">15 / trang</SelectItem>
+                  <SelectItem value="30">30 / trang</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {selectedCase && (
+        <MismatchSidePanel
+          item={selectedCase}
+          onClose={() => setSelectedCase(null)}
+          onApprove={() => openDecisionDialog("APPROVE")}
+          onReject={() => openDecisionDialog("REJECT")}
+          isSubmitting={isSubmitting}
+        />
+      )}
+
+      <Dialog
+        open={showReasonDialog}
+        onOpenChange={(open) => {
+          if (!isSubmitting) {
+            setShowReasonDialog(open);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{decisionType === "APPROVE" ? "Phe duyet ho so" : "Tu choi ho so"}</DialogTitle>
+            <DialogDescription>
+              {decisionType === "APPROVE"
+                ? "Nhap ghi chu neu can truoc khi phe duyet."
+                : "Nhap ly do tu choi."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              placeholder={decisionType === "APPROVE" ? "Ghi chu phe duyet" : "Ly do tu choi"}
+              value={reasonText}
+              onChange={(event) => setReasonText(event.target.value)}
+            />
+          </div>
           <DialogFooter>
-            <Button variant="destructive" onClick={() => decide("REJECT")}>
-              <XCircle data-icon="inline-start" />
-              Từ chối
+            <Button variant="outline" onClick={() => setShowReasonDialog(false)} disabled={isSubmitting}>
+              Huy
             </Button>
-            <Button onClick={() => decide("APPROVE")}>
-              <CheckCircle2 data-icon="inline-start" />
-              Xác nhận
+            <Button
+              className={decisionType === "APPROVE" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"}
+              onClick={confirmDecision}
+              disabled={isSubmitting}
+            >
+              Xac nhan
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </PageShell>
-  );
-}
-
-function Line({ label, value }) {
-  return (
-    <div className="rounded-lg border bg-background p-3">
-      <p className="app-field-label">{label}</p>
-      <p className="mt-1 font-semibold">{value || "--"}</p>
     </div>
   );
 }

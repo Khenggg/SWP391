@@ -1,52 +1,45 @@
 import coreAxiosClient from "../api/coreAxiosClient";
 
 export const staffSessionService = {
-  listActiveSessions: async () => {
-    const response = await coreAxiosClient.get("/staff/sessions/active");
-    if (response.success) return response.data;
-    return [];
-  },
-
-  searchActiveSession: async ({ cardCode, plate }) => {
-    const response = await coreAxiosClient.get("/staff/sessions/search", {
-      params: { cardCode, plate }
-    });
+  searchActiveSession: async (cardCode) => {
+    const response = await coreAxiosClient.get(`/parking-sessions/by-card-code/${cardCode}`);
     if (response.success) return response.data;
     throw new Error(response.message || "Không tìm thấy phiên đỗ xe hoạt động.");
   },
 
   previewFee: async (sessionId, exitTime) => {
-    const response = await coreAxiosClient.post(`/staff/sessions/${sessionId}/preview-fee`, { exitTime });
+    const response = await coreAxiosClient.post(`/parking-sessions/${sessionId}/calculate-fee`, { exitTime });
     if (response.success) return response.data;
     throw new Error(response.message || "Không thể tính phí gửi xe.");
   },
 
-  payCash: async (sessionId, receivedAmount) => {
-    const response = await coreAxiosClient.post(`/staff/sessions/${sessionId}/pay-cash`, { receivedAmount });
+  payCash: async ({ sessionId, amount, lostCardFee, totalAmount }) => {
+    const response = await coreAxiosClient.post(`/payments/cash`, { sessionId, amount, lostCardFee, totalAmount });
     if (response.success) return response.data;
     throw new Error(response.message || "Thanh toán tiền mặt thất bại.");
   },
 
-  createMismatchCase: async ({ sessionId, exitPlateNumber, reason }) => {
-    const response = await coreAxiosClient.post(`/staff/sessions/${sessionId}/mismatch-case`, { exitPlateNumber, reason });
+  createOnlinePayment: async ({ sessionId, cardCode }) => {
+    const response = await coreAxiosClient.post(`/payments/online/exit-fee`, { sessionId, cardCode });
     if (response.success) return response.data;
-    throw new Error(response.message || "Không thể tạo hồ sơ lệch biển số.");
+    throw new Error(response.message || "Tạo link thanh toán online thất bại.");
   },
 
-  completeExit: async (sessionId, { exitTime, exitGateCode }) => {
-    const response = await coreAxiosClient.post(`/staff/sessions/${sessionId}/complete-exit`, { exitTime, exitGateCode });
+  completeExit: async (sessionId, payload) => {
+    const response = await coreAxiosClient.post(`/parking-sessions/${sessionId}/exit`, payload);
     if (response.success) return response.data;
     throw new Error(response.message || "Xác nhận xe ra thất bại.");
   },
 
-  createLostCardCase: async ({ reporterName, phone, verificationNote, reason, sessionId }) => {
-    const response = await coreAxiosClient.post(`/staff/sessions/${sessionId}/lost-card`, {
-      reporterName,
-      phone,
-      verificationNote,
-      reason
-    });
+  completeMonthlyPassExit: async (sessionId, payload) => {
+    const response = await coreAxiosClient.post(`/parking-sessions/${sessionId}/monthly-pass-exit`, payload);
     if (response.success) return response.data;
-    throw new Error(response.message || "Không thể tạo báo cáo mất thẻ.");
+    throw new Error(response.message || "Xác nhận xe vé tháng ra thất bại.");
+  },
+
+  createMismatchCase: async ({ sessionId, exitPlateNumber, reason }) => {
+    const response = await coreAxiosClient.post(`/parking-sessions/${sessionId}/mismatch-case`, { exitPlateNumber, reason });
+    if (response.success) return response.data;
+    throw new Error(response.message || "Không thể tạo hồ sơ lệch biển số.");
   }
 };

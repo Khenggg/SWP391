@@ -24,7 +24,8 @@ ON CONFLICT (id) DO UPDATE SET
 
 INSERT INTO driver_profiles (id, user_id, full_name, phone, email, status, driver_type, apartment_number, cccd_number)
 VALUES
-    (1, 4, 'Demo Driver', '0900000004', 'driver01@example.local', 'ACTIVE', 'RESIDENT', 'A-0101', '012345678901')
+    (1, 4, 'Demo Driver', '0900000004', 'driver01@example.local', 'ACTIVE', 'RESIDENT', 'A-0101', '012345678901'),
+    (2, NULL, 'Other Driver', '0900000009', 'other@example.local', 'ACTIVE', 'RESIDENT', 'A-0102', '012345678902')
 ON CONFLICT (id) DO UPDATE SET
     user_id = EXCLUDED.user_id,
     full_name = EXCLUDED.full_name,
@@ -54,7 +55,9 @@ ON CONFLICT (id) DO UPDATE SET
 
 INSERT INTO vehicles (id, driver_id, plate_number, normalized_plate_number, vehicle_type_id, description, status)
 VALUES
-    (1, 1, '51A-99999', '51A99999', 3, 'Demo monthly pass motorbike', 'ACTIVE')
+    (1, 1, '51A-99999', '51A99999', 3, 'Demo monthly pass motorbike', 'ACTIVE'),
+    (2, 2, '29A-88888', '29A88888', 5, 'Other Driver Car', 'ACTIVE'),
+    (3, 1, '29A-11111', '29A11111', 5, 'Driver owned car', 'ACTIVE')
 ON CONFLICT (id) DO UPDATE SET
     driver_id = EXCLUDED.driver_id,
     plate_number = EXCLUDED.plate_number,
@@ -205,13 +208,16 @@ INSERT INTO monthly_passes (
     plate_number,
     normalized_plate_number,
     vehicle_type_id,
+    floor_id,
+    area_id,
+    slot_id,
     start_date,
     end_date,
     status,
     created_by
 )
 VALUES
-    (1, 1, 1, 'Nguyen Van Monthly', '0900000100', '51A-99999', '51A99999', 3, (CURRENT_DATE - INTERVAL '5 days')::DATE, (CURRENT_DATE + INTERVAL '25 days')::DATE, 'ACTIVE', 2)
+    (1, 1, 1, 'Nguyen Van Monthly', '0900000100', '51A-99999', '51A99999', 3, 1, 1, NULL, (CURRENT_DATE - INTERVAL '5 days')::DATE, (CURRENT_DATE + INTERVAL '25 days')::DATE, 'ACTIVE', 2)
 ON CONFLICT (id) DO UPDATE SET
     driver_id = EXCLUDED.driver_id,
     card_id = EXCLUDED.card_id,
@@ -220,11 +226,94 @@ ON CONFLICT (id) DO UPDATE SET
     plate_number = EXCLUDED.plate_number,
     normalized_plate_number = EXCLUDED.normalized_plate_number,
     vehicle_type_id = EXCLUDED.vehicle_type_id,
+    floor_id = EXCLUDED.floor_id,
+    area_id = EXCLUDED.area_id,
+    slot_id = EXCLUDED.slot_id,
     start_date = EXCLUDED.start_date,
     end_date = EXCLUDED.end_date,
     status = EXCLUDED.status,
     created_by = EXCLUDED.created_by,
     updated_at = now();
+
+INSERT INTO reservations (
+    id,
+    reservation_code,
+    driver_id,
+    vehicle_id,
+    plate_number,
+    normalized_plate_number,
+    vehicle_type_id,
+    floor_id,
+    area_id,
+    slot_id,
+    reserved_duration_minutes,
+    booking_amount,
+    payment_status,
+    reserved_at,
+    expires_at,
+    status,
+    created_by
+)
+VALUES (
+    1001,
+    'RSV-NOPLATE-CAR-001',
+    1,
+    NULL,
+    NULL,
+    NULL,
+    5, -- Ô tô
+    1,
+    2,
+    12, -- Slot 12
+    60,
+    20000,
+    'PAID',
+    now(),
+    now() + interval '60 minutes',
+    'CONFIRMED',
+    2
+),
+(
+    1002,
+    'RSV-NOPLATE-BIKE-001',
+    1,
+    NULL,
+    NULL,
+    NULL,
+    3, -- Xe máy
+    1,
+    1,
+    NULL,
+    60,
+    5000,
+    'PAID',
+    now(),
+    now() + interval '60 minutes',
+    'CONFIRMED',
+    2
+)
+ON CONFLICT (id) DO UPDATE SET
+    reservation_code = EXCLUDED.reservation_code,
+    driver_id = EXCLUDED.driver_id,
+    vehicle_id = EXCLUDED.vehicle_id,
+    plate_number = EXCLUDED.plate_number,
+    normalized_plate_number = EXCLUDED.normalized_plate_number,
+    vehicle_type_id = EXCLUDED.vehicle_type_id,
+    floor_id = EXCLUDED.floor_id,
+    area_id = EXCLUDED.area_id,
+    slot_id = EXCLUDED.slot_id,
+    reserved_duration_minutes = EXCLUDED.reserved_duration_minutes,
+    booking_amount = EXCLUDED.booking_amount,
+    payment_status = EXCLUDED.payment_status,
+    reserved_at = EXCLUDED.reserved_at,
+    expires_at = EXCLUDED.expires_at,
+    status = EXCLUDED.status,
+    created_by = EXCLUDED.created_by,
+    updated_at = now();
+
+UPDATE slots
+SET status = 'RESERVED'
+WHERE id = 12;
 
 SELECT setval('users_id_seq', COALESCE((SELECT max(id) FROM users), 1), (SELECT count(*) > 0 FROM users));
 SELECT setval('driver_profiles_id_seq', COALESCE((SELECT max(id) FROM driver_profiles), 1), (SELECT count(*) > 0 FROM driver_profiles));

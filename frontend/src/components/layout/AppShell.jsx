@@ -60,7 +60,7 @@ const MENUS = {
     { label: "Hồ sơ", path: "/driver/profile", icon: UserRoundCog },
     { label: "Đặt chỗ", path: "/driver/booking", icon: CalendarClock },
     { label: "Xe của tôi", path: "/driver/vehicles", icon: CarFront },
-    { label: "Lịch sử", path: "/driver/history", icon: BookOpenCheck },
+    { label: "Lịch sử booking", path: "/driver/history", icon: BookOpenCheck },
   ],
 };
 
@@ -254,7 +254,7 @@ export default function AppShell({ currentUser, onLogout }) {
           id="main-content"
           className="flex-1 p-4 pb-24 md:min-h-0 md:overflow-y-auto md:p-6"
         >
-          <Outlet />
+          <Outlet context={{ currentUser }} />
         </main>
       </div>
 

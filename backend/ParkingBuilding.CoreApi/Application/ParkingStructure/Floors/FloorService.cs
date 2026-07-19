@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
+using ParkingBuilding.CoreApi.Contracts.Common;
 using ParkingBuilding.CoreApi.Domain.Entities;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
 
@@ -29,10 +31,10 @@ public class FloorService
     public async Task<FloorResponse> CreateAsync(CreateFloorRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.FloorCode))
-            throw new ArgumentException("FloorCode is required");
+            throw new BusinessException(ErrorCodes.FloorCodeRequired);
 
         if (string.IsNullOrWhiteSpace(request.FloorName))
-            throw new ArgumentException("FloorName is required");
+            throw new BusinessException(ErrorCodes.FloorNameRequired);
 
         var code = request.FloorCode.Trim().ToUpper();
 
@@ -40,7 +42,7 @@ public class FloorService
             .AnyAsync(x => x.FloorCode == code);
 
         if (exists)
-            throw new InvalidOperationException("Floor code already exists");
+            throw new BusinessException(ErrorCodes.FloorCodeExists, StatusCodes.Status409Conflict);
 
         var entity = new Floor
         {
@@ -68,7 +70,7 @@ public class FloorService
         var entity = await _context.Floors.FindAsync(id);
 
         if (entity == null)
-            throw new KeyNotFoundException("Floor not found");
+            throw new BusinessException(ErrorCodes.FloorNotFound, StatusCodes.Status404NotFound);
 
         entity.FloorName = request.FloorName.Trim();
         entity.Status = request.Status.Trim().ToUpper();

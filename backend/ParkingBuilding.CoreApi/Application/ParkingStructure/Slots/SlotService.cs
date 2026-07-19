@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
+using ParkingBuilding.CoreApi.Contracts.Common;
 using ParkingBuilding.CoreApi.Domain.Entities;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
 
@@ -17,7 +19,7 @@ public class SlotService
     public async Task<SlotResponse> CreateAsync(CreateSlotRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.SlotCode))
-            throw new ArgumentException("SlotCode is required");
+            throw new BusinessException(ErrorCodes.SlotCodeRequired);
 
         // ===== CHECK AREA =====
         var area = await _context.Areas
@@ -25,7 +27,7 @@ public class SlotService
             .FirstOrDefaultAsync(x => x.Id == request.AreaId);
 
         if (area == null)
-            throw new KeyNotFoundException("Area not found");
+            throw new BusinessException(ErrorCodes.AreaNotFound, StatusCodes.Status404NotFound);
 
         // ===== NORMALIZE =====
         var code = request.SlotCode.Trim().ToUpper();
@@ -35,14 +37,14 @@ public class SlotService
             .AnyAsync(x => x.AreaId == request.AreaId && x.SlotCode == code);
 
         if (exists)
-            throw new InvalidOperationException("Slot code already exists in this area");
+            throw new BusinessException(ErrorCodes.SlotCodeExists, StatusCodes.Status409Conflict);
 
         // ===== VALIDATE VEHICLE TYPE =====
         var allowed = area.AreaVehicleTypes
             .Any(x => x.VehicleTypeId == request.AllowedVehicleTypeId);
 
         if (!allowed)
-            throw new ArgumentException("VehicleType not allowed in this area");
+            throw new BusinessException(ErrorCodes.SlotNotAllowedForVehicleType);
 
         // ===== CREATE =====
         var entity = new Slot
@@ -75,41 +77,48 @@ public class SlotService
             .FirstOrDefaultAsync(x => x.Id == id);
 
         if (slot == null)
-            throw new KeyNotFoundException("Slot not found");
+            throw new BusinessException(ErrorCodes.SlotNotFound, StatusCodes.Status404NotFound);
 
         var newStatus = request.Status.Trim().ToUpper();
         var oldStatus = slot.Status;
 
-        var validStatuses = new[] { "AVAILABLE", "OCCUPIED", "BOOKED" };
+        var validStatuses = new[]
+        {
+            "AVAILABLE",
+            "RESERVED",
+            "OCCUPIED",
+            "LOCKED",
+            "MAINTENANCE"
+        };
 
         if (!validStatuses.Contains(newStatus))
-            throw new ArgumentException("Invalid status");
+            throw new BusinessException(ErrorCodes.InvalidStatus);
 
         // ===== INVALID TRANSITION =====
-        if (oldStatus == "OCCUPIED" && newStatus == "BOOKED")
-            throw new InvalidOperationException("Invalid transition");
+        if (oldStatus == "OCCUPIED" && newStatus == "RESERVED")
+            throw new BusinessException(ErrorCodes.SlotStatusTransitionInvalid);
 
         // ===== CAPACITY CHECK =====
         if (newStatus == "OCCUPIED" &&
             slot.Area.CurrentRealOccupancy >= slot.Area.TotalCapacity)
-            throw new InvalidOperationException("Area is full");
+            throw new BusinessException(ErrorCodes.SelectedAreaFull);
 
-        if (newStatus == "BOOKED" &&
+        if (newStatus == "RESERVED" &&
             slot.Area.CurrentBookedSlots >= slot.Area.TotalCapacity)
-            throw new InvalidOperationException("Area booking full");
+            throw new BusinessException(ErrorCodes.AreaBookingFull);
 
         // ===== REMOVE OLD =====
         if (oldStatus == "OCCUPIED")
             slot.Area.CurrentRealOccupancy--;
 
-        if (oldStatus == "BOOKED")
+        if (oldStatus == "RESERVED")
             slot.Area.CurrentBookedSlots--;
 
         // ===== ADD NEW =====
         if (newStatus == "OCCUPIED")
             slot.Area.CurrentRealOccupancy++;
 
-        if (newStatus == "BOOKED")
+        if (newStatus == "RESERVED")
             slot.Area.CurrentBookedSlots++;
 
         slot.Status = newStatus;
@@ -124,5 +133,18 @@ public class SlotService
             SlotCode = slot.SlotCode,
             Status = slot.Status
         };
+    }
+
+    public async Task<List<SlotResponse>> GetAllAsync()
+    {
+        return await _context.Slots
+            .Select(x => new SlotResponse
+            {
+                Id = x.Id,
+                AreaId = x.AreaId,
+                SlotCode = x.SlotCode,
+                Status = x.Status
+            })
+            .ToListAsync();
     }
 }

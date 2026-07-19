@@ -1715,7 +1715,7 @@ Test cases:
 | TC-STRUCT-04 | Không khóa slot đang OCCUPIED nếu không move/cancel |
 | TC-STRUCT-05 | Move session cập nhật slot cũ/mới đúng              |
 
-## 12.7 Module Slot Suggestion
+## 12.7 Module Location Suggestion
 
 FR liên quan: FR-08, FR-07.06 đến FR-07.10.
 
@@ -1723,28 +1723,31 @@ Owner: `.NET Core API`
 
 API:
 
-| Method | Endpoint                                  | Role                |
-| ------ | ----------------------------------------- | ------------------- |
-| POST   | `/api/core/parking-sessions/suggest-slot` | STAFF/MANAGER/ADMIN |
+| Method | Endpoint                                         | Role                |
+| ------ | ------------------------------------------------ | ------------------- |
+| GET    | `/api/core/parking-sessions/location-suggestion` | STAFF/MANAGER/ADMIN |
 
-Request:
+Query Parameters:
 
-```json
-{
-  "vehicleTypeId": 3,
-  "preferredFloorId": null
-}
-```
+- `vehicleTypeId` (long, required)
+- `entryGateId` (long, required)
 
 Response:
 
 ```json
 {
-  "areaId": 2,
-  "areaCode": "A",
-  "slotId": 35,
-  "slotCode": "A-035",
-  "reason": "Khu A còn nhiều slot trống nhất và ưu tiên gần cổng"
+  "success": true,
+  "message": "Suggestion generated successfully",
+  "data": {
+    "suggestionType": "SLOT",
+    "suggestedFloorId": 1,
+    "suggestedAreaId": 2,
+    "suggestedSlotId": 15,
+    "slotCode": "B-C05",
+    "areaCode": "B",
+    "floorCode": "B1",
+    "suggestionToken": "JWT_TOKEN_HERE"
+  }
 }
 ```
 
@@ -1790,33 +1793,75 @@ API:
 | ------ | ---------------------------------- | ------------------- |
 | POST   | `/api/core/parking-sessions/entry` | STAFF/MANAGER/ADMIN |
 
-Request:
+### Request (3 Entry Modes)
 
+#### 1. MONTHLY Mode
 ```json
 {
-  "entryGateId": 1,
-  "plateNumber": "51A-12345",
+  "entryMode": "MONTHLY",
+  "monthlyPassId": 1,
+  "monthlyEntryToken": "JWT_TOKEN_HERE",
+  "cardCode": "C001",
+  "licensePlate": "51A-99999",
   "noPlate": false,
-  "vehicleDescription": null,
   "vehicleTypeId": 3,
-  "cardId": 10,
-  "selectedAreaId": 2,
-  "selectedSlotId": 35,
-  "overrideReason": null
+  "entryGateId": 1,
+  "selectedAreaId": 1,
+  "selectedSlotId": null
 }
 ```
 
-Response:
+#### 2. CASUAL Mode
+```json
+{
+  "entryMode": "CASUAL",
+  "cardCode": "C002",
+  "licensePlate": "59X1-88888",
+  "noPlate": false,
+  "vehicleTypeId": 3,
+  "entryGateId": 1,
+  "selectedAreaId": 1,
+  "selectedSlotId": null,
+  "suggestionToken": "JWT_TOKEN_HERE",
+  "convertedFromReservationId": null
+}
+```
+
+#### 3. RESERVATION Mode
+```json
+{
+  "entryMode": "RESERVATION",
+  "reservationId": 123,
+  "reservationEntryToken": "JWT_TOKEN_HERE",
+  "cardCode": "C003",
+  "licensePlate": "51A-12345",
+  "noPlate": false,
+  "vehicleTypeId": 5,
+  "entryGateId": 1,
+  "selectedAreaId": 2,
+  "selectedSlotId": 15
+}
+```
+
+### Response
 
 ```json
 {
-  "sessionId": 1001,
-  "sessionCode": "PS202605210001",
-  "status": "ACTIVE",
-  "customerType": "CASUAL",
-  "cardCode": "C001",
-  "slotCode": "A-035",
-  "entryTime": "2026-05-21T10:00:00+07:00"
+  "success": true,
+  "message": "Entry created successfully",
+  "data": {
+    "sessionId": 1001,
+    "sessionCode": "SESS-20260629-ABC",
+    "status": "ACTIVE",
+    "customerType": "MONTHLY",
+    "cardCode": "C001",
+    "slotCode": null,
+    "entryTime": "2026-06-29T10:00:00+07:00",
+    "paymentStatus": "NOT_REQUIRED",
+    "monthlyPassId": 1,
+    "reservationId": null,
+    "convertedFromReservationId": null
+  }
 }
 ```
 
@@ -2431,10 +2476,31 @@ APIs:
 
 Business validation:
 
-- Chỉ cho phép đặt trước đối với xe ô tô và slot thuộc khu vực quy định (Tầng B2).
-- Slot được chọn phải có trạng thái là `AVAILABLE`.
-- Khi tạo thành công, phải cập nhật `slots.status = 'RESERVED'` và ghi nhận log `RESERVATION_CREATED`.
-- Mọi thao tác ghi phải nằm gọn trong một Transaction duy nhất của .NET.
+- **Tạo Booking (Create Reservation)**:
+  - Nếu người gọi là `DRIVER`, backend tự động tìm `DriverProfile` từ User ID có trong JWT Claims và gán vào `driverId` (phía Client/Frontend không được truyền `driverId`).
+  - Nếu người gọi là `ADMIN/MANAGER/STAFF`, bắt buộc truyền `driverId` (tạo hộ).
+  - `vehicleId` và `plateNumber` hoàn toàn optional lúc đặt chỗ. Nếu `vehicleId` được truyền, hệ thống sẽ xác thực quyền sở hữu và loại xe. Nếu `plateNumber` trống nhưng có `vehicleId`, hệ thống tự lấy biển số từ xe đã lưu.
+  - Xe 2 bánh (không yêu cầu slot - `RequiresSlot = false`) đặt theo area, `slotId` phải NULL.
+  - Xe ô tô / xe tải (RequiresSlot = true) đặt theo slot, `slotId` bắt buộc và slot phải có trạng thái `AVAILABLE`. Khi tạo thành công, chuyển slot sang `RESERVED`.
+- **Check-in Booking (Entry)**:
+  - **Reservation entry-check**:
+    - Nhân viên (Staff) quét mã QR đặt chỗ để kiểm tra tính hợp lệ và lấy `reservationEntryToken` qua API:
+      `GET /api/core/reservations/{reservationCode}/entry-check?entryGateId=...`
+    - Reservation phải ở trạng thái `CONFIRMED`.
+    - Nếu xe yêu cầu slot, slot được gán phải ở trạng thái `RESERVED`. Nếu slot không ở trạng thái `RESERVED` (do bị chuyển sang AVAILABLE, OCCUPIED, LOCKED, hay MAINTENANCE...), API entry-check phải từ chối và ném lỗi `RESERVED_SLOT_NOT_AVAILABLE`, không phát `reservationEntryToken`.
+  - **Reservation check-in**:
+    - Thực hiện check-in bằng cách gọi API:
+      `POST /api/core/parking-sessions/entry` kèm `entryMode = "RESERVATION"`, `reservationId` và `reservationEntryToken`.
+    - Quy tắc `noPlate = true` entry check-in:
+      - Chỉ cho phép `noPlate = true` đối với xe không cần slot (xe 2 bánh).
+      - Nếu `noPlate = true`:
+        - `reservation.plate_number = NULL`
+        - `reservation.normalized_plate_number = NULL`
+        - `parking_session.plate_number = NULL`
+        - `parking_session.normalized_plate_number = NULL`
+        - Bắt buộc phải có `vehicleDescription` từ request, nếu thiếu sẽ ném lỗi `VEHICLE_DESCRIPTION_REQUIRED`.
+      - Xe cần slot như ô tô/xe tải bắt buộc có `licensePlate` lúc entry, không cho phép `noPlate = true` (ném lỗi `PLATE_REQUIRED_FOR_SLOT_VEHICLE`).
+    - Nếu reservation đã có biển số: biển số xe check-in bắt buộc phải khớp chính xác với biển số đã đăng ký, nếu không khớp sẽ ném lỗi `RESERVATION_PLATE_MISMATCH`.
 
 ---
 
@@ -3591,31 +3657,46 @@ public class ApiResponse<T>
     public bool Success { get; set; }
     public string Message { get; set; } = string.Empty;
     public T? Data { get; set; }
-    public object? Errors { get; set; }
-    public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.Now;
-
-    public static ApiResponse<T> Ok(T data, string message = "OK")
-    {
-        return new ApiResponse<T>
-        {
-            Success = true,
-            Message = message,
-            Data = data,
-            Errors = null
-        };
-    }
-
-    public static ApiResponse<T> Fail(string message, object? errors = null)
-    {
-        return new ApiResponse<T>
-        {
-            Success = false,
-            Message = message,
-            Data = default,
-            Errors = errors
-        };
-    }
+    public List<string>? Errors { get; set; }
+    public int? StatusCode { get; set; }
+    public string? ErrorCode { get; set; }
+    public string? TraceId { get; set; }
+    public string? Path { get; set; }
+    public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
 }
+```
+
+### API response standard
+
+All business API endpoints must return the same wrapper:
+
+```text
+success: boolean
+message: string
+data: object | array | null
+errors: string[] | null
+errorCode: string | null
+statusCode: number
+traceId: string
+path: string
+timestamp: ISO datetime
+```
+
+Frontend clients must unwrap `.data` only after checking `success`:
+
+```javascript
+const body = response.data;
+
+if (body.success) {
+  return body.data;
+}
+
+throw {
+  errorCode: body.errorCode,
+  message: body.message,
+  errors: body.errors,
+  traceId: body.traceId
+};
 ```
 
 ### BusinessException
@@ -4588,22 +4669,37 @@ curl -X POST http://localhost:5000/api/core/cards \
   -d "{\"cardCode\":\"C001\",\"note\":\"Demo card\"}"
 ```
 
-### Suggest Slot
+### Location Suggestion
 
 ```bash
-curl -X POST http://localhost:5000/api/core/parking-sessions/suggest-slot \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer TOKEN_HERE" \
-  -d "{\"vehicleTypeId\":3,\"preferredFloorId\":null}"
+curl -X GET "http://localhost:5000/api/core/parking-sessions/location-suggestion?vehicleTypeId=3&entryGateId=1" \
+  -H "Authorization: Bearer TOKEN_HERE"
 ```
 
-### Entry
+### Entry (3 Modes Example)
 
+#### 1. MONTHLY Mode Entry
 ```bash
 curl -X POST http://localhost:5000/api/core/parking-sessions/entry \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer TOKEN_HERE" \
-  -d "{\"entryGateId\":1,\"plateNumber\":\"51A-12345\",\"noPlate\":false,\"vehicleDescription\":null,\"vehicleTypeId\":3,\"cardId\":1,\"selectedAreaId\":1,\"selectedSlotId\":1,\"overrideReason\":null}"
+  -d "{\"entryMode\":\"MONTHLY\",\"monthlyPassId\":1,\"monthlyEntryToken\":\"TOKEN_HERE\",\"cardCode\":\"C001\",\"licensePlate\":\"51A-99999\",\"noPlate\":false,\"vehicleTypeId\":3,\"entryGateId\":1,\"selectedAreaId\":1,\"selectedSlotId\":null}"
+```
+
+#### 2. CASUAL Mode Entry
+```bash
+curl -X POST http://localhost:5000/api/core/parking-sessions/entry \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer TOKEN_HERE" \
+  -d "{\"entryMode\":\"CASUAL\",\"cardCode\":\"C002\",\"licensePlate\":\"59X1-88888\",\"noPlate\":false,\"vehicleTypeId\":3,\"entryGateId\":1,\"selectedAreaId\":1,\"selectedSlotId\":null,\"suggestionToken\":\"TOKEN_HERE\"}"
+```
+
+#### 3. RESERVATION Mode Entry
+```bash
+curl -X POST http://localhost:5000/api/core/parking-sessions/entry \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer TOKEN_HERE" \
+  -d "{\"entryMode\":\"RESERVATION\",\"reservationId\":123,\"reservationEntryToken\":\"TOKEN_HERE\",\"cardCode\":\"C003\",\"licensePlate\":\"51A-12345\",\"noPlate\":false,\"vehicleTypeId\":5,\"entryGateId\":1,\"selectedAreaId\":2,\"selectedSlotId\":15}"
 ```
 
 ### Calculate Fee
@@ -5524,3 +5620,71 @@ PostgreSQL: Dữ liệu chung, enum chung, schema chung, owner rõ ràng
 ```
 
 Nếu tuân thủ ownership bảng, SQL schema rule, API prefix, JWT config và transaction boundary trong tài liệu này, hai backend có thể phát triển song song mà không xung đột dữ liệu.
+
+---
+
+# 29. API Response Contract
+
+All Core API endpoints must return `ApiResponse<T>`.
+
+Success response:
+
+```json
+{
+  "success": true,
+  "message": "Success",
+  "data": {},
+  "errors": null,
+  "errorCode": null,
+  "statusCode": 200,
+  "traceId": "...",
+  "path": "/api/core/...",
+  "timestamp": "..."
+}
+```
+
+Error response:
+
+```json
+{
+  "success": false,
+  "message": "Yeu cau khong hop le.",
+  "data": null,
+  "errors": ["ERROR_CODE"],
+  "errorCode": "ERROR_CODE",
+  "statusCode": 400,
+  "traceId": "...",
+  "path": "/api/core/...",
+  "timestamp": "..."
+}
+```
+
+## 29.1 Error Handling Rules
+
+- Business errors must throw `BusinessException(ErrorCodes.X)`.
+- Do not throw `BusinessException("STRING_CODE")` in new code.
+- Do not return raw `Ok(...)`, `BadRequest("...")`, `NotFound("...")`, or `Forbid("...")` from concrete controllers.
+- Do not call `ApiResponse.FailureResult` directly from concrete controllers.
+- Unexpected exceptions are handled by `GlobalExceptionMiddleware`.
+- 400/404 handled failures are logged as Warning.
+- 500 system failures are logged as Error and must not expose internal exception messages.
+- `appsettings*.json` must keep valid object shape and must not contain real secrets.
+- Project-map exports must mask secrets while preserving JSON structure.
+
+## 29.2 Backend Quality Gate
+
+Run the backend quality gate before handing off API contract changes:
+
+```powershell
+.\scripts\run-backend-quality-gate.ps1 `
+  -BaseUrl "http://localhost:5000" `
+  -AllowWriteTests `
+  -AllowReset
+```
+
+For static/build-only confidence before the API server is running:
+
+```powershell
+dotnet build backend/ParkingBuilding.CoreApi/ParkingBuilding.CoreApi.csproj
+.\scripts\check-api-contract.ps1
+```

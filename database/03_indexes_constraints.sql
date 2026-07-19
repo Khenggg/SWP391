@@ -61,8 +61,16 @@ WHERE status = 'ACTIVE';
 CREATE UNIQUE INDEX IF NOT EXISTS ux_active_monthly_pass_by_card
 ON monthly_passes(card_id)
 WHERE status = 'ACTIVE';
+CREATE INDEX IF NOT EXISTS ix_monthly_passes_floor_id ON monthly_passes(floor_id);
+CREATE INDEX IF NOT EXISTS ix_monthly_passes_area_id ON monthly_passes(area_id);
+CREATE INDEX IF NOT EXISTS ix_monthly_passes_slot_id ON monthly_passes(slot_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_active_monthly_pass_slot
+ON monthly_passes(slot_id)
+WHERE status = 'ACTIVE' AND slot_id IS NOT NULL;
 
 ALTER TABLE reservations ADD COLUMN IF NOT EXISTS checked_in_by BIGINT REFERENCES users(id);
+ALTER TABLE reservations ADD COLUMN IF NOT EXISTS payment_deadline TIMESTAMPTZ NULL;
+ALTER TABLE reservations ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_reservations_code ON reservations(reservation_code);
 CREATE INDEX IF NOT EXISTS ix_reservations_driver ON reservations(driver_id);
@@ -74,15 +82,25 @@ CREATE INDEX IF NOT EXISTS ix_reservations_expires_at ON reservations(expires_at
 CREATE INDEX IF NOT EXISTS ix_reservations_pricing_rule ON reservations(pricing_rule_id);
 CREATE INDEX IF NOT EXISTS ix_reservations_payment_status ON reservations(payment_status);
 CREATE INDEX IF NOT EXISTS ix_reservations_checked_in_by ON reservations(checked_in_by);
-CREATE UNIQUE INDEX IF NOT EXISTS ux_pending_reservation_by_slot
+CREATE INDEX IF NOT EXISTS ix_reservations_payment_deadline ON reservations(payment_deadline);
+CREATE INDEX IF NOT EXISTS ix_reservations_confirmed_at ON reservations(confirmed_at);
+DROP INDEX IF EXISTS ux_pending_reservation_by_slot;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_active_reservation_by_slot
 ON reservations(slot_id)
-WHERE status = 'PENDING';
-CREATE UNIQUE INDEX IF NOT EXISTS ux_pending_reservation_by_vehicle
+WHERE slot_id IS NOT NULL
+  AND status IN ('PENDING', 'CONFIRMED');
+
+DROP INDEX IF EXISTS ux_pending_reservation_by_vehicle;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_active_reservation_by_vehicle
 ON reservations(vehicle_id)
-WHERE vehicle_id IS NOT NULL AND status = 'PENDING';
-CREATE UNIQUE INDEX IF NOT EXISTS ux_pending_reservation_by_plate_type
+WHERE vehicle_id IS NOT NULL
+  AND status IN ('PENDING', 'CONFIRMED');
+
+DROP INDEX IF EXISTS ux_pending_reservation_by_plate_type;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_active_reservation_by_plate_type
 ON reservations(normalized_plate_number, vehicle_type_id)
-WHERE status = 'PENDING';
+WHERE normalized_plate_number IS NOT NULL
+  AND status IN ('PENDING', 'CONFIRMED');
 
 ALTER TABLE parking_sessions ADD COLUMN IF NOT EXISTS billable_start_time TIMESTAMPTZ NOT NULL DEFAULT now();
 ALTER TABLE parking_sessions ADD COLUMN IF NOT EXISTS claimed_by_user_id BIGINT REFERENCES users(id);
@@ -216,6 +234,34 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_pending_lost_card_case_by_session
 ON lost_card_cases(session_id)
 WHERE status = 'PENDING';
 
+CREATE TABLE IF NOT EXISTS lost_card_case_documents (
+    id BIGSERIAL PRIMARY KEY,
+    lost_card_case_id BIGINT NOT NULL REFERENCES lost_card_cases(id) ON DELETE CASCADE,
+    document_type VARCHAR(50) NOT NULL,
+    file_path TEXT NOT NULL,
+    thumbnail_path TEXT,
+    original_file_name VARCHAR(255),
+    mime_type VARCHAR(100),
+    size_bytes BIGINT,
+    sha256_hash VARCHAR(100),
+    note TEXT,
+    is_sensitive BOOLEAN NOT NULL DEFAULT true,
+    uploaded_by BIGINT NOT NULL REFERENCES users(id),
+    uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS ix_lost_card_documents_case ON lost_card_case_documents(lost_card_case_id);
+CREATE INDEX IF NOT EXISTS ix_lost_card_documents_type ON lost_card_case_documents(document_type);
+CREATE INDEX IF NOT EXISTS ix_lost_card_documents_uploaded_at ON lost_card_case_documents(uploaded_at);
+CREATE INDEX IF NOT EXISTS ix_lost_card_documents_active_case
+ON lost_card_case_documents(lost_card_case_id)
+WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_lost_card_documents_active_case_type
+ON lost_card_case_documents(lost_card_case_id, document_type)
+WHERE deleted_at IS NULL AND document_type <> 'OTHER';
+
 CREATE INDEX IF NOT EXISTS ix_lost_card_refunds_case ON lost_card_refunds(lost_card_case_id);
 CREATE INDEX IF NOT EXISTS ix_lost_card_refunds_session ON lost_card_refunds(session_id);
 CREATE INDEX IF NOT EXISTS ix_lost_card_refunds_status ON lost_card_refunds(status);
@@ -270,15 +316,18 @@ BEGIN
             OR (status IN ('AVAILABLE', 'RESERVED', 'LOCKED', 'MAINTENANCE') AND current_session_id IS NULL)
         );
 
-    ALTER TABLE reservations ALTER COLUMN plate_number SET NOT NULL;
-    ALTER TABLE reservations ALTER COLUMN normalized_plate_number SET NOT NULL;
+    ALTER TABLE reservations ALTER COLUMN plate_number DROP NOT NULL;
+    ALTER TABLE reservations ALTER COLUMN normalized_plate_number DROP NOT NULL;
     ALTER TABLE reservations DROP CONSTRAINT IF EXISTS ck_reservations_vehicle_identity;
     ALTER TABLE reservations DROP CONSTRAINT IF EXISTS ck_reservations_plate_required;
     ALTER TABLE reservations
         ADD CONSTRAINT ck_reservations_plate_required
         CHECK (
-            NULLIF(BTRIM(plate_number), '') IS NOT NULL
-            AND NULLIF(BTRIM(normalized_plate_number), '') IS NOT NULL
+            (plate_number IS NULL AND normalized_plate_number IS NULL)
+            OR (
+                NULLIF(BTRIM(plate_number), '') IS NOT NULL
+                AND NULLIF(BTRIM(normalized_plate_number), '') IS NOT NULL
+            )
         );
 
     ALTER TABLE reservations DROP CONSTRAINT IF EXISTS ck_reservations_checked_in_by;
@@ -445,6 +494,29 @@ BEGIN
                 AND gateway_payload IS NULL
             )
         );
+
+    ALTER TABLE lost_card_case_documents DROP CONSTRAINT IF EXISTS ck_lost_card_documents_type;
+    ALTER TABLE lost_card_case_documents
+        ADD CONSTRAINT ck_lost_card_documents_type
+        CHECK (document_type IN (
+            'CCCD_FRONT',
+            'CCCD_BACK',
+            'FACE_PHOTO',
+            'VEHICLE_PHOTO',
+            'LOSS_DECLARATION',
+            'SIGNED_FORM',
+            'OTHER'
+        ));
+
+    ALTER TABLE lost_card_case_documents DROP CONSTRAINT IF EXISTS ck_lost_card_documents_file_path;
+    ALTER TABLE lost_card_case_documents
+        ADD CONSTRAINT ck_lost_card_documents_file_path
+        CHECK (NULLIF(BTRIM(file_path), '') IS NOT NULL);
+
+    ALTER TABLE lost_card_case_documents DROP CONSTRAINT IF EXISTS ck_lost_card_documents_size;
+    ALTER TABLE lost_card_case_documents
+        ADD CONSTRAINT ck_lost_card_documents_size
+        CHECK (size_bytes IS NULL OR size_bytes >= 0);
 
     IF NOT EXISTS (
         SELECT 1 FROM pg_constraint
@@ -742,6 +814,10 @@ FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 CREATE OR REPLACE TRIGGER trg_lost_card_cases_set_updated_at
 BEFORE UPDATE ON lost_card_cases
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE OR REPLACE TRIGGER trg_lost_card_case_documents_set_updated_at
+BEFORE UPDATE ON lost_card_case_documents
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 CREATE OR REPLACE TRIGGER trg_lost_card_refunds_set_updated_at
