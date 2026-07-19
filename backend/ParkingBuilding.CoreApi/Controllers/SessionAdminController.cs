@@ -45,4 +45,15 @@ public class SessionAdminController : BaseApiController
         
         return Success(result, "Chuyển vị trí đỗ xe thành công.");
     }
+
+    [HttpGet("search")]
+    [Authorize(Roles = "MANAGER,ADMIN")]
+    public async Task<IActionResult> SearchSessions(
+        [FromQuery] string? plateNumber,
+        [FromQuery] string? status = "ACTIVE",
+        [FromQuery] string? sessionCode = null)
+    {
+        var result = await _sessionAdminService.SearchSessionsAsync(plateNumber, status, sessionCode);
+        return Success(result, "Lấy danh sách phiên đỗ xe thành công.");
+    }
 }

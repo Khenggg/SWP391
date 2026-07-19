@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using ParkingBuilding.CoreApi.Contracts.Common;
@@ -185,5 +187,45 @@ public class SessionAdminService : ISessionAdminService
                 throw;
             }
         });
+    }
+
+    public async Task<List<SessionSearchResponse>> SearchSessionsAsync(string? plateNumber, string? status, string? sessionCode)
+    {
+        var query = _context.ParkingSessions
+            .Include(s => s.Area)
+            .Include(s => s.Slot)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(plateNumber))
+        {
+            var cleanPlate = plateNumber.Trim().ToLower();
+            query = query.Where(s => s.PlateNumber != null && s.PlateNumber.ToLower().Contains(cleanPlate));
+        }
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            var cleanStatus = status.Trim().ToUpper();
+            query = query.Where(s => s.Status == cleanStatus);
+        }
+
+        if (!string.IsNullOrWhiteSpace(sessionCode))
+        {
+            var cleanCode = sessionCode.Trim().ToLower();
+            query = query.Where(s => s.SessionCode.ToLower().Contains(cleanCode));
+        }
+
+        var sessions = await query.OrderByDescending(s => s.EntryTime).ToListAsync();
+
+        return sessions.Select(s => new SessionSearchResponse
+        {
+            Id = s.Id,
+            SessionCode = s.SessionCode,
+            PlateNumber = s.PlateNumber,
+            CustomerType = s.CustomerType,
+            Status = s.Status,
+            EntryTime = s.EntryTime,
+            AreaCode = s.Area?.AreaCode,
+            SlotCode = s.Slot?.SlotCode
+        }).ToList();
     }
 }
