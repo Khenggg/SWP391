@@ -189,43 +189,80 @@ public class SessionAdminService : ISessionAdminService
         });
     }
 
-    public async Task<List<SessionSearchResponse>> SearchSessionsAsync(string? plateNumber, string? status, string? sessionCode)
+    public async Task<List<SessionSearchResponse>> SearchSessionsAsync(string? keyword, long? vehicleTypeId, string? customerType, string? status, string? sessionCode)
     {
-        var query = _context.ParkingSessions
-            .Include(s => s.Area)
-            .Include(s => s.Slot)
-            .AsQueryable();
+        var query = from s in _context.ParkingSessions
+                    join c in _context.ParkingCards on s.CardId equals c.Id into cGroup
+                    from c in cGroup.DefaultIfEmpty()
+                    join vt in _context.VehicleTypes on s.VehicleTypeId equals vt.Id into vtGroup
+                    from vt in vtGroup.DefaultIfEmpty()
+                    join eg in _context.Gates on s.EntryGateId equals eg.Id into egGroup
+                    from eg in egGroup.DefaultIfEmpty()
+                    join xg in _context.Gates on s.ExitGateId equals xg.Id into xgGroup
+                    from xg in xgGroup.DefaultIfEmpty()
+                    join a in _context.Areas on s.AreaId equals a.Id into aGroup
+                    from a in aGroup.DefaultIfEmpty()
+                    join sl in _context.Slots on s.SlotId equals sl.Id into slGroup
+                    from sl in slGroup.DefaultIfEmpty()
+                    select new { s, c, vt, eg, xg, a, sl };
 
-        if (!string.IsNullOrWhiteSpace(plateNumber))
+        if (!string.IsNullOrWhiteSpace(keyword))
         {
-            var cleanPlate = plateNumber.Trim().ToLower();
-            query = query.Where(s => s.PlateNumber != null && s.PlateNumber.ToLower().Contains(cleanPlate));
+            var k = keyword.Trim().ToLower();
+            query = query.Where(x => 
+                (x.s.PlateNumber != null && x.s.PlateNumber.ToLower().Contains(k)) ||
+                x.s.SessionCode.ToLower().Contains(k) ||
+                (x.c != null && x.c.CardNumber.ToLower().Contains(k))
+            );
+        }
+
+        if (vehicleTypeId.HasValue)
+        {
+            query = query.Where(x => x.s.VehicleTypeId == vehicleTypeId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(customerType))
+        {
+            var cleanType = customerType.Trim().ToUpper();
+            query = query.Where(x => x.s.CustomerType == cleanType);
         }
 
         if (!string.IsNullOrWhiteSpace(status))
         {
             var cleanStatus = status.Trim().ToUpper();
-            query = query.Where(s => s.Status == cleanStatus);
+            query = query.Where(x => x.s.Status == cleanStatus);
         }
 
         if (!string.IsNullOrWhiteSpace(sessionCode))
         {
             var cleanCode = sessionCode.Trim().ToLower();
-            query = query.Where(s => s.SessionCode.ToLower().Contains(cleanCode));
+            query = query.Where(x => x.s.SessionCode.ToLower().Contains(cleanCode));
         }
 
-        var sessions = await query.OrderByDescending(s => s.EntryTime).ToListAsync();
+        var results = await query.OrderByDescending(x => x.s.EntryTime).ToListAsync();
 
-        return sessions.Select(s => new SessionSearchResponse
+        return results.Select(x => new SessionSearchResponse
         {
-            Id = s.Id,
-            SessionCode = s.SessionCode,
-            PlateNumber = s.PlateNumber,
-            CustomerType = s.CustomerType,
-            Status = s.Status,
-            EntryTime = s.EntryTime,
-            AreaCode = s.Area?.AreaCode,
-            SlotCode = s.Slot?.SlotCode
+            Id = x.s.Id,
+            SessionCode = x.s.SessionCode,
+            PlateNumber = x.s.PlateNumber,
+            CustomerType = x.s.CustomerType,
+            Status = x.s.Status,
+            EntryTime = x.s.EntryTime,
+            AreaCode = x.a?.AreaCode,
+            SlotCode = x.sl?.SlotCode,
+            CardCode = x.c?.CardNumber,
+            VehicleTypeName = x.vt?.Name,
+            EntryGateCode = x.eg?.GateCode,
+            ExitGateCode = x.xg?.GateCode,
+            SnapshotDayPrice = x.s.SnapshotDayPrice,
+            SnapshotNightPrice = x.s.SnapshotNightPrice,
+            SnapshotMonthlyPrice = x.s.SnapshotMonthlyPrice,
+            SnapshotLostCardFee = x.s.SnapshotLostCardFee,
+            PaymentStatus = x.s.PaymentStatus,
+            ExitTime = x.s.ExitTime,
+            VehicleDescription = x.s.VehicleDescription,
+            PaymentRequired = x.s.PaymentRequired
         }).ToList();
     }
 }
