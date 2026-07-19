@@ -49,11 +49,13 @@ public class SessionAdminController : BaseApiController
     [HttpGet("search")]
     [Authorize(Roles = "MANAGER,ADMIN")]
     public async Task<IActionResult> SearchSessions(
-        [FromQuery] string? plateNumber,
+        [FromQuery] string? keyword,
+        [FromQuery] long? vehicleTypeId,
+        [FromQuery] string? customerType,
         [FromQuery] string? status = "ACTIVE",
         [FromQuery] string? sessionCode = null)
     {
-        var result = await _sessionAdminService.SearchSessionsAsync(plateNumber, status, sessionCode);
+        var result = await _sessionAdminService.SearchSessionsAsync(keyword, vehicleTypeId, customerType, status, sessionCode);
         return Success(result, "Lấy danh sách phiên đỗ xe thành công.");
     }
 }
