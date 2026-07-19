@@ -19,6 +19,10 @@ public interface IPayOsPaymentService
         Webhook webhook,
         CancellationToken cancellationToken = default);
 
+    Task<bool> TryReconcileReservationPaymentAsync(
+        Payment payment,
+        CancellationToken cancellationToken = default);
+
     Task CancelPaymentLinkAsync(
         Payment payment,
         string reason,

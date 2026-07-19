@@ -20,7 +20,7 @@ export const authHandlers = [
       const userKey = (username || "").trim().toLowerCase();
       const user = seedUsers[userKey];
 
-      if (user && password === "password123") {
+      if (user && (password === "password123" || password === "123456")) {
         return ok({
           accessToken: `mock-token-for-${userKey}`,
           user

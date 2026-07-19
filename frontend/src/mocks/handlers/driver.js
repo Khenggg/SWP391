@@ -84,6 +84,34 @@ export const driverHandlers = [
 
   ...enabled(
     MOCK_FLAGS.DRIVER_BOOKINGS,
+    http.get(`${API_BASE_URLS.core}/driver/me`, async ({ request }) => {
+      await delay(250);
+      const username = getUsernameFromHeader(request);
+      
+      let profile = {
+        fullName: "Nguyễn Văn A",
+        phone: "0987654321",
+        email: "nguyenvana@gmail.com",
+        driverType: "RESIDENT",
+        createdAt: "2024-05-15T00:00:00Z"
+      };
+
+      if (username === "driver02") {
+        profile = {
+          fullName: "Trần Văn B",
+          phone: "0912345678",
+          email: "tranvanb@gmail.com",
+          driverType: "VISITOR",
+          createdAt: "2024-06-20T00:00:00Z"
+        };
+      }
+
+      return ok(profile);
+    })
+  ),
+
+  ...enabled(
+    MOCK_FLAGS.DRIVER_BOOKINGS,
     http.get(`${API_BASE_URLS.core}/driver/vehicles`, async ({ request }) => {
       await delay(250);
       const username = getUsernameFromHeader(request);

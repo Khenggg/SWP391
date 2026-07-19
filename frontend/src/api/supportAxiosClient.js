@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Khởi tạo instance Axios cho Support API Service (Spring Boot)
 const supportAxiosClient = axios.create({
-  baseURL: import.meta.env.VITE_SUPPORT_API_URL || "http://localhost:8080/api/support",
+  baseURL: import.meta.env.VITE_SUPPORT_API_URL || "/api/support",
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",

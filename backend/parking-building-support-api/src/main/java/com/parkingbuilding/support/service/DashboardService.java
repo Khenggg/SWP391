@@ -67,11 +67,30 @@ public class DashboardService {
                 .map(AreaReadEntity::getId)
                 .toList();
 
-        long available = slotReadRepository.countByStatusAndAreaIds("AVAILABLE", activeAreaIds);
-        long occupied = slotReadRepository.countByStatusAndAreaIds("OCCUPIED", activeAreaIds);
-        long reserved = slotReadRepository.countByStatusAndAreaIds("RESERVED", activeAreaIds);
-        long locked = slotReadRepository.countByStatusAndAreaIds("LOCKED", activeAreaIds);
-        long maintenance = slotReadRepository.countByStatusAndAreaIds("MAINTENANCE", activeAreaIds);
+        long available = slotReadRepository.findByStatus("AVAILABLE")
+                .stream()
+                .filter(slot -> activeAreaIds.contains(slot.getAreaId()))
+                .count();
+
+        long occupied = slotReadRepository.findByStatus("OCCUPIED")
+                .stream()
+                .filter(slot -> activeAreaIds.contains(slot.getAreaId()))
+                .count();
+
+        long reserved = slotReadRepository.findByStatus("RESERVED")
+                .stream()
+                .filter(slot -> activeAreaIds.contains(slot.getAreaId()))
+                .count();
+
+        long locked = slotReadRepository.findByStatus("LOCKED")
+                .stream()
+                .filter(slot -> activeAreaIds.contains(slot.getAreaId()))
+                .count();
+
+        long maintenance = slotReadRepository.findByStatus("MAINTENANCE")
+                .stream()
+                .filter(slot -> activeAreaIds.contains(slot.getAreaId()))
+                .count();
 
         return SlotSummaryResponse.builder()
                 .total(available + occupied + reserved + locked + maintenance)

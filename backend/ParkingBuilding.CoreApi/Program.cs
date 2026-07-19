@@ -106,6 +106,11 @@ builder.Services.Configure<PayOsOptions>(options =>
     options.ReturnUrl = builder.Configuration["PAYOS_RETURN_URL"];
     options.CancelUrl = builder.Configuration["PAYOS_CANCEL_URL"];
     options.WebhookUrl = builder.Configuration["PAYOS_WEBHOOK_URL"];
+
+    if (int.TryParse(builder.Configuration["PAYOS_REQUEST_TIMEOUT_MS"], out var payOsTimeoutMs) && payOsTimeoutMs > 0)
+    {
+        options.RequestTimeoutMs = payOsTimeoutMs;
+    }
 });
 builder.Services.AddScoped<IPayOsPaymentService, PayOsPaymentService>();
 

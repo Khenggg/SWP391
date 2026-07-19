@@ -19,10 +19,10 @@ export const MOCK_FLAGS = {
 };
 
 export const API_BASE_URLS = {
-  core: import.meta.env.VITE_CORE_API_URL || "http://localhost:5000/api/core",
-  public: import.meta.env.VITE_PUBLIC_API_URL || "http://localhost:8080/api/public",
-  support: import.meta.env.VITE_SUPPORT_API_URL || "http://localhost:8080/api/support",
-  notifications: import.meta.env.VITE_SUPPORT_API_URL ? import.meta.env.VITE_SUPPORT_API_URL.replace('/support', '/notifications') : "http://localhost:8080/api/notifications",
+  core: import.meta.env.VITE_CORE_API_URL || "/api/core",
+  public: import.meta.env.VITE_PUBLIC_API_URL || "/api/public",
+  support: import.meta.env.VITE_SUPPORT_API_URL || "/api/support",
+  notifications: import.meta.env.VITE_SUPPORT_API_URL ? import.meta.env.VITE_SUPPORT_API_URL.replace('/support', '/notifications') : "/api/notifications",
 };
 
 export function isMockEnabled(flagName) {

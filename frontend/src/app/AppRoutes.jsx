@@ -39,6 +39,7 @@ import DriverProfilePage from "../pages/driver/DriverProfilePage";
 import DriverVehiclesPage from "../pages/driver/DriverVehiclesPage";
 import DriverHistoryPage from "../pages/driver/DriverHistoryPage";
 import DriverBookingPage from "../pages/driver/DriverBookingPage";
+import DriverBookingDetailPage from "../pages/driver/DriverBookingDetailPage";
 
 const RequireAuth = ({ isAuthenticated }) => {
   return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
@@ -117,6 +118,7 @@ export default function AppRoutes({ isAuthenticated, userRole, currentUser, onLo
             <Route path="/driver/vehicles" element={<DriverVehiclesPage />} />
             <Route path="/driver/history" element={<DriverHistoryPage />} />
             <Route path="/driver/booking" element={<DriverBookingPage />} />
+            <Route path="/driver/booking/detail/:id" element={<DriverBookingDetailPage />} />
           </Route>
         </Route>
       </Route>

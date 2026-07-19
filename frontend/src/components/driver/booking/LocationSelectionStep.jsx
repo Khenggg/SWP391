@@ -2,22 +2,26 @@ import React from "react";
 import { Check, AlertCircle, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function LocationSelectionStep({ 
-  areas, 
+export default function LocationSelectionStep({
+  areas,
   slots,
-  selectedAreaId, 
-  onSelectArea, 
+  selectedAreaId,
+  onSelectArea,
   selectedSlotId,
   onSelectSlot,
-  vehicleTypeName 
+  vehicleTypeId,
+  vehicleTypeName
 }) {
-  const isCar = vehicleTypeName === "Ô Tô";
-  const validAreas = areas.filter(a => a.status === "ACTIVE" && (!vehicleTypeName || a.vehicleTypeName === vehicleTypeName));
+  const normalizedVehicleTypeId = Number(vehicleTypeId || 0);
+  const isSlotManaged = normalizedVehicleTypeId === 5 || normalizedVehicleTypeId === 7 || vehicleTypeName === "Ô Tô";
+  const validAreas = areas.filter((area) =>
+    area.status === "ACTIVE" &&
+    (!normalizedVehicleTypeId || !area.vehicleTypeId || Number(area.vehicleTypeId) === normalizedVehicleTypeId)
+  );
 
-  // If Car and Area is selected, show slots for that Area
-  if (isCar && selectedAreaId) {
-    const areaSlots = slots.filter(s => s.areaId === selectedAreaId || s.slotCode?.startsWith(selectedAreaId));
-    const availableSlots = areaSlots.filter(s => s.status === "AVAILABLE" || !s.status); // Default to available in mock if no status
+  if (isSlotManaged && selectedAreaId) {
+    const areaSlots = slots.filter((slot) => slot.areaId === selectedAreaId || slot.slotCode?.startsWith(selectedAreaId));
+    const availableSlots = areaSlots.filter((slot) => slot.status === "AVAILABLE" || !slot.status);
 
     return (
       <div className="space-y-6 animate-in fade-in duration-300">
@@ -26,9 +30,9 @@ export default function LocationSelectionStep({
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <h3 className="text-base font-bold text-slate-800 mb-0.5">Chọn Slot (Ô Tô)</h3>
+            <h3 className="text-base font-bold text-slate-800 mb-0.5">Chọn Slot</h3>
             <p className="text-sm text-slate-500">
-              Khu vực đã chọn: {validAreas.find(a => a.id === selectedAreaId || a.code === selectedAreaId)?.name}
+              Khu vực đã chọn: {validAreas.find((area) => area.id === selectedAreaId || area.code === selectedAreaId)?.name}
             </p>
           </div>
         </div>
@@ -45,12 +49,12 @@ export default function LocationSelectionStep({
           </div>
         ) : (
           <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {availableSlots.map(slot => {
+            {availableSlots.map((slot) => {
               const isSelected = selectedSlotId === slot.id || selectedSlotId === slot.slotCode;
               const slotIdToSelect = slot.id || slot.slotCode;
-              
+
               return (
-                <div 
+                <div
                   key={slotIdToSelect}
                   onClick={() => onSelectSlot(slotIdToSelect, slot.slotCode)}
                   className={`p-3 rounded-xl border-2 text-center cursor-pointer transition-all ${
@@ -69,15 +73,16 @@ export default function LocationSelectionStep({
     );
   }
 
-  // Show Areas
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
         <h3 className="text-base font-bold text-slate-800 mb-1">
-          {isCar ? "Chọn Khu Vực (Bước 1/2)" : "Chọn vị trí khu vực"}
+          {isSlotManaged ? "Chọn Khu Vực (Bước 1/2)" : "Chọn vị trí khu vực"}
         </h3>
         <p className="text-sm text-slate-500">
-          {isCar ? "Vui lòng chọn khu vực để xem các slot trống." : "Hệ thống sẽ gợi ý khu vực đỗ phù hợp với loại phương tiện của bạn."}
+          {isSlotManaged
+            ? "Vui lòng chọn khu vực để xem các slot trống."
+            : "Hệ thống sẽ gợi ý khu vực đỗ phù hợp với loại phương tiện của bạn."}
         </p>
       </div>
 
@@ -93,7 +98,7 @@ export default function LocationSelectionStep({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {validAreas.map(area => {
+          {validAreas.map((area) => {
             const isSelected = selectedAreaId === area.id || selectedAreaId === area.code;
             const areaIdToSelect = area.id || area.code;
             const maxCap = area.maxCapacity || area.totalSlots || 0;
@@ -101,24 +106,24 @@ export default function LocationSelectionStep({
             const available = Math.max(0, maxCap - current);
 
             return (
-              <div 
+              <div
                 key={areaIdToSelect}
                 onClick={() => {
                   onSelectArea(areaIdToSelect, area.name);
-                  if (!isCar) onSelectSlot(null, ""); // Reset slot if motorbike
+                  if (!isSlotManaged) onSelectSlot(null, "");
                 }}
                 className={`relative p-5 border-2 rounded-xl cursor-pointer transition-all flex flex-col justify-between min-h-[120px] ${
-                  isSelected && !isCar
-                    ? "border-indigo-600 bg-indigo-50/50 shadow-sm" 
+                  isSelected && !isSlotManaged
+                    ? "border-indigo-600 bg-indigo-50/50 shadow-sm"
                     : "border-slate-200 hover:border-slate-300 bg-white"
                 }`}
               >
-                {isSelected && !isCar && (
+                {isSelected && !isSlotManaged && (
                   <div className="absolute top-3 right-3 bg-indigo-600 text-white p-1 rounded-full">
                     <Check className="w-3 h-3" />
                   </div>
                 )}
-                
+
                 <div>
                   <span className="text-lg font-black block text-slate-800">{area.name}</span>
                   <span className="text-xs font-semibold text-slate-500 mt-1 block">
@@ -128,12 +133,13 @@ export default function LocationSelectionStep({
 
                 <div className="flex justify-between items-end mt-4">
                   <span className={`text-xs font-bold px-2.5 py-1 rounded-md ${
-                    available > 5 
-                      ? "bg-emerald-100 text-emerald-700" 
-                      : available > 0 
-                      ? "bg-amber-100 text-amber-700" 
+                    available > 5
+                      ? "bg-emerald-100 text-emerald-700"
+                      : available > 0
+                      ? "bg-amber-100 text-amber-700"
                       : "bg-rose-100 text-rose-700"
-                  }`}>
+                  }`}
+                  >
                     {available > 0 ? `Còn ${available} chỗ` : "Hết chỗ"}
                   </span>
                 </div>

@@ -2,6 +2,7 @@ package com.parkingbuilding.support.sharedreadmodel.repository;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,6 +12,10 @@ import org.springframework.data.repository.query.Param;
 import com.parkingbuilding.support.sharedreadmodel.entity.PaymentReadEntity;
 
 public interface PaymentReadRepository extends JpaRepository<PaymentReadEntity, Long> {
+
+    java.util.Optional<PaymentReadEntity> findTopByReservationIdOrderByCreatedAtDesc(Long reservationId);
+
+    List<PaymentReadEntity> findByReservationIdInOrderByReservationIdAscCreatedAtDesc(Collection<Long> reservationIds);
 
     List<PaymentReadEntity> findByStatus(String status);
 
