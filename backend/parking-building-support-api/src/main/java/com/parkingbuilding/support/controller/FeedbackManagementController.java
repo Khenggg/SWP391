@@ -2,7 +2,6 @@ package com.parkingbuilding.support.controller;
 
 import java.util.List;
 
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -18,9 +17,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.parkingbuilding.support.common.ApiResponse;
 import com.parkingbuilding.support.dto.request.FeedbackUpdateRequest;
 import com.parkingbuilding.support.dto.response.FeedbackDetailResponse;
+import com.parkingbuilding.support.dto.response.FeedbackListResponse;
 import com.parkingbuilding.support.enums.FeedbackStatus;
 import com.parkingbuilding.support.service.FeedbackManagementService;
-import com.parkingbuilding.support.sharedreadmodel.entity.FeedbackEntity;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +33,7 @@ public class FeedbackManagementController {
     private final FeedbackManagementService feedbackManagementService;
 
     @GetMapping
-    public ApiResponse<List<FeedbackEntity>> getAll(
+    public ApiResponse<List<FeedbackListResponse>> getAll(
             @RequestParam(required = false) FeedbackStatus status) {
 
         if (status == null) {
@@ -54,28 +53,28 @@ public class FeedbackManagementController {
                 feedbackManagementService.getFeedback(id));
     }
 
-    @PutMapping("/{id}")
-    public ApiResponse<FeedbackDetailResponse> updateFeedback(
-            @PathVariable Long id,
-            @Valid @RequestBody FeedbackUpdateRequest request,
-            Authentication authentication) {
+    // @PutMapping("/{id}")
+    // public ApiResponse<FeedbackDetailResponse> updateFeedback(
+    // @PathVariable Long id,
+    // @Valid @RequestBody FeedbackUpdateRequest request,
+    // Authentication authentication) {
 
-        Long managerId = null;
+    // Long managerId = null;
 
-        if (authentication != null &&
-                authentication.getPrincipal() instanceof Jwt jwt) {
+    // if (authentication != null &&
+    // authentication.getPrincipal() instanceof Jwt jwt) {
 
-            String userId = jwt.getClaimAsString("user_id");
+    // String userId = jwt.getClaimAsString("user_id");
 
-            if (userId != null) {
-                managerId = Long.parseLong(userId);
-            }
-        }
+    // if (userId != null) {
+    // managerId = Long.parseLong(userId);
+    // }
+    // }
 
-        return ApiResponse.ok(
-                feedbackManagementService.updateFeedback(
-                        id,
-                        request,
-                        managerId));
-    }
+    // return ApiResponse.ok(
+    // feedbackManagementService.updateFeedback(
+    // id,
+    // request,
+    // managerId));
+    // }
 }
