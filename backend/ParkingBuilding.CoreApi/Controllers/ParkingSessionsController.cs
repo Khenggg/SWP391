@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.Entry;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.LocationSuggestion;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.Exit;
+using ParkingBuilding.CoreApi.Application.Mismatch;
 using ParkingBuilding.CoreApi.Contracts.Common;
 using System;
 using System.Security.Claims;
@@ -17,17 +18,20 @@ namespace ParkingBuilding.CoreApi.Controllers
         private readonly ILocationSuggestionService _suggestionService;
         private readonly IExitService _exitService;
         private readonly IFeeCalculationService _feeCalculationService;
+        private readonly IPlateMismatchService _plateMismatchService;
 
         public ParkingSessionsController(
             IEntryService entryService,
             ILocationSuggestionService suggestionService,
             IExitService exitService,
-            IFeeCalculationService feeCalculationService)
+            IFeeCalculationService feeCalculationService,
+            IPlateMismatchService plateMismatchService)
         {
             _entryService = entryService;
             _suggestionService = suggestionService;
             _exitService = exitService;
             _feeCalculationService = feeCalculationService;
+            _plateMismatchService = plateMismatchService;
         }
 
         [HttpPost("entry")]
@@ -108,6 +112,64 @@ namespace ParkingBuilding.CoreApi.Controllers
                 monthlyPassId = session.MonthlyPassId,
                 reservationId = session.ReservationId
             }, "Tim kiem phien gui xe theo the thanh cong.");
+        }
+
+        [HttpPost("{sessionId:long}/mismatch-case")]
+        [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
+        public async Task<IActionResult> CreateMismatchCase(
+            long sessionId,
+            [FromBody] CreateSessionMismatchRequest request)
+        {
+            var staffId = GetCurrentUserIdOrThrow();
+            var result = await _plateMismatchService.CreateMismatchAsync(new CreatePlateMismatchRequest
+            {
+                SessionId = sessionId,
+                ExitPlateNumber = request.ExitPlateNumber,
+                Reason = request.Reason,
+                ExitPlateImageUrl = request.ExitPlateImageUrl,
+                ExitVehicleImageUrl = request.ExitVehicleImageUrl,
+                OcrConfidence = request.OcrConfidence
+            }, staffId);
+
+            return CreatedSuccess(result, "Plate mismatch case created successfully.");
+        }
+
+        [HttpPost("{sessionId:long}/mismatch/confirm")]
+        [Authorize(Roles = "MANAGER,ADMIN")]
+        public async Task<IActionResult> ConfirmMismatch(
+            long sessionId,
+            [FromBody] MismatchDecisionRequest request)
+        {
+            var userId = GetCurrentUserIdOrThrow();
+            var result = await _plateMismatchService.ProcessPendingMismatchBySessionAsync(
+                sessionId,
+                new ProcessPlateMismatchRequest
+                {
+                    Status = "CONFIRMED",
+                    Reason = request.Reason
+                },
+                userId);
+
+            return Success(result, "Plate mismatch confirmed successfully.");
+        }
+
+        [HttpPost("{sessionId:long}/mismatch/reject")]
+        [Authorize(Roles = "MANAGER,ADMIN")]
+        public async Task<IActionResult> RejectMismatch(
+            long sessionId,
+            [FromBody] MismatchDecisionRequest request)
+        {
+            var userId = GetCurrentUserIdOrThrow();
+            var result = await _plateMismatchService.ProcessPendingMismatchBySessionAsync(
+                sessionId,
+                new ProcessPlateMismatchRequest
+                {
+                    Status = "REJECTED",
+                    RejectionReason = request.Reason
+                },
+                userId);
+
+            return Success(result, "Plate mismatch rejected successfully.");
         }
 
         [HttpPost("{id}/calculate-fee")]
@@ -200,5 +262,14 @@ namespace ParkingBuilding.CoreApi.Controllers
     {
         public DateTimeOffset? ExitTime { get; set; }
         public bool IncludeLostCardFee { get; set; }
+    }
+
+    public class CreateSessionMismatchRequest
+    {
+        public string ExitPlateNumber { get; set; } = string.Empty;
+        public string? Reason { get; set; }
+        public string? ExitPlateImageUrl { get; set; }
+        public string? ExitVehicleImageUrl { get; set; }
+        public double? OcrConfidence { get; set; }
     }
 }

@@ -119,13 +119,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                 var normalizedExit = NormalizePlate(exitPlateInput);
                 if (!string.IsNullOrEmpty(normalizedEntry) && normalizedEntry != normalizedExit)
                 {
-                    var isConfirmedMismatch = await _context.PlateMismatchCases
-                        .AnyAsync(m => m.SessionId == session.Id && m.Status == "CONFIRMED");
-
-                    if (!isConfirmedMismatch)
-                    {
-                        throw new BusinessException(ErrorCodes.PlateMismatchRequiresApproval);
-                    }
+                    await EnsureMismatchApprovedAsync(session.Id, normalizedExit);
                 }
 
                 using var transaction = await _context.Database.BeginTransactionAsync();
@@ -353,13 +347,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                 var normalizedExit = NormalizePlate(exitPlateInput);
                 if (!string.IsNullOrEmpty(normalizedEntry) && normalizedEntry != normalizedExit)
                 {
-                    var isConfirmedMismatch = await _context.PlateMismatchCases
-                        .AnyAsync(m => m.SessionId == session.Id && m.Status == "CONFIRMED");
-
-                    if (!isConfirmedMismatch)
-                    {
-                        throw new BusinessException(ErrorCodes.PlateMismatchRequiresApproval);
-                    }
+                    await EnsureMismatchApprovedAsync(session.Id, normalizedExit);
                 }
 
                 using var transaction = await _context.Database.BeginTransactionAsync();
@@ -502,6 +490,22 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                     throw;
                 }
             });
+        }
+
+        private async Task EnsureMismatchApprovedAsync(long sessionId, string normalizedExitPlate)
+        {
+            var confirmedExitPlate = await _context.PlateMismatchCases
+                .Where(mismatch => mismatch.SessionId == sessionId && mismatch.Status == "CONFIRMED")
+                .OrderByDescending(mismatch => mismatch.ConfirmedAt)
+                .Select(mismatch => mismatch.ExitPlateNumber)
+                .FirstOrDefaultAsync();
+
+            if (confirmedExitPlate == null || NormalizePlate(confirmedExitPlate) != normalizedExitPlate)
+            {
+                throw new BusinessException(
+                    ErrorCodes.PlateMismatchRequiresApproval,
+                    StatusCodes.Status409Conflict);
+            }
         }
 
         private static string NormalizePlate(string? plate)
