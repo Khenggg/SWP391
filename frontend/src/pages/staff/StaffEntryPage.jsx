@@ -492,6 +492,7 @@ function formatCardCode(value) {
   const canSubmit = useMemo(() => {
     if (!normalizeText(form.cardCode)) return false;
     if (!parseNumber(form.entryGateId)) return false;
+    if (!normalizeText(form.entryVehicleImageUrl)) return false;
 
     if (form.entryMode === "CASUAL") {
       if (
@@ -563,6 +564,10 @@ function formatCardCode(value) {
         passed: form.noPlate
           ? Boolean(normalizeText(form.vehicleDescription))
           : Boolean(normalizeText(form.licensePlate)),
+      },
+      {
+        label: "Ảnh tổng thể xe vào",
+        passed: Boolean(normalizeText(form.entryVehicleImageUrl)),
       },
       {
         label:
@@ -672,6 +677,11 @@ function formatCardCode(value) {
   };
 
   const handleCreateEntry = async () => {
+    if (!normalizeText(form.entryVehicleImageUrl)) {
+      toast.error("Cần ảnh tổng thể xe vào trước khi tạo phiên.");
+      return;
+    }
+
     if (!canSubmit) {
       toast.error("Hoàn thiện các bước xác minh trước khi tạo entry.");
       return;

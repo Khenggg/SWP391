@@ -43,8 +43,21 @@ export const staffSessionService = {
     throw new Error(response.message || "Xác nhận xe vé tháng ra thất bại.");
   },
 
-  createMismatchCase: async ({ sessionId, exitPlateNumber, reason }) => {
-    const response = await coreAxiosClient.post(`/parking-sessions/${sessionId}/mismatch-case`, { exitPlateNumber, reason });
+  createMismatchCase: async ({
+    sessionId,
+    exitPlateNumber,
+    reason,
+    exitPlateImageUrl,
+    exitVehicleImageUrl,
+    ocrConfidence,
+  }) => {
+    const response = await coreAxiosClient.post(`/parking-sessions/${sessionId}/mismatch-case`, {
+      exitPlateNumber,
+      reason,
+      exitPlateImageUrl,
+      exitVehicleImageUrl,
+      ocrConfidence,
+    });
     if (response.success) return response.data;
     throw new Error(response.message || "Không thể tạo hồ sơ lệch biển số.");
   },

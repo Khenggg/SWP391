@@ -1121,6 +1121,9 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
             if (request.EntryGateId <= 0)
                 throw new BusinessException(ErrorCodes.EntryGateRequired);
 
+            if (string.IsNullOrWhiteSpace(request.EntryVehicleImageUrl))
+                throw new BusinessException(ErrorCodes.EntryVehicleImageRequired);
+
             if (!request.NoPlate && string.IsNullOrWhiteSpace(request.LicensePlate))
                 throw new BusinessException(ErrorCodes.LicensePlateRequired);
 

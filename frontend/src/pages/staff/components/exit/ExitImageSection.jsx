@@ -3,13 +3,14 @@ import { Camera, Upload, X, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 function ImageSlot({ label, url, onClear, inputRef, onChange, disabled, id, readOnly }) {
-  const handleFileSelect = (e) => {
-    const file = e.target.files?.[0];
+  const handleFileSelect = (event) => {
+    const file = event.target.files?.[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = () => onChange(reader.result);
     reader.readAsDataURL(file);
-    e.target.value = "";
+    event.target.value = "";
   };
 
   return (
@@ -23,7 +24,9 @@ function ImageSlot({ label, url, onClear, inputRef, onChange, disabled, id, read
             src={url}
             alt={label}
             className="w-full h-full object-cover"
-            onError={(e) => { e.target.style.display = "none"; }}
+            onError={(event) => {
+              event.currentTarget.style.display = "none";
+            }}
           />
           {!readOnly && onClear && (
             <button
@@ -91,9 +94,7 @@ export default function ExitImageSection({
 }) {
   const plateInputRef = useRef(null);
   const vehicleInputRef = useRef(null);
-
-  const hasAnyExitImage = Boolean(exitPlateImageUrl || exitVehicleImageUrl);
-
+  const hasExitVehicleImage = Boolean(exitVehicleImageUrl);
   const entryPlateUrl = session?.entryPlateImageUrl || "";
   const entryVehicleUrl = session?.entryVehicleImageUrl || "";
   const hasAnyEntryImage = Boolean(entryPlateUrl || entryVehicleUrl);
@@ -107,18 +108,17 @@ export default function ExitImageSection({
           </span>
           <h3 className="font-bold text-slate-800 text-sm">Ảnh xe vào / ra</h3>
         </div>
-        {hasAnyExitImage ? (
+        {hasExitVehicleImage ? (
           <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-            ✓ Đã có ảnh ra
+            ✓ Đã có ảnh xe ra
           </span>
         ) : (
           <span className="text-[10px] font-bold text-red-500 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
-            ⚠ Bắt buộc ảnh ra
+            ⚠ Bắt buộc ảnh xe ra
           </span>
         )}
       </div>
       <div className="p-4 space-y-4">
-        {/* Entry images (read-only) */}
         {session && (
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -129,24 +129,14 @@ export default function ExitImageSection({
               )}
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <ImageSlot
-                label="Biển số lúc vào"
-                url={entryPlateUrl}
-                readOnly
-              />
-              <ImageSlot
-                label="Tổng thể xe lúc vào"
-                url={entryVehicleUrl}
-                readOnly
-              />
+              <ImageSlot label="Biển số lúc vào" url={entryPlateUrl} readOnly />
+              <ImageSlot label="Tổng thể xe lúc vào" url={entryVehicleUrl} readOnly />
             </div>
           </div>
         )}
 
-        {/* Divider */}
         {session && <div className="border-t border-dashed border-slate-200" />}
 
-        {/* Exit images (editable) */}
         <div>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -154,7 +144,7 @@ export default function ExitImageSection({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <ImageSlot
-              label="Biển số lúc ra"
+              label="Biển số lúc ra (tùy chọn)"
               url={exitPlateImageUrl}
               onClear={() => onPlateImageChange("")}
               inputRef={plateInputRef}
@@ -163,7 +153,7 @@ export default function ExitImageSection({
               id="exit-plate-image"
             />
             <ImageSlot
-              label="Tổng thể xe lúc ra"
+              label="Tổng thể xe lúc ra *"
               url={exitVehicleImageUrl}
               onClear={() => onVehicleImageChange("")}
               inputRef={vehicleInputRef}
@@ -174,9 +164,9 @@ export default function ExitImageSection({
           </div>
         </div>
 
-        {!hasAnyExitImage && (
+        {!hasExitVehicleImage && (
           <p className="text-[10px] text-red-500 font-semibold text-center">
-            Vui lòng chụp hoặc tải lên ít nhất 1 ảnh xe lúc ra trước khi xác nhận.
+            Vui lòng chụp hoặc tải lên ảnh tổng thể xe trước khi cho xe ra.
           </p>
         )}
       </div>

@@ -205,12 +205,20 @@ export default function StaffExitPage() {
   // Trong thực tế, gọi logic mismatch thật ở đây
   const handleCreateMismatchCase = async () => {
     if (!session) return;
+    if (!exitVehicleImageUrl) {
+      toast.error("Cần ảnh tổng thể xe ra trước khi gửi hồ sơ lệch biển số.");
+      return;
+    }
+
     setIsCreatingMismatch(true);
     try {
       await staffSessionService.createMismatchCase({
         sessionId: session.sessionId,
         exitPlateNumber: plate,
         reason: "Xác nhận ra xe nhưng biển số khác với lúc vào",
+        exitPlateImageUrl: exitPlateImageUrl || undefined,
+        exitVehicleImageUrl,
+        ocrConfidence,
       });
       toast.success("Đã tạo hồ sơ xử lý sự cố lệch biển số!");
       setMismatchCase({ status: "PENDING" });
@@ -226,7 +234,7 @@ export default function StaffExitPage() {
     [fee?.totalAmount, session?.customerType]
   );
 
-  const hasExitImage = Boolean(exitPlateImageUrl || exitVehicleImageUrl);
+  const hasExitVehicleImage = Boolean(exitVehicleImageUrl);
 
   const paymentReady = useMemo(() => {
     if (session?.customerType === "MONTHLY") return true;
@@ -240,9 +248,9 @@ export default function StaffExitPage() {
   const canExit = useMemo(() => {
     if (!paymentReady) return false;
     if (mismatchBlocked) return false;
-    if (!hasExitImage) return false;
+    if (!hasExitVehicleImage) return false;
     return true;
-  }, [paymentReady, mismatchBlocked, hasExitImage]);
+  }, [paymentReady, mismatchBlocked, hasExitVehicleImage]);
 
   const resetPage = () => {
     setCardCode("");
@@ -284,6 +292,11 @@ export default function StaffExitPage() {
 
   const handleCompleteExitPaid = async () => {
     if (!session) return;
+    if (!exitVehicleImageUrl) {
+      toast.error("Cần ảnh tổng thể xe ra trước khi xác nhận xe ra.");
+      return;
+    }
+
     try {
       setIsLoading(true);
       await staffSessionService.completeExit(session.sessionId, {
@@ -339,6 +352,11 @@ export default function StaffExitPage() {
 
   const handleCompleteMonthlyExit = async () => {
     if (!session) return;
+    if (!exitVehicleImageUrl) {
+      toast.error("Cần ảnh tổng thể xe ra trước khi xác nhận xe ra.");
+      return;
+    }
+
     try {
       setIsLoading(true);
       await staffSessionService.completeMonthlyPassExit(session.sessionId, {
@@ -441,7 +459,7 @@ export default function StaffExitPage() {
               refreshSession={runSearch}
               mismatchBlocked={mismatchBlocked}
               mismatchStatus={mismatchStatus}
-              hasExitImage={hasExitImage}
+              hasExitVehicleImage={hasExitVehicleImage}
             />
           </div>
 

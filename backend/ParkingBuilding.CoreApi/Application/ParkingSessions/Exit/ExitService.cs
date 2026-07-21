@@ -111,6 +111,8 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                     throw new BusinessException(ErrorCodes.ExitGateInvalid);
                 }
 
+                await EnsureRequiredVehicleImagesAsync(session.Id, request.ExitVehicleImageUrl);
+
                 // Plate verification before transaction to prevent rollback of mismatch case log
                 var normalizedEntry = NormalizePlate(session.PlateNumber);
                 var exitPlateInput = !string.IsNullOrWhiteSpace(request.ExitPlateNumber) ? request.ExitPlateNumber : request.DetectedPlateNumber;
@@ -124,34 +126,11 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
 
                 try
                 {
-                    // Save exit images if not already saved during plate mismatch logic
-                    var imagesAlreadySaved = await _context.ParkingSessionImages
-                        .AnyAsync(i => i.SessionId == session.Id && (i.ImageType == "EXIT_PLATE" || i.ImageType == "EXIT_VEHICLE"));
-
-                    if (!imagesAlreadySaved)
-                    {
-                        if (!string.IsNullOrWhiteSpace(request.ExitPlateImageUrl))
-                        {
-                            _context.ParkingSessionImages.Add(new ParkingSessionImage
-                            {
-                                SessionId = session.Id,
-                                ImageUrl = request.ExitPlateImageUrl,
-                                ImageType = "EXIT_PLATE",
-                                Confidence = request.OcrConfidence.HasValue ? (decimal)request.OcrConfidence.Value : null,
-                                CapturedAt = DateTimeOffset.UtcNow
-                            });
-                        }
-                        if (!string.IsNullOrWhiteSpace(request.ExitVehicleImageUrl))
-                        {
-                            _context.ParkingSessionImages.Add(new ParkingSessionImage
-                            {
-                                SessionId = session.Id,
-                                ImageUrl = request.ExitVehicleImageUrl,
-                                ImageType = "EXIT_VEHICLE",
-                                CapturedAt = DateTimeOffset.UtcNow
-                            });
-                        }
-                    }
+                    await SaveMissingExitImagesAsync(
+                        session.Id,
+                        request.ExitPlateImageUrl,
+                        request.ExitVehicleImageUrl,
+                        request.OcrConfidence);
 
                     var exitTime = request.ExitTime ?? DateTimeOffset.UtcNow;
                                         // Check if there is an APPROVED lost card case for this session
@@ -335,6 +314,8 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                     throw new BusinessException(ErrorCodes.ExitGateInvalid);
                 }
 
+                await EnsureRequiredVehicleImagesAsync(session.Id, request.ExitVehicleImageUrl);
+
                 var pass = await _context.MonthlyPasses.FindAsync(session.MonthlyPassId.Value);
                 if (pass == null || pass.Status != "ACTIVE")
                 {
@@ -354,34 +335,11 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
 
                 try
                 {
-                    // Save exit images if not already saved during plate mismatch logic
-                    var imagesAlreadySaved = await _context.ParkingSessionImages
-                        .AnyAsync(i => i.SessionId == session.Id && (i.ImageType == "EXIT_PLATE" || i.ImageType == "EXIT_VEHICLE"));
-
-                    if (!imagesAlreadySaved)
-                    {
-                        if (!string.IsNullOrWhiteSpace(request.ExitPlateImageUrl))
-                        {
-                            _context.ParkingSessionImages.Add(new ParkingSessionImage
-                            {
-                                SessionId = session.Id,
-                                ImageUrl = request.ExitPlateImageUrl,
-                                ImageType = "EXIT_PLATE",
-                                Confidence = request.OcrConfidence.HasValue ? (decimal)request.OcrConfidence.Value : null,
-                                CapturedAt = DateTimeOffset.UtcNow
-                            });
-                        }
-                        if (!string.IsNullOrWhiteSpace(request.ExitVehicleImageUrl))
-                        {
-                            _context.ParkingSessionImages.Add(new ParkingSessionImage
-                            {
-                                SessionId = session.Id,
-                                ImageUrl = request.ExitVehicleImageUrl,
-                                ImageType = "EXIT_VEHICLE",
-                                CapturedAt = DateTimeOffset.UtcNow
-                            });
-                        }
-                    }
+                    await SaveMissingExitImagesAsync(
+                        session.Id,
+                        request.ExitPlateImageUrl,
+                        request.ExitVehicleImageUrl,
+                        request.OcrConfidence);
 
                     var exitTime = request.ExitTime ?? DateTimeOffset.UtcNow;
 
@@ -513,6 +471,67 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                     throw;
                 }
             });
+        }
+
+        private async Task EnsureRequiredVehicleImagesAsync(long sessionId, string? exitVehicleImageUrl)
+        {
+            var hasEntryVehicleImage = await _context.ParkingSessionImages
+                .AnyAsync(image => image.SessionId == sessionId
+                    && image.ImageType == "ENTRY_VEHICLE"
+                    && !string.IsNullOrWhiteSpace(image.ImageUrl));
+
+            if (!hasEntryVehicleImage)
+            {
+                throw new BusinessException(ErrorCodes.EntryVehicleImageMissing);
+            }
+
+            var hasExitVehicleImage = !string.IsNullOrWhiteSpace(exitVehicleImageUrl)
+                || await _context.ParkingSessionImages
+                    .AnyAsync(image => image.SessionId == sessionId
+                        && image.ImageType == "EXIT_VEHICLE"
+                        && !string.IsNullOrWhiteSpace(image.ImageUrl));
+
+            if (!hasExitVehicleImage)
+            {
+                throw new BusinessException(ErrorCodes.ExitVehicleImageRequired);
+            }
+        }
+
+        private async Task SaveMissingExitImagesAsync(
+            long sessionId,
+            string? exitPlateImageUrl,
+            string? exitVehicleImageUrl,
+            double? ocrConfidence)
+        {
+            var existingImageTypes = await _context.ParkingSessionImages
+                .Where(image => image.SessionId == sessionId
+                    && (image.ImageType == "EXIT_PLATE" || image.ImageType == "EXIT_VEHICLE")
+                    && !string.IsNullOrWhiteSpace(image.ImageUrl))
+                .Select(image => image.ImageType)
+                .ToListAsync();
+
+            if (!existingImageTypes.Contains("EXIT_PLATE") && !string.IsNullOrWhiteSpace(exitPlateImageUrl))
+            {
+                _context.ParkingSessionImages.Add(new ParkingSessionImage
+                {
+                    SessionId = sessionId,
+                    ImageUrl = exitPlateImageUrl,
+                    ImageType = "EXIT_PLATE",
+                    Confidence = ocrConfidence.HasValue ? (decimal)ocrConfidence.Value : null,
+                    CapturedAt = DateTimeOffset.UtcNow
+                });
+            }
+
+            if (!existingImageTypes.Contains("EXIT_VEHICLE") && !string.IsNullOrWhiteSpace(exitVehicleImageUrl))
+            {
+                _context.ParkingSessionImages.Add(new ParkingSessionImage
+                {
+                    SessionId = sessionId,
+                    ImageUrl = exitVehicleImageUrl,
+                    ImageType = "EXIT_VEHICLE",
+                    CapturedAt = DateTimeOffset.UtcNow
+                });
+            }
         }
 
         private async Task EnsureMismatchApprovedAsync(long sessionId, string normalizedExitPlate)

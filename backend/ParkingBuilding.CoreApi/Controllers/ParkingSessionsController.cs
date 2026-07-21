@@ -160,17 +160,23 @@ namespace ParkingBuilding.CoreApi.Controllers
                 })
                 .FirstOrDefaultAsync();
 
-            var entryImages = await _context.Set<Domain.Entities.ParkingSessionImage>()
+            var entryImages = await _context.ParkingSessionImages
                 .AsNoTracking()
-                .Where(img => img.SessionId == session.Id
-                    && (img.ImageType == "ENTRY_PLATE" || img.ImageType == "ENTRY_VEHICLE"))
+                .Where(image => image.SessionId == session.Id
+                    && (image.ImageType == "ENTRY_PLATE" || image.ImageType == "ENTRY_VEHICLE")
+                    && !string.IsNullOrWhiteSpace(image.ImageUrl))
+                .OrderByDescending(image => image.CapturedAt)
+                .Select(image => new
+                {
+                    image.ImageType,
+                    image.ImageUrl
+                })
                 .ToListAsync();
 
             var entryPlateImageUrl = entryImages
-                .FirstOrDefault(img => img.ImageType == "ENTRY_PLATE")?.ImageUrl;
+                .FirstOrDefault(image => image.ImageType == "ENTRY_PLATE")?.ImageUrl;
             var entryVehicleImageUrl = entryImages
-                .FirstOrDefault(img => img.ImageType == "ENTRY_VEHICLE")?.ImageUrl;
-
+                .FirstOrDefault(image => image.ImageType == "ENTRY_VEHICLE")?.ImageUrl;
             return Success(new
             {
                 sessionId = session.Id,

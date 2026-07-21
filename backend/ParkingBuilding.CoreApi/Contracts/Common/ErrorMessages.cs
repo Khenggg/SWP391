@@ -126,6 +126,8 @@ public static class ErrorMessages
         [ErrorCodes.ReservedAreaInactive] = "Khu vuc cua booking khong hoat dong.",
         [ErrorCodes.EntryModeInvalid] = "Che do xe vao khong hop le.",
         [ErrorCodes.EntryPlateRequired] = "Vui long nhap bien so khi xe vao cong.",
+        [ErrorCodes.EntryVehicleImageRequired] = "Vui long cung cap anh tong the xe khi xe vao cong.",
+        [ErrorCodes.EntryVehicleImageMissing] = "Phien gui xe khong co anh tong the xe luc vao, khong the xac nhan xe ra.",
         [ErrorCodes.PlateRequiredForSlotVehicle] = "Xe can vi tri co dinh bat buoc phai co bien so.",
         [ErrorCodes.QrTokenRequired] = "Ma token QR la bat buoc.",
         [ErrorCodes.ClaimFailed] = "Khong the lien ket phien gui xe voi tai khoan lai xe.",
@@ -209,7 +211,8 @@ public static class ErrorMessages
         [ErrorCodes.PayOsWebhookConfirmFailed] = "Khong the xac nhan webhook payOS.",
         [ErrorCodes.ReservationExtensionPaymentNotImplemented] = "Gia han booking co phi chua duoc ho tro.",
         [ErrorCodes.ReservationSlotAlreadyReserved] = "Vi tri do xe da duoc dat truoc.",
-        [ErrorCodes.ReservationAreaFull] = "Khu vuc do xe da day."
+        [ErrorCodes.ReservationAreaFull] = "Khu vuc do xe da day.",
+        [ErrorCodes.ExitVehicleImageRequired] = "Vui long cung cap anh tong the xe khi xe ra cong."
     };
 
     public static string GetMessage(string errorCode)
