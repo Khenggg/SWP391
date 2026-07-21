@@ -247,7 +247,10 @@ namespace ParkingBuilding.CoreApi.Controllers
 
         private IActionResult? ValidateReservationHourlyPrice(decimal value)
         {
-            if (value <= 0m)
+            var allowZeroEnv = Environment.GetEnvironmentVariable("RESERVATION_ALLOW_ZERO_BOOKING_FEE");
+            var allowZero = bool.TryParse(allowZeroEnv, out var parsed) && parsed;
+
+            if (value <= 0m && (!allowZero || value < 0m))
                 return BusinessError(ErrorCodes.ReservationBookingFeeRequired);
 
             if (value != decimal.Truncate(value))

@@ -30,6 +30,18 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence.Configurations
                 .HasColumnName("vehicle_type_id")
                 .IsRequired();
 
+            builder.Property(x => x.Brand)
+                .HasColumnName("brand")
+                .HasMaxLength(100);
+
+            builder.Property(x => x.Color)
+                .HasColumnName("color")
+                .HasMaxLength(50);
+
+            builder.Property(x => x.ApprovalStatus)
+                .HasColumnName("approval_status")
+                .HasMaxLength(30);
+
             builder.Property(x => x.Description)
                 .HasColumnName("description");
 

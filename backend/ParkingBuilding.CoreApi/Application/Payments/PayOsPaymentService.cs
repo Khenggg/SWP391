@@ -159,7 +159,7 @@ public class PayOsPaymentService : IPayOsPaymentService
                 orderCode = response.OrderCode,
                 paymentLinkId = response.PaymentLinkId,
                 checkoutUrl = response.CheckoutUrl,
-                qrCode = response.QrCode,
+                QrCode = response.QrCode,
                 amount = response.Amount,
                 currency = response.Currency,
                 status = response.Status.ToString(),
@@ -261,7 +261,7 @@ public class PayOsPaymentService : IPayOsPaymentService
                 orderCode = response.OrderCode,
                 paymentLinkId = response.PaymentLinkId,
                 checkoutUrl = response.CheckoutUrl,
-                qrCode = response.QrCode,
+                QrCode = response.QrCode,
                 amount = response.Amount,
                 currency = response.Currency,
                 status = response.Status.ToString(),
@@ -355,35 +355,57 @@ public class PayOsPaymentService : IPayOsPaymentService
             }
 
             // Payment purpose check
-            if (payment.Purpose != "RESERVATION_FEE")
+            if (payment.Purpose != "RESERVATION_FEE" && payment.Purpose != "RESERVATION_EXTENSION")
             {
                 throw new BusinessException(ErrorCodes.InvalidRequest, StatusCodes.Status400BadRequest);
             }
 
-            var expectedAmount = CalculateExpectedReservationAmount(payment.Reservation);
-
             // Webhook amount check
-            if (payment.TotalAmount != data.Amount || data.Amount != expectedAmount || payment.TotalAmount != expectedAmount)
+            if (payment.Purpose == "RESERVATION_FEE")
             {
-                await _auditWriter.WriteAuditLogAsync(
-                    action: "PAYOS_WEBHOOK_AMOUNT_MISMATCH",
-                    targetType: "Payment",
-                    targetId: payment.Id.ToString(),
-                    newValue: JsonSerializer.Serialize(new
-                    {
-                        paymentTotalAmount = payment.TotalAmount,
-                        webhookAmount = data.Amount,
-                        expectedReservationAmount = expectedAmount,
-                        data.OrderCode,
-                        data.PaymentLinkId
-                    }),
-                    reason: "payOS webhook amount mismatch."
-                );
-                throw new BusinessException(ErrorCodes.PayOsAmountMismatch);
+                var expectedAmount = CalculateExpectedReservationAmount(payment.Reservation);
+                if (payment.TotalAmount != data.Amount || data.Amount != expectedAmount || payment.TotalAmount != expectedAmount)
+                {
+                    await _auditWriter.WriteAuditLogAsync(
+                        action: "PAYOS_WEBHOOK_AMOUNT_MISMATCH",
+                        targetType: "Payment",
+                        targetId: payment.Id.ToString(),
+                        newValue: JsonSerializer.Serialize(new
+                        {
+                            paymentTotalAmount = payment.TotalAmount,
+                            webhookAmount = data.Amount,
+                            expectedReservationAmount = expectedAmount,
+                            data.OrderCode,
+                            data.PaymentLinkId
+                        }),
+                        reason: "payOS webhook amount mismatch."
+                    );
+                    throw new BusinessException(ErrorCodes.PayOsAmountMismatch);
+                }
+            }
+            else // RESERVATION_EXTENSION
+            {
+                if (payment.TotalAmount != data.Amount)
+                {
+                    await _auditWriter.WriteAuditLogAsync(
+                        action: "PAYOS_WEBHOOK_AMOUNT_MISMATCH",
+                        targetType: "Payment",
+                        targetId: payment.Id.ToString(),
+                        newValue: JsonSerializer.Serialize(new
+                        {
+                            paymentTotalAmount = payment.TotalAmount,
+                            webhookAmount = data.Amount,
+                            data.OrderCode,
+                            data.PaymentLinkId
+                        }),
+                        reason: "payOS webhook amount mismatch for reservation extension."
+                    );
+                    throw new BusinessException(ErrorCodes.PayOsAmountMismatch);
+                }
             }
 
             // Webhook late payment check (after payment deadline)
-            if (payment.Reservation.PaymentDeadline.HasValue && now > payment.Reservation.PaymentDeadline.Value)
+            if (payment.Reservation.PaymentDeadline.HasValue && payment.Purpose == "RESERVATION_FEE" && now > payment.Reservation.PaymentDeadline.Value)
             {
                 await _auditWriter.WriteAuditLogAsync(
                     action: "PAYOS_WEBHOOK_LATE_PAYMENT_REVIEW",
@@ -405,7 +427,7 @@ public class PayOsPaymentService : IPayOsPaymentService
                 };
             }
 
-            if (payment.Status != "PENDING" || payment.Reservation.Status != "PENDING" || payment.Reservation.PaymentStatus != "PENDING")
+            if (payment.Purpose == "RESERVATION_FEE" && (payment.Status != "PENDING" || payment.Reservation.Status != "PENDING" || payment.Reservation.PaymentStatus != "PENDING"))
             {
                 await _auditWriter.WriteAuditLogAsync(
                     action: "PAYOS_WEBHOOK_LATE_PAYMENT_REVIEW",
@@ -427,6 +449,28 @@ public class PayOsPaymentService : IPayOsPaymentService
                 };
             }
 
+            if (payment.Purpose == "RESERVATION_EXTENSION" && (payment.Status != "PENDING" || payment.Reservation.Status != "CONFIRMED"))
+            {
+                await _auditWriter.WriteAuditLogAsync(
+                    action: "PAYOS_WEBHOOK_INVALID_EXTENSION_STATE",
+                    targetType: "Payment",
+                    targetId: payment.Id.ToString(),
+                    newValue: $"Reservation status is {payment.Reservation.Status}, payment status is {payment.Reservation.PaymentStatus}. OrderCode: {data.OrderCode}",
+                    reason: "payOS webhook reservation extension not in VALID state."
+                );
+
+                return new PayOsWebhookProcessResult
+                {
+                    Success = true,
+                    Message = "INVALID_EXTENSION_STATE",
+                    PaymentId = payment.Id,
+                    ReservationId = payment.ReservationId,
+                    OrderCode = data.OrderCode,
+                    PaymentStatus = payment.Status,
+                    ReservationStatus = payment.Reservation.Status
+                };
+            }
+
             // Confirm reservation and payment
             payment.Status = "PAID";
             payment.ReceivedAmount = data.Amount;
@@ -435,8 +479,24 @@ public class PayOsPaymentService : IPayOsPaymentService
             payment.GatewayPayload = MergeGatewayPayload(payment.GatewayPayload, data, webhook);
 
             payment.Reservation.PaymentStatus = "PAID";
-            payment.Reservation.Status = "CONFIRMED";
-            payment.Reservation.ConfirmedAt = now;
+            
+            if (payment.Purpose == "RESERVATION_EXTENSION")
+            {
+                var extension = await _context.ReservationExtensions
+                    .FirstOrDefaultAsync(re => re.PaymentId == payment.Id, cancellationToken);
+                if (extension != null)
+                {
+                    payment.Reservation.ExpiresAt = extension.NewExpiresAt;
+                    payment.Reservation.ReservedDurationMinutes += extension.AddedMinutes;
+                    payment.Reservation.BookingAmount += extension.Amount;
+                }
+            }
+            else
+            {
+                payment.Reservation.Status = "CONFIRMED";
+                payment.Reservation.ConfirmedAt = now;
+            }
+            
             payment.Reservation.UpdatedAt = now;
 
             await _context.SaveChangesAsync(cancellationToken);
@@ -451,9 +511,10 @@ public class PayOsPaymentService : IPayOsPaymentService
                     payment.ReservationId,
                     data.OrderCode,
                     data.PaymentLinkId,
-                    amount = data.Amount
+                    amount = data.Amount,
+                    purpose = payment.Purpose
                 }),
-                reason: "payOS webhook confirmed reservation payment.");
+                reason: "payOS webhook confirmed reservation/extension payment.");
 
             return new PayOsWebhookProcessResult
             {
@@ -685,8 +746,24 @@ public class PayOsPaymentService : IPayOsPaymentService
         payment.GatewayPayload = MergeGatewayPayload(payment.GatewayPayload, providerPayment);
 
         payment.Reservation.PaymentStatus = "PAID";
-        payment.Reservation.Status = "CONFIRMED";
-        payment.Reservation.ConfirmedAt ??= paidAt;
+        
+        if (payment.Purpose == "RESERVATION_EXTENSION")
+        {
+            var extension = await _context.ReservationExtensions
+                .FirstOrDefaultAsync(re => re.PaymentId == payment.Id, cancellationToken);
+            if (extension != null)
+            {
+                payment.Reservation.ExpiresAt = extension.NewExpiresAt;
+                payment.Reservation.ReservedDurationMinutes += extension.AddedMinutes;
+                payment.Reservation.BookingAmount += extension.Amount;
+            }
+        }
+        else
+        {
+            payment.Reservation.Status = "CONFIRMED";
+            payment.Reservation.ConfirmedAt ??= paidAt;
+        }
+        
         payment.Reservation.UpdatedAt = DateTimeOffset.UtcNow;
 
         await _context.SaveChangesAsync(cancellationToken);

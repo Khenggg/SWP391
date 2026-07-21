@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.parkingbuilding.support.dto.request.FeedbackUpdateRequest;
 import com.parkingbuilding.support.dto.response.FeedbackDetailResponse;
+import com.parkingbuilding.support.dto.response.FeedbackListResponse;
 import com.parkingbuilding.support.enums.FeedbackStatus;
 import com.parkingbuilding.support.sharedreadmodel.entity.FeedbackEntity;
 import com.parkingbuilding.support.sharedreadmodel.repository.FeedbackRepository;
@@ -21,14 +22,28 @@ public class FeedbackManagementService {
 
     private final FeedbackRepository feedbackRepository;
 
-    public List<FeedbackEntity> getAllFeedbacks() {
-        System.out.println("=== FeedbackManagementService.getAllFeedbacks ===");
-        return feedbackRepository.findAll();
+    public List<FeedbackListResponse> getAllFeedbacks() {
+        return feedbackRepository.findAll()
+                .stream()
+                .map(this::toListResponse)
+                .toList();
     }
 
-    public List<FeedbackEntity> getFeedbackByStatus(FeedbackStatus status) {
-        System.out.println("=== FeedbackManagementService.getFeedbackByStatus: " + status + " ===");
-        return feedbackRepository.findAllByStatus(status);
+    public List<FeedbackListResponse> getFeedbackByStatus(FeedbackStatus status) {
+        return feedbackRepository.findAllByStatus(status)
+                .stream()
+                .map(this::toListResponse)
+                .toList();
+    }
+
+    private FeedbackListResponse toListResponse(FeedbackEntity e) {
+        return new FeedbackListResponse(
+                e.getId(),
+                e.getFullName(),
+                e.getEmail(),
+                e.getSubject(),
+                e.getStatus(),
+                e.getCreatedAt());
     }
 
     public FeedbackDetailResponse getFeedback(Long id) {
@@ -40,7 +55,8 @@ public class FeedbackManagementService {
 
     @Transactional
     public FeedbackDetailResponse updateFeedback(Long id, FeedbackUpdateRequest request, Long managerId) {
-        System.out.println("=== FeedbackManagementService.updateFeedback id=" + id + " managerId=" + managerId + " ===");
+        System.out
+                .println("=== FeedbackManagementService.updateFeedback id=" + id + " managerId=" + managerId + " ===");
         FeedbackEntity entity = feedbackRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Feedback not found: " + id));
 

@@ -276,7 +276,7 @@ export const reservationService = {
     }));
 
     if (slots.length > 0) {
-      const areaIds = new Set();
+      const areaIds = new Set(areas.map(a => a.id));
       slots.forEach((s) => {
         if (!areaIds.has(s.areaId)) {
           areaIds.add(s.areaId);
@@ -344,6 +344,24 @@ export const reservationService = {
       return res.data;
     }
     throw new Error(res.message || "Hủy đặt chỗ thất bại");
+  },
+
+  extendReservation: async (id, addedMinutes) => {
+    const res = await coreAxiosClient.post(`/reservations/${id}/extend`, { addedMinutes });
+    if (res.success && res.data) {
+      const latest = res.data.reservation || res.data;
+      const payment = res.data.payment;
+      const cached = readCachedReservation();
+      if (cached && String(cached.id) === String(id)) {
+        const flatReservation = mapReservationForCache(latest, payment, {
+          areaName: cached.areaName,
+          slotName: cached.slotName
+        });
+        persistReservation(flatReservation);
+      }
+      return res.data;
+    }
+    throw new Error(res.message || "Gia hạn đặt chỗ thất bại");
   },
 
   payReservation: async (id) => {

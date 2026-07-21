@@ -10,6 +10,9 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence
         }
 
         public DbSet<User> Users => Set<User>();
+        public DbSet<AuthSession> AuthSessions => Set<AuthSession>();
+        public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+        public DbSet<RevokedAccessToken> RevokedAccessTokens => Set<RevokedAccessToken>();
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
         public DbSet<VehicleType> VehicleTypes => Set<VehicleType>();
         public DbSet<ParkingCard> ParkingCards => Set<ParkingCard>();
@@ -22,6 +25,7 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence
         public DbSet<ParkingSession> ParkingSessions { get; set; }
         public DbSet<DriverProfile> DriverProfiles { get; set; } // Hoặc tên DbSet tương ứng trong context
         public DbSet<MonthlyPass> MonthlyPasses { get; set; }
+        public DbSet<MonthlyPassApplication> MonthlyPassApplications { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
         public DbSet<Reservation> Reservations { get; set; }
         public DbSet<ReservationExtension> ReservationExtensions { get; set; }

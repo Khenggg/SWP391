@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { BrowserRouter } from "react-router-dom";
 import AppRoutes from "./AppRoutes";
 import { Toaster } from "@/components/ui/sonner";
+import { authService } from "@/services/authService";
+import { clearAuthStorage, saveAccessToken } from "@/services/sessionService";
 
 
 /**
@@ -42,19 +44,13 @@ const getRoleFromToken = (token) => {
   }
 };
 
-/**
- * App - Component gốc của ứng dụng (Root Component)
- * Quản lý trạng thái đăng nhập toàn cục bằng useState và useEffect
- * Tuân thủ quy tắc không dùng Context API hay các thư viện quản lý state phức tạp.
- */
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [token, setToken] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
-  const [isInitializing, setIsInitializing] = useState(true); // Đang khôi phục phiên từ sessionStorage
+  const [isInitializing, setIsInitializing] = useState(true);
 
-  // Khôi phục trạng thái đăng nhập từ sessionStorage khi tải ứng dụng
   useEffect(() => {
     const savedToken = sessionStorage.getItem("accessToken");
     const savedUserJson = sessionStorage.getItem("currentUser");
@@ -71,7 +67,20 @@ export default function App() {
           setCurrentUser({ ...parsedUser, role: resolvedRole });
           setUserRole(resolvedRole);
           setIsAuthenticated(true);
-          console.log("Khôi phục phiên đăng nhập an toàn thành công cho:", parsedUser.username);
+
+          if (!savedToken.startsWith("mock-token-for-")) {
+            authService.getCurrentProfile()
+              .then((profile) => {
+                const profileRole = getRoleFromToken(savedToken) || profile.role;
+                setCurrentUser({ ...profile, role: profileRole });
+                setUserRole(profileRole);
+              })
+              .catch(() => {
+                handleLogout();
+              })
+              .finally(() => setIsInitializing(false));
+            return;
+          }
         } catch (err) {
           console.error("Lỗi phân tích cú pháp dữ liệu người dùng, đang xóa phiên lỗi...");
           handleLogout();
@@ -85,11 +94,11 @@ export default function App() {
   }, []);
 
   // Xử lý sau khi đăng nhập thành công
-  const handleLoginSuccess = (accessToken, user) => {
+  const handleLoginSuccess = (accessToken, user, refreshToken) => {
     // Bảo mật: Lấy vai trò chính thức từ Token
     const resolvedRole = getRoleFromToken(accessToken) || user.role;
 
-    sessionStorage.setItem("accessToken", accessToken);
+    saveAccessToken(accessToken, refreshToken);
     sessionStorage.setItem("currentUser", JSON.stringify({ ...user, role: resolvedRole }));
 
     setToken(accessToken);
@@ -100,9 +109,8 @@ export default function App() {
   };
 
   // Xử lý đăng xuất tài khoản
-  const handleLogout = () => {
-    sessionStorage.removeItem("accessToken");
-    sessionStorage.removeItem("currentUser");
+  const handleLogout = async () => {
+    await authService.logout();
 
     setToken(null);
     setCurrentUser(null);

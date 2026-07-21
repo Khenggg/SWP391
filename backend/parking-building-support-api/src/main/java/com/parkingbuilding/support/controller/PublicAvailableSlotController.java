@@ -22,7 +22,6 @@ public class PublicAvailableSlotController {
             @RequestParam(required = false) Long vehicleTypeId,
             @RequestParam(required = false) Long areaId,
             @RequestParam(required = false) Long floorId) {
-        System.out.println("Controller OK");
         return ApiResponse.ok(
                 availableSlotService.getAvailableSlots(
                         vehicleTypeId,

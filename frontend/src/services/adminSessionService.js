@@ -4,7 +4,7 @@ export const adminSessionService = {
   // [CHƯA HOÀN THIỆN TỪ BACKEND] API lấy danh sách phiên có phân trang/filter
   getSessions: async (params = {}) => {
     try {
-      const response = await coreAxiosClient.get("/parking-sessions/search", { params });
+      const response = await coreAxiosClient.get("/session-admin/search", { params });
       return response.success ? response.data : [];
     } catch (error) {
       return [];
@@ -13,7 +13,7 @@ export const adminSessionService = {
 
   getActiveSessions: async () => {
     // API có thể sử dụng search với status=ACTIVE nếu chưa có endpoint riêng
-    const response = await coreAxiosClient.get("/parking-sessions/search", { params: { status: 'ACTIVE' } });
+    const response = await coreAxiosClient.get("/session-admin/search", { params: { status: 'ACTIVE' } });
     if (response.success) {
       return response.data;
     }
@@ -23,7 +23,7 @@ export const adminSessionService = {
 
 
   cancel: async (sessionId, { reason }) => {
-    const response = await coreAxiosClient.post(`/parking-sessions/${sessionId}/cancel`, { reason });
+    const response = await coreAxiosClient.post(`/session-admin/${sessionId}/cancel`, { reason });
     if (response.success) {
       return response.data;
     }
@@ -31,7 +31,7 @@ export const adminSessionService = {
   },
 
   moveSlot: async (sessionId, { reason, newSlotId }) => {
-    const response = await coreAxiosClient.post(`/parking-sessions/${sessionId}/move-slot`, { reason, newSlotId });
+    const response = await coreAxiosClient.post(`/session-admin/${sessionId}/move-slot`, { reason, newSlotId });
     if (response.success) {
       return response.data;
     }

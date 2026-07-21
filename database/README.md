@@ -32,7 +32,7 @@ Tài khoản đăng nhập hệ thống cho admin/manager/staff/driver app.
 
 | Field | Ý nghĩa |
 | --- | --- |
-| `username`, `password_hash` | Thông tin đăng nhập. Password luôn lưu dạng hash. |
+| `username`, `password_hash` | Thông tin đăng nhập. Username dài 6-30 ký tự, không phân biệt hoa/thường và được lưu dạng lowercase; password luôn lưu dạng hash. |
 | `email`, `phone` | Thông tin liên hệ; unique nếu có giá trị. |
 | `role` | Phân quyền cấp tài khoản: `ADMIN`, `MANAGER`, `STAFF`, `DRIVER`. |
 | `status` | Trạng thái tài khoản: active, locked, inactive. |

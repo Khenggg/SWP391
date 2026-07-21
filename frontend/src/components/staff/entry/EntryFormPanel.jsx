@@ -41,6 +41,8 @@ export default function EntryFormPanel({
   isLoadingSuggestion,
   noPlateAllowed,
   canLoadSuggestion,
+  gates = [],
+  vehicleTypes = [],
 }) {
   return (
     <Card className="flex flex-col border-slate-200 bg-white shadow-sm h-full overflow-hidden">
@@ -149,28 +151,42 @@ export default function EntryFormPanel({
               />
             </Field>
           ) : (
-            <Field label="Loại xe ID" required>
-              <Input
-                value={derivedVehicleTypeId}
-                onChange={(event) =>
-                  onFieldChange("vehicleTypeId", event.target.value)
-                }
-                placeholder="VD: 1, 2"
-                inputMode="numeric"
+            <Field label="Loại xe" required>
+              <Select
+                value={derivedVehicleTypeId ? String(derivedVehicleTypeId) : undefined}
+                onValueChange={(val) => onFieldChange("vehicleTypeId", val)}
                 disabled={form.entryMode !== "CASUAL"}
-                className="bg-slate-50 border-slate-200 focus-visible:ring-blue-500 h-8 text-sm"
-              />
+              >
+                <SelectTrigger className="bg-slate-50 border-slate-200 focus:ring-blue-500 h-8 text-sm">
+                  <SelectValue placeholder="Chọn loại xe" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vehicleTypes.map((vt) => (
+                    <SelectItem key={vt.id} value={String(vt.id)}>
+                      {vt.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
           )}
 
           <Field label="Cổng vào" required>
-            <Input
-              value={form.entryGateId}
-              onChange={(event) => onFieldChange("entryGateId", event.target.value)}
-              placeholder="VD: 1"
-              inputMode="numeric"
-              className="bg-slate-50 border-slate-200 focus-visible:ring-blue-500 h-8 text-sm"
-            />
+            <Select
+              value={String(form.entryGateId)}
+              onValueChange={(val) => onFieldChange("entryGateId", val)}
+            >
+              <SelectTrigger className="bg-slate-50 border-slate-200 focus:ring-blue-500 h-8 text-sm">
+                <SelectValue placeholder="Chọn cổng" />
+              </SelectTrigger>
+              <SelectContent>
+                {gates.map((g) => (
+                  <SelectItem key={g.id} value={String(g.id)}>
+                    {g.gateCode} - {g.gateType}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
         </div>
 

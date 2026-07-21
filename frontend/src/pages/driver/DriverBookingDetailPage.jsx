@@ -67,6 +67,13 @@ export default function DriverBookingDetailPage() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [isExtendOpen, setIsExtendOpen] = useState(false);
+  const [selectedExtensionMins, setSelectedExtensionMins] = useState(60);
+  const [isExtending, setIsExtending] = useState(false);
+  const [extensionPayment, setExtensionPayment] = useState(null);
+  const [checkingPayment, setCheckingPayment] = useState(false);
+
   useEffect(() => {
     const fetchDetail = async () => {
       setLoading(true);
@@ -84,11 +91,59 @@ export default function DriverBookingDetailPage() {
     }
   }, [id]);
 
+  useEffect(() => {
+    if (!reservation || reservation.status !== "CONFIRMED" || !reservation.reservationEndTime) return;
+
+    const calculateTimeLeft = () => {
+      const diff = Math.max(0, Math.floor((new Date(reservation.reservationEndTime).getTime() - Date.now()) / 1000));
+      setTimeLeft(diff);
+    };
+
+    calculateTimeLeft();
+    const interval = setInterval(calculateTimeLeft, 1000);
+    return () => clearInterval(interval);
+  }, [reservation]);
+
   const handleCopyCode = () => {
     if (reservation?.reservationCode) {
       navigator.clipboard.writeText(reservation.reservationCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleConfirmExtension = async () => {
+    setIsExtending(true);
+    try {
+      const res = await reservationService.extendReservation(reservation.id, selectedExtensionMins);
+      if (res.payment) {
+        setExtensionPayment(res.payment);
+      } else {
+        alert("Gia hạn giữ chỗ thành công!");
+        setIsExtendOpen(false);
+        const updated = await reservationService.getReservationById(id);
+        setReservation(updated);
+      }
+    } catch (err) {
+      alert(err.message || "Gia hạn giữ chỗ thất bại");
+    } finally {
+      setIsExtending(false);
+    }
+  };
+
+  const handleCheckExtensionPayment = async () => {
+    setCheckingPayment(true);
+    try {
+      await reservationService.payReservation(reservation.id);
+      alert("Gia hạn giữ chỗ thành công!");
+      setIsExtendOpen(false);
+      setExtensionPayment(null);
+      const updated = await reservationService.getReservationById(id);
+      setReservation(updated);
+    } catch (err) {
+      alert(err.message || "Chưa ghi nhận thanh toán. Vui lòng thử lại sau khi chuyển khoản.");
+    } finally {
+      setCheckingPayment(false);
     }
   };
 
@@ -121,6 +176,8 @@ export default function DriverBookingDetailPage() {
   }
 
   const checkInQrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(reservation.reservationCode)}&size=240`;
+  const isConfirmed = reservation.status === "CONFIRMED";
+  const hourlyPrice = reservation.vehicleTypeId === 5 ? 20000 : 5000;
 
   return (
     <div className="max-w-md mx-auto py-6 px-4 space-y-6 animate-fadeIn">
@@ -135,6 +192,23 @@ export default function DriverBookingDetailPage() {
         </button>
         <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Chi Tiết Vé</span>
       </div>
+
+      {/* Expiry Warning Banner (Less than 15 minutes) */}
+      {isConfirmed && timeLeft > 0 && timeLeft <= 900 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex gap-3 text-amber-800 animate-pulse">
+          <BadgeAlert className="w-5 h-5 flex-shrink-0 text-amber-600 mt-0.5" />
+          <div className="space-y-1 text-xs">
+            <p className="font-black uppercase tracking-wider">Cảnh báo sắp hết hạn giữ chỗ!</p>
+            <p className="font-semibold leading-relaxed">
+              Vé đặt chỗ của bạn sẽ hết hiệu lực giữ chỗ sau{" "}
+              <span className="font-black text-rose-600 text-sm">
+                {Math.floor(timeLeft / 60)} phút {timeLeft % 60} giây
+              </span>{" "}
+              nữa. Hãy nhanh chóng di chuyển vào bãi hoặc bấm nút gia hạn dưới đây.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Ticket Wrapper */}
       <Card className="bg-white rounded-[2rem] border border-slate-200 shadow-xl overflow-hidden relative">
@@ -269,12 +343,139 @@ export default function DriverBookingDetailPage() {
         </div>
       </Card>
 
+      {/* Extend Reservation Action Section */}
+      {isConfirmed && (
+        <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm space-y-3">
+          <div className="flex items-center gap-2 text-slate-800 font-bold text-sm">
+            <Clock className="w-4 h-4 text-indigo-600" />
+            <span>Gia hạn giữ chỗ</span>
+          </div>
+          <p className="text-slate-500 text-xs font-semibold leading-normal">
+            Nếu chưa kịp đỗ xe, bạn có thể gia hạn khi vé còn hiệu lực. Vé đã quá hạn sẽ bị hủy tự động.
+          </p>
+          <Button
+            onClick={() => {
+              setSelectedExtensionMins(60);
+              setExtensionPayment(null);
+              setIsExtendOpen(true);
+            }}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5"
+          >
+            Gia Hạn Giữ Chỗ
+          </Button>
+        </div>
+      )}
+
       {/* Helper Actions for Mobile */}
       <div className="text-center">
         <p className="text-[11px] text-slate-400 font-medium">
           Bạn có thể chụp ảnh màn hình trang này để xuất trình nhanh chóng mà không cần kết nối Internet khi đến bãi xe.
         </p>
       </div>
+
+      {/* Extend Dialog Modal */}
+      {isExtendOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6 space-y-6 shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-200">
+            <div className="space-y-1">
+              <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                <Clock className="w-5 h-5 text-indigo-600" /> Gia hạn giữ chỗ
+              </h3>
+              <p className="text-xs text-slate-500 font-semibold">
+                Chọn thời gian bạn muốn giữ thêm ô đỗ xe của mình.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              {[30, 60, 120].map((mins) => (
+                <button
+                  key={mins}
+                  onClick={() => setSelectedExtensionMins(mins)}
+                  className={`py-3 px-2 rounded-xl text-xs font-black transition-all border ${
+                    selectedExtensionMins === mins
+                      ? "bg-indigo-50 border-indigo-600 text-indigo-700 shadow-sm"
+                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  {mins < 60 ? `${mins} phút` : `${mins / 60} giờ`}
+                </button>
+              ))}
+            </div>
+
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-2 text-xs">
+              <div className="flex justify-between font-semibold text-slate-500">
+                <span>Đơn giá giữ chỗ:</span>
+                <span>{hourlyPrice.toLocaleString()} VND/giờ</span>
+              </div>
+              <div className="flex justify-between font-semibold text-slate-500">
+                <span>Thời gian gia hạn:</span>
+                <span className="font-bold text-slate-700">+{selectedExtensionMins} phút</span>
+              </div>
+              <div className="flex justify-between font-black text-slate-800 text-sm border-t border-slate-200 pt-2">
+                <span>Phí gia hạn ước tính:</span>
+                <span className="text-amber-600">{((hourlyPrice * selectedExtensionMins) / 60).toLocaleString()} VND</span>
+              </div>
+            </div>
+
+            {extensionPayment ? (
+              <div className="space-y-4">
+                <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-[11px] text-amber-800 font-semibold space-y-1">
+                  <p className="font-bold uppercase text-amber-900">Yêu cầu thanh toán gia hạn</p>
+                  <p>Vui lòng chuyển khoản qua mã QR PayOS bên dưới để hoàn tất giao dịch.</p>
+                </div>
+                <div className="flex flex-col items-center justify-center p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                  <img
+                    src={`https://quickchart.io/qr?text=${encodeURIComponent(extensionPayment.checkoutUrl || "")}&size=180`}
+                    alt="Payment QR"
+                    className="w-36 h-36 object-contain"
+                  />
+                  <a
+                    href={extensionPayment.checkoutUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 text-xs text-indigo-600 hover:text-indigo-800 font-black underline flex items-center gap-1"
+                  >
+                    Mở link thanh toán PayOS →
+                  </a>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setExtensionPayment(null)}
+                    className="w-full font-bold text-xs py-2 rounded-xl"
+                  >
+                    Quay lại
+                  </Button>
+                  <Button
+                    onClick={handleCheckExtensionPayment}
+                    disabled={checkingPayment}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 font-bold text-xs py-2 rounded-xl text-white"
+                  >
+                    {checkingPayment ? "Đang kiểm tra..." : "Xác nhận đã chuyển ✓"}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsExtendOpen(false)}
+                  className="w-full font-bold text-xs py-2 rounded-xl"
+                >
+                  Hủy bỏ
+                </Button>
+                <Button
+                  onClick={handleConfirmExtension}
+                  disabled={isExtending}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 font-bold text-xs py-2 rounded-xl text-white"
+                >
+                  {isExtending ? "Đang xử lý..." : "Xác nhận gia hạn"}
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

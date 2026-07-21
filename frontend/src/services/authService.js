@@ -1,4 +1,9 @@
 import coreAxiosClient from "../api/coreAxiosClient";
+import {
+  clearAuthStorage,
+  revokeRemoteSession,
+  saveAccessToken,
+} from "./sessionService";
 
 const SESSION_KEY = "currentUser";
 
@@ -7,6 +12,7 @@ export const authService = {
     try {
       const response = await coreAxiosClient.post("/auth/login", { username, password });
       if (response.success && response.data) {
+        saveAccessToken(response.data.accessToken, response.data.refreshToken);
         return response.data; // contains { accessToken, user }
       }
       throw new Error(response.message || "Tên đăng nhập hoặc mật khẩu không chính xác.");
@@ -17,9 +23,25 @@ export const authService = {
     }
   },
 
-  logout: () => {
-    sessionStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem("accessToken");
+  logout: async () => {
+    try {
+      await revokeRemoteSession();
+    } catch (error) {
+      // Logout is intentionally idempotent on the client.
+      console.warn("Remote logout failed; clearing local session anyway.");
+    } finally {
+      clearAuthStorage();
+    }
+  },
+
+  getCurrentProfile: async () => {
+    const response = await coreAxiosClient.get("/auth/me");
+    if (response?.success && response.data) {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(response.data));
+      return response.data;
+    }
+
+    throw new Error(response?.message || "Unable to load current user profile.");
   },
 
   getCurrentUser: () => {

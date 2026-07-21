@@ -1,6 +1,12 @@
 import coreAxiosClient from "../api/coreAxiosClient";
 
 export const staffSessionService = {
+  listActiveSessions: async () => {
+    const response = await coreAxiosClient.get(`/staff/sessions/active`);
+    if (response.success) return response.data;
+    return [];
+  },
+
   searchActiveSession: async (cardCode) => {
     const response = await coreAxiosClient.get(`/parking-sessions/by-card-code/${cardCode}`);
     if (response.success) return response.data;
@@ -41,5 +47,11 @@ export const staffSessionService = {
     const response = await coreAxiosClient.post(`/parking-sessions/${sessionId}/mismatch-case`, { exitPlateNumber, reason });
     if (response.success) return response.data;
     throw new Error(response.message || "Không thể tạo hồ sơ lệch biển số.");
+  },
+
+  createLostCardCase: async (payload) => {
+    const response = await coreAxiosClient.post(`/parking-sessions/${payload.sessionId}/lost-card`, payload);
+    if (response.success) return response.data;
+    throw new Error(response.message || "Không thể tạo hồ sơ mất thẻ.");
   }
 };

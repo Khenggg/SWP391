@@ -57,7 +57,7 @@ public class AuditLogControllerTest {
         when(auditLogService.search(any(AuditLogSearchRequest.class)))
                 .thenReturn(page);
 
-        mockMvc.perform(get("/api/audit-logs")
+        mockMvc.perform(get("/api/support/audit-logs")
                 .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -76,7 +76,7 @@ public class AuditLogControllerTest {
         when(auditLogService.search(any(AuditLogSearchRequest.class)))
                 .thenReturn(Page.empty());
 
-        mockMvc.perform(get("/api/audit-logs")
+        mockMvc.perform(get("/api/support/audit-logs")
                 .param("actor", "1")
                 .param("action", "CREATE")
                 .param("targetType", "CARD")
@@ -109,7 +109,7 @@ public class AuditLogControllerTest {
         when(auditLogService.getDetail(1L))
                 .thenReturn(detail);
 
-        mockMvc.perform(get("/api/audit-logs/1")
+        mockMvc.perform(get("/api/support/audit-logs/1")
                 .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))

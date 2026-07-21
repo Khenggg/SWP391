@@ -43,7 +43,7 @@ public class DashboardControllerTest {
                 Mockito.when(dashboardService.getDashboard())
                                 .thenReturn(response);
 
-                mockMvc.perform(get("/api/dashboard"))
+                mockMvc.perform(get("/api/support/dashboard"))
                                 .andExpect(status().isOk());
 
                 verify(dashboardService).getDashboard();
@@ -52,7 +52,7 @@ public class DashboardControllerTest {
         @Test
         void getDashboard_withoutLogin_shouldReturn401() throws Exception {
 
-                mockMvc.perform(get("/api/dashboard"))
+                mockMvc.perform(get("/api/support/dashboard"))
                                 .andExpect(status().isOk());
         }
 
@@ -60,7 +60,7 @@ public class DashboardControllerTest {
         @WithMockUser(authorities = "ROLE_USER")
         void getDashboard_wrongRole_shouldReturn403() throws Exception {
 
-                mockMvc.perform(get("/api/dashboard"))
+                mockMvc.perform(get("/api/support/dashboard"))
                                 .andExpect(status().isOk());
         }
 
@@ -73,7 +73,7 @@ public class DashboardControllerTest {
                 Mockito.when(dashboardService.getDashboard())
                                 .thenReturn(response);
 
-                mockMvc.perform(get("/api/dashboard"))
+                mockMvc.perform(get("/api/support/dashboard"))
                                 .andExpect(status().isOk());
 
                 verify(dashboardService).getDashboard();

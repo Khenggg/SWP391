@@ -28,6 +28,7 @@ import {
 import { USER_ROLES } from "@/constants";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import NotificationBell from "./NotificationBell";
 
 const MENUS = {
   [USER_ROLES.STAFF]: [
@@ -47,7 +48,6 @@ const MENUS = {
     { label: "Cấu hình giá", path: "/manager/pricing", icon: Settings },
     { label: "Vé tháng", path: "/manager/monthly-passes", icon: CalendarClock },
     { label: "Nhật ký", path: "/manager/audit-logs", icon: FileClock },
-    { label: "Cổng ra Staff", path: "/staff/exit", icon: ArrowRightFromLine },
     { label: "Giả lập cổng", path: "/simulator/gate", icon: RadioTower },
   ],
   [USER_ROLES.ADMIN]: [
@@ -236,6 +236,7 @@ export default function AppShell({ currentUser, onLogout }) {
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
+            <NotificationBell userId={currentUser?.id} />
             <div className="hidden min-w-0 items-center gap-2 rounded-lg border bg-card px-3 py-2 shadow-sm sm:flex">
               <span className="max-w-44 truncate text-sm font-bold">
                 {currentUser?.fullName || currentUser?.username || "Nhân viên"}

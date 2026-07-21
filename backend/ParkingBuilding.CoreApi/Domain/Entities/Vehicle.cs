@@ -11,6 +11,9 @@ namespace ParkingBuilding.CoreApi.Domain.Entities
         public string NormalizedPlateNumber { get; set; } = string.Empty;
         public long VehicleTypeId { get; set; }
         public virtual VehicleType VehicleType { get; set; } = null!;
+        public string? Brand { get; set; }
+        public string? Color { get; set; }
+        public string? ApprovalStatus { get; set; } // 'PENDING', 'APPROVED', 'REJECTED'
         public string? Description { get; set; }
         public string Status { get; set; } = "ACTIVE"; // 'ACTIVE', 'INACTIVE'
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

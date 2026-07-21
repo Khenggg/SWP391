@@ -4,7 +4,9 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.parkingbuilding.support.dto.request.CreateNotificationRequest;
 import com.parkingbuilding.support.dto.response.NotificationResponse;
 import com.parkingbuilding.support.enums.NotificationPriority;
 import com.parkingbuilding.support.enums.NotificationType;
@@ -53,6 +55,30 @@ public class NotificationService {
                 .readAt(entity.getReadAt())
                 .createdAt(entity.getCreatedAt())
                 .build();
+    }
+
+    @Transactional
+    public NotificationResponse createNotification(CreateNotificationRequest request) {
+        NotificationEntity entity = NotificationEntity.builder()
+                .userId(request.getUserId())
+                .monthlyPassId(request.getMonthlyPassId())
+                .reservationId(request.getReservationId())
+                .paymentId(request.getPaymentId())
+                .parkingSessionId(request.getParkingSessionId())
+                .title(request.getTitle())
+                .content(request.getContent())
+                .type(request.getType())
+                .priority(request.getPriority())
+                .isRead(false)
+                .build();
+
+        NotificationEntity saved = notificationRepository.save(entity);
+
+        return toResponse(saved);
+    }
+
+    public Long getUnreadCount(Long userId) {
+        return notificationRepository.countByUserIdAndIsReadFalse(userId);
     }
 
 }

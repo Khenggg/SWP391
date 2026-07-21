@@ -176,32 +176,77 @@ namespace ParkingBuilding.CoreApi.Controllers
 
             await _context.SaveChangesAsync();
 
-            await _context.Database.ExecuteSqlRawAsync("DELETE FROM notifications;");
+            try {
+                var receipts = await _context.Receipts.ToListAsync();
+                _context.Receipts.RemoveRange(receipts);
+                await _context.SaveChangesAsync();
+            } catch {}
 
-            var extensions = await _context.ReservationExtensions.ToListAsync();
-            _context.ReservationExtensions.RemoveRange(extensions);
+            try {
+                var sessionImages = await _context.ParkingSessionImages.ToListAsync();
+                _context.ParkingSessionImages.RemoveRange(sessionImages);
+                await _context.SaveChangesAsync();
+            } catch {}
 
-            var payments = await _context.Payments.ToListAsync();
-            _context.Payments.RemoveRange(payments);
+            try {
+                var mismatchCases = await _context.PlateMismatchCases.ToListAsync();
+                _context.PlateMismatchCases.RemoveRange(mismatchCases);
+                await _context.SaveChangesAsync();
+            } catch {}
 
-            var sessions = await _context.ParkingSessions.ToListAsync();
-            _context.ParkingSessions.RemoveRange(sessions);
+            try {
+                var lostCardDocs = await _context.LostCardCaseDocuments.ToListAsync();
+                _context.LostCardCaseDocuments.RemoveRange(lostCardDocs);
+                await _context.SaveChangesAsync();
+            } catch {}
 
-            await _context.SaveChangesAsync();
+            try {
+                var payments = await _context.Payments.ToListAsync();
+                _context.Payments.RemoveRange(payments);
+                await _context.SaveChangesAsync();
+            } catch {}
 
-            var reservations = await _context.Reservations.ToListAsync();
-            _context.Reservations.RemoveRange(reservations);
+            try {
+                var sessions = await _context.ParkingSessions.ToListAsync();
+                _context.ParkingSessions.RemoveRange(sessions);
+                await _context.SaveChangesAsync();
+            } catch {}
 
-            var testMonthlyPasses = await _context.MonthlyPasses
-                .Where(m => m.Id >= 1000 ||
-                            m.PlateNumber.StartsWith("TEST-") ||
-                            m.PlateNumber.StartsWith("TMP-") ||
-                            m.PlateNumber.StartsWith("AUTO-") ||
-                            m.PlateNumber.Contains("AUTO"))
-                .ToListAsync();
-            _context.MonthlyPasses.RemoveRange(testMonthlyPasses);
+            try {
+                var allPasses = await _context.MonthlyPasses.ToListAsync();
+                _context.MonthlyPasses.RemoveRange(allPasses);
+                await _context.SaveChangesAsync();
+            } catch {}
 
-            await _context.SaveChangesAsync();
+            try {
+                var allApps = await _context.MonthlyPassApplications.ToListAsync();
+                _context.MonthlyPassApplications.RemoveRange(allApps);
+                await _context.SaveChangesAsync();
+            } catch {}
+
+            try {
+                var extensions = await _context.ReservationExtensions.ToListAsync();
+                _context.ReservationExtensions.RemoveRange(extensions);
+                await _context.SaveChangesAsync();
+            } catch {}
+
+            try {
+                var reservations = await _context.Reservations.ToListAsync();
+                _context.Reservations.RemoveRange(reservations);
+                await _context.SaveChangesAsync();
+            } catch {}
+
+            try {
+                var testMonthlyPasses = await _context.MonthlyPasses
+                    .Where(m => m.Id >= 1000 ||
+                                m.PlateNumber.StartsWith("TEST-") ||
+                                m.PlateNumber.StartsWith("TMP-") ||
+                                m.PlateNumber.StartsWith("AUTO-") ||
+                                m.PlateNumber.Contains("AUTO"))
+                    .ToListAsync();
+                _context.MonthlyPasses.RemoveRange(testMonthlyPasses);
+                await _context.SaveChangesAsync();
+            } catch {}
             return Success(new { message = "All reservations, sessions, monthly passes, and audit logs cleared. Slots, areas, and cards reset successfully." }, "Clear reservations successfully.");
         }
 
@@ -281,6 +326,45 @@ namespace ParkingBuilding.CoreApi.Controllers
                 ALTER TABLE reservations ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ NULL;
                 CREATE INDEX IF NOT EXISTS ix_reservations_payment_deadline ON reservations(payment_deadline);
                 CREATE INDEX IF NOT EXISTS ix_reservations_confirmed_at ON reservations(confirmed_at);
+
+                -- Create monthly_pass_applications table
+                CREATE TABLE IF NOT EXISTS monthly_pass_applications (
+                    id BIGSERIAL PRIMARY KEY,
+                    driver_id BIGINT NOT NULL REFERENCES driver_profiles(id),
+                    vehicle_id BIGINT NOT NULL REFERENCES vehicles(id),
+                    start_date DATE NOT NULL,
+                    price NUMERIC(12,2) NOT NULL DEFAULT 0,
+                    status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+                    rejection_reason TEXT,
+                    payment_method VARCHAR(30),
+                    payment_reference_no VARCHAR(120),
+                    assigned_card_id BIGINT REFERENCES parking_cards(id),
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                    CONSTRAINT ck_monthly_pass_applications_status CHECK (status IN ('DRAFT', 'PENDING', 'APPROVED_AWAITING_PAYMENT', 'PAID', 'ACTIVE', 'EXPIRED', 'REJECTED'))
+                );
+
+                -- Drop and recreate ck_payments_source check constraint to allow NULL monthly_pass_id for pending RFID
+                ALTER TABLE payments DROP CONSTRAINT IF EXISTS ck_payments_source;
+                ALTER TABLE payments ADD CONSTRAINT ck_payments_source CHECK (
+                    (
+                        purpose = 'MONTHLY_PASS_RENEWAL'
+                        AND session_id IS NULL
+                        AND reservation_id IS NULL
+                    )
+                    OR (
+                        purpose IN ('RESERVATION_FEE', 'RESERVATION_EXTENSION')
+                        AND reservation_id IS NOT NULL
+                        AND session_id IS NULL
+                        AND monthly_pass_id IS NULL
+                    )
+                    OR (
+                        purpose IN ('PARKING_FEE', 'LOST_CARD_FEE', 'LOST_CARD_REFUND')
+                        AND session_id IS NOT NULL
+                        AND reservation_id IS NULL
+                        AND monthly_pass_id IS NULL
+                    )
+                );
             ");
 
             var constraints = new System.Collections.Generic.List<string>();

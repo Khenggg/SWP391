@@ -351,6 +351,7 @@ export default function DriverBookingPage() {
             hourlyPrice={hourlyPrice}
             recentHistory={recentHistory}
             isHistoryLoading={isInitialLoading}
+            activeReservation={activeReservation}
           />
         </div>
       </div>

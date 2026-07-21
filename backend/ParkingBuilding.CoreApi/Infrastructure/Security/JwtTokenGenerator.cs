@@ -18,7 +18,7 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Security
             _configuration = configuration;
         }
 
-        public string GenerateToken(User user)
+        public string GenerateToken(User user, Guid sessionId, out string jwtId)
         {
             var issuer = _configuration["Jwt:Issuer"] ?? "ParkingBuilding.CoreApi";
             var audience = _configuration["Jwt:Audience"] ?? "ParkingBuilding.Frontend";
@@ -37,14 +37,19 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Security
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+            jwtId = Guid.NewGuid().ToString("N");
+
             var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new Claim(JwtRegisteredClaimNames.Jti, jwtId),
+                new Claim(JwtRegisteredClaimNames.Sid, sessionId.ToString()),
                 new Claim("user_id", user.Id.ToString()),
                 new Claim("username", user.Username),
                 new Claim("role", user.Role.ToString().ToUpper()), // e.g. "ADMIN", "MANAGER", "STAFF"
                 new Claim("fullName", user.FullName ?? string.Empty),
-                new Claim("full_name", user.FullName ?? string.Empty)
+                new Claim("full_name", user.FullName ?? string.Empty),
+                new Claim("status", user.Status.ToString().ToUpper())
             };
 
             var token = new JwtSecurityToken(
