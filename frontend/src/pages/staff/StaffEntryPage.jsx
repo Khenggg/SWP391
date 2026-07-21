@@ -128,19 +128,30 @@ export default function StaffEntryPage() {
 
   const resolveGateId = useCallback((overrideGateId) => {
     const direct = parseNumber(overrideGateId);
-    if (direct != null) return direct;
+    if (direct != null && direct > 0) return direct;
 
-    if (typeof overrideGateId === "string" && overrideGateId.trim()) {
+    const gateStr = String(overrideGateId || "").trim().toUpperCase();
+    if (gateStr) {
       const matched = gates.find(
-        (g) => g.gateCode.toLowerCase() === overrideGateId.trim().toLowerCase()
+        (g) => String(g.gateCode || "").trim().toUpperCase() === gateStr
       );
       if (matched) return matched.id;
+
+      const KNOWN_GATE_MAP = {
+        "B1-IN": 1,
+        "B1-OUT": 2,
+        "B2-IN": 3,
+        "B2-OUT": 4,
+        "B3-IN": 5,
+        "B3-OUT": 6,
+      };
+      if (KNOWN_GATE_MAP[gateStr]) return KNOWN_GATE_MAP[gateStr];
     }
 
     const currentGateId = parseNumber(form.entryGateId);
-    if (currentGateId != null) return currentGateId;
+    if (currentGateId != null && currentGateId > 0) return currentGateId;
 
-    return gates[0]?.id ?? null;
+    return gates[0]?.id ?? 1;
   }, [form.entryGateId, gates]);
 
   const handleCheckCard = useCallback(async (overrideCardCode, overrideGateId) => {
