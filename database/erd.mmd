@@ -1,6 +1,10 @@
 erDiagram
     users o|--o| driver_profiles : "user_id nullable unique"
     users o|--o{ driver_profiles : "resident_verified_by nullable"
+    users ||--o{ auth_sessions : "user_id cascade"
+    users ||--o{ refresh_tokens : "user_id cascade"
+    auth_sessions ||--o{ refresh_tokens : "token_family_id cascade"
+    users ||--o{ revoked_access_tokens : "user_id cascade"
     driver_profiles o|--o{ vehicles : "driver_id nullable resident only"
     vehicle_types ||--o{ vehicles : "vehicle_type_id"
 
@@ -19,6 +23,12 @@ erDiagram
     parking_cards ||--o{ monthly_passes : "card_id"
     vehicle_types ||--o{ monthly_passes : "vehicle_type_id"
     users ||--o{ monthly_passes : "created_by"
+    floors o|--o{ monthly_passes : "floor_id nullable"
+    areas o|--o{ monthly_passes : "area_id nullable"
+    slots o|--o{ monthly_passes : "slot_id nullable"
+    driver_profiles ||--o{ monthly_pass_applications : "driver_id"
+    vehicles ||--o{ monthly_pass_applications : "vehicle_id"
+    parking_cards o|--o{ monthly_pass_applications : "assigned_card_id nullable"
 
     driver_profiles o|--o{ reservations : "driver_id nullable"
     vehicles o|--o{ reservations : "vehicle_id nullable"
@@ -75,6 +85,8 @@ erDiagram
     parking_cards o|--o{ lost_card_cases : "card_id nullable"
     users ||--o{ lost_card_cases : "created_by"
     users o|--o{ lost_card_cases : "approved_by nullable"
+    lost_card_cases ||--o{ lost_card_case_documents : "lost_card_case_id cascade"
+    users ||--o{ lost_card_case_documents : "uploaded_by"
     lost_card_cases ||--o| lost_card_refunds : "lost_card_case_id unique"
     parking_sessions ||--o{ lost_card_refunds : "session_id"
     parking_cards o|--o{ lost_card_refunds : "recovered_card_id nullable"
@@ -85,6 +97,17 @@ erDiagram
     parking_sessions ||--o{ plate_mismatch_cases : "session_id"
     users ||--o{ plate_mismatch_cases : "created_by"
     users o|--o{ plate_mismatch_cases : "confirmed_by nullable"
+
+    users ||--o{ notifications : "user_id cascade"
+    monthly_passes o|--o{ notifications : "monthly_pass_id nullable"
+    reservations o|--o{ notifications : "reservation_id nullable"
+    payments o|--o{ notifications : "payment_id nullable"
+    parking_sessions o|--o{ notifications : "parking_session_id nullable"
+
+    users o|--o{ feedbacks : "user_id nullable"
+    parking_sessions o|--o{ feedbacks : "parking_session_id nullable"
+    reservations o|--o{ feedbacks : "reservation_id nullable"
+    users o|--o{ feedbacks : "responded_by nullable"
 
     users o|--o{ audit_logs : "actor_user_id nullable"
 
@@ -98,8 +121,44 @@ erDiagram
         VARCHAR role "ADMIN/MANAGER/STAFF/DRIVER"
         VARCHAR status "ACTIVE/LOCKED/INACTIVE"
         TIMESTAMPTZ last_login_at "nullable"
+        TIMESTAMPTZ deleted_at "nullable"
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
+    }
+
+    auth_sessions {
+        UUID id PK
+        BIGINT user_id FK "not null"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ expires_at "not null"
+        TIMESTAMPTZ revoked_at "nullable"
+        VARCHAR created_by_ip "nullable"
+        VARCHAR revoked_by_ip "nullable"
+        VARCHAR revocation_reason "nullable"
+    }
+
+    refresh_tokens {
+        UUID id PK
+        BIGINT user_id FK "not null"
+        VARCHAR token_hash UK "not null"
+        UUID token_family_id FK "not null"
+        VARCHAR jwt_id "nullable"
+        TIMESTAMPTZ expires_at "not null"
+        TIMESTAMPTZ revoked_at "nullable"
+        VARCHAR replaced_by_token_hash "nullable"
+        TIMESTAMPTZ created_at
+        VARCHAR created_by_ip "nullable"
+        VARCHAR revoked_by_ip "nullable"
+        VARCHAR revocation_reason "nullable"
+    }
+
+    revoked_access_tokens {
+        UUID id PK
+        VARCHAR jwt_id UK "not null"
+        BIGINT user_id FK "not null"
+        TIMESTAMPTZ expires_at "not null"
+        TIMESTAMPTZ revoked_at "not null"
+        VARCHAR reason "nullable"
     }
 
     driver_profiles {
@@ -136,6 +195,9 @@ erDiagram
         VARCHAR plate_number "nullable"
         VARCHAR normalized_plate_number "nullable indexed"
         BIGINT vehicle_type_id FK "not null"
+        VARCHAR brand "nullable"
+        VARCHAR color "nullable"
+        VARCHAR approval_status "PENDING/APPROVED/REJECTED"
         TEXT description "nullable"
         VARCHAR status "ACTIVE/INACTIVE"
         TIMESTAMPTZ created_at
@@ -227,10 +289,33 @@ erDiagram
         VARCHAR plate_number "not null"
         VARCHAR normalized_plate_number "not null partial unique with vehicle_type_id when ACTIVE"
         BIGINT vehicle_type_id FK "not null partial unique with normalized_plate_number when ACTIVE"
+        BIGINT floor_id FK "nullable"
+        BIGINT area_id FK "nullable"
+        BIGINT slot_id FK "nullable partial unique when ACTIVE"
         DATE start_date "not null"
         DATE end_date "not null end_date >= start_date"
         VARCHAR status "ACTIVE/EXPIRED/LOCKED"
         BIGINT created_by FK "not null"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    monthly_pass_applications {
+        BIGSERIAL id PK
+        BIGINT driver_id FK "not null"
+        BIGINT vehicle_id FK "not null"
+        DATE start_date "not null"
+        NUMERIC price "non-negative"
+        VARCHAR status "DRAFT/PENDING/APPROVED_AWAITING_PAYMENT/PAID/ACTIVE/EXPIRED/REJECTED"
+        TEXT rejection_reason "nullable"
+        VARCHAR cccd_front_image_url "nullable"
+        VARCHAR cccd_back_image_url "nullable"
+        VARCHAR face_image_url "nullable"
+        VARCHAR plate_image_url "nullable"
+        TEXT note "nullable"
+        VARCHAR payment_method "nullable CASH/BANK_TRANSFER/NONE"
+        VARCHAR payment_reference_no "nullable"
+        BIGINT assigned_card_id FK "nullable required when ACTIVE"
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
     }
@@ -240,8 +325,8 @@ erDiagram
         VARCHAR reservation_code UK "not null"
         BIGINT driver_id FK "nullable"
         BIGINT vehicle_id FK "nullable"
-        VARCHAR plate_number "not null non-blank"
-        VARCHAR normalized_plate_number "not null non-blank partial unique with vehicle_type_id when PENDING"
+        VARCHAR plate_number "nullable; both plate fields null or both non-blank"
+        VARCHAR normalized_plate_number "nullable partial unique with vehicle_type_id when active"
         BIGINT vehicle_type_id FK "not null"
         BIGINT floor_id FK "not null"
         BIGINT area_id FK "not null"
@@ -253,10 +338,12 @@ erDiagram
         VARCHAR payment_status "PENDING/PAID/FAILED/CANCELLED/WAIVED/NOT_REQUIRED"
         TIMESTAMPTZ reserved_at
         TIMESTAMPTZ expires_at "not null > reserved_at"
+        TIMESTAMPTZ payment_deadline "nullable"
+        TIMESTAMPTZ confirmed_at "nullable"
         TIMESTAMPTZ checked_in_at "nullable >= reserved_at"
         BIGINT checked_in_by FK "nullable QR/app check-in verifier"
         TIMESTAMPTZ cancelled_at "nullable >= reserved_at"
-        VARCHAR status "PENDING/COMPLETED/CANCELLED/EXPIRED"
+        VARCHAR status "PENDING/CONFIRMED/COMPLETED/CANCELLED/EXPIRED"
         BIGINT created_by FK "nullable"
         BIGINT cancelled_by FK "nullable"
         TEXT cancellation_reason "nullable"
@@ -426,6 +513,25 @@ erDiagram
         TIMESTAMPTZ updated_at
     }
 
+    lost_card_case_documents {
+        BIGSERIAL id PK
+        BIGINT lost_card_case_id FK "not null cascade"
+        VARCHAR document_type "not null"
+        TEXT file_path "not null"
+        TEXT thumbnail_path "nullable"
+        VARCHAR original_file_name "nullable"
+        VARCHAR mime_type "nullable"
+        BIGINT size_bytes "nullable"
+        VARCHAR sha256_hash "nullable"
+        TEXT note "nullable"
+        BOOLEAN is_sensitive
+        BIGINT uploaded_by FK "not null"
+        TIMESTAMPTZ uploaded_at
+        TIMESTAMPTZ deleted_at "nullable"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
     lost_card_refunds {
         BIGSERIAL id PK
         BIGINT lost_card_case_id FK,UK "not null"
@@ -457,6 +563,40 @@ erDiagram
         BIGINT confirmed_by FK "nullable"
         TIMESTAMPTZ confirmed_at "nullable"
         TEXT rejection_reason "nullable"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    notifications {
+        BIGSERIAL id PK
+        BIGINT user_id FK "not null cascade"
+        BIGINT monthly_pass_id FK "nullable set null"
+        BIGINT reservation_id FK "nullable set null"
+        BIGINT payment_id FK "nullable set null"
+        BIGINT parking_session_id FK "nullable set null"
+        VARCHAR title "not blank"
+        TEXT content "not blank"
+        VARCHAR type "MONTHLY_PASS/PAYMENT/RESERVATION/PRICE_CHANGE/SYSTEM"
+        VARCHAR priority "LOW/NORMAL/HIGH"
+        BOOLEAN is_read
+        TIMESTAMPTZ read_at "required when read"
+        TIMESTAMPTZ created_at
+    }
+
+    feedbacks {
+        BIGSERIAL id PK
+        BIGINT user_id FK "nullable set null"
+        BIGINT parking_session_id FK "nullable set null"
+        BIGINT reservation_id FK "nullable set null"
+        VARCHAR full_name "not blank"
+        VARCHAR email "nullable"
+        VARCHAR phone "nullable"
+        VARCHAR subject "not blank"
+        TEXT content "not blank"
+        VARCHAR status "PENDING/IN_PROGRESS/RESOLVED/REJECTED"
+        TEXT response "nullable"
+        BIGINT responded_by FK "nullable"
+        TIMESTAMPTZ responded_at "nullable paired with responded_by"
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
     }

@@ -1,6 +1,8 @@
 -- Parking Building Management System - indexes and late constraints
 -- Run after 01_schema.sql and 02_seed.sql.
 
+BEGIN;
+
 CREATE UNIQUE INDEX IF NOT EXISTS ux_users_username ON users(username);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_users_email ON users(email) WHERE email IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS ux_users_phone ON users(phone) WHERE phone IS NOT NULL;
@@ -80,6 +82,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_driver_profiles_user_id ON driver_profiles(
 CREATE UNIQUE INDEX IF NOT EXISTS ux_driver_profiles_phone ON driver_profiles(phone) WHERE phone IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS ux_driver_profiles_email ON driver_profiles(email) WHERE email IS NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_driver_profiles_type ON driver_profiles(driver_type);
+CREATE INDEX IF NOT EXISTS ix_driver_profiles_resident_verified_by ON driver_profiles(resident_verified_by);
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_vehicle_types_name ON vehicle_types(name);
 CREATE INDEX IF NOT EXISTS ix_vehicle_types_is_active ON vehicle_types(is_active);
@@ -117,6 +120,8 @@ CREATE INDEX IF NOT EXISTS ix_gates_status ON gates(status);
 CREATE INDEX IF NOT EXISTS ix_pricing_rules_vehicle_type ON pricing_rules(vehicle_type_id);
 CREATE INDEX IF NOT EXISTS ix_pricing_rules_status ON pricing_rules(status);
 CREATE INDEX IF NOT EXISTS ix_pricing_rules_effective_from ON pricing_rules(effective_from);
+CREATE INDEX IF NOT EXISTS ix_pricing_rules_created_by ON pricing_rules(created_by);
+CREATE INDEX IF NOT EXISTS ix_pricing_rules_updated_by ON pricing_rules(updated_by);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_active_pricing_rule_by_vehicle_type
 ON pricing_rules(vehicle_type_id)
 WHERE status = 'ACTIVE';
@@ -124,6 +129,9 @@ WHERE status = 'ACTIVE';
 CREATE INDEX IF NOT EXISTS ix_monthly_pass_plate ON monthly_passes(normalized_plate_number);
 CREATE INDEX IF NOT EXISTS ix_monthly_pass_status ON monthly_passes(status);
 CREATE INDEX IF NOT EXISTS ix_monthly_pass_dates ON monthly_passes(start_date, end_date);
+CREATE INDEX IF NOT EXISTS ix_monthly_pass_driver ON monthly_passes(driver_id);
+CREATE INDEX IF NOT EXISTS ix_monthly_pass_vehicle_type ON monthly_passes(vehicle_type_id);
+CREATE INDEX IF NOT EXISTS ix_monthly_pass_created_by ON monthly_passes(created_by);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_active_monthly_pass_by_plate_type
 ON monthly_passes(normalized_plate_number, vehicle_type_id)
 WHERE status = 'ACTIVE';
@@ -153,6 +161,11 @@ CREATE INDEX IF NOT EXISTS ix_reservations_payment_status ON reservations(paymen
 CREATE INDEX IF NOT EXISTS ix_reservations_checked_in_by ON reservations(checked_in_by);
 CREATE INDEX IF NOT EXISTS ix_reservations_payment_deadline ON reservations(payment_deadline);
 CREATE INDEX IF NOT EXISTS ix_reservations_confirmed_at ON reservations(confirmed_at);
+CREATE INDEX IF NOT EXISTS ix_reservations_floor ON reservations(floor_id);
+CREATE INDEX IF NOT EXISTS ix_reservations_area ON reservations(area_id);
+CREATE INDEX IF NOT EXISTS ix_reservations_vehicle_type ON reservations(vehicle_type_id);
+CREATE INDEX IF NOT EXISTS ix_reservations_created_by ON reservations(created_by);
+CREATE INDEX IF NOT EXISTS ix_reservations_cancelled_by ON reservations(cancelled_by);
 DROP INDEX IF EXISTS ux_pending_reservation_by_slot;
 CREATE UNIQUE INDEX IF NOT EXISTS ux_active_reservation_by_slot
 ON reservations(slot_id)
@@ -194,6 +207,20 @@ CREATE INDEX IF NOT EXISTS ix_sessions_claimed_by_user ON parking_sessions(claim
 CREATE INDEX IF NOT EXISTS ix_sessions_claimed_at ON parking_sessions(claimed_at);
 CREATE INDEX IF NOT EXISTS ix_sessions_override_by ON parking_sessions(override_by);
 CREATE INDEX IF NOT EXISTS ix_sessions_plate_corrected_by ON parking_sessions(plate_corrected_by);
+CREATE INDEX IF NOT EXISTS ix_sessions_driver ON parking_sessions(driver_id);
+CREATE INDEX IF NOT EXISTS ix_sessions_vehicle ON parking_sessions(vehicle_id);
+CREATE INDEX IF NOT EXISTS ix_sessions_monthly_pass ON parking_sessions(monthly_pass_id);
+CREATE INDEX IF NOT EXISTS ix_sessions_floor ON parking_sessions(floor_id);
+CREATE INDEX IF NOT EXISTS ix_sessions_area ON parking_sessions(area_id);
+CREATE INDEX IF NOT EXISTS ix_sessions_entry_gate ON parking_sessions(entry_gate_id);
+CREATE INDEX IF NOT EXISTS ix_sessions_exit_gate ON parking_sessions(exit_gate_id);
+CREATE INDEX IF NOT EXISTS ix_sessions_entry_staff ON parking_sessions(entry_staff_id);
+CREATE INDEX IF NOT EXISTS ix_sessions_exit_staff ON parking_sessions(exit_staff_id);
+CREATE INDEX IF NOT EXISTS ix_sessions_pricing_rule ON parking_sessions(pricing_rule_id);
+CREATE INDEX IF NOT EXISTS ix_sessions_suggested_area ON parking_sessions(suggested_area_id);
+CREATE INDEX IF NOT EXISTS ix_sessions_suggested_slot ON parking_sessions(suggested_slot_id);
+CREATE INDEX IF NOT EXISTS ix_sessions_override_area ON parking_sessions(override_area_id);
+CREATE INDEX IF NOT EXISTS ix_sessions_override_slot ON parking_sessions(override_slot_id);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_sessions_reservation
 ON parking_sessions(reservation_id)
 WHERE reservation_id IS NOT NULL;
@@ -239,6 +266,7 @@ CREATE INDEX IF NOT EXISTS ix_payments_purpose ON payments(purpose);
 CREATE INDEX IF NOT EXISTS ix_payments_provider ON payments(provider);
 CREATE INDEX IF NOT EXISTS ix_payments_expired_at ON payments(expired_at);
 CREATE INDEX IF NOT EXISTS ix_payments_paid_by_user ON payments(paid_by_user_id);
+CREATE INDEX IF NOT EXISTS ix_payments_collected_by ON payments(collected_by);
 CREATE INDEX IF NOT EXISTS ix_payments_fee_calculated_at ON payments(fee_calculated_at);
 CREATE INDEX IF NOT EXISTS ix_payments_valid_until ON payments(payment_valid_until);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_payments_provider_transaction
@@ -291,14 +319,20 @@ WHERE provider_transaction_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_reservation_extensions_reservation ON reservation_extensions(reservation_id);
 CREATE INDEX IF NOT EXISTS ix_reservation_extensions_payment ON reservation_extensions(payment_id);
 CREATE INDEX IF NOT EXISTS ix_reservation_extensions_created_at ON reservation_extensions(created_at);
+CREATE INDEX IF NOT EXISTS ix_reservation_extensions_pricing_rule ON reservation_extensions(pricing_rule_id);
+CREATE INDEX IF NOT EXISTS ix_reservation_extensions_requested_by ON reservation_extensions(requested_by);
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_receipts_code ON receipts(receipt_code);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_receipts_session ON receipts(session_id);
 CREATE INDEX IF NOT EXISTS ix_receipts_session ON receipts(session_id);
 CREATE INDEX IF NOT EXISTS ix_receipts_payment ON receipts(payment_id);
+CREATE INDEX IF NOT EXISTS ix_receipts_created_by ON receipts(created_by);
 
 CREATE INDEX IF NOT EXISTS ix_lost_card_cases_session ON lost_card_cases(session_id);
 CREATE INDEX IF NOT EXISTS ix_lost_card_cases_status ON lost_card_cases(status);
+CREATE INDEX IF NOT EXISTS ix_lost_card_cases_card ON lost_card_cases(card_id);
+CREATE INDEX IF NOT EXISTS ix_lost_card_cases_created_by ON lost_card_cases(created_by);
+CREATE INDEX IF NOT EXISTS ix_lost_card_cases_approved_by ON lost_card_cases(approved_by);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pending_lost_card_case_by_session
 ON lost_card_cases(session_id)
 WHERE status = 'PENDING';
@@ -324,6 +358,7 @@ CREATE TABLE IF NOT EXISTS lost_card_case_documents (
 CREATE INDEX IF NOT EXISTS ix_lost_card_documents_case ON lost_card_case_documents(lost_card_case_id);
 CREATE INDEX IF NOT EXISTS ix_lost_card_documents_type ON lost_card_case_documents(document_type);
 CREATE INDEX IF NOT EXISTS ix_lost_card_documents_uploaded_at ON lost_card_case_documents(uploaded_at);
+CREATE INDEX IF NOT EXISTS ix_lost_card_documents_uploaded_by ON lost_card_case_documents(uploaded_by);
 CREATE INDEX IF NOT EXISTS ix_lost_card_documents_active_case
 ON lost_card_case_documents(lost_card_case_id)
 WHERE deleted_at IS NULL;
@@ -335,11 +370,16 @@ CREATE INDEX IF NOT EXISTS ix_lost_card_refunds_case ON lost_card_refunds(lost_c
 CREATE INDEX IF NOT EXISTS ix_lost_card_refunds_session ON lost_card_refunds(session_id);
 CREATE INDEX IF NOT EXISTS ix_lost_card_refunds_status ON lost_card_refunds(status);
 CREATE INDEX IF NOT EXISTS ix_lost_card_refunds_payment ON lost_card_refunds(payment_id);
+CREATE INDEX IF NOT EXISTS ix_lost_card_refunds_recovered_card ON lost_card_refunds(recovered_card_id);
+CREATE INDEX IF NOT EXISTS ix_lost_card_refunds_replacement_card ON lost_card_refunds(replacement_card_id);
+CREATE INDEX IF NOT EXISTS ix_lost_card_refunds_approved_by ON lost_card_refunds(approved_by);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_lost_card_refund_by_case
 ON lost_card_refunds(lost_card_case_id);
 
 CREATE INDEX IF NOT EXISTS ix_plate_mismatch_cases_session ON plate_mismatch_cases(session_id);
 CREATE INDEX IF NOT EXISTS ix_plate_mismatch_cases_status ON plate_mismatch_cases(status);
+CREATE INDEX IF NOT EXISTS ix_plate_mismatch_cases_created_by ON plate_mismatch_cases(created_by);
+CREATE INDEX IF NOT EXISTS ix_plate_mismatch_cases_confirmed_by ON plate_mismatch_cases(confirmed_by);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pending_plate_mismatch_case_by_session
 ON plate_mismatch_cases(session_id)
 WHERE status = 'PENDING';
@@ -349,6 +389,39 @@ CREATE INDEX IF NOT EXISTS ix_audit_logs_action ON audit_logs(action);
 CREATE INDEX IF NOT EXISTS ix_audit_logs_target ON audit_logs(target_type, target_id);
 CREATE INDEX IF NOT EXISTS ix_audit_logs_created_at ON audit_logs(created_at);
 CREATE INDEX IF NOT EXISTS ix_audit_logs_source_service ON audit_logs(source_service);
+
+ALTER TABLE monthly_pass_applications ADD COLUMN IF NOT EXISTS cccd_front_image_url VARCHAR(500);
+ALTER TABLE monthly_pass_applications ADD COLUMN IF NOT EXISTS cccd_back_image_url VARCHAR(500);
+ALTER TABLE monthly_pass_applications ADD COLUMN IF NOT EXISTS face_image_url VARCHAR(500);
+ALTER TABLE monthly_pass_applications ADD COLUMN IF NOT EXISTS plate_image_url VARCHAR(500);
+ALTER TABLE monthly_pass_applications ADD COLUMN IF NOT EXISTS note TEXT;
+
+CREATE INDEX IF NOT EXISTS ix_monthly_pass_applications_driver ON monthly_pass_applications(driver_id);
+CREATE INDEX IF NOT EXISTS ix_monthly_pass_applications_vehicle ON monthly_pass_applications(vehicle_id);
+CREATE INDEX IF NOT EXISTS ix_monthly_pass_applications_status ON monthly_pass_applications(status);
+CREATE INDEX IF NOT EXISTS ix_monthly_pass_applications_start_date ON monthly_pass_applications(start_date);
+CREATE INDEX IF NOT EXISTS ix_monthly_pass_applications_assigned_card ON monthly_pass_applications(assigned_card_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_active_monthly_pass_application_card
+ON monthly_pass_applications(assigned_card_id)
+WHERE status = 'ACTIVE' AND assigned_card_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS ix_notifications_user_created_at
+ON notifications(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_notifications_unread_user_created_at
+ON notifications(user_id, created_at DESC)
+WHERE is_read = false;
+CREATE INDEX IF NOT EXISTS ix_notifications_monthly_pass ON notifications(monthly_pass_id);
+CREATE INDEX IF NOT EXISTS ix_notifications_reservation ON notifications(reservation_id);
+CREATE INDEX IF NOT EXISTS ix_notifications_payment ON notifications(payment_id);
+CREATE INDEX IF NOT EXISTS ix_notifications_parking_session ON notifications(parking_session_id);
+CREATE INDEX IF NOT EXISTS ix_notifications_type ON notifications(type);
+
+CREATE INDEX IF NOT EXISTS ix_feedbacks_user ON feedbacks(user_id);
+CREATE INDEX IF NOT EXISTS ix_feedbacks_parking_session ON feedbacks(parking_session_id);
+CREATE INDEX IF NOT EXISTS ix_feedbacks_reservation ON feedbacks(reservation_id);
+CREATE INDEX IF NOT EXISTS ix_feedbacks_responded_by ON feedbacks(responded_by);
+CREATE INDEX IF NOT EXISTS ix_feedbacks_status ON feedbacks(status);
+CREATE INDEX IF NOT EXISTS ix_feedbacks_created_at ON feedbacks(created_at DESC);
 
 DO $$
 BEGIN
@@ -601,6 +674,82 @@ BEGIN
     ALTER TABLE receipts
         ADD CONSTRAINT ck_receipts_payment_method
         CHECK (payment_method IN ('CASH', 'BANK_TRANSFER', 'NONE'));
+
+    ALTER TABLE monthly_pass_applications DROP CONSTRAINT IF EXISTS ck_monthly_pass_applications_price;
+    ALTER TABLE monthly_pass_applications
+        ADD CONSTRAINT ck_monthly_pass_applications_price
+        CHECK (price >= 0);
+
+    ALTER TABLE monthly_pass_applications DROP CONSTRAINT IF EXISTS ck_monthly_pass_applications_payment_method;
+    ALTER TABLE monthly_pass_applications
+        ADD CONSTRAINT ck_monthly_pass_applications_payment_method
+        CHECK (payment_method IS NULL OR payment_method IN ('CASH', 'BANK_TRANSFER', 'NONE'));
+
+    ALTER TABLE monthly_pass_applications DROP CONSTRAINT IF EXISTS ck_monthly_pass_applications_payment_state;
+    ALTER TABLE monthly_pass_applications
+        ADD CONSTRAINT ck_monthly_pass_applications_payment_state
+        CHECK (status NOT IN ('PAID', 'ACTIVE') OR payment_method IS NOT NULL);
+
+    ALTER TABLE monthly_pass_applications DROP CONSTRAINT IF EXISTS ck_monthly_pass_applications_assignment;
+    ALTER TABLE monthly_pass_applications
+        ADD CONSTRAINT ck_monthly_pass_applications_assignment
+        CHECK (status <> 'ACTIVE' OR assigned_card_id IS NOT NULL);
+
+    ALTER TABLE notifications DROP CONSTRAINT IF EXISTS ck_notifications_type;
+    ALTER TABLE notifications
+        ADD CONSTRAINT ck_notifications_type
+        CHECK (type IN ('MONTHLY_PASS', 'PAYMENT', 'RESERVATION', 'PRICE_CHANGE', 'SYSTEM'));
+
+    ALTER TABLE notifications DROP CONSTRAINT IF EXISTS ck_notifications_priority;
+    ALTER TABLE notifications
+        ADD CONSTRAINT ck_notifications_priority
+        CHECK (priority IN ('LOW', 'NORMAL', 'HIGH'));
+
+    ALTER TABLE notifications DROP CONSTRAINT IF EXISTS ck_notifications_title;
+    ALTER TABLE notifications
+        ADD CONSTRAINT ck_notifications_title
+        CHECK (NULLIF(BTRIM(title), '') IS NOT NULL);
+
+    ALTER TABLE notifications DROP CONSTRAINT IF EXISTS ck_notifications_content;
+    ALTER TABLE notifications
+        ADD CONSTRAINT ck_notifications_content
+        CHECK (NULLIF(BTRIM(content), '') IS NOT NULL);
+
+    ALTER TABLE notifications DROP CONSTRAINT IF EXISTS ck_notifications_read_audit;
+    ALTER TABLE notifications
+        ADD CONSTRAINT ck_notifications_read_audit
+        CHECK (
+            (is_read = false AND read_at IS NULL)
+            OR (is_read = true AND read_at IS NOT NULL)
+        );
+
+    ALTER TABLE feedbacks DROP CONSTRAINT IF EXISTS ck_feedbacks_status;
+    ALTER TABLE feedbacks
+        ADD CONSTRAINT ck_feedbacks_status
+        CHECK (status IN ('PENDING', 'IN_PROGRESS', 'RESOLVED', 'REJECTED'));
+
+    ALTER TABLE feedbacks DROP CONSTRAINT IF EXISTS ck_feedbacks_full_name;
+    ALTER TABLE feedbacks
+        ADD CONSTRAINT ck_feedbacks_full_name
+        CHECK (NULLIF(BTRIM(full_name), '') IS NOT NULL);
+
+    ALTER TABLE feedbacks DROP CONSTRAINT IF EXISTS ck_feedbacks_subject;
+    ALTER TABLE feedbacks
+        ADD CONSTRAINT ck_feedbacks_subject
+        CHECK (NULLIF(BTRIM(subject), '') IS NOT NULL);
+
+    ALTER TABLE feedbacks DROP CONSTRAINT IF EXISTS ck_feedbacks_content;
+    ALTER TABLE feedbacks
+        ADD CONSTRAINT ck_feedbacks_content
+        CHECK (NULLIF(BTRIM(content), '') IS NOT NULL);
+
+    ALTER TABLE feedbacks DROP CONSTRAINT IF EXISTS ck_feedbacks_response_audit;
+    ALTER TABLE feedbacks
+        ADD CONSTRAINT ck_feedbacks_response_audit
+        CHECK (
+            (responded_by IS NULL AND responded_at IS NULL)
+            OR (responded_by IS NOT NULL AND responded_at IS NOT NULL)
+        );
 END $$;
 
 CREATE OR REPLACE FUNCTION set_updated_at()
@@ -897,6 +1046,14 @@ CREATE OR REPLACE TRIGGER trg_plate_mismatch_cases_set_updated_at
 BEFORE UPDATE ON plate_mismatch_cases
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
+CREATE OR REPLACE TRIGGER trg_monthly_pass_applications_set_updated_at
+BEFORE UPDATE ON monthly_pass_applications
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE OR REPLACE TRIGGER trg_feedbacks_set_updated_at
+BEFORE UPDATE ON feedbacks
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
 CREATE OR REPLACE FUNCTION prevent_audit_logs_update_delete()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -907,3 +1064,5 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE TRIGGER trg_audit_logs_append_only
 BEFORE UPDATE OR DELETE ON audit_logs
 FOR EACH ROW EXECUTE FUNCTION prevent_audit_logs_update_delete();
+
+COMMIT;

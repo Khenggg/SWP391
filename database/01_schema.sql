@@ -2,6 +2,8 @@
 -- Source of truth for PostgreSQL/Supabase database structure.
 -- Run on an empty database before 02_seed.sql and 03_indexes_constraints.sql.
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS users (
     id BIGSERIAL PRIMARY KEY,
     full_name VARCHAR(150) NOT NULL,
@@ -679,10 +681,77 @@ CREATE TABLE IF NOT EXISTS monthly_pass_applications (
     price NUMERIC(12,2) NOT NULL DEFAULT 0,
     status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
     rejection_reason TEXT,
+    cccd_front_image_url VARCHAR(500),
+    cccd_back_image_url VARCHAR(500),
+    face_image_url VARCHAR(500),
+    plate_image_url VARCHAR(500),
+    note TEXT,
     payment_method VARCHAR(30),
     payment_reference_no VARCHAR(120),
     assigned_card_id BIGINT REFERENCES parking_cards(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT ck_monthly_pass_applications_status CHECK (status IN ('DRAFT', 'PENDING', 'APPROVED_AWAITING_PAYMENT', 'PAID', 'ACTIVE', 'EXPIRED', 'REJECTED'))
+    CONSTRAINT ck_monthly_pass_applications_status CHECK (status IN ('DRAFT', 'PENDING', 'APPROVED_AWAITING_PAYMENT', 'PAID', 'ACTIVE', 'EXPIRED', 'REJECTED')),
+    CONSTRAINT ck_monthly_pass_applications_price CHECK (price >= 0),
+    CONSTRAINT ck_monthly_pass_applications_payment_method CHECK (
+        payment_method IS NULL OR payment_method IN ('CASH', 'BANK_TRANSFER', 'NONE')
+    ),
+    CONSTRAINT ck_monthly_pass_applications_payment_state CHECK (
+        status NOT IN ('PAID', 'ACTIVE') OR payment_method IS NOT NULL
+    ),
+    CONSTRAINT ck_monthly_pass_applications_assignment CHECK (
+        status <> 'ACTIVE' OR assigned_card_id IS NOT NULL
+    )
 );
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    monthly_pass_id BIGINT REFERENCES monthly_passes(id) ON DELETE SET NULL,
+    reservation_id BIGINT REFERENCES reservations(id) ON DELETE SET NULL,
+    payment_id BIGINT REFERENCES payments(id) ON DELETE SET NULL,
+    parking_session_id BIGINT REFERENCES parking_sessions(id) ON DELETE SET NULL,
+    title VARCHAR(200) NOT NULL,
+    content TEXT NOT NULL,
+    type VARCHAR(255) NOT NULL,
+    priority VARCHAR(255) NOT NULL DEFAULT 'NORMAL',
+    is_read BOOLEAN NOT NULL DEFAULT false,
+    read_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT ck_notifications_type CHECK (type IN ('MONTHLY_PASS', 'PAYMENT', 'RESERVATION', 'PRICE_CHANGE', 'SYSTEM')),
+    CONSTRAINT ck_notifications_priority CHECK (priority IN ('LOW', 'NORMAL', 'HIGH')),
+    CONSTRAINT ck_notifications_title CHECK (NULLIF(BTRIM(title), '') IS NOT NULL),
+    CONSTRAINT ck_notifications_content CHECK (NULLIF(BTRIM(content), '') IS NOT NULL),
+    CONSTRAINT ck_notifications_read_audit CHECK (
+        (is_read = false AND read_at IS NULL)
+        OR (is_read = true AND read_at IS NOT NULL)
+    )
+);
+
+CREATE TABLE IF NOT EXISTS feedbacks (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    parking_session_id BIGINT REFERENCES parking_sessions(id) ON DELETE SET NULL,
+    reservation_id BIGINT REFERENCES reservations(id) ON DELETE SET NULL,
+    full_name VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    phone VARCHAR(255),
+    subject VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    status VARCHAR(255) NOT NULL DEFAULT 'PENDING',
+    response TEXT,
+    responded_by BIGINT REFERENCES users(id),
+    responded_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT ck_feedbacks_status CHECK (status IN ('PENDING', 'IN_PROGRESS', 'RESOLVED', 'REJECTED')),
+    CONSTRAINT ck_feedbacks_full_name CHECK (NULLIF(BTRIM(full_name), '') IS NOT NULL),
+    CONSTRAINT ck_feedbacks_subject CHECK (NULLIF(BTRIM(subject), '') IS NOT NULL),
+    CONSTRAINT ck_feedbacks_content CHECK (NULLIF(BTRIM(content), '') IS NOT NULL),
+    CONSTRAINT ck_feedbacks_response_audit CHECK (
+        (responded_by IS NULL AND responded_at IS NULL)
+        OR (responded_by IS NOT NULL AND responded_at IS NOT NULL)
+    )
+);
+
+COMMIT;

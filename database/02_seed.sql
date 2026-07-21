@@ -1,8 +1,10 @@
 -- Parking Building Management System - MVP seed data
 -- Run after 01_schema.sql. Demo passwords are "123456".
--- This file seeds baseline master/demo data only. Core transaction data
--- such as sessions, payments, receipts, lost-card cases and mismatch cases
--- should be created through APIs during flow tests.
+-- This file seeds baseline master/demo data plus two confirmed reservation/payment
+-- examples. Sessions, receipts, lost-card cases and mismatch cases should be
+-- created through APIs during flow tests.
+
+BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -53,16 +55,17 @@ ON CONFLICT (id) DO UPDATE SET
     requires_slot = EXCLUDED.requires_slot,
     updated_at = now();
 
-INSERT INTO vehicles (id, driver_id, plate_number, normalized_plate_number, vehicle_type_id, description, status)
+INSERT INTO vehicles (id, driver_id, plate_number, normalized_plate_number, vehicle_type_id, approval_status, description, status)
 VALUES
-    (1, 1, '51A-99999', '51A99999', 3, 'Demo monthly pass motorbike', 'ACTIVE'),
-    (2, 2, '29A-88888', '29A88888', 5, 'Other Driver Car', 'ACTIVE'),
-    (3, 1, '29A-11111', '29A11111', 5, 'Driver owned car', 'ACTIVE')
+    (1, 1, '51A-99999', '51A99999', 3, 'APPROVED', 'Demo monthly pass motorbike', 'ACTIVE'),
+    (2, 2, '29A-88888', '29A88888', 5, 'APPROVED', 'Other Driver Car', 'ACTIVE'),
+    (3, 1, '29A-11111', '29A11111', 5, 'APPROVED', 'Driver owned car', 'ACTIVE')
 ON CONFLICT (id) DO UPDATE SET
     driver_id = EXCLUDED.driver_id,
     plate_number = EXCLUDED.plate_number,
     normalized_plate_number = EXCLUDED.normalized_plate_number,
     vehicle_type_id = EXCLUDED.vehicle_type_id,
+    approval_status = EXCLUDED.approval_status,
     description = EXCLUDED.description,
     status = EXCLUDED.status,
     updated_at = now();
@@ -246,11 +249,14 @@ INSERT INTO reservations (
     floor_id,
     area_id,
     slot_id,
+    pricing_rule_id,
+    snapshot_reservation_hourly_price,
     reserved_duration_minutes,
     booking_amount,
     payment_status,
     reserved_at,
     expires_at,
+    confirmed_at,
     status,
     created_by
 )
@@ -265,11 +271,14 @@ VALUES (
     1,
     2,
     12, -- Slot 12
+    5,
+    10000,
     60,
-    20000,
+    10000,
     'PAID',
     now(),
     now() + interval '60 minutes',
+    now(),
     'CONFIRMED',
     2
 ),
@@ -284,11 +293,14 @@ VALUES (
     1,
     1,
     NULL,
+    3,
+    2000,
     60,
-    5000,
+    2000,
     'PAID',
     now(),
     now() + interval '60 minutes',
+    now(),
     'CONFIRMED',
     2
 )
@@ -302,18 +314,74 @@ ON CONFLICT (id) DO UPDATE SET
     floor_id = EXCLUDED.floor_id,
     area_id = EXCLUDED.area_id,
     slot_id = EXCLUDED.slot_id,
+    pricing_rule_id = EXCLUDED.pricing_rule_id,
+    snapshot_reservation_hourly_price = EXCLUDED.snapshot_reservation_hourly_price,
     reserved_duration_minutes = EXCLUDED.reserved_duration_minutes,
     booking_amount = EXCLUDED.booking_amount,
     payment_status = EXCLUDED.payment_status,
     reserved_at = EXCLUDED.reserved_at,
     expires_at = EXCLUDED.expires_at,
+    confirmed_at = EXCLUDED.confirmed_at,
     status = EXCLUDED.status,
     created_by = EXCLUDED.created_by,
     updated_at = now();
 
-UPDATE slots
-SET status = 'RESERVED'
-WHERE id = 12;
+INSERT INTO payments (
+    id,
+    reservation_id,
+    amount,
+    lost_card_fee,
+    total_amount,
+    purpose,
+    method,
+    status,
+    paid_by_user_id,
+    received_amount,
+    fee_calculated_at,
+    paid_at,
+    collected_by
+)
+VALUES
+    (1, 1001, 10000, 0, 10000, 'RESERVATION_FEE', 'CASH', 'PAID', 4, 10000, now(), now(), 2),
+    (2, 1002, 2000, 0, 2000, 'RESERVATION_FEE', 'CASH', 'PAID', 4, 2000, now(), now(), 2)
+ON CONFLICT (id) DO UPDATE SET
+    reservation_id = EXCLUDED.reservation_id,
+    amount = EXCLUDED.amount,
+    lost_card_fee = EXCLUDED.lost_card_fee,
+    total_amount = EXCLUDED.total_amount,
+    purpose = EXCLUDED.purpose,
+    method = EXCLUDED.method,
+    status = EXCLUDED.status,
+    paid_by_user_id = EXCLUDED.paid_by_user_id,
+    received_amount = EXCLUDED.received_amount,
+    fee_calculated_at = EXCLUDED.fee_calculated_at,
+    paid_at = EXCLUDED.paid_at,
+    collected_by = EXCLUDED.collected_by,
+    updated_at = now();
+
+UPDATE areas AS area
+SET current_booked_slots = (
+    SELECT count(*)::INT
+    FROM reservations AS reservation
+    JOIN vehicle_types AS vehicle_type
+      ON vehicle_type.id = reservation.vehicle_type_id
+    WHERE reservation.area_id = area.id
+      AND vehicle_type.requires_slot = false
+      AND reservation.status IN ('PENDING', 'CONFIRMED')
+);
+
+UPDATE slots AS slot
+SET status = CASE
+    WHEN EXISTS (
+        SELECT 1
+        FROM reservations AS reservation
+        WHERE reservation.slot_id = slot.id
+          AND reservation.status IN ('PENDING', 'CONFIRMED')
+    ) THEN 'RESERVED'
+    ELSE 'AVAILABLE'
+END
+WHERE slot.current_session_id IS NULL
+  AND slot.status IN ('AVAILABLE', 'RESERVED');
 
 SELECT setval('users_id_seq', COALESCE((SELECT max(id) FROM users), 1), (SELECT count(*) > 0 FROM users));
 SELECT setval('driver_profiles_id_seq', COALESCE((SELECT max(id) FROM driver_profiles), 1), (SELECT count(*) > 0 FROM driver_profiles));
@@ -330,9 +398,16 @@ SELECT setval('reservations_id_seq', COALESCE((SELECT max(id) FROM reservations)
 SELECT setval('parking_sessions_id_seq', COALESCE((SELECT max(id) FROM parking_sessions), 1), (SELECT count(*) > 0 FROM parking_sessions));
 SELECT setval('parking_session_images_id_seq', COALESCE((SELECT max(id) FROM parking_session_images), 1), (SELECT count(*) > 0 FROM parking_session_images));
 SELECT setval('payments_id_seq', COALESCE((SELECT max(id) FROM payments), 1), (SELECT count(*) > 0 FROM payments));
+SELECT setval('payment_attempts_id_seq', COALESCE((SELECT max(id) FROM payment_attempts), 1), (SELECT count(*) > 0 FROM payment_attempts));
 SELECT setval('reservation_extensions_id_seq', COALESCE((SELECT max(id) FROM reservation_extensions), 1), (SELECT count(*) > 0 FROM reservation_extensions));
 SELECT setval('receipts_id_seq', COALESCE((SELECT max(id) FROM receipts), 1), (SELECT count(*) > 0 FROM receipts));
 SELECT setval('lost_card_cases_id_seq', COALESCE((SELECT max(id) FROM lost_card_cases), 1), (SELECT count(*) > 0 FROM lost_card_cases));
+SELECT setval('lost_card_case_documents_id_seq', COALESCE((SELECT max(id) FROM lost_card_case_documents), 1), (SELECT count(*) > 0 FROM lost_card_case_documents));
 SELECT setval('lost_card_refunds_id_seq', COALESCE((SELECT max(id) FROM lost_card_refunds), 1), (SELECT count(*) > 0 FROM lost_card_refunds));
 SELECT setval('plate_mismatch_cases_id_seq', COALESCE((SELECT max(id) FROM plate_mismatch_cases), 1), (SELECT count(*) > 0 FROM plate_mismatch_cases));
 SELECT setval('audit_logs_id_seq', COALESCE((SELECT max(id) FROM audit_logs), 1), (SELECT count(*) > 0 FROM audit_logs));
+SELECT setval('monthly_pass_applications_id_seq', COALESCE((SELECT max(id) FROM monthly_pass_applications), 1), (SELECT count(*) > 0 FROM monthly_pass_applications));
+SELECT setval('notifications_id_seq', COALESCE((SELECT max(id) FROM notifications), 1), (SELECT count(*) > 0 FROM notifications));
+SELECT setval('feedbacks_id_seq', COALESCE((SELECT max(id) FROM feedbacks), 1), (SELECT count(*) > 0 FROM feedbacks));
+
+COMMIT;

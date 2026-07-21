@@ -31,6 +31,7 @@ using ParkingBuilding.CoreApi.Application.Reservations;
 using ParkingBuilding.CoreApi.Application.MonthlyPasses;
 using ParkingBuilding.CoreApi.Application.Payments;
 using ParkingBuilding.CoreApi.Application.Storage;
+using ParkingBuilding.CoreApi.Application.LostCards;
 using ParkingBuilding.CoreApi.Application.LostCards.Documents;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.Exit;
 
@@ -307,17 +308,6 @@ using (var scope = app.Services.CreateScope())
         if (context.Database.CanConnect())
         {
             Console.WriteLine("\n[SUCCESS] ======> ĐÃ KẾT NỐI ĐẾN POSTGRESQL/SUPABASE DATABASE THÀNH CÔNG! <======\n");
-            
-            // Tự động cập nhật thêm các cột cho monthly_pass_applications
-            Console.WriteLine("======> Đang kiểm tra và cập nhật Schema cho monthly_pass_applications...");
-            await context.Database.ExecuteSqlRawAsync(@"
-                ALTER TABLE monthly_pass_applications ADD COLUMN IF NOT EXISTS cccd_front_image_url VARCHAR(500);
-                ALTER TABLE monthly_pass_applications ADD COLUMN IF NOT EXISTS cccd_back_image_url VARCHAR(500);
-                ALTER TABLE monthly_pass_applications ADD COLUMN IF NOT EXISTS face_image_url VARCHAR(500);
-                ALTER TABLE monthly_pass_applications ADD COLUMN IF NOT EXISTS plate_image_url VARCHAR(500);
-                ALTER TABLE monthly_pass_applications ADD COLUMN IF NOT EXISTS note TEXT;
-            ");
-            Console.WriteLine("[SUCCESS] ======> Cập nhật Schema hoàn tất! <======\n");
         }
         else
         {
