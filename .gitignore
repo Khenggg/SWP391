@@ -42,6 +42,9 @@ coverage/
 .env
 .env.local
 .env.*
+!frontend/.env.production.example
+!backend/ParkingBuilding.CoreApi/.env.example
+!backend/parking-building-support-api/.env.example
 env.ps1
 env.local.ps1
 env.bat

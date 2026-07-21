@@ -1,10 +1,11 @@
 import axios from "axios";
+import { apiRequestTimeout } from "./requestTimeout";
 import { clearAuthStorage, refreshAccessToken } from "../services/sessionService";
 
 // Khởi tạo instance Axios cho Core API Service (.NET)
 const coreAxiosClient = axios.create({
   baseURL: import.meta.env.VITE_CORE_API_URL || "/api/core",
-  timeout: 20000,
+  timeout: apiRequestTimeout,
   headers: {
     "Content-Type": "application/json",
   },
@@ -32,7 +33,7 @@ coreAxiosClient.interceptors.response.use(
     if (error.code === "ECONNABORTED") {
       return Promise.reject({
         success: false,
-        message: "Core Service xu ly qua thoi gian cho phep. Neu dang tao QR PayOS, vui long thu lai sau vai giay.",
+        message: "Core Service dang khoi dong hoac phan hoi qua cham. Vui long thu lai sau vai giay.",
       });
     }
 

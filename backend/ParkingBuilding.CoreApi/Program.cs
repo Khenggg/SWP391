@@ -34,18 +34,28 @@ using ParkingBuilding.CoreApi.Application.LostCards;
 using ParkingBuilding.CoreApi.Application.Mismatch;
 using ParkingBuilding.CoreApi.Application.LostCards.Documents;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.Exit;
+using ParkingBuilding.CoreApi.Infrastructure.Configuration;
 
+LocalEnvironmentFile.LoadIfPresent(Directory.GetCurrentDirectory());
 var builder = WebApplication.CreateBuilder(args);
+
+var allowedOrigins = (builder.Configuration["CORS_ALLOWED_ORIGINS"]
+        ?? "http://localhost:5173,http://127.0.0.1:5173")
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray();
+
+if (allowedOrigins.Length == 0)
+{
+    throw new InvalidOperationException("CORS_ALLOWED_ORIGINS must contain at least one origin.");
+}
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("FrontendDev", policy =>
+    options.AddPolicy("Frontend", policy =>
     {
         policy
-            .WithOrigins(
-                "http://localhost:5173",
-                "http://127.0.0.1:5173"
-            )
+            .WithOrigins(allowedOrigins)
             .AllowAnyMethod()
             .AllowAnyHeader();
     });
@@ -328,7 +338,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseCors("FrontendDev");
+app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
