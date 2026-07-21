@@ -126,11 +126,28 @@ export default function StaffEntryPage() {
     setLastDeviceEvent(null);
   }, []);
 
+  const resolveGateId = useCallback((overrideGateId) => {
+    const direct = parseNumber(overrideGateId);
+    if (direct != null) return direct;
+
+    if (typeof overrideGateId === "string" && overrideGateId.trim()) {
+      const matched = gates.find(
+        (g) => g.gateCode.toLowerCase() === overrideGateId.trim().toLowerCase()
+      );
+      if (matched) return matched.id;
+    }
+
+    const currentGateId = parseNumber(form.entryGateId);
+    if (currentGateId != null) return currentGateId;
+
+    return gates[0]?.id ?? null;
+  }, [form.entryGateId, gates]);
+
   const handleCheckCard = useCallback(async (overrideCardCode, overrideGateId) => {
     const cardCode = normalizeText(overrideCardCode || form.cardCode);
-    const entryGateId = parseNumber(overrideGateId || form.entryGateId);
+    const entryGateId = resolveGateId(overrideGateId);
     if (!cardCode || entryGateId == null) {
-      toast.error("Nhập mã thẻ và cổng vào hợp lệ trước khi kiểm tra.");
+      toast.error("Nhập mã thẻ và chọn cổng vào hợp lệ trước khi kiểm tra.");
       return;
     }
 
@@ -149,6 +166,7 @@ export default function StaffEntryPage() {
         setForm((current) => ({
           ...current,
           entryMode: "MONTHLY",
+          entryGateId: String(entryGateId),
           noPlate: false,
           vehicleDescription: "",
           licensePlate: result.plateNumber || current.licensePlate,
@@ -161,6 +179,7 @@ export default function StaffEntryPage() {
         setForm((current) => ({
           ...current,
           entryMode: current.entryMode === "MONTHLY" ? "CASUAL" : current.entryMode,
+          entryGateId: String(entryGateId),
         }));
         toast.success("Thẻ hợp lệ cho luồng khách vãng lai.");
       }
@@ -170,13 +189,13 @@ export default function StaffEntryPage() {
     } finally {
       setIsCheckingCard(false);
     }
-  }, [form.cardCode, form.entryGateId]);
+  }, [form.cardCode, resolveGateId]);
 
   const handleCheckReservation = useCallback(async (overrideReservationCode, overrideGateId) => {
     const reservationCode = normalizeText(overrideReservationCode || form.reservationCode);
-    const entryGateId = parseNumber(overrideGateId || form.entryGateId);
+    const entryGateId = resolveGateId(overrideGateId);
     if (!reservationCode || entryGateId == null) {
-      toast.error("Nhập mã booking và cổng vào hợp lệ trước khi kiểm tra.");
+      toast.error("Nhập mã booking và chọn cổng vào hợp lệ trước khi kiểm tra.");
       return;
     }
 
@@ -192,6 +211,7 @@ export default function StaffEntryPage() {
       setForm((current) => ({
         ...current,
         entryMode: "RESERVATION",
+        entryGateId: String(entryGateId),
         noPlate: result.plateRequiredAtEntry ? false : current.noPlate,
         vehicleDescription: result.plateRequiredAtEntry
           ? ""
@@ -223,7 +243,7 @@ export default function StaffEntryPage() {
     } finally {
       setIsCheckingReservation(false);
     }
-  }, [form.entryGateId, form.reservationCode]);
+  }, [form.reservationCode, resolveGateId]);
 
   const applyEntryDeviceEvent = useCallback((event) => {
     if (event.gateType !== "ENTRY" || processedEventRef.current === event.id) {
@@ -236,6 +256,7 @@ export default function StaffEntryPage() {
     const targetCardCode = event.cardCode;
     const targetReservationCode = event.qrToken || event.bookingId;
     const isBookingScan = event.scanType === "BOOKING_QR" || (targetReservationCode && /^BK-/i.test(targetReservationCode));
+    const matchedGateId = resolveGateId(event.gateCode || event.gateId);
 
     setForm((current) => {
       let nextMode = current.entryMode;
@@ -246,6 +267,7 @@ export default function StaffEntryPage() {
       return {
         ...current,
         entryMode: nextMode,
+        entryGateId: matchedGateId ? String(matchedGateId) : current.entryGateId,
         cardCode: targetCardCode || current.cardCode,
         licensePlate: event.detectedPlate || current.licensePlate,
         detectedPlateNumber: event.detectedPlate || current.detectedPlateNumber,
@@ -265,14 +287,14 @@ export default function StaffEntryPage() {
     // Auto check card or reservation if code provided
     if (isBookingScan && targetReservationCode) {
       setTimeout(() => {
-        void handleCheckReservation(targetReservationCode, form.entryGateId);
+        void handleCheckReservation(targetReservationCode, matchedGateId);
       }, 100);
     } else if (targetCardCode) {
       setTimeout(() => {
-        void handleCheckCard(targetCardCode, form.entryGateId);
+        void handleCheckCard(targetCardCode, matchedGateId);
       }, 100);
     }
-  }, [form.entryGateId, handleCheckCard, handleCheckReservation]);
+  }, [handleCheckCard, handleCheckReservation, resolveGateId]);
 
   useEffect(() => {
     const lastEvent = getLastGateScanEvent("ENTRY");
