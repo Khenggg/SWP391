@@ -1,11 +1,12 @@
 import coreAxiosClient from "../api/coreAxiosClient";
 
 export const userService = {
-  getUsers: async ({ keyword = "", role = "", status = "", page = 1, pageSize = 20 } = {}) => {
+  getUsers: async ({ keyword = "", role = "", driverType = "", status = "", page = 1, pageSize = 20 } = {}) => {
     const response = await coreAxiosClient.get("/users", {
       params: {
         keyword: keyword || undefined,
         role: role || undefined,
+        driverType: driverType || undefined,
         status: status || undefined,
         page,
         pageSize,

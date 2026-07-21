@@ -443,7 +443,12 @@ export default function UserManagementPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">Tất cả vai trò</SelectItem>
-                  {ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  <SelectItem value="ADMIN">ADMIN</SelectItem>
+                  <SelectItem value="MANAGER">MANAGER</SelectItem>
+                  <SelectItem value="STAFF">STAFF</SelectItem>
+                  <SelectItem value="DRIVER_RESIDENT">DRIVER (Cư dân)</SelectItem>
+                  <SelectItem value="DRIVER_VISITOR">DRIVER (Vãng lai)</SelectItem>
+                  <SelectItem value="DRIVER">DRIVER (Tất cả tài xế)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -522,9 +527,21 @@ export default function UserManagementPage() {
                         <TableCell className="py-3 text-slate-500 text-sm">{user.email || "-"}</TableCell>
                         <TableCell className="py-3 font-mono text-slate-600 text-sm">{user.phone || "-"}</TableCell>
                         <TableCell className="py-3 text-center">
-                          <Badge variant="outline" className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase border ${ROLE_BADGE[user.role]}`}>
-                            {user.role}
-                          </Badge>
+                          {user.role === "DRIVER" ? (
+                            user.driverType === "RESIDENT" ? (
+                              <Badge variant="outline" className="px-2 py-0.5 rounded text-[10px] font-black uppercase border bg-purple-50 text-purple-700 border-purple-200">
+                                DRIVER (Cư dân{user.apartmentNumber ? ` - ${user.apartmentNumber}` : ''})
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="px-2 py-0.5 rounded text-[10px] font-black uppercase border bg-slate-100 text-slate-700 border-slate-300">
+                                DRIVER (Vãng lai)
+                              </Badge>
+                            )
+                          ) : (
+                            <Badge variant="outline" className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase border ${ROLE_BADGE[user.role] || "bg-slate-50 text-slate-700"}`}>
+                              {user.role}
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell className="py-3 text-center">
                           <Badge variant="outline" className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase border ${STATUS_BADGE[user.status]}`}>
@@ -628,6 +645,36 @@ export default function UserManagementPage() {
                     </div>
                     <div className="font-mono font-medium text-slate-700">{selectedUser.phone || "-"}</div>
                   </div>
+                  {selectedUser.role === "DRIVER" && (
+                    <>
+                      <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+                        <div className="flex items-center gap-1.5 text-slate-500 font-medium text-xs">
+                           <Users className="w-3.5 h-3.5" /> Phân loại
+                        </div>
+                        <div className="font-bold text-xs">
+                          {selectedUser.driverType === "RESIDENT" ? (
+                            <span className="text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded font-black">
+                              DRIVER CƯ DÂN
+                            </span>
+                          ) : (
+                            <span className="text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded font-bold">
+                              DRIVER VẮNG LAI
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {selectedUser.driverType === "RESIDENT" && (
+                        <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+                          <div className="flex items-center gap-1.5 text-slate-500 font-medium text-xs">
+                             <Briefcase className="w-3.5 h-3.5" /> Căn hộ
+                          </div>
+                          <div className="font-bold text-slate-800 text-sm">
+                            {selectedUser.apartmentNumber || "Chưa cập nhật"}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
                   <div className="grid grid-cols-[100px_1fr] items-start gap-2">
                     <div className="flex items-center gap-1.5 text-slate-500 font-medium text-xs mt-0.5">
                        <FileText className="w-3.5 h-3.5" /> Ghi chú
