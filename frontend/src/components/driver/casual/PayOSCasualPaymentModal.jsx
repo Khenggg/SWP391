@@ -17,6 +17,53 @@ export default function PayOSCasualPaymentModal({ open, onClose, session, onPaym
   const [isSuccess, setIsSuccess] = useState(false);
   const [copiedField, setCopiedField] = useState("");
 
+  const handleInitPayment = async () => {
+    setLoading(true);
+    setQrError("");
+    setQrDataUrl("");
+    try {
+      const res = await driverService.createOnlineExitPayment({
+        sessionId: session.sessionId,
+        cardCode: session.cardCode,
+      });
+
+      if (!res.paymentUrl && res.amount === 0) {
+        setIsSuccess(true);
+        toast.success(res.message || "Phí đỗ xe là 0đ. Không cần thanh toán.");
+        setTimeout(() => onPaymentSuccess?.(), 1500);
+        return;
+      }
+
+      setPaymentData(res);
+
+      const qrTarget = res.qrCode || res.paymentUrl;
+      if (qrTarget) {
+        const dataUrl = await QRCode.toDataURL(qrTarget, {
+          width: 240,
+          margin: 1,
+          errorCorrectionLevel: "M",
+          color: { dark: "#0f172a", light: "#ffffff" },
+        });
+        setQrDataUrl(dataUrl);
+      } else {
+        setQrError("Không thể tạo dữ liệu VietQR từ PayOS.");
+      }
+
+      if (res.expiredAt) {
+        const secs = Math.max(0, Math.floor((new Date(res.expiredAt).getTime() - Date.now()) / 1000));
+        setTimeLeft(secs);
+      } else {
+        setTimeLeft(900);
+      }
+    } catch (err) {
+      console.error("Init casual online payment failed:", err);
+      setQrError(err.message || "Không thể tạo liên kết thanh toán PayOS.");
+      toast.error(err.message || "Tạo liên kết thanh toán thất bại.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!open || !session) {
       setPaymentData(null);
@@ -26,51 +73,7 @@ export default function PayOSCasualPaymentModal({ open, onClose, session, onPaym
       return;
     }
 
-    const initPayment = async () => {
-      setLoading(true);
-      setQrError("");
-      try {
-        const res = await driverService.createOnlineExitPayment({
-          sessionId: session.sessionId,
-          cardCode: session.cardCode,
-        });
-
-        if (!res.paymentUrl && res.amount === 0) {
-          setIsSuccess(true);
-          toast.success(res.message || "Phí đỗ xe là 0đ. Không cần thanh toán.");
-          setTimeout(() => onPaymentSuccess?.(), 1500);
-          return;
-        }
-
-        setPaymentData(res);
-
-        const qrTarget = res.qrCode || res.paymentUrl;
-        if (qrTarget) {
-          const dataUrl = await QRCode.toDataURL(qrTarget, {
-            width: 240,
-            margin: 1,
-            errorCorrectionLevel: "M",
-            color: { dark: "#0f172a", light: "#ffffff" },
-          });
-          setQrDataUrl(dataUrl);
-        } else {
-          setQrError("Không thể tạo dữ liệu VietQR từ PayOS.");
-        }
-
-        if (res.expiredAt) {
-          const secs = Math.max(0, Math.floor((new Date(res.expiredAt).getTime() - Date.now()) / 1000));
-          setTimeLeft(secs);
-        }
-      } catch (err) {
-        console.error("Init casual online payment failed:", err);
-        setQrError(err.message || "Không thể tạo liên kết thanh toán PayOS.");
-        toast.error(err.message || "Tạo liên kết thanh toán thất bại.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initPayment();
+    handleInitPayment();
   }, [open, session]);
 
   useEffect(() => {
@@ -176,38 +179,58 @@ export default function PayOSCasualPaymentModal({ open, onClose, session, onPaym
           </div>
         ) : (
           <div className="space-y-4 pt-2 text-xs font-semibold text-slate-400">
-            <div className="flex justify-between items-center bg-slate-950 p-3.5 rounded-xl border border-slate-800">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+            {timeLeft <= 0 ? (
+              <div className="bg-rose-950/40 border border-rose-500/30 p-4 rounded-xl flex flex-col items-center gap-3 text-center">
+                <AlertCircle className="w-8 h-8 text-rose-400 animate-pulse" />
                 <div>
-                  <span className="text-[10px] text-slate-500 block">Thời gian thanh toán còn lại:</span>
-                  <span className="text-slate-200 font-black text-sm">{formatTimer(timeLeft)}</span>
+                  <h4 className="text-xs font-bold text-rose-300">Mã VietQR đã hết hạn thanh toán</h4>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Phí gửi xe được tính theo thời gian thực tế đỗ trong bãi. Vui lòng bấm nút dưới đây để cập nhật lại số tiền và tạo mã VietQR mới.
+                  </p>
                 </div>
-              </div>
-              {paymentData?.paymentUrl && (
-                <a
-                  href={paymentData.paymentUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] uppercase px-3.5 py-2 rounded-lg shadow transition shrink-0"
+                <Button
+                  onClick={handleInitPayment}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs px-5 py-2 h-9 rounded-lg shadow-lg"
                 >
-                  Mở PayOS Web <ExternalLink className="w-3 h-3" />
-                </a>
-              )}
-            </div>
-
-            <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-indigo-950/20 max-w-[240px] mx-auto shadow-lg shadow-indigo-950/10">
-              {qrDataUrl ? (
-                <img src={qrDataUrl} alt="VietQR PayOS Casual Exit Fee" className="w-[180px] h-[180px] rounded-lg" />
-              ) : (
-                <div className="w-[180px] h-[180px] bg-slate-50 border border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-400">
-                  QR Loading...
+                  Tạo mã VietQR thanh toán mới
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+                    <div>
+                      <span className="text-[10px] text-slate-500 block">Thời gian thanh toán còn lại:</span>
+                      <span className="text-slate-200 font-black text-sm">{formatTimer(timeLeft)}</span>
+                    </div>
+                  </div>
+                  {paymentData?.paymentUrl && (
+                    <a
+                      href={paymentData.paymentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] uppercase px-3.5 py-2 rounded-lg shadow transition shrink-0"
+                    >
+                      Mở PayOS Web <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
                 </div>
-              )}
-              <span className="text-[9px] font-black text-slate-400 tracking-wider uppercase mt-2 select-none">
-                Quét mã QR qua ứng dụng Ngân hàng
-              </span>
-            </div>
+
+                <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-indigo-950/20 max-w-[240px] mx-auto shadow-lg shadow-indigo-950/10">
+                  {qrDataUrl ? (
+                    <img src={qrDataUrl} alt="VietQR PayOS Casual Exit Fee" className="w-[180px] h-[180px] rounded-lg" />
+                  ) : (
+                    <div className="w-[180px] h-[180px] bg-slate-50 border border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-400">
+                      QR Loading...
+                    </div>
+                  )}
+                  <span className="text-[9px] font-black text-slate-400 tracking-wider uppercase mt-2 select-none">
+                    Quét mã QR qua ứng dụng Ngân hàng
+                  </span>
+                </div>
+              </>
+            )}
 
             <div className="bg-slate-950/50 p-4 border border-slate-800 rounded-xl space-y-3">
               <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-wide border-b border-slate-800 pb-1.5">
