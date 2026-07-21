@@ -226,7 +226,8 @@ export default function DriverBookingPage() {
     if (rule && rule.reservationHourlyPrice !== undefined && rule.reservationHourlyPrice !== null) {
       return Number(rule.reservationHourlyPrice);
     }
-    return selectedVehicle.vehicleTypeName === "Ô Tô" ? 20000 : 5000;
+    const isCar = selectedVehicle.vehicleTypeName?.toLowerCase() === "ô tô" || selectedVehicle.vehicleTypeName?.toLowerCase() === "ô tô điện" || Number(targetTypeId) === 5 || Number(targetTypeId) === 6;
+    return isCar ? 10000 : 2000;
   };
 
   const hourlyPrice = getDynamicHourlyPrice();
