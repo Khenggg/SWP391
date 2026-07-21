@@ -458,11 +458,21 @@ export default function GateSimulatorPage() {
                     variant="outline"
                     className="flex flex-col items-start justify-center h-auto py-2 px-3 bg-white hover:bg-blue-100 hover:border-blue-300 border-blue-200 text-left transition-all shadow-sm rounded-lg"
                     onClick={() => {
-                      setForm((current) => ({
-                        ...current,
+                      const nextForm = {
+                        ...form,
                         ...preset.values,
-                      }));
-                      toast.success(`Đã chọn mẫu "${preset.label}". Bấm "Send sang Staff UI" để gửi.`);
+                      };
+                      setForm(nextForm);
+                      const eventForm =
+                        nextForm.gateType === "ENTRY" && nextForm.scanType === "CARD" && isBookingToken(nextForm.qrToken)
+                          ? withScanTypeDefaults({ ...nextForm, bookingId: normalizeBookingToken(nextForm.qrToken) }, "BOOKING_QR", "ENTRY")
+                          : nextForm;
+                      const sent = sendGateScanEvent({
+                        ...eventForm,
+                        capturedAt: new Date().toISOString(),
+                      });
+                      setLastSent(sent);
+                      toast.success(`🚀 Đã gửi mẫu "${preset.label}" sang Staff UI!`);
                     }}
                   >
                     <span className="font-bold text-xs text-blue-950">{preset.label}</span>
