@@ -43,6 +43,7 @@ public class UsersController : BaseApiController
     public async Task<IActionResult> GetAll(
         [FromQuery] string? keyword,
         [FromQuery] string? role,
+        [FromQuery] string? driverType,
         [FromQuery] string? status,
         [FromQuery] string? search,
         [FromQuery] int page = 1,
@@ -57,32 +58,61 @@ public class UsersController : BaseApiController
                 new[] { "page: Page must be at least 1.", "pageSize: Page size must be between 1 and 100." });
         }
 
-        var query = _context.Users
-            .Where(user => !user.DeletedAt.HasValue)
-            .AsQueryable();
+        var query = from user in _context.Users
+                    where !user.DeletedAt.HasValue
+                    join dp in _context.DriverProfiles on user.Id equals dp.UserId into dpGroup
+                    from dp in dpGroup.DefaultIfEmpty()
+                    select new { User = user, DriverProfile = dp };
 
         var cleanKeyword = (keyword ?? search)?.Trim().ToLower();
         if (!string.IsNullOrWhiteSpace(cleanKeyword))
         {
-            query = query.Where(user =>
-                user.FullName.ToLower().Contains(cleanKeyword) ||
-                user.Username.ToLower().Contains(cleanKeyword) ||
-                (user.Email != null && user.Email.ToLower().Contains(cleanKeyword)) ||
-                (user.Phone != null && user.Phone.Contains(cleanKeyword)));
+            query = query.Where(x =>
+                x.User.FullName.ToLower().Contains(cleanKeyword) ||
+                x.User.Username.ToLower().Contains(cleanKeyword) ||
+                (x.User.Email != null && x.User.Email.ToLower().Contains(cleanKeyword)) ||
+                (x.User.Phone != null && x.User.Phone.Contains(cleanKeyword)) ||
+                (x.DriverProfile != null && x.DriverProfile.ApartmentNumber != null && x.DriverProfile.ApartmentNumber.ToLower().Contains(cleanKeyword)));
         }
 
-        if (!string.IsNullOrWhiteSpace(role))
-        {
-            if (!Enum.TryParse<UserRole>(role.Trim(), true, out var parsedRole))
-            {
-                return Failure(
-                    ErrorMessages.GetMessage(ErrorCodes.InvalidUserRole),
-                    ErrorCodes.InvalidUserRole,
-                    StatusCodes.Status400BadRequest,
-                    new[] { ErrorCodes.InvalidUserRole });
-            }
+        var cleanRole = role?.Trim();
+        var cleanDriverType = driverType?.Trim()?.ToUpperInvariant();
 
-            query = query.Where(user => user.Role == parsedRole);
+        if (!string.IsNullOrWhiteSpace(cleanRole))
+        {
+            if (cleanRole.Equals("DRIVER_RESIDENT", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(x => x.User.Role == UserRole.DRIVER && x.DriverProfile != null && x.DriverProfile.DriverType == "RESIDENT");
+            }
+            else if (cleanRole.Equals("DRIVER_VISITOR", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(x => x.User.Role == UserRole.DRIVER && (x.DriverProfile == null || x.DriverProfile.DriverType == "VISITOR"));
+            }
+            else
+            {
+                if (!Enum.TryParse<UserRole>(cleanRole, true, out var parsedRole))
+                {
+                    return Failure(
+                        ErrorMessages.GetMessage(ErrorCodes.InvalidUserRole),
+                        ErrorCodes.InvalidUserRole,
+                        StatusCodes.Status400BadRequest,
+                        new[] { ErrorCodes.InvalidUserRole });
+                }
+
+                query = query.Where(x => x.User.Role == parsedRole);
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(cleanDriverType))
+        {
+            if (cleanDriverType == "RESIDENT")
+            {
+                query = query.Where(x => x.User.Role == UserRole.DRIVER && x.DriverProfile != null && x.DriverProfile.DriverType == "RESIDENT");
+            }
+            else if (cleanDriverType == "VISITOR")
+            {
+                query = query.Where(x => x.User.Role == UserRole.DRIVER && (x.DriverProfile == null || x.DriverProfile.DriverType == "VISITOR"));
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(status))
@@ -96,38 +126,44 @@ public class UsersController : BaseApiController
                     new[] { ErrorCodes.InvalidUserStatus });
             }
 
-            query = query.Where(user => user.Status == parsedStatus);
+            query = query.Where(x => x.User.Status == parsedStatus);
         }
 
         var totalItems = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
         var rawItems = await query
-            .OrderBy(user => user.Id)
+            .OrderBy(x => x.User.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(user => new
+            .Select(x => new
             {
-                Id = user.Id,
-                FullName = user.FullName,
-                Username = user.Username,
-                Email = user.Email,
-                Phone = user.Phone,
-                user.Role,
-                user.Status,
-                CreatedAt = user.CreatedAt
+                x.User.Id,
+                x.User.FullName,
+                x.User.Username,
+                x.User.Email,
+                x.User.Phone,
+                x.User.Role,
+                x.User.Status,
+                DriverType = x.DriverProfile != null ? x.DriverProfile.DriverType : null,
+                ApartmentNumber = x.DriverProfile != null ? x.DriverProfile.ApartmentNumber : null,
+                ResidentVerified = x.DriverProfile != null ? (bool?)x.DriverProfile.ResidentVerified : null,
+                x.User.CreatedAt
             })
             .ToListAsync();
 
-        var items = rawItems.Select(user => new UserListItemDto
+        var items = rawItems.Select(x => new UserListItemDto
         {
-            Id = user.Id,
-            FullName = user.FullName,
-            Username = user.Username,
-            Email = user.Email,
-            Phone = user.Phone,
-            Role = user.Role.ToString().ToUpper(),
-            Status = user.Status.ToString().ToUpper(),
-            CreatedAt = user.CreatedAt
+            Id = x.Id,
+            FullName = x.FullName,
+            Username = x.Username,
+            Email = x.Email,
+            Phone = x.Phone,
+            Role = x.Role.ToString().ToUpper(),
+            Status = x.Status.ToString().ToUpper(),
+            DriverType = x.DriverType?.ToUpper(),
+            ApartmentNumber = x.ApartmentNumber,
+            ResidentVerified = x.ResidentVerified,
+            CreatedAt = x.CreatedAt
         }).ToList();
 
         return Success(new
@@ -683,6 +719,9 @@ public class UsersController : BaseApiController
         public string? Phone { get; set; }
         public string Role { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
+        public string? DriverType { get; set; }
+        public string? ApartmentNumber { get; set; }
+        public bool? ResidentVerified { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
     }
 

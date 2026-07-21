@@ -13,7 +13,9 @@ VALUES
     (1, 'System Admin', 'admin01', 'admin01@example.local', '0900000001', crypt('123456', gen_salt('bf', 10)), 'ADMIN', 'ACTIVE'),
     (2, 'Demo Manager', 'manager01', 'manager01@example.local', '0900000002', crypt('123456', gen_salt('bf', 10)), 'MANAGER', 'ACTIVE'),
     (3, 'Demo Staff', 'staff01', 'staff01@example.local', '0900000003', crypt('123456', gen_salt('bf', 10)), 'STAFF', 'ACTIVE'),
-    (4, 'Demo Driver', 'driver01', 'driver01@example.local', '0900000004', crypt('123456', gen_salt('bf', 10)), 'DRIVER', 'ACTIVE')
+    (4, 'Demo Driver', 'driver01', 'driver01@example.local', '0900000004', crypt('123456', gen_salt('bf', 10)), 'DRIVER', 'ACTIVE'),
+    (5, 'Nguyễn Văn Vãng Lai', 'visitor01', 'visitor01@example.local', '0900000005', crypt('123456', gen_salt('bf', 10)), 'DRIVER', 'ACTIVE'),
+    (6, 'Trần Thị Vãng Lai', 'visitor02', 'visitor02@example.local', '0900000006', crypt('123456', gen_salt('bf', 10)), 'DRIVER', 'ACTIVE')
 ON CONFLICT (id) DO UPDATE SET
     full_name = EXCLUDED.full_name,
     username = EXCLUDED.username,
@@ -27,7 +29,9 @@ ON CONFLICT (id) DO UPDATE SET
 INSERT INTO driver_profiles (id, user_id, full_name, phone, email, status, driver_type, apartment_number, cccd_number)
 VALUES
     (1, 4, 'Demo Driver', '0900000004', 'driver01@example.local', 'ACTIVE', 'RESIDENT', 'A-0101', '012345678901'),
-    (2, NULL, 'Other Driver', '0900000009', 'other@example.local', 'ACTIVE', 'RESIDENT', 'A-0102', '012345678902')
+    (2, NULL, 'Other Driver', '0900000009', 'other@example.local', 'ACTIVE', 'RESIDENT', 'A-0102', '012345678902'),
+    (3, 5, 'Nguyễn Văn Vãng Lai', '0900000005', 'visitor01@example.local', 'ACTIVE', 'VISITOR', NULL, '012345678903'),
+    (4, 6, 'Trần Thị Vãng Lai', '0900000006', 'visitor02@example.local', 'ACTIVE', 'VISITOR', NULL, '012345678904')
 ON CONFLICT (id) DO UPDATE SET
     user_id = EXCLUDED.user_id,
     full_name = EXCLUDED.full_name,
@@ -59,7 +63,9 @@ INSERT INTO vehicles (id, driver_id, plate_number, normalized_plate_number, vehi
 VALUES
     (1, 1, '51A-99999', '51A99999', 3, 'APPROVED', 'Demo monthly pass motorbike', 'ACTIVE'),
     (2, 2, '29A-88888', '29A88888', 5, 'APPROVED', 'Other Driver Car', 'ACTIVE'),
-    (3, 1, '29A-11111', '29A11111', 5, 'APPROVED', 'Driver owned car', 'ACTIVE')
+    (3, 1, '29A-11111', '29A11111', 5, 'APPROVED', 'Driver owned car', 'ACTIVE'),
+    (4, 3, '51K-12345', '51K12345', 5, 'APPROVED', 'Visitor Car 01', 'ACTIVE'),
+    (5, 4, '59H-67890', '59H67890', 3, 'APPROVED', 'Visitor Motorbike 02', 'ACTIVE')
 ON CONFLICT (id) DO UPDATE SET
     driver_id = EXCLUDED.driver_id,
     plate_number = EXCLUDED.plate_number,
