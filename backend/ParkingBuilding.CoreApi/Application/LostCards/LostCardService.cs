@@ -25,6 +25,15 @@ public class LostCardService : ILostCardService
 
     public async Task<LostCardCase> CreateLostCardCaseAsync(CreateLostCardRequest request, long staffId)
     {
+        if (request.SessionId <= 0)
+            throw new BusinessException(ErrorCodes.InvalidRequest, StatusCodes.Status400BadRequest);
+        if (string.IsNullOrWhiteSpace(request.ReporterName))
+            throw new BusinessException(ErrorCodes.InvalidRequest, StatusCodes.Status400BadRequest);
+        if (string.IsNullOrWhiteSpace(request.Reason))
+            throw new BusinessException(ErrorCodes.ReasonRequired, StatusCodes.Status400BadRequest);
+        if (string.IsNullOrWhiteSpace(request.VerificationNote))
+            throw new BusinessException(ErrorCodes.InvalidRequest, StatusCodes.Status400BadRequest);
+
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
@@ -56,10 +65,10 @@ public class LostCardService : ILostCardService
             {
                 SessionId = request.SessionId,
                 CardId = session.ParkingCard.Id,
-                ReporterName = request.ReporterName,
-                Phone = request.Phone,
-                Reason = request.Reason,
-                VerificationNote = request.VerificationNote,
+                ReporterName = request.ReporterName.Trim(),
+                Phone = request.Phone?.Trim(),
+                Reason = request.Reason.Trim(),
+                VerificationNote = request.VerificationNote.Trim(),
                 LostCardFee = 0m,
                 Status = "PENDING",
                 CreatedBy = staffId,
@@ -101,9 +110,10 @@ public class LostCardService : ILostCardService
             try
             {
                 var lostCardCase = await _context.LostCardCases
+                    .FromSqlRaw("SELECT * FROM lost_card_cases WHERE id = {0} FOR UPDATE", caseId)
                     .Include(lc => lc.ParkingCard)
                     .Include(lc => lc.ParkingSession)
-                    .FirstOrDefaultAsync(lc => lc.Id == caseId);
+                    .FirstOrDefaultAsync();
 
                 if (lostCardCase == null)
                     throw new BusinessException(ErrorCodes.LostCardCaseNotFound, StatusCodes.Status404NotFound);
@@ -124,16 +134,7 @@ public class LostCardService : ILostCardService
 
                     if (lostCardCase.ParkingSession != null)
                     {
-                        var pricingRule = await _context.PricingRules
-                            .Where(p => p.VehicleTypeId == lostCardCase.ParkingSession.VehicleTypeId
-                                     && p.Status == "ACTIVE")
-                            .OrderByDescending(p => p.EffectiveFrom)
-                            .FirstOrDefaultAsync();
-
-                        if (pricingRule != null)
-                        {
-                            lostCardCase.LostCardFee = pricingRule.LostCardFee;
-                        }
+                        lostCardCase.LostCardFee = lostCardCase.ParkingSession.SnapshotLostCardFee;
 
                         lostCardCase.ParkingSession.Status = "ACTIVE";
                         lostCardCase.ParkingSession.UpdatedAt = DateTimeOffset.UtcNow;
@@ -198,7 +199,7 @@ public class LostCardService : ILostCardService
         int pageSize)
     {
         var effectivePage = Math.Max(1, page);
-        var effectivePageSize = pageSize > 0 ? pageSize : 20;
+            var effectivePageSize = Math.Clamp(pageSize, 1, 100);
 
         var query = _context.LostCardCases
             .Include(lc => lc.ParkingCard)

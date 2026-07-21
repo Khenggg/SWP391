@@ -62,7 +62,7 @@ public class LostCardDocumentService : ILostCardDocumentService
         long uploadedBy,
         CancellationToken ct = default)
     {
-        await EnsureLostCardCaseExistsAsync(caseId, ct);
+        await EnsureLostCardCaseEditableAsync(caseId, ct);
         var validated = await ValidateAndReadFileAsync(caseId, file, documentType, note, ct);
         await EnsureDocumentTypeAvailableAsync(caseId, validated.DocumentType, ct);
 
@@ -95,7 +95,7 @@ public class LostCardDocumentService : ILostCardDocumentService
         long uploadedBy,
         CancellationToken ct = default)
     {
-        await EnsureLostCardCaseExistsAsync(caseId, ct);
+        await EnsureLostCardCaseEditableAsync(caseId, ct);
         ValidateBatchShape(files, documentTypes, notes);
 
         var validatedFiles = new List<ValidatedDocumentFile>();
@@ -182,7 +182,7 @@ public class LostCardDocumentService : ILostCardDocumentService
         long actorUserId,
         CancellationToken ct = default)
     {
-        await EnsureLostCardCaseExistsAsync(caseId, ct);
+        await EnsureLostCardCaseEditableAsync(caseId, ct);
 
         var document = await _context.LostCardCaseDocuments
             .FirstOrDefaultAsync(x => x.Id == documentId && x.LostCardCaseId == caseId && x.DeletedAt == null, ct);
@@ -427,6 +427,20 @@ public class LostCardDocumentService : ILostCardDocumentService
                 await connection.CloseAsync();
             }
         }
+    }
+
+    private async Task EnsureLostCardCaseEditableAsync(long caseId, CancellationToken ct)
+    {
+        var status = await _context.LostCardCases
+            .AsNoTracking()
+            .Where(lostCardCase => lostCardCase.Id == caseId)
+            .Select(lostCardCase => lostCardCase.Status)
+            .FirstOrDefaultAsync(ct);
+
+        if (status == null)
+            throw new BusinessException(ErrorCodes.LostCardCaseNotFound, StatusCodes.Status404NotFound);
+        if (status != "PENDING")
+            throw new BusinessException(ErrorCodes.LostCardCaseAlreadyProcessed, StatusCodes.Status409Conflict);
     }
 
     private async Task WriteAuditAsync(

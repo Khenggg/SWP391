@@ -171,23 +171,16 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                     }
                     else
                     {
-                        paidPayment = await _context.Payments
-                            .Where(p => p.SessionId == session.Id
-                                     && p.Status == "PAID"
-                                     && (p.Purpose == "PARKING_FEE" || p.Purpose == "LOST_CARD_FEE"))
-                            .OrderByDescending(p => p.PaidAt)
-                            .FirstOrDefaultAsync();
+                        var paidPaymentQuery = _context.Payments
+                            .Where(payment => payment.SessionId == session.Id && payment.Status == "PAID");
 
-                        if (request.PaymentId.HasValue)
-                        {
-                            paidPayment = await _context.Payments
-                                .FirstOrDefaultAsync(p => p.Id == request.PaymentId.Value
-                                                       && p.SessionId == session.Id
-                                                       && p.Status == "PAID"
-                                                       && (p.Purpose == "PARKING_FEE" || p.Purpose == "LOST_CARD_FEE"));
-                        }
+                        paidPayment = request.PaymentId.HasValue
+                            ? await paidPaymentQuery.FirstOrDefaultAsync(payment => payment.Id == request.PaymentId.Value)
+                            : await paidPaymentQuery.OrderByDescending(payment => payment.PaidAt).FirstOrDefaultAsync();
 
-                        if (paidPayment == null)
+                        if (paidPayment == null
+                            || paidPayment.TotalAmount < feeResult.TotalAmount
+                            || paidPayment.LostCardFee < feeResult.LostCardFee)
                         {
                             throw new BusinessException(ErrorCodes.PaymentRequiredBeforeExit);
                         }
@@ -198,6 +191,8 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                             && paidPayment.PaymentValidUntil.HasValue
                             && exitTime > paidPayment.PaymentValidUntil.Value)
                         {
+                            session.PaymentStatus = "PENDING";
+                            await _context.SaveChangesAsync();
                             throw new BusinessException(ErrorCodes.PaymentRequiredBeforeExit);
                         }
 
@@ -389,12 +384,35 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
 
                     var exitTime = request.ExitTime ?? DateTimeOffset.UtcNow;
 
+                    var hasApprovedLostCard = await _context.LostCardCases
+                        .AnyAsync(lostCardCase => lostCardCase.SessionId == session.Id && lostCardCase.Status == "APPROVED");
+                    var feeResult = await _feeCalculationService.CalculateFeeAsync(
+                        session.Id,
+                        exitTime,
+                        hasApprovedLostCard);
+
+                    Payment? paidPayment = null;
+                    if (hasApprovedLostCard)
+                    {
+                        paidPayment = await _context.Payments
+                            .Where(payment => payment.SessionId == session.Id && payment.Status == "PAID")
+                            .OrderByDescending(payment => payment.PaidAt)
+                            .FirstOrDefaultAsync();
+
+                        if (paidPayment == null
+                            || paidPayment.TotalAmount < feeResult.TotalAmount
+                            || paidPayment.LostCardFee < feeResult.LostCardFee)
+                        {
+                            throw new BusinessException(ErrorCodes.PaymentRequiredBeforeExit);
+                        }
+                    }
+
                     // Complete session
                     session.Status = "COMPLETED";
                     session.ExitTime = exitTime;
                     session.ExitGateId = request.ExitGateId;
                     session.ExitStaffId = staffId;
-                    session.PaymentStatus = "NOT_REQUIRED";
+                    session.PaymentStatus = hasApprovedLostCard ? "PAID" : "NOT_REQUIRED";
                     session.UpdatedAt = DateTimeOffset.UtcNow;
 
                     // Release card
@@ -444,9 +462,9 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                         EntryTime = session.EntryTime,
                         ExitTime = exitTime,
                         Amount = 0m,
-                        LostCardFee = 0m,
-                        TotalAmount = 0m,
-                        PaymentMethod = "NONE",
+                        LostCardFee = feeResult.LostCardFee,
+                        TotalAmount = feeResult.TotalAmount,
+                        PaymentMethod = paidPayment?.Method ?? "NONE",
                         PrintedCount = 0,
                         CreatedBy = staffId,
                         CreatedAt = DateTimeOffset.UtcNow
@@ -482,8 +500,8 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                         Status = session.Status,
                         ExitTime = exitTime,
                         Amount = 0m,
-                        LostCardFee = 0m,
-                        TotalAmount = 0m,
+                        LostCardFee = feeResult.LostCardFee,
+                        TotalAmount = feeResult.TotalAmount,
                         PaymentStatus = session.PaymentStatus,
                         ReceiptCode = receiptCode
                     };

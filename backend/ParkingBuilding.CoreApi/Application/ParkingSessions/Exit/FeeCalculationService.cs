@@ -40,8 +40,8 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
             if (session.CustomerType == "MONTHLY")
             {
                 result.Amount = 0m;
-                result.LostCardFee = 0m;
-                result.TotalAmount = 0m;
+                result.LostCardFee = includeLostCardFee ? session.SnapshotLostCardFee : 0m;
+                result.TotalAmount = result.LostCardFee;
                 result.Breakdown.Add(new FeeBreakdownItem
                 {
                     TimeFrame = "MONTHLY_PASS",

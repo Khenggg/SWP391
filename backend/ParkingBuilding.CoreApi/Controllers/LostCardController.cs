@@ -28,7 +28,6 @@ public class LostCardController : BaseApiController
     }
 
     [HttpGet]
-    [HttpGet("/api/core/lost-card-cases")]
     public async Task<IActionResult> GetList(
         [FromQuery] string? status,
         [FromQuery] string? keyword,
@@ -36,7 +35,18 @@ public class LostCardController : BaseApiController
         [FromQuery] int pageSize = 100)
     {
         var (items, totalItems, totalPages) = await _lostCardService.GetListAsync(status, keyword, page, pageSize);
-        return Success(items, "Get lost card cases successfully."); // Return flat items to match frontend expectation
+        return Success(new { items, page = Math.Max(1, page), pageSize = Math.Clamp(pageSize, 1, 100), totalItems, totalPages }, "Get lost card cases successfully.");
+    }
+
+    [HttpGet("/api/core/lost-card-cases")]
+    public async Task<IActionResult> GetCompatibilityList(
+        [FromQuery] string? status,
+        [FromQuery] string? keyword,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 100)
+    {
+        var (items, _, _) = await _lostCardService.GetListAsync(status, keyword, page, pageSize);
+        return Success(items, "Get lost card cases successfully.");
     }
 
     [HttpGet("{id:long}")]

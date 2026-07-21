@@ -72,7 +72,9 @@ namespace ParkingBuilding.CoreApi.Controllers
                                               c.QrToken.ToLower().Contains(lowerClean) ||
                                               c.Id.ToString() == cleanCode);
 
-                if (card != null && card.Status == CardStatus.IN_USE && card.CurrentSessionId.HasValue)
+                if (card != null
+                    && (card.Status == CardStatus.IN_USE || card.Status == CardStatus.LOST)
+                    && card.CurrentSessionId.HasValue)
                 {
                     session = await _context.ParkingSessions
                         .Include(s => s.ParkingCard)
@@ -83,13 +85,19 @@ namespace ParkingBuilding.CoreApi.Controllers
             if (session == null)
                 throw new BusinessException(ErrorCodes.SessionNotFound, StatusCodes.Status404NotFound);
 
-            if (session.CustomerType == "MONTHLY")
+            var hasApprovedLostCard = await _context.LostCardCases
+                .AnyAsync(lostCardCase => lostCardCase.SessionId == session.Id && lostCardCase.Status == "APPROVED");
+
+            if (session.CustomerType == "MONTHLY" && !hasApprovedLostCard)
                 throw new BusinessException(ErrorCodes.InvalidRequest);
 
             if (session.PaymentStatus == "PAID" || session.PaymentStatus == "WAIVED")
                 throw new BusinessException(ErrorCodes.PaymentAlreadyFinal);
 
-            var feeResult = await _feeCalculationService.CalculateFeeAsync(session.Id, DateTimeOffset.UtcNow, false);
+            var feeResult = await _feeCalculationService.CalculateFeeAsync(
+                session.Id,
+                DateTimeOffset.UtcNow,
+                hasApprovedLostCard);
 
             if (feeResult.TotalAmount <= 0m)
             {
@@ -104,10 +112,13 @@ namespace ParkingBuilding.CoreApi.Controllers
                 }, "No payment required.");
             }
 
+            var expectedPurpose = hasApprovedLostCard ? "LOST_CARD_FEE" : "PARKING_FEE";
             var existingPayment = await _context.Payments
                 .Where(p => p.SessionId == session.Id
-                         && p.Purpose == "PARKING_FEE"
+                         && p.Purpose == expectedPurpose
                          && p.Status == "PENDING"
+                         && p.TotalAmount >= feeResult.TotalAmount
+                         && p.LostCardFee >= feeResult.LostCardFee
                          && p.ExpiredAt > DateTimeOffset.UtcNow)
                 .OrderByDescending(p => p.CreatedAt)
                 .FirstOrDefaultAsync();
@@ -146,7 +157,7 @@ namespace ParkingBuilding.CoreApi.Controllers
                 Amount = feeResult.Amount,
                 LostCardFee = feeResult.LostCardFee,
                 TotalAmount = feeResult.TotalAmount,
-                Purpose = "PARKING_FEE",
+                Purpose = expectedPurpose,
                 Method = "BANK_TRANSFER",
                 Status = "PENDING",
                 ExpiredAt = DateTimeOffset.UtcNow.AddMinutes(15),

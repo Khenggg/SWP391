@@ -44,7 +44,10 @@ namespace ParkingBuilding.CoreApi.Application.Payments
                     if (session == null || session.Status != "ACTIVE")
                         throw new BusinessException(ErrorCodes.SessionNotFound);
 
-                    if (!session.PaymentRequired)
+                    var hasApprovedLostCard = await _context.LostCardCases
+                        .AnyAsync(lostCardCase => lostCardCase.SessionId == session.Id && lostCardCase.Status == "APPROVED");
+
+                    if (!session.PaymentRequired && !hasApprovedLostCard)
                         throw new BusinessException(ErrorCodes.NoPaymentRequired);
 
                     bool hasFinal = await _context.Payments
@@ -63,7 +66,7 @@ namespace ParkingBuilding.CoreApi.Application.Payments
 
                     // Server-side fee calculation -- NEVER trust client amount
                     var feeResult = await _feeCalculationService.CalculateFeeAsync(
-                        session.Id, DateTimeOffset.UtcNow, request.ExitGateId.HasValue);
+                        session.Id, DateTimeOffset.UtcNow, hasApprovedLostCard);
 
                     if (feeResult.TotalAmount <= 0m)
                         throw new BusinessException(ErrorCodes.NoPaymentRequired);
