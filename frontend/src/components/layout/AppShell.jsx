@@ -64,7 +64,7 @@ const MENUS = {
     { label: "Quét thẻ vãng lai", path: "/driver/casual-card", icon: QrCode },
     { label: "Đặt chỗ", path: "/driver/booking", icon: CalendarClock },
     { label: "Xe của tôi", path: "/driver/vehicles", icon: CarFront },
-    { label: "Lịch sử booking", path: "/driver/history", icon: BookOpenCheck },
+    { label: "Lịch sử gửi xe", path: "/driver/history", icon: BookOpenCheck },
   ],
 };
 

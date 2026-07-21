@@ -11,7 +11,7 @@ export default function HistoryList({ history, formatDate, formatDateTime }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-bold text-slate-800">Lịch sử booking gần đây</h3>
+        <h3 className="text-lg font-bold text-slate-800">Lịch sử gửi xe gần đây</h3>
         <Button
           variant="link"
           className="text-blue-600 text-sm font-semibold h-auto p-0"
@@ -36,7 +36,7 @@ export default function HistoryList({ history, formatDate, formatDateTime }) {
             {recentHistory.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="h-32 text-center text-slate-500">
-                  Chưa có lịch sử booking
+                  Chưa có lịch sử gửi xe
                 </TableCell>
               </TableRow>
             ) : (

@@ -239,7 +239,7 @@ export default function DriverBookingPage() {
           <span className="text-xl font-black">Đặt chỗ (Reservation)</span>
         </div>
         <Button variant="outline" onClick={() => navigate("/driver/history")} className="font-semibold">
-          Xem lịch sử booking
+          Xem lịch sử gửi xe
         </Button>
       </div>
 
