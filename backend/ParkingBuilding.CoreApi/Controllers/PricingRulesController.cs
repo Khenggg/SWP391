@@ -60,6 +60,9 @@ namespace ParkingBuilding.CoreApi.Controllers
             var reservationPriceValidation = ValidateReservationHourlyPrice(model.ReservationHourlyPrice);
             if (reservationPriceValidation != null) return reservationPriceValidation;
 
+            var reservationHoursValidation = ValidateMaxReservationHours(model.MaxReservationHours);
+            if (reservationHoursValidation != null) return reservationHoursValidation;
+
             var userIdStr = User.FindFirst("user_id")?.Value;
             long actorUserId = 1; // Default fallback to system/seeding admin
             if (!string.IsNullOrEmpty(userIdStr) && long.TryParse(userIdStr, out var parsedId))
@@ -74,6 +77,7 @@ namespace ParkingBuilding.CoreApi.Controllers
                 NightPrice = model.NightPrice,
                 MonthlyPrice = model.MonthlyPrice,
                 ReservationHourlyPrice = model.ReservationHourlyPrice,
+                MaxReservationHours = model.MaxReservationHours,
                 LostCardFee = model.LostCardFee,
                 EffectiveFrom = model.EffectiveFrom?.ToUniversalTime() ?? DateTime.UtcNow,
                 Status = model.Status ?? "ACTIVE",
@@ -134,6 +138,13 @@ namespace ParkingBuilding.CoreApi.Controllers
                 var reservationPriceValidation = ValidateReservationHourlyPrice(model.ReservationHourlyPrice.Value);
                 if (reservationPriceValidation != null) return reservationPriceValidation;
                 existing.ReservationHourlyPrice = model.ReservationHourlyPrice.Value;
+            }
+
+            if (model.MaxReservationHours.HasValue)
+            {
+                var reservationHoursValidation = ValidateMaxReservationHours(model.MaxReservationHours.Value);
+                if (reservationHoursValidation != null) return reservationHoursValidation;
+                existing.MaxReservationHours = model.MaxReservationHours.Value;
             }
 
             if (model.LostCardFee.HasValue)
@@ -223,6 +234,7 @@ namespace ParkingBuilding.CoreApi.Controllers
             public decimal NightPrice { get; set; }
             public decimal MonthlyPrice { get; set; }
             public decimal ReservationHourlyPrice { get; set; }
+            public int MaxReservationHours { get; set; } = 24;
             public decimal LostCardFee { get; set; }
             public DateTime? EffectiveFrom { get; set; }
             public string? Status { get; set; }
@@ -235,6 +247,7 @@ namespace ParkingBuilding.CoreApi.Controllers
             public decimal? NightPrice { get; set; }
             public decimal? MonthlyPrice { get; set; }
             public decimal? ReservationHourlyPrice { get; set; }
+            public int? MaxReservationHours { get; set; }
             public decimal? LostCardFee { get; set; }
             public DateTime? EffectiveFrom { get; set; }
             public string? Status { get; set; }
@@ -255,6 +268,14 @@ namespace ParkingBuilding.CoreApi.Controllers
 
             if (value != decimal.Truncate(value))
                 return BusinessError(ErrorCodes.ReservationHourlyPriceMustBeInteger);
+
+            return null;
+        }
+
+        private IActionResult? ValidateMaxReservationHours(int value)
+        {
+            if (value < 1 || value > 24)
+                return Fail("Bad Request", "Max reservation hours must be between 1 and 24.");
 
             return null;
         }

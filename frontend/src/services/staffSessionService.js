@@ -3,8 +3,8 @@ import coreAxiosClient from "../api/coreAxiosClient";
 export const staffSessionService = {
   listActiveSessions: async () => {
     const response = await coreAxiosClient.get(`/staff/sessions/active`);
-    if (response.success) return response.data;
-    return [];
+    if (response.success) return response.data || [];
+    throw new Error(response.message || "Không thể tải danh sách phiên đang trong bãi.");
   },
 
   searchActiveSession: async (cardCode) => {
@@ -19,8 +19,8 @@ export const staffSessionService = {
     throw new Error(response.message || "Không thể tính phí gửi xe.");
   },
 
-  payCash: async ({ sessionId, amount, lostCardFee, totalAmount }) => {
-    const response = await coreAxiosClient.post(`/payments/cash`, { sessionId, amount, lostCardFee, totalAmount });
+  payCash: async ({ sessionId, exitGateId }) => {
+    const response = await coreAxiosClient.post(`/payments/cash`, { sessionId, exitGateId });
     if (response.success) return response.data;
     throw new Error(response.message || "Thanh toán tiền mặt thất bại.");
   },

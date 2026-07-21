@@ -160,44 +160,49 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                     var includeLostCardFee = hasApprovedLostCard;
                     var feeResult = await _feeCalculationService.CalculateFeeAsync(session.Id, exitTime, includeLostCardFee);
 
-                    // Validate payment
-                    if (session.PaymentStatus != "PAID")
+                    // Payment is always decided from a fresh server-side fee calculation.
+                    // A reservation can be inside its prepaid window, so a PENDING
+                    // session with a 0 VND total must be allowed to leave.
+                    Payment? paidPayment = null;
+                    if (feeResult.TotalAmount <= 0m)
                     {
-                        if (request.PaymentId.HasValue)
-                        {
-                            var cashPayment = await _context.Payments
-                                .FirstOrDefaultAsync(p => p.Id == request.PaymentId.Value && p.SessionId == session.Id && p.Status == "PAID");
-
-                            if (cashPayment == null)
-                            {
-                                throw new BusinessException(ErrorCodes.PaymentRequiredBeforeExit);
-                            }
-
-                            session.PaymentStatus = "PAID";
-                        }
-                        else
-                        {
-                            throw new BusinessException(ErrorCodes.PaymentRequiredBeforeExit);
-                        }
+                        session.PaymentRequired = false;
+                        session.PaymentStatus = "NOT_REQUIRED";
                     }
                     else
                     {
-                        // Verified that they paid online, check buffer time
-                        var onlinePayment = await _context.Payments
-                            .Where(p => p.SessionId == session.Id && p.Purpose == "PARKING_FEE" && p.Status == "PAID")
+                        paidPayment = await _context.Payments
+                            .Where(p => p.SessionId == session.Id
+                                     && p.Status == "PAID"
+                                     && (p.Purpose == "PARKING_FEE" || p.Purpose == "LOST_CARD_FEE"))
                             .OrderByDescending(p => p.PaidAt)
                             .FirstOrDefaultAsync();
 
-                        if (onlinePayment != null)
+                        if (request.PaymentId.HasValue)
                         {
-                            if (onlinePayment.PaymentValidUntil.HasValue && exitTime > onlinePayment.PaymentValidUntil.Value)
-                            {
-                                // Overdue buffer time! Mark back to PENDING.
-                                session.PaymentStatus = "PENDING";
-                                await _context.SaveChangesAsync();
-                                throw new BusinessException(ErrorCodes.PaymentRequiredBeforeExit);
-                            }
+                            paidPayment = await _context.Payments
+                                .FirstOrDefaultAsync(p => p.Id == request.PaymentId.Value
+                                                       && p.SessionId == session.Id
+                                                       && p.Status == "PAID"
+                                                       && (p.Purpose == "PARKING_FEE" || p.Purpose == "LOST_CARD_FEE"));
                         }
+
+                        if (paidPayment == null)
+                        {
+                            throw new BusinessException(ErrorCodes.PaymentRequiredBeforeExit);
+                        }
+
+                        // Only a webhook-confirmed bank transfer has a short exit buffer.
+                        // Cash is finalized at the staff desk and does not expire.
+                        if (paidPayment.Method == "BANK_TRANSFER"
+                            && paidPayment.PaymentValidUntil.HasValue
+                            && exitTime > paidPayment.PaymentValidUntil.Value)
+                        {
+                            throw new BusinessException(ErrorCodes.PaymentRequiredBeforeExit);
+                        }
+
+                        session.PaymentRequired = true;
+                        session.PaymentStatus = "PAID";
                     }
 
                     // Complete session
@@ -256,7 +261,9 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                         Amount = feeResult.Amount,
                         LostCardFee = feeResult.LostCardFee,
                         TotalAmount = feeResult.TotalAmount,
-                        PaymentMethod = request.PaymentId.HasValue ? "CASH" : "BANK_TRANSFER",
+                        PaymentMethod = feeResult.TotalAmount <= 0m
+                            ? "NONE"
+                            : paidPayment?.Method ?? "NONE",
                         PrintedCount = 0,
                         CreatedBy = staffId,
                         CreatedAt = DateTimeOffset.UtcNow

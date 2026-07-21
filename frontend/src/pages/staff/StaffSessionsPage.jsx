@@ -15,11 +15,16 @@ export default function StaffSessionsPage() {
   const [sessions, setSessions] = useState([]);
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const loadSessions = async () => {
     setIsLoading(true);
+    setError("");
     try {
       setSessions(await staffSessionService.listActiveSessions());
+    } catch (loadError) {
+      setSessions([]);
+      setError(loadError.message || "Không thể tải danh sách phiên đang trong bãi.");
     } finally {
       setIsLoading(false);
     }
@@ -80,8 +85,10 @@ export default function StaffSessionsPage() {
         <CardContent className="pt-4">
           {isLoading ? (
             <div className="p-8 text-center text-sm text-muted-foreground">Đang tải phiên...</div>
+          ) : error ? (
+            <div className="p-8 text-center text-sm font-medium text-destructive">{error}</div>
           ) : filtered.length === 0 ? (
-            <EmptyState icon="P" title="Không có phiên phù hợp" description="Thử đổi từ khóa hoặc tải lại dữ liệu mock." className="border-0 shadow-none" />
+            <EmptyState icon="P" title="Không có phiên phù hợp" description="Thử đổi từ khóa hoặc tải lại danh sách phiên." className="border-0 shadow-none" />
           ) : (
             <Table>
               <TableHeader>

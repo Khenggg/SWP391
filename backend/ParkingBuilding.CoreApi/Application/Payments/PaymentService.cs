@@ -52,6 +52,15 @@ namespace ParkingBuilding.CoreApi.Application.Payments
                     if (hasFinal || session.PaymentStatus == "PAID" || session.PaymentStatus == "WAIVED")
                         throw new BusinessException(ErrorCodes.PaymentAlreadyFinal);
 
+                    var hasActiveOnlinePayment = await _context.Payments
+                        .AnyAsync(p => p.SessionId == session.Id
+                                    && p.Purpose == "PARKING_FEE"
+                                    && p.Method == "BANK_TRANSFER"
+                                    && p.Status == "PENDING"
+                                    && p.ExpiredAt > DateTimeOffset.UtcNow);
+                    if (hasActiveOnlinePayment)
+                        throw new BusinessException(ErrorCodes.PaymentAlreadyPending);
+
                     // Server-side fee calculation -- NEVER trust client amount
                     var feeResult = await _feeCalculationService.CalculateFeeAsync(
                         session.Id, DateTimeOffset.UtcNow, request.ExitGateId.HasValue);

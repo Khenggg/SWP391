@@ -111,10 +111,33 @@ namespace ParkingBuilding.CoreApi.Controllers
                     id = v.Id,
                     driverId = v.DriverId,
                     licensePlate = v.PlateNumber,
+                    plateNumber = v.PlateNumber,
+                    normalizedPlateNumber = v.NormalizedPlateNumber,
+                    vehicleTypeId = v.VehicleTypeId,
                     vehicleType = v.VehicleType.RequiresSlot ? "CAR" : "MOTORBIKE",
+                    vehicleTypeName = v.VehicleType.Name,
                     brand = v.Brand,
                     color = v.Color,
                     approvalStatus = v.ApprovalStatus,
+                    status = v.Status,
+                    activeSession = _context.ParkingSessions
+                        .Where(s =>
+                            (s.VehicleId == v.Id ||
+                             (s.VehicleId == null &&
+                              s.NormalizedPlateNumber == v.NormalizedPlateNumber &&
+                              s.VehicleTypeId == v.VehicleTypeId &&
+                              (s.DriverId == null || s.DriverId == v.DriverId))) &&
+                            (s.Status == "ACTIVE" || s.Status == "LOST_CARD_PENDING" || s.Status == "MISMATCH_PENDING"))
+                        .OrderByDescending(s => s.EntryTime)
+                        .Select(s => new
+                        {
+                            id = s.Id,
+                            sessionCode = s.SessionCode,
+                            status = s.Status,
+                            entryTime = s.EntryTime,
+                            customerType = s.CustomerType
+                        })
+                        .FirstOrDefault(),
                     createdAt = v.CreatedAt
                 })
                 .ToListAsync();

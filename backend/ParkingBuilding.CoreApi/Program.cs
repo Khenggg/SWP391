@@ -110,10 +110,6 @@ builder.Services.Configure<ReservationBookingOptions>(options =>
     {
         options.PaymentDeadlineMinutes = minutes;
     }
-    if (int.TryParse(builder.Configuration["RESERVATION_MAX_HOURS"], out var maxReservationHours) && maxReservationHours > 0)
-    {
-        options.MaxReservationHours = maxReservationHours;
-    }
     if (bool.TryParse(builder.Configuration["RESERVATION_ALLOW_ZERO_BOOKING_FEE"], out var allowZero))
     {
         options.AllowZeroBookingFee = allowZero;

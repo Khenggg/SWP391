@@ -8,7 +8,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export default function TimeSelectionStep({ durationHours, setDurationHours }) {
+export default function TimeSelectionStep({ durationHours, setDurationHours, maxReservationHours = 24 }) {
+  const baseDurations = [1, 2, 3, 4, 6, 8, 12, 24];
+  const allowedDurations = Array.from(
+    new Set([...baseDurations.filter((hours) => hours <= maxReservationHours), maxReservationHours])
+  ).sort((a, b) => a - b);
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-md">
       <div>
@@ -35,18 +40,13 @@ export default function TimeSelectionStep({ durationHours, setDurationHours }) {
                 <SelectValue placeholder="Chọn số giờ" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">1 Giờ</SelectItem>
-                <SelectItem value="2">2 Giờ</SelectItem>
-                <SelectItem value="3">3 Giờ</SelectItem>
-                <SelectItem value="4">4 Giờ</SelectItem>
-                <SelectItem value="6">6 Giờ</SelectItem>
-                <SelectItem value="8">8 Giờ</SelectItem>
-                <SelectItem value="12">12 Giờ</SelectItem>
-                <SelectItem value="24">24 Giờ</SelectItem>
+                {allowedDurations.map((hours) => (
+                  <SelectItem key={hours} value={String(hours)}>{hours} Giờ</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <p className="text-[11px] text-slate-400 mt-2">
-              Bạn có 15 phút gia hạn tính từ thời điểm đặt chỗ để quét check-in.
+              Tối đa {maxReservationHours} giờ theo cấu hình quản trị. Bạn có 15 phút gia hạn tính từ thời điểm đặt chỗ để quét check-in.
             </p>
           </div>
         </div>

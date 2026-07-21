@@ -9,7 +9,8 @@ import EntrySuggestionPanel from "@/components/staff/entry/EntrySuggestionPanel"
 import ImagePreviewDialog from "@/components/staff/entry/ImagePreviewDialog";
 import { entryService } from "@/services/entryService";
 import {
-  getLastGateScanEvent,
+  acknowledgeGateScanEvent,
+  consumeLastGateScanEvent,
   subscribeGateScanEvents,
 } from "@/services/gateSimulatorBus";
 import { parkingService } from "@/services/parkingService";
@@ -88,6 +89,18 @@ export default function StaffEntryPage() {
 
   const setField = useCallback((name, value) => {
     setForm((current) => ({ ...current, [name]: value }));
+
+    // Every token/check is bound to the exact card, reservation, gate and
+    // vehicle type that produced it. Never let a previous response authorize
+    // changed form data.
+    if (["cardCode", "entryGateId", "vehicleTypeId"].includes(name)) {
+      setCardCheck(null);
+      setSuggestion(null);
+    }
+
+    if (["reservationCode", "entryGateId"].includes(name)) {
+      setReservationCheck(null);
+    }
   }, []);
 
   const setEntryMode = useCallback((nextMode) => {
@@ -170,7 +183,13 @@ function formatCardCode(value) {
   return val;
 }
 
-  const handleCheckCard = useCallback(async (overrideCardCode, overrideGateId) => {
+  const handleCheckCard = useCallback(async (
+    overrideCardCode,
+    overrideGateId,
+    expectedDeviceEventId = null,
+    isBookingCard = false
+  ) => {
+    const isCurrentDeviceEvent = () => !expectedDeviceEventId || processedEventRef.current === expectedDeviceEventId;
     const rawCardCode = typeof overrideCardCode === "string" ? overrideCardCode : form.cardCode;
     const cardCode = formatCardCode(normalizeText(rawCardCode));
     const gateParam = (typeof overrideGateId === "number" || typeof overrideGateId === "string") ? overrideGateId : null;
@@ -184,12 +203,17 @@ function formatCardCode(value) {
       setForm((prev) => ({ ...prev, cardCode }));
     }
 
+    // Invalidate prior approval while the current card is being checked.
+    setCardCheck(null);
+    setSuggestion(null);
     setIsCheckingCard(true);
     try {
       const result = await entryService.checkCardEntry({
         cardCode,
         entryGateId,
       });
+
+      if (!isCurrentDeviceEvent()) return;
 
       setCardCheck(result);
 
@@ -224,22 +248,32 @@ function formatCardCode(value) {
           };
         });
       } else {
+        setSuggestion(null);
         setForm((current) => ({
           ...current,
-          entryMode: current.entryMode === "MONTHLY" ? "CASUAL" : current.entryMode,
+          entryMode: isBookingCard || current.reservationCode ? "RESERVATION" : "CASUAL",
           entryGateId: String(entryGateId),
         }));
-        toast.success("Thẻ hợp lệ cho luồng khách vãng lai.");
+        toast.success(
+          isBookingCard
+            ? "Đã xác minh thẻ lượt cho booking."
+            : "Thẻ hợp lệ cho luồng khách vãng lai."
+        );
       }
     } catch (error) {
+      if (!isCurrentDeviceEvent()) return;
       setCardCheck(null);
+      setSuggestion(null);
       toast.error(error.message || "Kiểm tra thẻ thất bại.");
     } finally {
-      setIsCheckingCard(false);
+      if (isCurrentDeviceEvent()) {
+        setIsCheckingCard(false);
+      }
     }
   }, [form.cardCode, form.entryGateId, resolveGateId]);
 
-  const handleCheckReservation = useCallback(async (overrideReservationCode, overrideGateId) => {
+  const handleCheckReservation = useCallback(async (overrideReservationCode, overrideGateId, expectedDeviceEventId = null) => {
+    const isCurrentDeviceEvent = () => !expectedDeviceEventId || processedEventRef.current === expectedDeviceEventId;
     const rawCode = typeof overrideReservationCode === "string" ? overrideReservationCode : form.reservationCode;
     const reservationCode = normalizeText(rawCode);
     const gateParam = (typeof overrideGateId === "number" || typeof overrideGateId === "string") ? overrideGateId : null;
@@ -255,6 +289,8 @@ function formatCardCode(value) {
         reservationCode,
         entryGateId,
       });
+
+      if (!isCurrentDeviceEvent()) return;
 
       setReservationCheck(result);
       setSuggestion(null);
@@ -288,10 +324,13 @@ function formatCardCode(value) {
         toast.error(`Trạng thái booking: ${result.status}`);
       }
     } catch (error) {
+      if (!isCurrentDeviceEvent()) return;
       setReservationCheck(null);
       toast.error(error.message || "Kiểm tra booking thất bại.");
     } finally {
-      setIsCheckingReservation(false);
+      if (isCurrentDeviceEvent()) {
+        setIsCheckingReservation(false);
+      }
     }
   }, [form.reservationCode, resolveGateId]);
 
@@ -301,53 +340,53 @@ function formatCardCode(value) {
     }
 
     processedEventRef.current = event.id;
+    acknowledgeGateScanEvent(event);
     setLastDeviceEvent(event);
 
-    const targetCardCode = event.cardCode;
+    const targetCardCode = event.cardCode || "";
     const targetReservationCode = event.qrToken || event.bookingId;
     const isBookingScan = event.scanType === "BOOKING_QR" || (targetReservationCode && /^BK-/i.test(targetReservationCode));
     const matchedGateId = resolveGateId(event.gateCode || event.gateId);
 
-    setForm((current) => {
-      let nextMode = current.entryMode;
-      if (isBookingScan) {
-        nextMode = "RESERVATION";
-      }
-
-      return {
-        ...current,
-        entryMode: nextMode,
-        entryGateId: matchedGateId ? String(matchedGateId) : current.entryGateId,
-        cardCode: targetCardCode || current.cardCode,
-        licensePlate: event.detectedPlate || current.licensePlate,
-        detectedPlateNumber: event.detectedPlate || current.detectedPlateNumber,
-        vehicleTypeId: event.vehicleTypeId || current.vehicleTypeId,
-        ocrConfidence:
-          event.plateConfidence != null
-            ? String(event.plateConfidence)
-            : current.ocrConfidence,
-        entryPlateImageUrl:
-          event.plateImageDataUrl || current.entryPlateImageUrl,
-        entryVehicleImageUrl:
-          event.vehicleImageDataUrl || current.entryVehicleImageUrl,
-        reservationCode: targetReservationCode || current.reservationCode,
-      };
+    setCardCheck(null);
+    setReservationCheck(null);
+    setSuggestion(null);
+    setIsCheckingCard(false);
+    setIsCheckingReservation(false);
+    setForm({
+      ...initialForm,
+      entryMode: isBookingScan ? "RESERVATION" : "CASUAL",
+      entryGateId: matchedGateId ? String(matchedGateId) : "",
+      cardCode: targetCardCode,
+      reservationCode: isBookingScan ? targetReservationCode : "",
+      licensePlate: event.detectedPlate || "",
+      detectedPlateNumber: event.detectedPlate || "",
+      ocrConfidence: event.plateConfidence != null ? String(event.plateConfidence) : "",
+      entryPlateImageUrl: event.plateImageDataUrl || "",
+      entryVehicleImageUrl: event.vehicleImageDataUrl || "",
     });
 
-    // Auto check card or reservation if code provided
+    // Booking uses both a QR reservation and an available normal parking card.
+    // Validate each one against the same device event before enabling entry.
     if (isBookingScan && targetReservationCode) {
       setTimeout(() => {
-        void handleCheckReservation(targetReservationCode, matchedGateId);
-      }, 100);
-    } else if (targetCardCode) {
-      setTimeout(() => {
-        void handleCheckCard(targetCardCode, matchedGateId);
+        if (processedEventRef.current === event.id) {
+          void handleCheckReservation(targetReservationCode, matchedGateId, event.id);
+        }
       }, 100);
     }
-  }, [handleCheckCard, handleCheckReservation, resolveGateId]);
+
+    if (targetCardCode) {
+      setTimeout(() => {
+        if (processedEventRef.current === event.id) {
+          void handleCheckCard(targetCardCode, matchedGateId, event.id, isBookingScan);
+        }
+      }, 100);
+    }
+  }, [acknowledgeGateScanEvent, handleCheckCard, handleCheckReservation, resolveGateId]);
 
   useEffect(() => {
-    const lastEvent = getLastGateScanEvent("ENTRY");
+    const lastEvent = consumeLastGateScanEvent("ENTRY");
     if (lastEvent) {
       applyEntryDeviceEvent(lastEvent);
     }
@@ -426,8 +465,15 @@ function formatCardCode(value) {
       normalizeText(form.reservationCode) &&
       parseNumber(form.entryGateId)
   );
+  const isNormalCardVerified = Boolean(
+    cardCheck?.entryCardType === "NORMAL" &&
+      cardCheck?.cardStatus === "AVAILABLE" &&
+      normalizeText(cardCheck?.cardCode).toUpperCase() ===
+        normalizeText(form.cardCode).toUpperCase()
+  );
   const canLoadSuggestion = Boolean(
     form.entryMode === "CASUAL" &&
+      isNormalCardVerified &&
       derivedVehicleTypeId &&
       parseNumber(form.entryGateId)
   );
@@ -448,7 +494,11 @@ function formatCardCode(value) {
     if (!parseNumber(form.entryGateId)) return false;
 
     if (form.entryMode === "CASUAL") {
-      if (!derivedVehicleTypeId || !suggestion?.suggestionToken) return false;
+      if (
+        !isNormalCardVerified ||
+        !derivedVehicleTypeId ||
+        !suggestion?.suggestionToken
+      ) return false;
       if (form.noPlate) {
         return noPlateAllowed && Boolean(normalizeText(form.vehicleDescription));
       }
@@ -467,7 +517,8 @@ function formatCardCode(value) {
     if (
       !reservationCheck?.reservationId ||
       !reservationCheck?.reservationEntryToken ||
-      !canReservationProceed(reservationCheck?.status)
+      !canReservationProceed(reservationCheck?.status) ||
+      !isNormalCardVerified
     ) {
       return false;
     }
@@ -485,6 +536,7 @@ function formatCardCode(value) {
     cardCheck,
     derivedVehicleTypeId,
     form,
+    isNormalCardVerified,
     isMonthlyPlateMismatch,
     noPlateAllowed,
     reservationCheck,
@@ -495,7 +547,12 @@ function formatCardCode(value) {
     () => [
       {
         label: "Thẻ hợp lệ",
-        passed: Boolean(normalizeText(form.cardCode)),
+        passed:
+          form.entryMode === "CASUAL"
+            ? isNormalCardVerified
+            : form.entryMode === "MONTHLY"
+              ? Boolean(cardCheck?.monthlyEntryToken)
+              : isNormalCardVerified,
       },
       {
         label: "Cổng vào hợp lệ",
@@ -528,7 +585,15 @@ function formatCardCode(value) {
         passed: !form.noPlate || noPlateAllowed,
       },
     ],
-    [cardCheck, form, isMonthlyPlateMismatch, noPlateAllowed, reservationCheck, suggestion]
+    [
+      cardCheck,
+      form,
+      isMonthlyPlateMismatch,
+      isNormalCardVerified,
+      noPlateAllowed,
+      reservationCheck,
+      suggestion,
+    ]
   );
 
   const handleLoadSuggestion = async () => {

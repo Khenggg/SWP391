@@ -61,7 +61,12 @@ public class PlateMismatchController : BaseApiController
     {
         var result = await _mismatchService.GetBySessionIdAsync(sessionId);
         if (result == null)
-            return NotFound(new { success = false, message = "No mismatch case found for this session." });
+            return Success(new
+            {
+                status = "NONE",
+                managerReason = (string?)null,
+                rejectionReason = (string?)null
+            }, "No mismatch case for this session.");
         return Success(result, "Get mismatch status successfully.");
     }
 

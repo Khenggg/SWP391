@@ -126,6 +126,16 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_active_pricing_rule_by_vehicle_type
 ON pricing_rules(vehicle_type_id)
 WHERE status = 'ACTIVE';
 
+ALTER TABLE pricing_rules
+ADD COLUMN IF NOT EXISTS max_reservation_hours INTEGER NOT NULL DEFAULT 24;
+
+ALTER TABLE pricing_rules
+DROP CONSTRAINT IF EXISTS ck_pricing_rules_max_reservation_hours;
+
+ALTER TABLE pricing_rules
+ADD CONSTRAINT ck_pricing_rules_max_reservation_hours
+CHECK (max_reservation_hours BETWEEN 1 AND 24);
+
 CREATE INDEX IF NOT EXISTS ix_monthly_pass_plate ON monthly_passes(normalized_plate_number);
 CREATE INDEX IF NOT EXISTS ix_monthly_pass_status ON monthly_passes(status);
 CREATE INDEX IF NOT EXISTS ix_monthly_pass_dates ON monthly_passes(start_date, end_date);
@@ -253,12 +263,29 @@ ALTER TABLE payments ADD COLUMN IF NOT EXISTS payment_url VARCHAR(500);
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS expired_at TIMESTAMPTZ;
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS gateway_payload JSONB;
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS paid_by_user_id BIGINT REFERENCES users(id);
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS "MonthlyPassApplicationId" BIGINT;
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS received_amount NUMERIC(12,2) NOT NULL DEFAULT 0;
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS fee_calculated_at TIMESTAMPTZ;
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS payment_valid_until TIMESTAMPTZ;
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'fk_payments_monthly_pass_application'
+    ) THEN
+        ALTER TABLE payments
+            ADD CONSTRAINT fk_payments_monthly_pass_application
+            FOREIGN KEY ("MonthlyPassApplicationId")
+            REFERENCES monthly_pass_applications(id)
+            ON DELETE RESTRICT;
+    END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS ix_payments_session ON payments(session_id);
 CREATE INDEX IF NOT EXISTS ix_payments_reservation ON payments(reservation_id);
+CREATE INDEX IF NOT EXISTS ix_payments_monthly_pass_application ON payments("MonthlyPassApplicationId");
 CREATE INDEX IF NOT EXISTS ix_payments_status ON payments(status);
 CREATE INDEX IF NOT EXISTS ix_payments_paid_at ON payments(paid_at);
 CREATE INDEX IF NOT EXISTS ix_payments_monthly_pass ON payments(monthly_pass_id);

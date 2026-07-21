@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Camera,
   CarFront,
@@ -6,6 +6,7 @@ import {
   CreditCard,
   QrCode,
   RadioTower,
+  RefreshCw,
   RotateCcw,
   Send,
   Sparkles,
@@ -30,8 +31,8 @@ import {
   normalizeGateScanEvent,
   sendGateScanEvent,
 } from "@/services/gateSimulatorBus";
-import { parkingService } from "@/services/parkingService";
 import { staffSessionService } from "@/services/staffSessionService";
+import { gateSimulatorService } from "@/services/gateSimulatorService";
 
 const MAX_SOURCE_IMAGE_BYTES = 8 * 1024 * 1024;
 const MAX_RESIZED_IMAGE_BYTES = 900 * 1024;
@@ -49,7 +50,6 @@ const defaultForm = {
   bookingId: "",
   qrToken: "",
   detectedPlate: "",
-  vehicleTypeId: "",
   plateConfidence: 100,
   plateImageDataUrl: "",
   vehicleImageDataUrl: "",
@@ -71,7 +71,6 @@ function withScanTypeDefaults(form, scanType, gateType = form.gateType) {
 
   if (scanType === "BOOKING_QR") {
     next.gateType = "ENTRY";
-    next.cardCode = "";
   }
 
   if (scanType === "CARD") {
@@ -127,110 +126,19 @@ function generateMockVehicleSvg(title) {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
-const presets = [
-  {
-    label: "Vé tháng Cư dân",
-    description: "Thẻ C007 + Biển đăng ký 51A-99999",
-    values: {
-      gateType: "ENTRY",
-      scanType: "CARD",
-      gateCode: "B1-IN",
-      cardCode: "C007",
-      bookingId: "",
-      qrToken: "",
-      detectedPlate: "51A-99999",
-      vehicleTypeName: "Xe máy",
-      plateConfidence: 98,
-      plateImageDataUrl: generateMockPlateSvg("51A-99999"),
-      vehicleImageDataUrl: generateMockVehicleSvg("Xe máy cư dân - C007"),
-    },
-  },
-  {
-    label: "Vé tháng (Sai biển)",
-    description: "Thẻ C007 + Biển 59B-12345 khác đăng ký",
-    values: {
-      gateType: "ENTRY",
-      scanType: "CARD",
-      gateCode: "B1-IN",
-      cardCode: "C007",
-      bookingId: "",
-      qrToken: "",
-      detectedPlate: "59B-12345",
-      vehicleTypeName: "Xe máy",
-      plateConfidence: 95,
-      plateImageDataUrl: generateMockPlateSvg("59B-12345"),
-      vehicleImageDataUrl: generateMockVehicleSvg("Xe máy sai biển - 59B-12345"),
-    },
-  },
-  {
-    label: "Vãng lai (Xe máy)",
-    description: "Thẻ C004 + Biển 51K-12345",
-    values: {
-      gateType: "ENTRY",
-      scanType: "CARD",
-      gateCode: "B1-IN",
-      cardCode: "C004",
-      bookingId: "",
-      qrToken: "",
-      detectedPlate: "51K-12345",
-      vehicleTypeName: "Xe máy",
-      plateConfidence: 96,
-      plateImageDataUrl: generateMockPlateSvg("51K-12345"),
-      vehicleImageDataUrl: generateMockVehicleSvg("Xe máy vãng lai - C004"),
-    },
-  },
-  {
-    label: "Vãng lai (Ô tô)",
-    description: "Thẻ C005 + Biển 59H-67890",
-    values: {
-      gateType: "ENTRY",
-      scanType: "CARD",
-      gateCode: "B1-IN",
-      cardCode: "C005",
-      bookingId: "",
-      qrToken: "",
-      detectedPlate: "59H-67890",
-      vehicleTypeName: "Ô tô",
-      plateConfidence: 97,
-      plateImageDataUrl: generateMockPlateSvg("59H-67890"),
-      vehicleImageDataUrl: generateMockVehicleSvg("Ô tô vãng lai - C005"),
-    },
-  },
-  {
-    label: "Exit Cư dân",
-    description: "Cổng ra B1-OUT + Thẻ C007",
-    values: {
-      gateType: "EXIT",
-      scanType: "CARD",
-      gateCode: "B1-OUT",
-      cardCode: "C007",
-      bookingId: "",
-      qrToken: "QR-C007",
-      detectedPlate: "51A-99999",
-      vehicleTypeName: "Xe máy",
-      plateConfidence: 98,
-      plateImageDataUrl: generateMockPlateSvg("51A-99999"),
-      vehicleImageDataUrl: generateMockVehicleSvg("Xe máy ra cổng - C007"),
-    },
-  },
-  {
-    label: "Exit Vãng lai",
-    description: "Cổng ra B1-OUT + Thẻ C004",
-    values: {
-      gateType: "EXIT",
-      scanType: "CARD",
-      gateCode: "B1-OUT",
-      cardCode: "C004",
-      bookingId: "",
-      qrToken: "QR-C004",
-      detectedPlate: "51K-12345",
-      vehicleTypeName: "Xe máy",
-      plateConfidence: 96,
-      plateImageDataUrl: generateMockPlateSvg("51K-12345"),
-      vehicleImageDataUrl: generateMockVehicleSvg("Xe vãng lai ra cổng - C004"),
-    },
-  },
+const fixturePresetDefinitions = [
+  { key: "entry.monthly", fallbackLabel: "Vé tháng vào", unavailable: "Không có thẻ vé tháng sẵn sàng." },
+  { key: "entry.casual", fallbackLabel: "Vãng lai vào", unavailable: "Không có thẻ lượt sẵn sàng." },
+  { key: "entry.booking", fallbackLabel: "Booking vào", unavailable: "Không có booking và thẻ lượt phù hợp." },
+  { key: "exit.monthly", fallbackLabel: "Vé tháng ra", unavailable: "Không có xe vé tháng trong bãi." },
+  { key: "exit.casual", fallbackLabel: "Vãng lai ra", unavailable: "Không có xe vãng lai trong bãi." },
+  { key: "exit.bookingWithinTerm", fallbackLabel: "Booking còn hạn", unavailable: "Không có booking còn hạn trong bãi." },
+  { key: "exit.bookingOverdue", fallbackLabel: "Booking quá hạn", unavailable: "Không có booking quá hạn trong bãi." },
 ];
+
+function getFixtureValue(fixtures, path) {
+  return path.split(".").reduce((value, key) => value?.[key], fixtures);
+}
 
 function formatBytes(bytes) {
   if (!bytes) return "0 KB";
@@ -356,17 +264,65 @@ async function resizeImageFile(file) {
 export default function GateSimulatorPage() {
   const [form, setForm] = useState(defaultForm);
   const [lastSent, setLastSent] = useState(null);
-  const [vehicleTypes, setVehicleTypes] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [fixtures, setFixtures] = useState(null);
+  const [isLoadingFixtures, setIsLoadingFixtures] = useState(true);
+
+  const loadFixtures = useCallback(async (showToast = false) => {
+    setIsLoadingFixtures(true);
+    try {
+      const result = await gateSimulatorService.getFixtures();
+      setFixtures(result);
+      if (showToast) {
+        toast.success("Đã làm mới dữ liệu giả lập cổng.");
+      }
+    } catch (error) {
+      setFixtures(null);
+      toast.error(error.message || "Không thể tải dữ liệu giả lập cổng.");
+    } finally {
+      setIsLoadingFixtures(false);
+    }
+  }, []);
 
   useEffect(() => {
-    parkingService.getVehicleTypes().then((res) => {
-      setVehicleTypes(res);
-      if (res.length > 0 && !form.vehicleTypeId) {
-        setForm(f => ({ ...f, vehicleTypeId: String(res[0].id) }));
-      }
-    });
-  }, []);
+    void loadFixtures();
+  }, [loadFixtures]);
+
+  const presets = useMemo(
+    () =>
+      fixturePresetDefinitions.map((definition) => {
+        const fixture = getFixtureValue(fixtures, definition.key);
+        if (!fixture) {
+          return {
+            ...definition,
+            label: definition.fallbackLabel,
+            description: definition.unavailable,
+            available: false,
+          };
+        }
+
+        const detectedPlate = fixture.detectedPlate || "";
+        return {
+          ...definition,
+          label: fixture.label || definition.fallbackLabel,
+          description: `${fixture.gateCode} · ${fixture.cardCode}${detectedPlate ? ` · ${detectedPlate}` : ""}`,
+          available: true,
+          values: {
+            gateType: fixture.gateType,
+            scanType: fixture.scanType,
+            gateCode: fixture.gateCode,
+            cardCode: fixture.cardCode || "",
+            bookingId: fixture.bookingId || "",
+            qrToken: fixture.qrToken || "",
+            detectedPlate,
+            plateConfidence: 99,
+            plateImageDataUrl: detectedPlate ? generateMockPlateSvg(detectedPlate) : "",
+            vehicleImageDataUrl: generateMockVehicleSvg(fixture.vehicleLabel || fixture.label || "Xe tại cổng"),
+          },
+        };
+      }),
+    [fixtures]
+  );
 
   const handleSearchCard = async (cardCode) => {
     if (!cardCode || form.gateType !== "EXIT") return;
@@ -377,7 +333,6 @@ export default function GateSimulatorPage() {
         setForm(f => ({
           ...f,
           detectedPlate: session.licensePlate || "",
-          vehicleTypeId: session.vehicleTypeId ? String(session.vehicleTypeId) : f.vehicleTypeId
         }));
         toast.success("Đã tìm thấy phiên gửi xe theo mã thẻ.");
       }
@@ -421,6 +376,10 @@ export default function GateSimulatorPage() {
   };
 
   const applyPreset = (preset) => {
+    if (!preset.available) {
+      toast.error(preset.unavailable);
+      return;
+    }
     setForm((current) => ({ ...current, ...preset.values }));
     toast.info(`Đã nạp preset ${preset.label}.`);
   };
@@ -484,12 +443,25 @@ export default function GateSimulatorPage() {
         <div className="flex min-w-0 flex-col gap-6">
           <Card className="app-card border-blue-200 bg-blue-50/40">
             <CardHeader className="py-3">
-              <CardTitle className="text-sm font-bold flex items-center gap-2 text-blue-900">
-                <Sparkles className="size-4 text-blue-600 shrink-0" />
-                Mẫu điền nhanh (Presets)
-              </CardTitle>
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle className="text-sm font-bold flex items-center gap-2 text-blue-900">
+                  <Sparkles className="size-4 text-blue-600 shrink-0" />
+                  Mẫu điền nhanh (Presets)
+                </CardTitle>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => loadFixtures(true)}
+                  disabled={isLoadingFixtures}
+                  className="h-7 px-2 text-xs text-blue-800"
+                >
+                  <RefreshCw className={`mr-1 size-3.5 ${isLoadingFixtures ? "animate-spin" : ""}`} />
+                  Làm mới
+                </Button>
+              </div>
               <CardDescription className="text-xs text-blue-700">
-                Bấm vào một mẫu để điền Thẻ, Biển số và Cổng. Dữ liệu chỉ được gửi khi bạn bấm "Gửi sang Staff".
+                Dữ liệu hợp lệ được lấy từ backend. Bấm mẫu chỉ điền form; chỉ gửi khi bấm "Gửi sang Staff".
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
@@ -499,7 +471,8 @@ export default function GateSimulatorPage() {
                     key={index}
                     type="button"
                     variant="outline"
-                    className="flex flex-col items-start justify-center h-auto py-2 px-3 bg-white hover:bg-blue-100 hover:border-blue-300 border-blue-200 text-left transition-all shadow-sm rounded-lg"
+                    disabled={!preset.available || isLoadingFixtures}
+                    className="flex flex-col items-start justify-center h-auto py-2 px-3 bg-white hover:bg-blue-100 hover:border-blue-300 border-blue-200 text-left transition-all shadow-sm rounded-lg disabled:cursor-not-allowed disabled:opacity-60"
                     onClick={() => applyPreset(preset)}
                   >
                     <span className="font-bold text-xs text-blue-950">{preset.label}</span>
@@ -550,28 +523,13 @@ export default function GateSimulatorPage() {
                   <Input value={form.gateCode} onChange={(event) => updateForm("gateCode", event.target.value)} />
                 </Field>
 
-                <Field label="Loại xe">
-                  <Select value={form.vehicleTypeId} onValueChange={(value) => updateForm("vehicleTypeId", value)}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {vehicleTypes.map((vt) => (
-                        <SelectItem key={vt.id} value={String(vt.id)}>
-                          {vt.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-
                 <Field label="Mã thẻ">
                   <Input
                     value={form.cardCode}
                     onChange={(event) => updateForm("cardCode", event.target.value.toUpperCase())}
                     onBlur={(event) => handleSearchCard(event.target.value.toUpperCase())}
-                    placeholder={form.scanType === "BOOKING_QR" ? "Quét NFC ở bước sau" : ""}
-                    disabled={form.scanType === "BOOKING_QR" || form.scanType === "PLATE_ONLY"}
+                    placeholder={form.scanType === "BOOKING_QR" ? "Thẻ lượt NORMAL bắt buộc" : ""}
+                    disabled={form.scanType === "PLATE_ONLY"}
                   />
                 </Field>
 

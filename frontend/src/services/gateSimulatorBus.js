@@ -53,6 +53,41 @@ export function getLastGateScanEvent(gateType) {
   return null;
 }
 
+// A scan is an event, not cached card-validation data.  Keep it long enough
+// for a page opened after the simulator to receive it, then consume it once.
+export function consumeLastGateScanEvent(gateType) {
+  const scanEvent = getLastGateScanEvent(gateType);
+  if (!scanEvent) {
+    return null;
+  }
+
+  localStorage.removeItem(`${STORAGE_KEY_PREFIX}${gateType}`);
+
+  const latestEvent = getLastGateScanEvent("LATEST");
+  if (latestEvent?.id === scanEvent.id) {
+    localStorage.removeItem(`${STORAGE_KEY_PREFIX}LATEST`);
+  }
+
+  return scanEvent;
+}
+
+export function acknowledgeGateScanEvent(scanEvent) {
+  const gateType = scanEvent?.gateType;
+  if (!gateType || !scanEvent?.id) {
+    return;
+  }
+
+  const storedEvent = getLastGateScanEvent(gateType);
+  if (storedEvent?.id === scanEvent.id) {
+    localStorage.removeItem(`${STORAGE_KEY_PREFIX}${gateType}`);
+  }
+
+  const latestEvent = getLastGateScanEvent("LATEST");
+  if (latestEvent?.id === scanEvent.id) {
+    localStorage.removeItem(`${STORAGE_KEY_PREFIX}LATEST`);
+  }
+}
+
 export function clearLastGateScanEvent() {
   localStorage.removeItem(`${STORAGE_KEY_PREFIX}ENTRY`);
   localStorage.removeItem(`${STORAGE_KEY_PREFIX}EXIT`);
@@ -81,8 +116,6 @@ export function normalizeGateScanEvent(event) {
     bookingId: event.bookingId || "",
     qrToken: event.qrToken || "",
     detectedPlate: event.detectedPlate || "",
-    vehicleTypeId: event.vehicleTypeId || "",
-    vehicleTypeName: event.vehicleTypeName || "Xe Máy",
     plateConfidence: event.plateConfidence !== undefined ? event.plateConfidence : 100,
     plateImageDataUrl: event.plateImageDataUrl || "",
     vehicleImageDataUrl: event.vehicleImageDataUrl || "",

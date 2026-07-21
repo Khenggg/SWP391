@@ -46,6 +46,7 @@ public class PublicPricingService {
                         .reservationHourlyPrice(
                                 rule.getReservationHourlyPrice()
                         )
+                        .maxReservationHours(rule.getMaxReservationHours())
                         .lostCardFee(rule.getLostCardFee())
                         .build())
                 .toList();

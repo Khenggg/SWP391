@@ -57,4 +57,7 @@ public class PricingRuleReadEntity {
 
     @Column(name = "reservation_hourly_price")
     private BigDecimal reservationHourlyPrice;
+
+    @Column(name = "max_reservation_hours")
+    private Integer maxReservationHours;
 }

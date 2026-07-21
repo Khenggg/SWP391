@@ -236,10 +236,20 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                 ? monthlyPass.Slot!.Area.FloorId
                 : monthlyPass.FloorId!.Value;
 
+            var registeredVehicle = await _dbContext.Vehicles
+                .FirstOrDefaultAsync(v =>
+                    v.DriverId == monthlyPass.DriverId &&
+                    v.NormalizedPlateNumber == monthlyPass.NormalizedPlateNumber &&
+                    v.VehicleTypeId == monthlyPass.VehicleTypeId &&
+                    v.ApprovalStatus == "APPROVED" &&
+                    v.Status == "ACTIVE");
+
             var newSession = new ParkingSession
             {
                 SessionCode = $"SESS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}",
                 CardId = card.Id,
+                DriverId = monthlyPass.DriverId,
+                VehicleId = registeredVehicle?.Id,
                 PlateNumber = request.LicensePlate,
                 NormalizedPlateNumber = normalizedPlate,
                 NoPlate = request.NoPlate,
@@ -319,6 +329,17 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
 
             var normalizedPlate = NormalizePlate(request.LicensePlate);
 
+            Vehicle? registeredVehicle = null;
+            if (!request.NoPlate && !string.IsNullOrWhiteSpace(normalizedPlate))
+            {
+                registeredVehicle = await _dbContext.Vehicles
+                    .FirstOrDefaultAsync(v =>
+                        v.NormalizedPlateNumber == normalizedPlate &&
+                        v.VehicleTypeId == request.VehicleTypeId &&
+                        v.ApprovalStatus == "APPROVED" &&
+                        v.Status == "ACTIVE");
+            }
+
             LocationSuggestionPayload? suggestionPayload = null;
             if (!string.IsNullOrWhiteSpace(request.SuggestionToken))
             {
@@ -397,6 +418,8 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                 {
                     SessionCode = $"SESS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}",
                     CardId = card.Id,
+                    DriverId = registeredVehicle?.DriverId,
+                    VehicleId = registeredVehicle?.Id,
                     PlateNumber = request.NoPlate ? null : request.LicensePlate,
                     NormalizedPlateNumber = request.NoPlate ? null : normalizedPlate,
                     NoPlate = request.NoPlate,
@@ -486,6 +509,8 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                 {
                     SessionCode = $"SESS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}",
                     CardId = card.Id,
+                    DriverId = registeredVehicle?.DriverId,
+                    VehicleId = registeredVehicle?.Id,
                     PlateNumber = request.NoPlate ? null : request.LicensePlate,
                     NormalizedPlateNumber = request.NoPlate ? null : normalizedPlate,
                     NoPlate = request.NoPlate,
@@ -705,6 +730,8 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
             {
                 SessionCode = $"SESS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}",
                 CardId = card.Id,
+                DriverId = activeReservation.DriverId,
+                VehicleId = activeReservation.VehicleId,
                 PlateNumber = request.NoPlate ? null : request.LicensePlate,
                 NormalizedPlateNumber = request.NoPlate ? null : normalizedPlate,
                 NoPlate = request.NoPlate,

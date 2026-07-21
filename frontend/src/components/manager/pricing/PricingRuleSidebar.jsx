@@ -61,6 +61,10 @@ export default function PricingRuleSidebar({
             <span className="font-semibold text-slate-900">{formatVND(selectedRule.monthlyPrice)}</span>
           </div>
           <div className="flex justify-between">
+            <span className="text-slate-500">Tối đa booking</span>
+            <span className="font-semibold text-slate-900">{selectedRule.maxReservationHours || 24} giờ</span>
+          </div>
+          <div className="flex justify-between">
             <span className="text-slate-500">Phí mất thẻ</span>
             <span className="font-semibold text-slate-900">{formatVND(selectedRule.lostCardFee)}</span>
           </div>

@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.Entry;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.LocationSuggestion;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.Exit;
 using ParkingBuilding.CoreApi.Application.Mismatch;
 using ParkingBuilding.CoreApi.Contracts.Common;
+using ParkingBuilding.CoreApi.Infrastructure.Persistence;
 using System;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
@@ -20,6 +23,7 @@ namespace ParkingBuilding.CoreApi.Controllers
         private readonly IFeeCalculationService _feeCalculationService;
         private readonly IPlateMismatchService _plateMismatchService;
         private readonly ParkingBuilding.CoreApi.Application.LostCards.ILostCardService _lostCardService;
+        private readonly ParkingDbContext _context;
 
         public ParkingSessionsController(
             IEntryService entryService,
@@ -27,7 +31,8 @@ namespace ParkingBuilding.CoreApi.Controllers
             IExitService exitService,
             IFeeCalculationService feeCalculationService,
             IPlateMismatchService plateMismatchService,
-            ParkingBuilding.CoreApi.Application.LostCards.ILostCardService lostCardService)
+            ParkingBuilding.CoreApi.Application.LostCards.ILostCardService lostCardService,
+            ParkingDbContext context)
         {
             _entryService = entryService;
             _suggestionService = suggestionService;
@@ -35,6 +40,7 @@ namespace ParkingBuilding.CoreApi.Controllers
             _feeCalculationService = feeCalculationService;
             _plateMismatchService = plateMismatchService;
             _lostCardService = lostCardService;
+            _context = context;
         }
 
         [HttpPost("entry")]
@@ -46,6 +52,35 @@ namespace ParkingBuilding.CoreApi.Controllers
 
             var result = await _entryService.CreateEntryAsync(request, staffId, role);
             return Success(result, "Cho xe vao bai thanh cong.");
+        }
+
+        [HttpGet("/api/core/staff/sessions/active")]
+        [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
+        public async Task<IActionResult> GetActiveSessions()
+        {
+            var sessions = await _context.ParkingSessions
+                .AsNoTracking()
+                .Where(s => s.Status == "ACTIVE" || s.Status == "LOST_CARD_PENDING" || s.Status == "MISMATCH_PENDING")
+                .OrderByDescending(s => s.EntryTime)
+                .Select(s => new
+                {
+                    id = s.Id,
+                    sessionCode = s.SessionCode,
+                    cardCode = s.ParkingCard.CardNumber,
+                    plateNumber = s.PlateNumber,
+                    vehicleTypeName = _context.VehicleTypes
+                        .Where(vt => vt.Id == s.VehicleTypeId)
+                        .Select(vt => vt.Name)
+                        .FirstOrDefault(),
+                    areaCode = s.Area != null ? s.Area.AreaCode : null,
+                    slotCode = s.Slot != null ? s.Slot.SlotCode : null,
+                    entryTime = s.EntryTime,
+                    paymentStatus = s.PaymentStatus,
+                    status = s.Status
+                })
+                .ToListAsync();
+
+            return Success(sessions, "Lay danh sach phien dang trong bai thanh cong.");
         }
 
         [HttpPost("{qrToken}/claim")]
@@ -109,6 +144,22 @@ namespace ParkingBuilding.CoreApi.Controllers
         public async Task<IActionResult> GetSessionByCardCode(string cardCode)
         {
             var session = await _exitService.FindActiveSessionByCardCodeAsync(cardCode);
+            var pendingOnlinePayment = await _context.Payments
+                .AsNoTracking()
+                .Where(p => p.SessionId == session.Id
+                         && p.Purpose == "PARKING_FEE"
+                         && p.Method == "BANK_TRANSFER"
+                         && p.Status == "PENDING"
+                         && p.ExpiredAt > DateTimeOffset.UtcNow)
+                .OrderByDescending(p => p.CreatedAt)
+                .Select(p => new
+                {
+                    paymentId = p.Id,
+                    paymentUrl = p.PaymentUrl,
+                    expiredAt = p.ExpiredAt
+                })
+                .FirstOrDefaultAsync();
+
             return Success(new
             {
                 sessionId = session.Id,
@@ -123,7 +174,8 @@ namespace ParkingBuilding.CoreApi.Controllers
                 areaId = session.AreaId,
                 slotId = session.SlotId,
                 monthlyPassId = session.MonthlyPassId,
-                reservationId = session.ReservationId
+                reservationId = session.ReservationId,
+                pendingOnlinePayment
             }, "Tim kiem phien gui xe theo the thanh cong.");
         }
 

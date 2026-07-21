@@ -225,6 +225,7 @@ CREATE TABLE IF NOT EXISTS pricing_rules (
     night_price NUMERIC(12,2) NOT NULL,
     monthly_price NUMERIC(12,2) NOT NULL,
     reservation_hourly_price NUMERIC(12,2) NOT NULL DEFAULT 0,
+    max_reservation_hours INTEGER NOT NULL DEFAULT 24,
     lost_card_fee NUMERIC(12,2) NOT NULL DEFAULT 0,
     effective_from TIMESTAMPTZ NOT NULL DEFAULT now(),
     status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
@@ -238,6 +239,7 @@ CREATE TABLE IF NOT EXISTS pricing_rules (
         AND night_price >= 0
         AND monthly_price >= 0
         AND reservation_hourly_price >= 0
+        AND max_reservation_hours BETWEEN 1 AND 24
         AND lost_card_fee >= 0
     )
 );
@@ -422,6 +424,7 @@ CREATE TABLE IF NOT EXISTS payments (
     id BIGSERIAL PRIMARY KEY,
     session_id BIGINT REFERENCES parking_sessions(id),
     reservation_id BIGINT REFERENCES reservations(id),
+    "MonthlyPassApplicationId" BIGINT,
     monthly_pass_id BIGINT REFERENCES monthly_passes(id),
     amount NUMERIC(12,2) NOT NULL DEFAULT 0,
     lost_card_fee NUMERIC(12,2) NOT NULL DEFAULT 0,

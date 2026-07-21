@@ -183,25 +183,27 @@ INSERT INTO pricing_rules (
     night_price,
     monthly_price,
     reservation_hourly_price,
+    max_reservation_hours,
     lost_card_fee,
     effective_from,
     status,
     created_by
 )
 VALUES
-    (1, 1, 2000, 3000, 50000, 1000, 30000, '2026-01-01 00:00:00+07', 'ACTIVE', 2),
-    (2, 2, 3000, 4000, 70000, 1000, 30000, '2026-01-01 00:00:00+07', 'ACTIVE', 2),
-    (3, 3, 5000, 7000, 150000, 2000, 50000, '2026-01-01 00:00:00+07', 'ACTIVE', 2),
-    (4, 4, 6000, 8000, 180000, 2000, 50000, '2026-01-01 00:00:00+07', 'ACTIVE', 2),
-    (5, 5, 20000, 30000, 1200000, 10000, 200000, '2026-01-01 00:00:00+07', 'ACTIVE', 2),
-    (6, 6, 25000, 35000, 1400000, 10000, 200000, '2026-01-01 00:00:00+07', 'ACTIVE', 2),
-    (7, 7, 30000, 40000, 1500000, 12000, 250000, '2026-01-01 00:00:00+07', 'ACTIVE', 2)
+    (1, 1, 2000, 3000, 50000, 1000, 24, 30000, '2026-01-01 00:00:00+07', 'ACTIVE', 2),
+    (2, 2, 3000, 4000, 70000, 1000, 24, 30000, '2026-01-01 00:00:00+07', 'ACTIVE', 2),
+    (3, 3, 5000, 7000, 150000, 2000, 24, 50000, '2026-01-01 00:00:00+07', 'ACTIVE', 2),
+    (4, 4, 6000, 8000, 180000, 2000, 24, 50000, '2026-01-01 00:00:00+07', 'ACTIVE', 2),
+    (5, 5, 20000, 30000, 1200000, 10000, 24, 200000, '2026-01-01 00:00:00+07', 'ACTIVE', 2),
+    (6, 6, 25000, 35000, 1400000, 10000, 24, 200000, '2026-01-01 00:00:00+07', 'ACTIVE', 2),
+    (7, 7, 30000, 40000, 1500000, 12000, 24, 250000, '2026-01-01 00:00:00+07', 'ACTIVE', 2)
 ON CONFLICT (id) DO UPDATE SET
     vehicle_type_id = EXCLUDED.vehicle_type_id,
     day_price = EXCLUDED.day_price,
     night_price = EXCLUDED.night_price,
     monthly_price = EXCLUDED.monthly_price,
     reservation_hourly_price = EXCLUDED.reservation_hourly_price,
+    max_reservation_hours = EXCLUDED.max_reservation_hours,
     lost_card_fee = EXCLUDED.lost_card_fee,
     effective_from = EXCLUDED.effective_from,
     status = EXCLUDED.status,

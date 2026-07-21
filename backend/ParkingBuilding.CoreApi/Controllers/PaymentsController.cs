@@ -41,8 +41,8 @@ namespace ParkingBuilding.CoreApi.Controllers
             return Success(result, "payOS webhook processed successfully.");
         }
 
-        [AllowAnonymous]
         [HttpPost("online/exit-fee")]
+        [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
         public async Task<IActionResult> CreateOnlineExitFeeLink([FromBody] CreateOnlineExitPaymentRequest request)
         {
             ParkingSession? session = null;
@@ -86,28 +86,8 @@ namespace ParkingBuilding.CoreApi.Controllers
             if (session.CustomerType == "MONTHLY")
                 throw new BusinessException(ErrorCodes.InvalidRequest);
 
-            // Security check for claimed session ownership
-            var userIdClaim = User.FindFirst("user_id")?.Value;
-            if (long.TryParse(userIdClaim, out var currentUserId))
-            {
-                if (session.ClaimedByUserId.HasValue && session.ClaimedByUserId.Value != currentUserId)
-                {
-                    throw new BusinessException(ErrorCodes.SessionAlreadyClaimed, StatusCodes.Status400BadRequest);
-                }
-
-                if (!session.ClaimedByUserId.HasValue)
-                {
-                    session.ClaimedByUserId = currentUserId;
-                    session.ClaimedAt = DateTimeOffset.UtcNow;
-                    session.ClaimMethod = "ONLINE_PAYMENT";
-                    await _context.SaveChangesAsync();
-                }
-            }
-            else if (session.ClaimedByUserId.HasValue)
-            {
-                // Unauthenticated request attempting to pay for a claimed session
-                throw new BusinessException(ErrorCodes.SessionAlreadyClaimed, StatusCodes.Status400BadRequest);
-            }
+            if (session.PaymentStatus == "PAID" || session.PaymentStatus == "WAIVED")
+                throw new BusinessException(ErrorCodes.PaymentAlreadyFinal);
 
             var feeResult = await _feeCalculationService.CalculateFeeAsync(session.Id, DateTimeOffset.UtcNow, false);
 

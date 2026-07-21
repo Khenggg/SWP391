@@ -10,6 +10,7 @@ namespace ParkingBuilding.CoreApi.Domain.Entities
         public decimal NightPrice { get; set; }
         public decimal MonthlyPrice { get; set; }
         public decimal ReservationHourlyPrice { get; set; }
+        public int MaxReservationHours { get; set; } = 24;
         public decimal LostCardFee { get; set; }
         public DateTime EffectiveFrom { get; set; } = DateTime.UtcNow;
         public string Status { get; set; } = "ACTIVE"; // ACTIVE, INACTIVE

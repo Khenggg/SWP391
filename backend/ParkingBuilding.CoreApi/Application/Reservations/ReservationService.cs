@@ -150,8 +150,6 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                 throw new BusinessException(ErrorCodes.ReservationDurationMustBeWholeHours);
 
             var reservedHours = request.ReservedDurationMinutes / 60;
-            if (reservedHours > _bookingOptions.MaxReservationHours)
-                throw new BusinessException(ErrorCodes.ReservationDurationExceedsLimit);
 
             var vehicleType = await _context.VehicleTypes.FindAsync(request.VehicleTypeId);
             if (vehicleType == null)
@@ -162,6 +160,9 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                 .FirstOrDefaultAsync(pr => pr.VehicleTypeId == request.VehicleTypeId && pr.Status == "ACTIVE" && pr.EffectiveFrom <= DateTimeOffset.UtcNow);
             if (pricingRule == null)
                 throw new BusinessException(ErrorCodes.PricingRuleNotFound, StatusCodes.Status404NotFound);
+
+            if (reservedHours > pricingRule.MaxReservationHours)
+                throw new BusinessException(ErrorCodes.ReservationDurationExceedsLimit);
 
             // Calculate booking amount
             var hourlyPrice = pricingRule.ReservationHourlyPrice;

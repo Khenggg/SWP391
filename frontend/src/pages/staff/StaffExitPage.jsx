@@ -1,10 +1,20 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { toast } from "sonner";
 import { staffSessionService } from "@/services/staffSessionService";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatVND } from "@/lib/format";
 import {
-  getLastGateScanEvent,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import {
+  acknowledgeGateScanEvent,
+  consumeLastGateScanEvent,
   subscribeGateScanEvents,
 } from "@/services/gateSimulatorBus";
 import { useMismatchStatus } from "@/hooks/useLicensePlateMismatch";
@@ -36,6 +46,8 @@ export default function StaffExitPage() {
   const [gates, setGates] = useState([]);
   const [vehicleTypes, setVehicleTypes] = useState([]);
   const [exitGateId, setExitGateId] = useState("");
+  const [isCashConfirmOpen, setIsCashConfirmOpen] = useState(false);
+  const lookupSequenceRef = useRef(0);
 
   // Poll mismatch approval status whenever a session is loaded
   const { data: mismatchStatusData } = useMismatchStatus(session?.sessionId ?? null);
@@ -69,57 +81,118 @@ export default function StaffExitPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const applyExitDeviceEvent = useCallback((event) => {
-    if (event.gateType !== "EXIT") return;
-    if (event.cardCode) setCardCode(event.cardCode);
-    if (event.detectedPlate) setPlate(event.detectedPlate);
-    if (event.plateImageDataUrl) setExitPlateImageUrl(event.plateImageDataUrl);
-    if (event.vehicleImageDataUrl) setExitVehicleImageUrl(event.vehicleImageDataUrl);
-    if (event.plateConfidence) setOcrConfidence(event.plateConfidence);
+  const loadFee = useCallback(async (sessionId, lookupId = null) => {
+    try {
+      const result = await staffSessionService.previewFee(sessionId, new Date().toISOString());
+      if (lookupId == null || lookupSequenceRef.current === lookupId) {
+        setFee(result);
+      }
+      return result;
+    } catch (error) {
+      if (lookupId == null || lookupSequenceRef.current === lookupId) {
+        toast.error(error.message || "Không tính được chi phí phiên.");
+      }
+      throw error;
+    }
   }, []);
 
+  const loadSessionByCard = useCallback(async (
+    rawCardCode,
+    { preserveScannedPlate = false, silent = false, notifyOnError = true } = {}
+  ) => {
+    const trimmedCard = String(rawCardCode || "").trim();
+    if (!trimmedCard) {
+      if (!silent) toast.error("Nhập mã thẻ để tìm phiên đỗ xe.");
+      return;
+    }
+
+    const lookupId = ++lookupSequenceRef.current;
+    setIsLoading(true);
+    setMismatchCase(null);
+    setFee(null);
+
+    try {
+      const foundSession = await staffSessionService.searchActiveSession(trimmedCard);
+      if (lookupSequenceRef.current !== lookupId) return;
+
+      setSession(foundSession);
+      setCardCode(foundSession.cardCode || trimmedCard);
+      if (!preserveScannedPlate) {
+        setPlate(foundSession.plateNumber || "");
+      }
+
+      if (foundSession.customerType === "CASUAL") {
+        await loadFee(foundSession.sessionId, lookupId);
+      }
+      if (!silent) {
+        toast.success(`Đã tìm thấy phiên đỗ xe ${foundSession.sessionCode}`);
+      }
+    } catch (error) {
+      if (lookupSequenceRef.current !== lookupId) return;
+      setSession(null);
+      setFee(null);
+      if (notifyOnError) {
+        toast.error(error.message || "Không tìm thấy phiên đỗ xe đang hoạt động.");
+      }
+    } finally {
+      if (lookupSequenceRef.current === lookupId) {
+        setIsLoading(false);
+      }
+    }
+  }, [loadFee]);
+
+  const applyExitDeviceEvent = useCallback((event) => {
+    if (event.gateType !== "EXIT") return;
+
+    acknowledgeGateScanEvent(event);
+    setSession(null);
+    setFee(null);
+    setMismatchCase(null);
+    setCardCode(event.cardCode || "");
+    setPlate(event.detectedPlate || "");
+    setExitPlateImageUrl(event.plateImageDataUrl || "");
+    setExitVehicleImageUrl(event.vehicleImageDataUrl || "");
+    setOcrConfidence(event.plateConfidence ?? 0.99);
+
+    if (event.cardCode) {
+      void loadSessionByCard(event.cardCode, {
+        preserveScannedPlate: Boolean(event.detectedPlate),
+        silent: true,
+      });
+    }
+  }, [loadSessionByCard]);
+
   useEffect(() => {
-    const lastEvent = getLastGateScanEvent("EXIT");
+    const lastEvent = consumeLastGateScanEvent("EXIT");
     if (lastEvent) applyExitDeviceEvent(lastEvent);
     return subscribeGateScanEvents(applyExitDeviceEvent);
   }, [applyExitDeviceEvent]);
 
-  const loadFee = useCallback(async (sessionId) => {
-    try {
-      const result = await staffSessionService.previewFee(sessionId, new Date().toISOString());
-      setFee(result);
-    } catch (error) {
-      toast.error(error.message || "Không tính được chi phí phiên.");
-    }
-  }, []);
+  const runSearch = useCallback(
+    () => loadSessionByCard(cardCode),
+    [cardCode, loadSessionByCard]
+  );
 
-  const runSearch = useCallback(async () => {
-    const trimmedCard = cardCode.trim();
-    if (!trimmedCard) {
-      toast.error("Nhập mã thẻ để tìm phiên đỗ xe.");
-      return;
+  useEffect(() => {
+    if (!session?.pendingOnlinePayment || session.paymentStatus === "PAID") {
+      return undefined;
     }
 
-    setIsLoading(true);
-    setMismatchCase(null);
-    setFee(null);
-    
-    try {
-      const foundSession = await staffSessionService.searchActiveSession(trimmedCard);
-      setSession(foundSession);
-      setPlate(foundSession.plateNumber || "");
-      
-      if (foundSession.customerType === "CASUAL") {
-        await loadFee(foundSession.sessionId);
-      }
-      toast.success(`Đã tìm thấy phiên đỗ xe ${foundSession.sessionCode}`);
-    } catch (error) {
-      setSession(null);
-      toast.error(error.message || "Không tìm thấy phiên đỗ xe đang hoạt động.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [cardCode, loadFee]);
+    const intervalId = window.setInterval(() => {
+      void loadSessionByCard(session.cardCode, {
+        preserveScannedPlate: true,
+        silent: true,
+        notifyOnError: false,
+      });
+    }, 5000);
+
+    return () => window.clearInterval(intervalId);
+  }, [
+    loadSessionByCard,
+    session?.cardCode,
+    session?.paymentStatus,
+    session?.pendingOnlinePayment,
+  ]);
 
   const hasMismatch = useMemo(() => {
     if (!session) return false;
@@ -145,11 +218,16 @@ export default function StaffExitPage() {
     }
   };
 
+  const isZeroCharge = useMemo(
+    () => session?.customerType === "CASUAL" && fee?.totalAmount <= 0,
+    [fee?.totalAmount, session?.customerType]
+  );
+
   const paymentReady = useMemo(() => {
     if (session?.customerType === "MONTHLY") return true;
     if (session?.paymentStatus === "PAID") return true;
-    return !!fee;
-  }, [fee, session]);
+    return isZeroCharge;
+  }, [isZeroCharge, session]);
 
   // Block payment and exit when mismatch is PENDING or REJECTED
   const mismatchBlocked = mismatchStatus === "PENDING" || mismatchStatus === "REJECTED";
@@ -169,32 +247,28 @@ export default function StaffExitPage() {
     setExitPlateImageUrl("");
     setExitVehicleImageUrl("");
     setOcrConfidence(0.99);
+    setIsCashConfirmOpen(false);
   };
 
-  const handlePayCash = async () => {
+  const handleRequestCash = () => {
+    if (!session || !fee || fee.totalAmount <= 0) return;
+    setIsCashConfirmOpen(true);
+  };
+
+  const handleConfirmCash = async () => {
     if (!session || !fee) return;
     try {
       setIsLoading(true);
-      // 1. Tạo giao dịch tiền mặt
-      const paymentRes = await staffSessionService.payCash({
+      await staffSessionService.payCash({
         sessionId: session.sessionId,
-        amount: fee.amount,
-        lostCardFee: fee.lostCardFee,
-        totalAmount: fee.totalAmount
-      });
-      // 2. Hoàn tất ra xe
-      await staffSessionService.completeExit(session.sessionId, {
         exitGateId: Number(exitGateId),
-        paymentId: paymentRes.paymentId,
-        exitPlateNumber: plate || session.plateNumber,
-        exitTime: fee.exitTime,
-        detectedPlateNumber: plate || session.plateNumber,
-        ocrConfidence: ocrConfidence,
-        exitPlateImageUrl: exitPlateImageUrl || undefined,
-        exitVehicleImageUrl: exitVehicleImageUrl || undefined
       });
-      toast.success("Đã thanh toán và hoàn tất ra xe!");
-      resetPage();
+      setIsCashConfirmOpen(false);
+      await loadSessionByCard(session.cardCode, {
+        preserveScannedPlate: true,
+        silent: true,
+      });
+      toast.success("Đã ghi nhận tiền mặt. Xác nhận xe ra để mở cổng.");
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -209,13 +283,16 @@ export default function StaffExitPage() {
       await staffSessionService.completeExit(session.sessionId, {
         exitGateId: Number(exitGateId),
         exitPlateNumber: plate || session.plateNumber,
-        exitTime: fee?.exitTime,
         detectedPlateNumber: plate || session.plateNumber,
         ocrConfidence: ocrConfidence,
         exitPlateImageUrl: exitPlateImageUrl || undefined,
         exitVehicleImageUrl: exitVehicleImageUrl || undefined
       });
-      toast.success("Đã hoàn tất xe ra bãi (Đã thanh toán)!");
+      toast.success(
+        isZeroCharge
+          ? "Đã hoàn tất xe ra bãi. Booking chưa phát sinh phí."
+          : "Đã hoàn tất xe ra bãi (Đã thanh toán)!"
+      );
       resetPage();
     } catch (error) {
       toast.error(error.message);
@@ -232,9 +309,21 @@ export default function StaffExitPage() {
         sessionId: session.sessionId,
         cardCode: session.cardCode
       });
-      // Mở PayOS QR trong tab mới (hoặc có thể code dạng iframe/modal sau này)
+      if (!res.paymentUrl) {
+        await loadSessionByCard(session.cardCode, {
+          preserveScannedPlate: true,
+          silent: true,
+        });
+        toast.info("Phiên này chưa phát sinh phí, có thể xác nhận xe ra.");
+        return;
+      }
+
       window.open(res.paymentUrl, "_blank", "width=800,height=800");
-      toast.success("Đã tạo link thanh toán PayOS. Chờ khách quét mã...");
+      await loadSessionByCard(session.cardCode, {
+        preserveScannedPlate: true,
+        silent: true,
+      });
+      toast.success("Đã tạo QR PayOS. Chờ webhook xác minh thanh toán...");
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -328,8 +417,10 @@ export default function StaffExitPage() {
               session={session}
               fee={fee}
               canExit={canExit}
+              isZeroCharge={isZeroCharge}
+              hasPendingOnlinePayment={Boolean(session?.pendingOnlinePayment)}
               isLoading={isLoading}
-              handlePayCash={handlePayCash}
+              handleRequestCash={handleRequestCash}
               handlePayOS={handlePayOS}
               handleCompleteExitPaid={handleCompleteExitPaid}
               handleCompleteMonthlyExit={handleCompleteMonthlyExit}
@@ -341,6 +432,34 @@ export default function StaffExitPage() {
 
         </div>
       </main>
+
+      <Dialog open={isCashConfirmOpen} onOpenChange={setIsCashConfirmOpen}>
+        <DialogContent className="sm:max-w-md" showCloseButton={!isLoading}>
+          <DialogHeader>
+            <DialogTitle>Xác nhận đã thu tiền mặt</DialogTitle>
+            <DialogDescription>
+              Chỉ xác nhận sau khi Staff đã nhận đủ tiền từ khách. Hệ thống sẽ tự tính lại phí ở backend.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-lg border border-indigo-100 bg-indigo-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Tổng cần thu</p>
+            <p className="mt-1 text-2xl font-black text-indigo-700">{formatVND(fee?.totalAmount || 0)}</p>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsCashConfirmOpen(false)}
+              disabled={isLoading}
+            >
+              Hủy
+            </Button>
+            <Button type="button" onClick={handleConfirmCash} disabled={isLoading}>
+              {isLoading ? "Đang ghi nhận..." : "Đã thu đủ tiền"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

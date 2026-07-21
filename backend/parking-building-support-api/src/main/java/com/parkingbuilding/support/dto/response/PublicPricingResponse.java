@@ -24,5 +24,7 @@ public class PublicPricingResponse {
 
     private BigDecimal reservationHourlyPrice;
 
+    private Integer maxReservationHours;
+
     private BigDecimal lostCardFee;
 }

@@ -5,8 +5,10 @@ export default function ExitPayment({
   session,
   fee,
   canExit,
+  isZeroCharge,
+  hasPendingOnlinePayment,
   isLoading,
-  handlePayCash,
+  handleRequestCash,
   handlePayOS,
   handleCompleteExitPaid,
   handleCompleteMonthlyExit,
@@ -16,6 +18,7 @@ export default function ExitPayment({
 }) {
   const isMonthly = session?.customerType === "MONTHLY";
   const isPaid = session?.paymentStatus === "PAID";
+  const isWaitingOnline = Boolean(hasPendingOnlinePayment && !isPaid);
 
   const blockedMessage =
     mismatchStatus === "REJECTED"
@@ -50,28 +53,46 @@ export default function ExitPayment({
         </div>
       ) : (
         <>
-          {!isMonthly && !isPaid && (
+          {!isMonthly && isZeroCharge && (
+            <Button
+              className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg shadow-lg shadow-emerald-200"
+              onClick={handleCompleteExitPaid}
+              disabled={!canExit || isLoading}
+            >
+              Xác nhận xe ra (Không phát sinh phí)
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+          )}
+
+          {!isMonthly && !isPaid && !isZeroCharge && (
             <div className="flex flex-col gap-3">
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  variant="outline"
-                  onClick={handlePayCash}
-                  disabled={!canExit || isLoading || !fee}
-                  className="h-12 border-2 border-indigo-600 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold"
-                >
-                  <Check className="w-5 h-5 mr-2" />
-                  Tiền mặt
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handlePayOS}
-                  disabled={!canExit || isLoading || !fee}
-                  className="h-12 border-2 border-emerald-600 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold"
-                >
-                  <QrCode className="w-5 h-5 mr-2" />
-                  Chuyển khoản (QR)
-                </Button>
-              </div>
+              {isWaitingOnline ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-center">
+                  <p className="text-sm font-bold text-amber-800">Đang chờ PayOS xác minh thanh toán</p>
+                  <p className="mt-1 text-xs text-amber-700">Xe chỉ được ra sau khi webhook cập nhật trạng thái PAID.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={handleRequestCash}
+                    disabled={isLoading || !fee}
+                    className="h-12 border-2 border-indigo-600 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold"
+                  >
+                    <Check className="w-5 h-5 mr-2" />
+                    Tiền mặt
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handlePayOS}
+                    disabled={isLoading || !fee}
+                    className="h-12 border-2 border-emerald-600 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold"
+                  >
+                    <QrCode className="w-5 h-5 mr-2" />
+                    Chuyển khoản (QR)
+                  </Button>
+                </div>
+              )}
               <Button
                 variant="ghost"
                 onClick={refreshSession}

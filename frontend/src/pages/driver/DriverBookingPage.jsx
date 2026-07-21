@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { reservationService } from "../../services/reservationService";
@@ -45,6 +45,20 @@ export default function DriverBookingPage() {
         selectedVehicle.vehicleTypeId || selectedVehicle.vehicleTypeName || ""
       ].join("|")
     : null;
+
+  const selectedPricingRule = useMemo(() => {
+    if (!selectedVehicle) return null;
+
+    return pricingRules.find((rule) =>
+      String(rule.vehicleTypeId) === String(selectedVehicle.vehicleTypeId)
+      || rule.vehicleTypeName === selectedVehicle.vehicleTypeName
+    ) || null;
+  }, [pricingRules, selectedVehicle]);
+
+  const maxReservationHours = Math.min(
+    24,
+    Math.max(1, Number(selectedPricingRule?.maxReservationHours) || 24)
+  );
 
   const resetBookingFlow = () => {
     reservationService.clearActiveReservationCache();
@@ -127,6 +141,12 @@ export default function DriverBookingPage() {
       cancelled = true;
     };
   }, [selectedVehicleKey]);
+
+  useEffect(() => {
+    if (durationHours > maxReservationHours) {
+      setDurationHours(maxReservationHours);
+    }
+  }, [durationHours, maxReservationHours]);
 
   const handleNextStep = () => {
     if (currentStep === 1 && !selectedVehicle) {
@@ -277,7 +297,11 @@ export default function DriverBookingPage() {
               )}
 
               {currentStep === 2 && (
-                <TimeSelectionStep durationHours={durationHours} setDurationHours={setDurationHours} />
+                <TimeSelectionStep
+                  durationHours={durationHours}
+                  setDurationHours={setDurationHours}
+                  maxReservationHours={maxReservationHours}
+                />
               )}
 
               {currentStep === 3 && (

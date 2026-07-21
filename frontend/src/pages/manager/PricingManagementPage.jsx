@@ -31,7 +31,7 @@ const STATUS_BADGE = {
   "EXPIRED": "bg-gray-100 text-gray-500 border-gray-200"
 };
 
-const EMPTY_FORM = { vehicleTypeId: "", dayPrice: "", nightPrice: "", monthlyPrice: "", lostCardFee: "", reservationHourlyPrice: "", effectiveFrom: "", status: COMMON_STATUS.ACTIVE };
+const EMPTY_FORM = { vehicleTypeId: "", dayPrice: "", nightPrice: "", monthlyPrice: "", lostCardFee: "", reservationHourlyPrice: "", maxReservationHours: "24", effectiveFrom: "", status: COMMON_STATUS.ACTIVE };
 
 export default function PricingManagementPage() {
   const [rules, setRules] = useState([]);
@@ -91,6 +91,10 @@ export default function PricingManagementPage() {
       if (data[f] === "" || data[f] === undefined) { errs[f] = "Bắt buộc"; }
       else if (Number(data[f]) < 0) { errs[f] = "Phải >= 0"; }
     });
+    const maxReservationHours = Number(data.maxReservationHours);
+    if (data.maxReservationHours === "" || !Number.isInteger(maxReservationHours) || maxReservationHours < 1 || maxReservationHours > 24) {
+      errs.maxReservationHours = "Từ 1 đến 24 giờ";
+    }
     return errs;
   };
 
@@ -110,6 +114,7 @@ export default function PricingManagementPage() {
       monthlyPrice: String(rule.monthlyPrice),
       lostCardFee: String(rule.lostCardFee),
       reservationHourlyPrice: String(rule.reservationHourlyPrice || 0),
+      maxReservationHours: String(rule.maxReservationHours || 24),
       effectiveFrom: rule.effectiveFrom?.split('T')[0] || rule.effectiveFrom?.split(' ')[0],
       status: rule.status
     });
@@ -126,6 +131,7 @@ export default function PricingManagementPage() {
       monthlyPrice: String(rule.monthlyPrice),
       lostCardFee: String(rule.lostCardFee),
       reservationHourlyPrice: String(rule.reservationHourlyPrice || 0),
+      maxReservationHours: String(rule.maxReservationHours || 24),
       effectiveFrom: "", // clear date for duplicate
       status: COMMON_STATUS.ACTIVE
     });
@@ -154,6 +160,7 @@ export default function PricingManagementPage() {
       nightPrice: Number(form.nightPrice),
       monthlyPrice: Number(form.monthlyPrice),
       reservationHourlyPrice: Number(form.reservationHourlyPrice),
+      maxReservationHours: Number(form.maxReservationHours),
       lostCardFee: Number(form.lostCardFee),
       effectiveFrom: form.effectiveFrom,
       status: form.status
@@ -252,6 +259,7 @@ export default function PricingManagementPage() {
                   <TableHead className="font-semibold text-slate-600 text-right whitespace-nowrap">Giá ngày (06:00 - 22:00)</TableHead>
                   <TableHead className="font-semibold text-slate-600 text-right whitespace-nowrap">Giá đêm (22:00 - 06:00)</TableHead>
                   <TableHead className="font-semibold text-slate-600 text-right whitespace-nowrap">Giá vé tháng</TableHead>
+                  <TableHead className="font-semibold text-slate-600 text-center whitespace-nowrap">Tối đa booking</TableHead>
                   <TableHead className="font-semibold text-slate-600 text-right whitespace-nowrap">Phí mất thẻ</TableHead>
                   <TableHead className="font-semibold text-slate-600 text-center whitespace-nowrap">Hiệu lực từ</TableHead>
                   <TableHead className="font-semibold text-slate-600 text-center whitespace-nowrap">Trạng thái</TableHead>
@@ -260,7 +268,7 @@ export default function PricingManagementPage() {
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={9} className="text-center py-10 text-slate-500">Không tìm thấy rule nào</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} className="text-center py-10 text-slate-500">Không tìm thấy rule nào</TableCell></TableRow>
                 ) : filtered.map((rule) => (
                   <TableRow 
                     key={rule.id} 
@@ -272,6 +280,7 @@ export default function PricingManagementPage() {
                     <TableCell className="text-right">{formatVND(rule.dayPrice)}</TableCell>
                     <TableCell className="text-right">{formatVND(rule.nightPrice)}</TableCell>
                     <TableCell className="text-right font-medium">{formatVND(rule.monthlyPrice)}</TableCell>
+                    <TableCell className="text-center">{rule.maxReservationHours || 24} giờ</TableCell>
                     <TableCell className="text-right">{formatVND(rule.lostCardFee)}</TableCell>
                     <TableCell className="text-center">{formatDate(rule.effectiveFrom).split(' ')[0]}</TableCell>
                     <TableCell className="text-center">

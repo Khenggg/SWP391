@@ -37,6 +37,22 @@ const MoneyField = ({ label, name, form, setField, formErrors }) => (
   </div>
 );
 
+const HoursField = ({ label, name, form, setField, formErrors }) => (
+  <div className="space-y-1">
+    <label className="block text-xs font-semibold text-slate-700">{label} <span className="text-red-500">*</span></label>
+    <Input
+      type="number"
+      min="1"
+      max="24"
+      step="1"
+      value={form[name] || ""}
+      onChange={(e) => setField(name, e.target.value)}
+      className={formErrors[name] ? "border-red-400 bg-red-50 focus-visible:ring-red-400" : ""}
+    />
+    {formErrors[name] && <p className="text-red-500 text-xs">{formErrors[name]}</p>}
+  </div>
+);
+
 export default function PricingRuleModal({
   isOpen,
   onClose,
@@ -72,6 +88,7 @@ export default function PricingRuleModal({
             <MoneyField label="Giá ban đêm" name="nightPrice" form={form} setField={setField} formErrors={formErrors} />
             <MoneyField label="Giá vé tháng" name="monthlyPrice" form={form} setField={setField} formErrors={formErrors} />
             <MoneyField label="Phí đặt chỗ (Giờ)" name="reservationHourlyPrice" form={form} setField={setField} formErrors={formErrors} />
+            <HoursField label="Tối đa giờ booking" name="maxReservationHours" form={form} setField={setField} formErrors={formErrors} />
             <MoneyField label="Phí mất thẻ" name="lostCardFee" form={form} setField={setField} formErrors={formErrors} />
           </div>
           <div className="space-y-1">

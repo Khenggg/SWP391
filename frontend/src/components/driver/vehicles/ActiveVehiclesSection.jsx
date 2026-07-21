@@ -18,10 +18,10 @@ export default function ActiveVehiclesSection({ vehicles, loading, getStatusBadg
             <div className="flex items-start justify-between">
               <div>
                 <div className="font-mono text-xl font-black text-slate-800 tracking-tight">
-                  {v.plateNumber || v.normalizedPlateNumber}
+                  {v.plateNumber || v.licensePlate || v.normalizedPlateNumber}
                 </div>
                 <div className="text-xs font-semibold text-slate-500 mt-1 flex items-center gap-2">
-                  <span>{v.vehicleType?.name || v.vehicleTypeName || "Ô Tô"}</span>
+                  <span>{v.vehicleType?.name || v.vehicleTypeName || v.vehicleType || "Không rõ"}</span>
                   {v.approvalStatus === 'APPROVED' ? (
                     <span className="px-2 py-0.5 rounded text-[10px] bg-purple-100 text-purple-700 font-bold uppercase tracking-wider">
                       Vé Tháng
@@ -47,6 +47,18 @@ export default function ActiveVehiclesSection({ vehicles, loading, getStatusBadg
               <div className="flex justify-between">
                 <span>Màu xe:</span>
                 <span className="font-semibold text-slate-700">{v.color || "—"}</span>
+              </div>
+              <div className="flex justify-between items-center gap-2">
+                <span>Trạng thái bãi:</span>
+                {v.activeSession ? (
+                  <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                    Đang trong bãi
+                  </span>
+                ) : (
+                  <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Ngoài bãi
+                  </span>
+                )}
               </div>
             </div>
           </Card>

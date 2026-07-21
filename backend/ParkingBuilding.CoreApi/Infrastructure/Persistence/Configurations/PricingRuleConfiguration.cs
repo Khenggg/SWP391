@@ -38,6 +38,11 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence.Configurations
                    .HasColumnType("numeric(12,2)")
                    .IsRequired();
 
+            builder.Property(x => x.MaxReservationHours)
+                   .HasColumnName("max_reservation_hours")
+                   .HasDefaultValue(24)
+                   .IsRequired();
+
             builder.Property(x => x.LostCardFee)
                    .HasColumnName("lost_card_fee")
                    .HasColumnType("numeric(12,2)")
