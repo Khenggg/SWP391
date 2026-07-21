@@ -486,10 +486,10 @@ export default function GateSimulatorPage() {
             <CardHeader className="py-3">
               <CardTitle className="text-sm font-bold flex items-center gap-2 text-blue-900">
                 <Sparkles className="size-4 text-blue-600 shrink-0" />
-                Mẫu test nhanh 1-Click (Presets)
+                Mẫu điền nhanh (Presets)
               </CardTitle>
               <CardDescription className="text-xs text-blue-700">
-                Bấm vào một mẫu bên dưới để tự động chọn đúng Thẻ, Biển số và Cổng từ Database:
+                Bấm vào một mẫu để điền Thẻ, Biển số và Cổng. Dữ liệu chỉ được gửi khi bạn bấm "Gửi sang Staff".
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
@@ -500,23 +500,7 @@ export default function GateSimulatorPage() {
                     type="button"
                     variant="outline"
                     className="flex flex-col items-start justify-center h-auto py-2 px-3 bg-white hover:bg-blue-100 hover:border-blue-300 border-blue-200 text-left transition-all shadow-sm rounded-lg"
-                    onClick={() => {
-                      const nextForm = {
-                        ...form,
-                        ...preset.values,
-                      };
-                      setForm(nextForm);
-                      const eventForm =
-                        nextForm.gateType === "ENTRY" && nextForm.scanType === "CARD" && isBookingToken(nextForm.qrToken)
-                          ? withScanTypeDefaults({ ...nextForm, bookingId: normalizeBookingToken(nextForm.qrToken) }, "BOOKING_QR", "ENTRY")
-                          : nextForm;
-                      const sent = sendGateScanEvent({
-                        ...eventForm,
-                        capturedAt: new Date().toISOString(),
-                      });
-                      setLastSent(sent);
-                      toast.success(`🚀 Đã gửi mẫu "${preset.label}" sang Staff UI!`);
-                    }}
+                    onClick={() => applyPreset(preset)}
                   >
                     <span className="font-bold text-xs text-blue-950">{preset.label}</span>
                     <span className="text-[10px] text-slate-500 font-normal leading-tight mt-0.5">{preset.description}</span>
