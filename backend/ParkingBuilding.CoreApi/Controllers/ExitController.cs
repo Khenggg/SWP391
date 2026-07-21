@@ -38,7 +38,7 @@ public class ExitController : ControllerBase
             });
         }
 
-        var session = await _exitService.FindActiveSessionByCardCodeAsync(request.CardCode);
+        var session = await _exitService.FindActiveSessionByCardCodeAsync(request.CardCode ?? string.Empty);
 
         if (session.CustomerType == "CASUAL")
         {

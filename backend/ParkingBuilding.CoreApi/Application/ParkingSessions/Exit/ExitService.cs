@@ -44,7 +44,8 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                 .Include(s => s.Reservation)
                 .FirstOrDefaultAsync(s => 
                     s.Status == "ACTIVE" && 
-                    (s.ParkingCard.CardNumber.ToLower() == queryLower || s.PlateNumber.ToLower() == queryLower));
+                    ((s.ParkingCard != null && s.ParkingCard.CardNumber != null && s.ParkingCard.CardNumber.ToLower() == queryLower) 
+                     || (s.PlateNumber != null && s.PlateNumber.ToLower() == queryLower)));
 
             if (session == null)
             {

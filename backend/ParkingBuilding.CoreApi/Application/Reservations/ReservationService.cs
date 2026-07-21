@@ -583,7 +583,7 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                         {
                             paymentResponse = await _payOsPaymentService.CreateReservationPaymentLinkAsync(payment, reservation);
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
                             // If payment link creation fails, roll back extension
                             var recoverStrategy = _context.Database.CreateExecutionStrategy();
