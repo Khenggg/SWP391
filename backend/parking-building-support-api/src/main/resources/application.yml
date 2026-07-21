@@ -11,7 +11,7 @@ spring:
     password: ${DB_PASSWORD:Moghicha12@}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 3
+      maximum-pool-size: 10
 
   jpa:
     open-in-view: false

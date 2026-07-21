@@ -82,7 +82,22 @@ export default function ExitSessionInfo({ session, vehicleTypes = [] }) {
             <div className="mt-2 pt-4 border-t border-slate-100 flex justify-end">
               <button
                 type="button"
-                onClick={() => navigate("/staff/license-plate-mismatch", { state: { parkingSessionId: session.sessionId || session.id } })}
+                onClick={() => navigate("/staff/license-plate-mismatch", {
+                  state: {
+                    parkingSessionId: session.sessionId || session.id,
+                    sessionData: {
+                      parkingSessionId: session.sessionId || session.id,
+                      vehiclePlate: session.plateNumber,
+                      vehicleType: getVehicleTypeName(session.vehicleTypeId),
+                      ownerName: null,
+                      parkingCard: session.cardCode,
+                      entryTime: session.entryTime,
+                      floor: session.floorId,
+                      area: session.areaId,
+                      slot: session.slotId,
+                    }
+                  }
+                })}
                 className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors"
               >
                 <AlertTriangle className="w-4 h-4" />

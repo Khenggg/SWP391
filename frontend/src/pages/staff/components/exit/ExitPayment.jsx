@@ -1,4 +1,4 @@
-import { Check, QrCode, ArrowRight, RefreshCw } from "lucide-react";
+import { Check, QrCode, ArrowRight, RefreshCw, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function ExitPayment({
@@ -11,20 +11,42 @@ export default function ExitPayment({
   handleCompleteExitPaid,
   handleCompleteMonthlyExit,
   refreshSession,
+  mismatchBlocked,
+  mismatchStatus,
 }) {
   const isMonthly = session?.customerType === "MONTHLY";
   const isPaid = session?.paymentStatus === "PAID";
+
+  const blockedMessage =
+    mismatchStatus === "REJECTED"
+      ? "Yêu cầu bị từ chối. Nhân viên cần gửi lại yêu cầu."
+      : "Đang chờ xử lý lệch biển số từ Manager.";
 
   return (
     <section className="bg-slate-50 rounded-xl border border-slate-200 shadow-sm p-4 mt-auto shrink-0 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-2">
         <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">5</span>
-        <h3 className="font-bold text-slate-800 text-sm">Thanh toán & Xác nhận</h3>
+        <h3 className="font-bold text-slate-800 text-sm">Thanh toán &amp; Xác nhận</h3>
       </div>
 
       {!session ? (
         <div className="flex justify-center items-center py-6 text-slate-400 text-sm font-medium">
           Vui lòng quét thẻ để tiếp tục
+        </div>
+      ) : mismatchBlocked ? (
+        <div className="flex flex-col items-center justify-center gap-2 py-6 text-center">
+          <Lock className="w-8 h-8 text-slate-400" />
+          <p className="text-sm font-bold text-slate-600">Thanh toán &amp; Ra xe bị tạm khoá</p>
+          <p className="text-xs text-slate-500">{blockedMessage}</p>
+          <Button
+            variant="ghost"
+            onClick={refreshSession}
+            disabled={isLoading}
+            className="h-8 text-slate-500 hover:text-slate-800 text-xs mt-1"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isLoading ? "animate-spin" : ""}`} />
+            Làm mới trạng thái
+          </Button>
         </div>
       ) : (
         <>
@@ -56,7 +78,7 @@ export default function ExitPayment({
                 disabled={isLoading}
                 className="h-8 text-slate-500 hover:text-slate-800 text-xs self-end"
               >
-                <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isLoading ? "animate-spin" : ""}`} />
                 Làm mới trạng thái thanh toán
               </Button>
             </div>

@@ -18,8 +18,8 @@ export default function LicensePlateMismatchForm({ parkingSessionId, onSubmit, i
 
   const handleFormSubmit = (data) => {
     onSubmit({
-      parkingSessionId: Number(parkingSessionId),
-      actualPlate: data.actualPlate,
+      sessionId: Number(parkingSessionId),
+      exitPlateNumber: data.actualPlate,
       reason: data.reason,
     });
   };

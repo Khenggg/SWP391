@@ -28,6 +28,7 @@ import ManagerDashboardPage from "../pages/manager/ManagerDashboardPage";
 import ReportsPage from "../pages/manager/ReportsPage";
 import LostCardApprovalsPage from "../pages/manager/LostCardApprovalsPage";
 import MismatchApprovalsPage from "../pages/manager/MismatchApprovalsPage";
+import MismatchCaseDetailPage from "../pages/manager/MismatchCaseDetailPage";
 import AuditLogsPage from "../pages/manager/AuditLogsPage";
 import AdminAuditLogPage from "../pages/admin/AdminAuditLogPage";
 
@@ -92,6 +93,7 @@ export default function AppRoutes({ isAuthenticated, userRole, currentUser, onLo
             <Route path="/manager/reports" element={<ReportsPage />} />
             <Route path="/manager/lost-card-approvals" element={<LostCardApprovalsPage />} />
             <Route path="/manager/mismatch-approvals" element={<MismatchApprovalsPage />} />
+            <Route path="/manager/mismatch-approvals/:id" element={<MismatchCaseDetailPage />} />
             <Route path="/manager/cards" element={<CardManagementPage />} />
             <Route path="/manager/structures" element={<StructureManagementPage />} />
             <Route path="/manager/pricing" element={<PricingManagementPage />} />

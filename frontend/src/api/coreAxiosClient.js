@@ -79,7 +79,9 @@ coreAxiosClient.interceptors.response.use(
         window.location.href = "/unauthorized";
       }
 
-      return Promise.reject(error.response.data || error.message);
+      // Thêm httpStatus vào error object để service phân biệt loại lỗi
+      const errData = error.response.data || {};
+      return Promise.reject({ ...errData, httpStatus: status });
     }
     
     // Lỗi không có phản hồi từ mạng (Network Error)

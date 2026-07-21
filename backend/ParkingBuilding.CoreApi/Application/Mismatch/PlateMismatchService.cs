@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -105,6 +105,7 @@ public class PlateMismatchService : IPlateMismatchService
                     mismatch.Status = "CONFIRMED";
                     mismatch.ConfirmedBy = userId;
                     mismatch.ConfirmedAt = DateTimeOffset.UtcNow;
+                    mismatch.RejectionReason = request.RejectionReason; // Manager reason for approval
                 }
                 else if (status == "REJECTED")
                 {
@@ -158,6 +159,22 @@ public class PlateMismatchService : IPlateMismatchService
             .ToListAsync();
 
         return list.Select(MapToResponse).ToList();
+    }
+
+    public async Task<PlateMismatchResponse?> GetByIdAsync(long id)
+    {
+        var m = await _context.PlateMismatchCases
+            .FirstOrDefaultAsync(x => x.Id == id);
+        return m == null ? null : MapToResponse(m);
+    }
+
+    public async Task<PlateMismatchResponse?> GetBySessionIdAsync(long sessionId)
+    {
+        var m = await _context.PlateMismatchCases
+            .Where(x => x.SessionId == sessionId)
+            .OrderByDescending(x => x.CreatedAt)
+            .FirstOrDefaultAsync();
+        return m == null ? null : MapToResponse(m);
     }
 
     private static PlateMismatchResponse MapToResponse(PlateMismatchCase m) => new()

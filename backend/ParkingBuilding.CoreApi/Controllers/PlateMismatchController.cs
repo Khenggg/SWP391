@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -35,6 +35,24 @@ public class PlateMismatchController : BaseApiController
     {
         var result = await _mismatchService.GetListAsync(status, page, pageSize);
         return Success(new { items = result, page, pageSize }, "Get plate mismatch cases successfully.");
+    }
+
+    [HttpGet("{id:long}")]
+    public async Task<IActionResult> GetById(long id)
+    {
+        var result = await _mismatchService.GetByIdAsync(id);
+        if (result == null)
+            return NotFound(new { success = false, message = "Mismatch case not found." });
+        return Success(result, "Get plate mismatch case successfully.");
+    }
+
+    [HttpGet("session/{sessionId:long}/status")]
+    public async Task<IActionResult> GetBySession(long sessionId)
+    {
+        var result = await _mismatchService.GetBySessionIdAsync(sessionId);
+        if (result == null)
+            return NotFound(new { success = false, message = "No mismatch case found for this session." });
+        return Success(result, "Get mismatch status successfully.");
     }
 
     [HttpPatch("{caseId:long}/status")]
