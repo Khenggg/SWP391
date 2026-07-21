@@ -1205,6 +1205,12 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
             };
 
             var now = DateTimeOffset.UtcNow;
+            var paymentIsSettled = reservation.BookingAmount <= 0m
+                || reservation.PaymentStatus == "PAID"
+                || reservation.PaymentStatus == "NOT_REQUIRED";
+            var paymentDeadlineExpired = !paymentIsSettled
+                && reservation.PaymentDeadline.HasValue
+                && reservation.PaymentDeadline.Value < now;
 
             if (reservation.Status == "CANCELLED")
             {
@@ -1218,7 +1224,7 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                 return response;
             }
 
-            if (reservation.Status == "EXPIRED" || (reservation.PaymentDeadline.HasValue && reservation.PaymentDeadline.Value < now) || reservation.ExpiresAt < now)
+            if (reservation.Status == "EXPIRED" || paymentDeadlineExpired || reservation.ExpiresAt < now)
             {
                 await ExpireReservationFromEntryCheckAsync(reservation, now, staffId);
                 response.Status = "EXPIRED";
