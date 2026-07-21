@@ -63,6 +63,7 @@ const getStatusBadge = (status) => {
 export default function DriverVehiclesPage() {
   const [vehicles, setVehicles] = useState([]);
   const [applications, setApplications] = useState([]);
+  const [isResident, setIsResident] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -84,19 +85,23 @@ export default function DriverVehiclesPage() {
     setLoading(true);
     setError("");
     try {
-      const [vehiclesRes, appsRes] = await Promise.all([
+      const [vehiclesRes, appsRes, profileRes] = await Promise.all([
         import("../../services/vehicleService").then(m => m.vehicleService.getVehicles()),
         driverService.getMonthlyPassApplications({
           keyword,
           status: filterStatus,
           page,
           pageSize: PAGE_SIZE,
-        })
+        }),
+        driverService.getDriverProfile().catch(() => null)
       ]);
       setVehicles(vehiclesRes.items || []);
-      setApplications(appsRes.items);
-      setTotalPages(appsRes.totalPages);
-      setTotalItems(appsRes.totalItems);
+      setApplications(appsRes.items || []);
+      setTotalPages(appsRes.totalPages || 1);
+      setTotalItems(appsRes.totalItems || 0);
+
+      const derivedDriverType = profileRes?.driverType || (vehiclesRes.items?.length > 0 ? "RESIDENT" : "VISITOR");
+      setIsResident(derivedDriverType === "RESIDENT");
     } catch (err) {
       setError(err.message || "Không thể tải dữ liệu.");
     } finally {
@@ -131,13 +136,15 @@ export default function DriverVehiclesPage() {
             Danh sách phương tiện và đơn đăng ký gửi xe vé tháng của bạn.
           </p>
         </div>
-        <Button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-sm hover:shadow transition"
-        >
-          <Plus className="w-4 h-4" />
-          Đăng ký vé tháng
-        </Button>
+        {isResident && (
+          <Button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-sm hover:shadow transition"
+          >
+            <Plus className="w-4 h-4" />
+            Đăng ký vé tháng
+          </Button>
+        )}
       </div>
 
       {/* Active Vehicles Section */}
@@ -145,76 +152,81 @@ export default function DriverVehiclesPage() {
         vehicles={vehicles}
         loading={loading}
         getStatusBadge={getStatusBadge}
+        isResident={isResident}
       />
 
-      <div className="border-t border-slate-200 my-8"></div>
+      {isResident && (
+        <>
+          <div className="border-t border-slate-200 my-8"></div>
 
-      <h3 className="text-lg font-bold text-slate-800">Lịch sử đăng ký vé tháng</h3>
+          <h3 className="text-lg font-bold text-slate-800">Lịch sử đăng ký vé tháng</h3>
 
-      {/* Info warning card */}
-      <Card className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex gap-3 text-xs text-slate-600 font-medium">
-        <Info className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5 animate-pulse" />
-        <div className="space-y-1">
-          <p className="font-extrabold text-slate-800">Quy định về Duyệt Vé Tháng:</p>
-          <p>
-            Cư dân **không tự thêm xe trực tiếp**. Hãy nhấn vào **"Đăng ký vé tháng"** để gửi biển số xe, thông tin xe và loại phương tiện.
-          </p>
-          <p>
-            Manager bãi đỗ xe sẽ xem xét thông tin, đối chiếu và tiến hành duyệt hoặc từ chối đơn của bạn.
-          </p>
-        </div>
-      </Card>
+          {/* Info warning card */}
+          <Card className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex gap-3 text-xs text-slate-600 font-medium">
+            <Info className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5 animate-pulse" />
+            <div className="space-y-1">
+              <p className="font-extrabold text-slate-800">Quy định về Duyệt Vé Tháng:</p>
+              <p>
+                Cư dân **không tự thêm xe trực tiếp**. Hãy nhấn vào **"Đăng ký vé tháng"** để gửi biển số xe, thông tin xe và loại phương tiện.
+              </p>
+              <p>
+                Manager bãi đỗ xe sẽ xem xét thông tin, đối chiếu và tiến hành duyệt hoặc từ chối đơn của bạn.
+              </p>
+            </div>
+          </Card>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input
-            className="pl-9 text-sm font-semibold"
-            placeholder="Tìm biển số..."
-            value={keyword}
-            onChange={(e) => applyFilter(setKeyword)(e.target.value)}
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                className="pl-9 text-sm font-semibold"
+                placeholder="Tìm biển số..."
+                value={keyword}
+                onChange={(e) => applyFilter(setKeyword)(e.target.value)}
+              />
+            </div>
+
+            <Select value={filterStatus || "ALL"} onValueChange={(v) => applyFilter(setFilterStatus)(v === "ALL" ? "" : v)}>
+              <SelectTrigger className="w-48 text-xs font-bold">
+                <SelectValue placeholder="Trạng thái" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
+                <SelectItem value="PENDING">⏳ Chờ duyệt</SelectItem>
+                <SelectItem value="APPROVED_AWAITING_PAYMENT">💳 Chờ thanh toán</SelectItem>
+                <SelectItem value="PAID">💵 Đã thanh toán</SelectItem>
+                <SelectItem value="ACTIVE">✅ Đang hoạt động</SelectItem>
+                <SelectItem value="REJECTED">❌ Bị từ chối</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={fetchData}
+              title="Làm mới"
+              className="shrink-0"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Table Component */}
+          <ApplicationTable
+            applications={applications}
+            loading={loading}
+            error={error}
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            setPage={setPage}
+            setDetailTarget={setDetailTarget}
+            formatDate={formatDate}
+            getStatusBadge={getStatusBadge}
           />
-        </div>
-
-        <Select value={filterStatus || "ALL"} onValueChange={(v) => applyFilter(setFilterStatus)(v === "ALL" ? "" : v)}>
-          <SelectTrigger className="w-48 text-xs font-bold">
-            <SelectValue placeholder="Trạng thái" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
-            <SelectItem value="PENDING">⏳ Chờ duyệt</SelectItem>
-            <SelectItem value="APPROVED_AWAITING_PAYMENT">💳 Chờ thanh toán</SelectItem>
-            <SelectItem value="PAID">💵 Đã thanh toán</SelectItem>
-            <SelectItem value="ACTIVE">✅ Đang hoạt động</SelectItem>
-            <SelectItem value="REJECTED">❌ Bị từ chối</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={fetchData}
-          title="Làm mới"
-          className="shrink-0"
-        >
-          <RefreshCw className="w-4 h-4" />
-        </Button>
-      </div>
-
-      {/* Table Component */}
-      <ApplicationTable
-        applications={applications}
-        loading={loading}
-        error={error}
-        page={page}
-        totalPages={totalPages}
-        totalItems={totalItems}
-        setPage={setPage}
-        setDetailTarget={setDetailTarget}
-        formatDate={formatDate}
-        getStatusBadge={getStatusBadge}
-      />
+        </>
+      )}
 
       {/* Dialog Components */}
       <ApplicationFormDialog

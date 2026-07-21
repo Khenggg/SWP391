@@ -1,14 +1,16 @@
 import React from "react";
 import { Card } from "@/components/ui/card";
 
-export default function ActiveVehiclesSection({ vehicles, loading, getStatusBadge }) {
+export default function ActiveVehiclesSection({ vehicles, loading, getStatusBadge, isResident }) {
   return (
     <div className="space-y-3">
       <h3 className="text-lg font-bold text-slate-800">Phương tiện của tôi ({vehicles.length})</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {vehicles.length === 0 && !loading && (
           <div className="col-span-full p-8 border border-dashed rounded-xl bg-slate-50 text-center text-slate-500 text-sm font-semibold">
-            Chưa có phương tiện nào. Vui lòng đăng ký vé tháng để thêm phương tiện.
+            {isResident 
+              ? "Chưa có phương tiện nào. Vui lòng đăng ký vé tháng để thêm phương tiện." 
+              : "Chưa có phương tiện nào."}
           </div>
         )}
         {vehicles.map((v, i) => (
