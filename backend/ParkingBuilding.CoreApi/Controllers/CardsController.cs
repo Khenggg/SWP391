@@ -50,19 +50,27 @@ namespace ParkingBuilding.CoreApi.Controllers
                 query = query.Where(c => c.CardNumber.Contains(search));
             }
 
-            var list = await query.ToListAsync();
+            var list = await BuildCardResponsesAsync(query);
             return Success(list, "Get cards successfully");
         }
 
-        // 2. GET AVAILABLE CARDS
+        // 2. GET CARDS THAT CAN BE ASSIGNED TO A MONTHLY PASS
         [Authorize(Roles = "ADMIN,MANAGER")]
         [HttpGet("available")]
+        [HttpGet("assignable")]
         public async Task<IActionResult> GetAvailable()
         {
-            var list = await _context.ParkingCards
-                .Where(c => c.Status == CardStatus.AVAILABLE)
-                .ToListAsync();
-            return Success(list, "Get available cards successfully");
+            var activeOrLockedMonthlyCardIds = _context.MonthlyPasses
+                .Where(monthlyPass => monthlyPass.Status == "ACTIVE" || monthlyPass.Status == "LOCKED")
+                .Select(monthlyPass => monthlyPass.CardId);
+
+            var query = _context.ParkingCards
+                .Where(card => card.Status == CardStatus.AVAILABLE
+                    && card.CurrentSessionId == null
+                    && !activeOrLockedMonthlyCardIds.Contains(card.Id));
+
+            var list = await BuildCardResponsesAsync(query);
+            return Success(list, "Get assignable cards successfully");
         }
 
         // 3. GET BY ID
@@ -70,9 +78,60 @@ namespace ParkingBuilding.CoreApi.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(long id)
         {
-            var item = await _context.ParkingCards.FindAsync(id);
+            var item = (await BuildCardResponsesAsync(
+                _context.ParkingCards.Where(card => card.Id == id)))
+                .SingleOrDefault();
             if (item == null) return StatusCodeResponse(404, "Not Found", $"Card with ID {id} not found.");
             return Success(item, "Get card successfully");
+        }
+
+        private async Task<List<CardResponseDto>> BuildCardResponsesAsync(IQueryable<ParkingCard> query)
+        {
+            var cards = await query
+                .OrderBy(card => card.CardNumber)
+                .ToListAsync();
+
+            var cardIds = cards.Select(card => card.Id).ToList();
+            var allocations = await _context.MonthlyPasses
+                .Where(monthlyPass => cardIds.Contains(monthlyPass.CardId)
+                    && (monthlyPass.Status == "ACTIVE" || monthlyPass.Status == "LOCKED"))
+                .OrderByDescending(monthlyPass => monthlyPass.EndDate)
+                .Select(monthlyPass => new MonthlyPassAllocationDto
+                {
+                    Id = monthlyPass.Id,
+                    CardId = monthlyPass.CardId,
+                    Status = monthlyPass.Status,
+                    PlateNumber = monthlyPass.PlateNumber,
+                    OwnerName = monthlyPass.OwnerName,
+                    StartDate = monthlyPass.StartDate,
+                    EndDate = monthlyPass.EndDate
+                })
+                .ToListAsync();
+
+            var allocationByCardId = allocations
+                .GroupBy(allocation => allocation.CardId)
+                .ToDictionary(group => group.Key, group => group.First());
+
+            return cards.Select(card =>
+            {
+                allocationByCardId.TryGetValue(card.Id, out var monthlyPass);
+                return new CardResponseDto
+                {
+                    Id = card.Id,
+                    CardNumber = card.CardNumber,
+                    QrToken = card.QrToken,
+                    Status = card.Status.ToString(),
+                    CurrentSessionId = card.CurrentSessionId,
+                    Note = card.Note,
+                    CreatedAt = card.CreatedAt,
+                    UpdatedAt = card.UpdatedAt,
+                    AllocationType = monthlyPass == null ? "UNASSIGNED" : "MONTHLY_PASS",
+                    IsAssignable = card.Status == CardStatus.AVAILABLE
+                        && card.CurrentSessionId == null
+                        && monthlyPass == null,
+                    MonthlyPass = monthlyPass
+                };
+            }).ToList();
         }
 
         // 4. CREATE CARD
@@ -286,6 +345,32 @@ namespace ParkingBuilding.CoreApi.Controllers
         public class UpdateCardDto
         {
             public string? Note { get; set; }
+        }
+
+        public class CardResponseDto
+        {
+            public long Id { get; set; }
+            public string CardNumber { get; set; } = string.Empty;
+            public string QrToken { get; set; } = string.Empty;
+            public string Status { get; set; } = string.Empty;
+            public long? CurrentSessionId { get; set; }
+            public string? Note { get; set; }
+            public DateTime CreatedAt { get; set; }
+            public DateTime UpdatedAt { get; set; }
+            public string AllocationType { get; set; } = "UNASSIGNED";
+            public bool IsAssignable { get; set; }
+            public MonthlyPassAllocationDto? MonthlyPass { get; set; }
+        }
+
+        public class MonthlyPassAllocationDto
+        {
+            public long Id { get; set; }
+            public long CardId { get; set; }
+            public string Status { get; set; } = string.Empty;
+            public string PlateNumber { get; set; } = string.Empty;
+            public string OwnerName { get; set; } = string.Empty;
+            public DateTime StartDate { get; set; }
+            public DateTime EndDate { get; set; }
         }
     }
 }

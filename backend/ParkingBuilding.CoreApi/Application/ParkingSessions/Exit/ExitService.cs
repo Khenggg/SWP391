@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -43,7 +43,8 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                 throw new BusinessException(ErrorCodes.CardNotFound, StatusCodes.Status404NotFound);
             }
 
-            if (card.Status != CardStatus.IN_USE || !card.CurrentSessionId.HasValue)
+            if ((card.Status != CardStatus.IN_USE && card.Status != CardStatus.LOST)
+                || !card.CurrentSessionId.HasValue)
             {
                 throw new BusinessException(ErrorCodes.CardHasNoActiveSession);
             }
@@ -217,7 +218,10 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
 
                     // Release card
                     var card = session.ParkingCard;
-                    card.Status = CardStatus.AVAILABLE;
+                    if (card.Status != CardStatus.LOST)
+                    {
+                        card.Status = CardStatus.AVAILABLE;
+                    }
                     card.CurrentSessionId = null;
                     card.UpdatedAt = DateTime.UtcNow;
 
@@ -403,7 +407,10 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
 
                     // Release card
                     var card = session.ParkingCard;
-                    card.Status = CardStatus.AVAILABLE;
+                    if (card.Status != CardStatus.LOST)
+                    {
+                        card.Status = CardStatus.AVAILABLE;
+                    }
                     card.CurrentSessionId = null;
                     card.UpdatedAt = DateTime.UtcNow;
 
