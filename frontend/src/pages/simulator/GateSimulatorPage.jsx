@@ -14,6 +14,7 @@ import {
   Upload,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -262,6 +263,7 @@ async function resizeImageFile(file) {
 }
 
 export default function GateSimulatorPage() {
+  const navigate = useNavigate();
   const [form, setForm] = useState(defaultForm);
   const [lastSent, setLastSent] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
@@ -408,6 +410,7 @@ export default function GateSimulatorPage() {
     });
     setLastSent(sent);
     toast.success(`Đã gửi ${sent.gateType} / ${scanTypeLabels[sent.scanType]} sang giao diện Staff.`);
+    navigate(sent.gateType === "EXIT" ? "/staff/exit" : "/staff/entry");
   };
 
   const handleClear = () => {
