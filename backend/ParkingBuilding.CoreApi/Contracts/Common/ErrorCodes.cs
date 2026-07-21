@@ -233,4 +233,7 @@ public static class ErrorCodes
     public const string WaiveReasonTooLong = "WAIVE_REASON_TOO_LONG";
     public const string WaiveReasonNotAllowed = "WAIVE_REASON_NOT_ALLOWED";
     public const string LostCardPending = "LOST_CARD_PENDING";
+    public const string ApplicationAlreadyReviewed = "APPLICATION_ALREADY_REVIEWED";
+    public const string StartDateTooFar = "START_DATE_TOO_FAR";
+    public const string StartDateInPast = "START_DATE_IN_PAST";
 }
