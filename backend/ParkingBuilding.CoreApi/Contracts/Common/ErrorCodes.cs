@@ -1,4 +1,4 @@
-namespace ParkingBuilding.CoreApi.Contracts.Common;
+﻿namespace ParkingBuilding.CoreApi.Contracts.Common;
 
 public static class ErrorCodes
 {
@@ -224,4 +224,7 @@ public static class ErrorCodes
     public const string ReservationExtensionPaymentNotImplemented = "RESERVATION_EXTENSION_PAYMENT_NOT_IMPLEMENTED";
     public const string ReservationSlotAlreadyReserved = "RESERVATION_SLOT_ALREADY_RESERVED";
     public const string ReservationAreaFull = "RESERVATION_AREA_FULL";
+    public const string ExitGateInvalid = "EXIT_GATE_INVALID";
+    public const string PlateMismatchRequiresApproval = "PLATE_MISMATCH_REQUIRES_APPROVAL";
+    public const string PaymentRequiredBeforeExit = "PAYMENT_REQUIRED_BEFORE_EXIT";
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -85,7 +85,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                 var gate = await _context.Gates.FindAsync(request.ExitGateId);
                 if (gate == null || gate.GateType != "EXIT" || gate.Status != "ACTIVE")
                 {
-                    throw new BusinessException("INVALID_EXIT_GATE");
+                    throw new BusinessException(ErrorCodes.ExitGateInvalid);
                 }
 
                 // Plate verification before transaction to prevent rollback of mismatch case log
@@ -99,7 +99,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
 
                     if (!isConfirmedMismatch)
                     {
-                        throw new BusinessException("PLATE_MISMATCH_REQUIRES_APPROVAL");
+                        throw new BusinessException(ErrorCodes.PlateMismatchRequiresApproval);
                     }
                 }
 
@@ -149,14 +149,14 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
 
                             if (cashPayment == null)
                             {
-                                throw new BusinessException("PAYMENT_REQUIRED_BEFORE_EXIT");
+                                throw new BusinessException(ErrorCodes.PaymentRequiredBeforeExit);
                             }
 
                             session.PaymentStatus = "PAID";
                         }
                         else
                         {
-                            throw new BusinessException("PAYMENT_REQUIRED_BEFORE_EXIT");
+                            throw new BusinessException(ErrorCodes.PaymentRequiredBeforeExit);
                         }
                     }
                     else
@@ -174,7 +174,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                                 // Overdue buffer time! Mark back to PENDING.
                                 session.PaymentStatus = "PENDING";
                                 await _context.SaveChangesAsync();
-                                throw new BusinessException("PAYMENT_REQUIRED_BEFORE_EXIT");
+                                throw new BusinessException(ErrorCodes.PaymentRequiredBeforeExit);
                             }
                         }
                     }
@@ -305,13 +305,13 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                 var gate = await _context.Gates.FindAsync(request.ExitGateId);
                 if (gate == null || gate.GateType != "EXIT" || gate.Status != "ACTIVE")
                 {
-                    throw new BusinessException("INVALID_EXIT_GATE");
+                    throw new BusinessException(ErrorCodes.ExitGateInvalid);
                 }
 
                 var pass = await _context.MonthlyPasses.FindAsync(session.MonthlyPassId.Value);
                 if (pass == null || pass.Status != "ACTIVE")
                 {
-                    throw new BusinessException("MONTHLY_PASS_EXPIRED");
+                    throw new BusinessException(ErrorCodes.MonthlyPassExpired);
                 }
 
                 // Plate verification before transaction to prevent rollback of mismatch case log
@@ -325,7 +325,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
 
                     if (!isConfirmedMismatch)
                     {
-                        throw new BusinessException("PLATE_MISMATCH_REQUIRES_APPROVAL");
+                        throw new BusinessException(ErrorCodes.PlateMismatchRequiresApproval);
                     }
                 }
 

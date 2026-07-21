@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.AspNetCore.Http;
 using ParkingBuilding.CoreApi.Contracts.Common;
 using System.Threading.Tasks;
@@ -318,6 +318,11 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                 if (role == "STAFF" && suggestionPayload.IssuedToStaffId != staffId)
                 {
                     throw new BusinessException(ErrorCodes.SuggestionTokenStaffMismatch);
+                }
+
+                if (suggestionPayload.ExpiresAt <= DateTimeOffset.UtcNow)
+                {
+                    throw new BusinessException(ErrorCodes.SuggestionTokenExpired);
                 }
 
                 var expectedSuggestionType = vehicleType.RequiresSlot ? "SLOT" : "AREA";
