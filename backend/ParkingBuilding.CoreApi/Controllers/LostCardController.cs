@@ -1,14 +1,14 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using ParkingBuilding.CoreApi.Application.LostCards;
+using ParkingBuilding.CoreApi.Contracts.Common;
 
 namespace ParkingBuilding.CoreApi.Controllers;
 
-[Route("api/[controller]")]
-[ApiController]
-[Authorize(Roles = "Staff,Manager,Admin")] // Đảm bảo chỉ người dùng đã đăng nhập mới gọi được
-public class LostCardController : ControllerBase
+[Authorize(Roles = "STAFF,MANAGER,ADMIN")]
+[Route("api/core/lost-cards")]
+public class LostCardController : BaseApiController
 {
     private readonly ILostCardService _lostCardService;
 
@@ -20,18 +20,17 @@ public class LostCardController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateLostCardCase([FromBody] CreateLostCardRequest request)
     {
-        // 1. Lấy staffId từ JWT Claims (đã được lưu khi đăng nhập)
-        var staffIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if (string.IsNullOrEmpty(staffIdClaim) || !long.TryParse(staffIdClaim, out var staffId))
-        {
-            return Unauthorized("Không thể xác định thông tin nhân viên từ token.");
-        }
-
-        // 2. Gọi Service xử lý
+        var staffId = GetCurrentUserIdOrThrow();
         var result = await _lostCardService.CreateLostCardCaseAsync(request, staffId);
+        return CreatedSuccess(result, "Tao ho so mat the thanh cong.");
+    }
 
-        // 3. Trả về kết quả
-        return Ok(new { message = "Tạo hồ sơ mất thẻ thành công.", data = result });
+    private long GetCurrentUserIdOrThrow()
+    {
+        var userIdClaim = User.FindFirst("user_id")?.Value
+            ?? User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
+            throw new BusinessException(ErrorCodes.AuthUserIdMissing);
+        return userId;
     }
 }

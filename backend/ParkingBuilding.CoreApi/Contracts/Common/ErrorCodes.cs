@@ -233,6 +233,10 @@ public static class ErrorCodes
     public const string WaiveReasonTooLong = "WAIVE_REASON_TOO_LONG";
     public const string WaiveReasonNotAllowed = "WAIVE_REASON_NOT_ALLOWED";
     public const string LostCardPending = "LOST_CARD_PENDING";
+    public const string LostCardCaseAlreadyProcessed = "LOST_CARD_CASE_ALREADY_PROCESSED";
+    public const string MismatchCaseNotFound = "MISMATCH_CASE_NOT_FOUND";
+    public const string MismatchCaseAlreadyProcessed = "MISMATCH_CASE_ALREADY_PROCESSED";
+    public const string MismatchRejectionReasonRequired = "MISMATCH_REJECTION_REASON_REQUIRED";
     public const string ApplicationAlreadyReviewed = "APPLICATION_ALREADY_REVIEWED";
     public const string StartDateTooFar = "START_DATE_TOO_FAR";
     public const string StartDateInPast = "START_DATE_IN_PAST";

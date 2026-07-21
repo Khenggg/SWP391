@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -31,6 +31,7 @@ using ParkingBuilding.CoreApi.Application.MonthlyPasses;
 using ParkingBuilding.CoreApi.Application.Payments;
 using ParkingBuilding.CoreApi.Application.Storage;
 using ParkingBuilding.CoreApi.Application.LostCards;
+using ParkingBuilding.CoreApi.Application.Mismatch;
 using ParkingBuilding.CoreApi.Application.LostCards.Documents;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.Exit;
 
@@ -89,6 +90,7 @@ builder.Services.AddScoped<IMonthlyEntryTokenService, MonthlyEntryTokenService>(
 builder.Services.AddScoped<MonthlyPassApplicationService>();
 
 builder.Services.AddScoped<ILostCardService, LostCardService>();
+builder.Services.AddScoped<IPlateMismatchService, PlateMismatchService>();
 
 builder.Services.Configure<ReservationBookingOptions>(options =>
 {
