@@ -27,11 +27,7 @@ namespace ParkingBuilding.CoreApi.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateReservationRequest request)
         {
-            var userIdClaim = User.FindFirst("user_id")?.Value;
-            if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var actorUserId))
-            {
-                throw new BusinessException(ErrorCodes.AuthUserIdInvalid);
-            }
+            var actorUserId = GetRequiredUserId();
 
             var actorRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
                 ?? User.FindFirst("role")?.Value
@@ -70,11 +66,7 @@ namespace ParkingBuilding.CoreApi.Controllers
             string reservationCode,
             [FromQuery] long entryGateId)
         {
-            var userIdClaim = User.FindFirst("user_id")?.Value;
-            if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var staffId))
-            {
-                throw new BusinessException(ErrorCodes.AuthUserIdInvalid);
-            }
+            var staffId = GetRequiredUserId();
 
             var result = await _reservationService.CheckReservationForEntryAsync(
                 reservationCode,
@@ -84,15 +76,30 @@ namespace ParkingBuilding.CoreApi.Controllers
             return Success(result, "Kiem tra reservation thanh cong.");
         }
 
-        private long? GetUserIdFromClaims()
+        private long GetRequiredUserId()
         {
-            var userIdClaim = User.FindFirst("user_id")?.Value;
-            if (long.TryParse(userIdClaim, out var parsedId))
+            var userIdClaim = User.FindFirst("user_id")?.Value
+                ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrWhiteSpace(userIdClaim))
             {
-                return parsedId;
+                throw new BusinessException(ErrorCodes.AuthUserIdMissing);
             }
 
-            return null;
+            if (!long.TryParse(userIdClaim, out var userId))
+            {
+                throw new BusinessException(ErrorCodes.AuthUserIdInvalid);
+            }
+
+            return userId;
+        }
+
+        private long? GetUserIdFromClaims()
+        {
+            var userIdClaim = User.FindFirst("user_id")?.Value
+                ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            return long.TryParse(userIdClaim, out var parsedId) ? parsedId : null;
         }
     }
 }
