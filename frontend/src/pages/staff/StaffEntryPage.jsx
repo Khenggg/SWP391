@@ -126,6 +126,105 @@ export default function StaffEntryPage() {
     setLastDeviceEvent(null);
   }, []);
 
+  const handleCheckCard = useCallback(async (overrideCardCode, overrideGateId) => {
+    const cardCode = normalizeText(overrideCardCode || form.cardCode);
+    const entryGateId = parseNumber(overrideGateId || form.entryGateId);
+    if (!cardCode || entryGateId == null) {
+      toast.error("Nhập mã thẻ và cổng vào hợp lệ trước khi kiểm tra.");
+      return;
+    }
+
+    setIsCheckingCard(true);
+    try {
+      const result = await entryService.checkCardEntry({
+        cardCode,
+        entryGateId,
+      });
+
+      setCardCheck(result);
+
+      if (result.entryCardType === "MONTHLY") {
+        setReservationCheck(null);
+        setSuggestion(null);
+        setForm((current) => ({
+          ...current,
+          entryMode: "MONTHLY",
+          noPlate: false,
+          vehicleDescription: "",
+          licensePlate: result.plateNumber || current.licensePlate,
+          vehicleTypeId: result.vehicleTypeId
+            ? String(result.vehicleTypeId)
+            : current.vehicleTypeId,
+        }));
+        toast.success("Đã xác định thẻ tháng (Cư dân) hợp lệ.");
+      } else {
+        setForm((current) => ({
+          ...current,
+          entryMode: current.entryMode === "MONTHLY" ? "CASUAL" : current.entryMode,
+        }));
+        toast.success("Thẻ hợp lệ cho luồng khách vãng lai.");
+      }
+    } catch (error) {
+      setCardCheck(null);
+      toast.error(error.message || "Kiểm tra thẻ thất bại.");
+    } finally {
+      setIsCheckingCard(false);
+    }
+  }, [form.cardCode, form.entryGateId]);
+
+  const handleCheckReservation = useCallback(async (overrideReservationCode, overrideGateId) => {
+    const reservationCode = normalizeText(overrideReservationCode || form.reservationCode);
+    const entryGateId = parseNumber(overrideGateId || form.entryGateId);
+    if (!reservationCode || entryGateId == null) {
+      toast.error("Nhập mã booking và cổng vào hợp lệ trước khi kiểm tra.");
+      return;
+    }
+
+    setIsCheckingReservation(true);
+    try {
+      const result = await entryService.checkReservationEntry({
+        reservationCode,
+        entryGateId,
+      });
+
+      setReservationCheck(result);
+      setSuggestion(null);
+      setForm((current) => ({
+        ...current,
+        entryMode: "RESERVATION",
+        noPlate: result.plateRequiredAtEntry ? false : current.noPlate,
+        vehicleDescription: result.plateRequiredAtEntry
+          ? ""
+          : current.vehicleDescription,
+        licensePlate: result.plateNumber || current.licensePlate,
+        vehicleTypeId: result.vehicleTypeId
+          ? String(result.vehicleTypeId)
+          : current.vehicleTypeId,
+      }));
+
+      if (result.status === "VALID") {
+        toast.success("Booking hợp lệ cho xe vào.");
+      } else if (result.status === "EXPIRED") {
+        toast.error("Booking đã hết hạn.");
+      } else if (result.status === "PAYMENT_PENDING") {
+        toast.error("Booking chưa thanh toán.");
+      } else if (result.status === "ALREADY_CHECKED_IN") {
+        toast.error("Booking này đã được check-in trước đó.");
+      } else if (result.status === "CANCELLED") {
+        toast.error("Booking đã bị hủy.");
+      } else if (result.status === "NOT_FOUND") {
+        toast.error("Không tìm thấy booking.");
+      } else {
+        toast.error(`Trạng thái booking: ${result.status}`);
+      }
+    } catch (error) {
+      setReservationCheck(null);
+      toast.error(error.message || "Kiểm tra booking thất bại.");
+    } finally {
+      setIsCheckingReservation(false);
+    }
+  }, [form.entryGateId, form.reservationCode]);
+
   const applyEntryDeviceEvent = useCallback((event) => {
     if (event.gateType !== "ENTRY" || processedEventRef.current === event.id) {
       return;
@@ -133,24 +232,47 @@ export default function StaffEntryPage() {
 
     processedEventRef.current = event.id;
     setLastDeviceEvent(event);
-    setForm((current) => ({
-      ...current,
-      cardCode: event.cardCode || current.cardCode,
-      licensePlate: event.detectedPlate || current.licensePlate,
-      detectedPlateNumber: event.detectedPlate || current.detectedPlateNumber,
-      vehicleTypeId: event.vehicleTypeId || current.vehicleTypeId,
-      ocrConfidence:
-        event.plateConfidence != null
-          ? String(event.plateConfidence)
-          : current.ocrConfidence,
-      entryPlateImageUrl:
-        event.plateImageDataUrl || current.entryPlateImageUrl,
-      entryVehicleImageUrl:
-        event.vehicleImageDataUrl || current.entryVehicleImageUrl,
-      reservationCode:
-        event.qrToken || event.bookingId || current.reservationCode,
-    }));
-  }, []);
+
+    const targetCardCode = event.cardCode;
+    const targetReservationCode = event.qrToken || event.bookingId;
+    const isBookingScan = event.scanType === "BOOKING_QR" || (targetReservationCode && /^BK-/i.test(targetReservationCode));
+
+    setForm((current) => {
+      let nextMode = current.entryMode;
+      if (isBookingScan) {
+        nextMode = "RESERVATION";
+      }
+
+      return {
+        ...current,
+        entryMode: nextMode,
+        cardCode: targetCardCode || current.cardCode,
+        licensePlate: event.detectedPlate || current.licensePlate,
+        detectedPlateNumber: event.detectedPlate || current.detectedPlateNumber,
+        vehicleTypeId: event.vehicleTypeId || current.vehicleTypeId,
+        ocrConfidence:
+          event.plateConfidence != null
+            ? String(event.plateConfidence)
+            : current.ocrConfidence,
+        entryPlateImageUrl:
+          event.plateImageDataUrl || current.entryPlateImageUrl,
+        entryVehicleImageUrl:
+          event.vehicleImageDataUrl || current.entryVehicleImageUrl,
+        reservationCode: targetReservationCode || current.reservationCode,
+      };
+    });
+
+    // Auto check card or reservation if code provided
+    if (isBookingScan && targetReservationCode) {
+      setTimeout(() => {
+        void handleCheckReservation(targetReservationCode, form.entryGateId);
+      }, 100);
+    } else if (targetCardCode) {
+      setTimeout(() => {
+        void handleCheckCard(targetCardCode, form.entryGateId);
+      }, 100);
+    }
+  }, [form.entryGateId, handleCheckCard, handleCheckReservation]);
 
   useEffect(() => {
     const lastEvent = getLastGateScanEvent("ENTRY");
@@ -321,102 +443,6 @@ export default function StaffEntryPage() {
     ],
     [cardCheck, form, noPlateAllowed, reservationCheck, suggestion]
   );
-
-  const handleCheckCard = async () => {
-    const entryGateId = parseNumber(form.entryGateId);
-    if (!canCheckCard || entryGateId == null) {
-      toast.error("Nhập mã thẻ và cổng vào hợp lệ trước khi kiểm tra.");
-      return;
-    }
-
-    setIsCheckingCard(true);
-    try {
-      const result = await entryService.checkCardEntry({
-        cardCode: normalizeText(form.cardCode),
-        entryGateId,
-      });
-
-      setCardCheck(result);
-
-      if (result.entryCardType === "MONTHLY") {
-        setReservationCheck(null);
-        setSuggestion(null);
-        setForm((current) => ({
-          ...current,
-          entryMode: "MONTHLY",
-          noPlate: false,
-          vehicleDescription: "",
-          licensePlate: result.plateNumber || current.licensePlate,
-          vehicleTypeId: result.vehicleTypeId
-            ? String(result.vehicleTypeId)
-            : current.vehicleTypeId,
-        }));
-        toast.success("Đã xác định thẻ tháng hợp lệ.");
-      } else {
-        if (form.entryMode === "MONTHLY") {
-          setEntryMode("CASUAL");
-        }
-        toast.success("Thẻ hợp lệ cho luồng khách vãng lai.");
-      }
-    } catch (error) {
-      setCardCheck(null);
-      toast.error(error.message || "Kiểm tra thẻ thất bại.");
-    } finally {
-      setIsCheckingCard(false);
-    }
-  };
-
-  const handleCheckReservation = async () => {
-    const entryGateId = parseNumber(form.entryGateId);
-    if (!canCheckReservation || entryGateId == null) {
-      toast.error("Nhập mã booking và cổng vào hợp lệ trước khi kiểm tra.");
-      return;
-    }
-
-    setIsCheckingReservation(true);
-    try {
-      const result = await entryService.checkReservationEntry({
-        reservationCode: normalizeText(form.reservationCode),
-        entryGateId,
-      });
-
-      setReservationCheck(result);
-      setSuggestion(null);
-      setForm((current) => ({
-        ...current,
-        entryMode: "RESERVATION",
-        noPlate: result.plateRequiredAtEntry ? false : current.noPlate,
-        vehicleDescription: result.plateRequiredAtEntry
-          ? ""
-          : current.vehicleDescription,
-        licensePlate: result.plateNumber || current.licensePlate,
-        vehicleTypeId: result.vehicleTypeId
-          ? String(result.vehicleTypeId)
-          : current.vehicleTypeId,
-      }));
-
-      if (result.status === "VALID") {
-        toast.success("Booking hợp lệ cho xe vào.");
-      } else if (result.status === "EXPIRED") {
-        toast.error("Booking đã hết hạn.");
-      } else if (result.status === "PAYMENT_PENDING") {
-        toast.error("Booking chưa thanh toán.");
-      } else if (result.status === "ALREADY_CHECKED_IN") {
-        toast.error("Booking này đã được check-in trước đó.");
-      } else if (result.status === "CANCELLED") {
-        toast.error("Booking đã bị hủy.");
-      } else if (result.status === "NOT_FOUND") {
-        toast.error("Không tìm thấy booking.");
-      } else {
-        toast.error(`Booking không hợp lệ: ${result.status}.`);
-      }
-    } catch (error) {
-      setReservationCheck(null);
-      toast.error(error.message || "Kiểm tra booking thất bại.");
-    } finally {
-      setIsCheckingReservation(false);
-    }
-  };
 
   const handleLoadSuggestion = async () => {
     const entryGateId = parseNumber(form.entryGateId);
