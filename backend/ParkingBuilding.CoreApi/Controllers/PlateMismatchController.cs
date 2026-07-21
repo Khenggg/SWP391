@@ -1,0 +1,57 @@
+﻿using System;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using ParkingBuilding.CoreApi.Application.Mismatch;
+using ParkingBuilding.CoreApi.Contracts.Common;
+
+namespace ParkingBuilding.CoreApi.Controllers;
+
+[Authorize(Roles = "STAFF,MANAGER,ADMIN")]
+[Route("api/core/plate-mismatches")]
+public class PlateMismatchController : BaseApiController
+{
+    private readonly IPlateMismatchService _mismatchService;
+
+    public PlateMismatchController(IPlateMismatchService mismatchService)
+    {
+        _mismatchService = mismatchService;
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateMismatch([FromBody] CreatePlateMismatchRequest request)
+    {
+        var staffId = GetCurrentUserIdOrThrow();
+        var result = await _mismatchService.CreateMismatchAsync(request, staffId);
+        return CreatedSuccess(result, "Plate mismatch case created successfully.");
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetList(
+        [FromQuery] string? status,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        var result = await _mismatchService.GetListAsync(status, page, pageSize);
+        return Success(new { items = result, page, pageSize }, "Get plate mismatch cases successfully.");
+    }
+
+    [HttpPatch("{caseId:long}/status")]
+    [Authorize(Roles = "MANAGER,ADMIN")]
+    public async Task<IActionResult> ProcessMismatch(long caseId, [FromBody] ProcessPlateMismatchRequest request)
+    {
+        var userId = GetCurrentUserIdOrThrow();
+        var result = await _mismatchService.ProcessMismatchAsync(caseId, request, userId);
+        return Success(result, "Plate mismatch case processed successfully.");
+    }
+
+    private long GetCurrentUserIdOrThrow()
+    {
+        var userIdClaim = User.FindFirst("user_id")?.Value
+            ?? User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
+            throw new BusinessException(ErrorCodes.AuthUserIdMissing);
+        return userId;
+    }
+}
