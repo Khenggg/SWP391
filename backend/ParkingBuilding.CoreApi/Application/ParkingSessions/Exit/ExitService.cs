@@ -9,6 +9,7 @@ using ParkingBuilding.CoreApi.Infrastructure.Persistence;
 using ParkingBuilding.CoreApi.Contracts.Common;
 using ParkingBuilding.CoreApi.Application.Audit;
 using ParkingBuilding.CoreApi.Application.Audit.Dtos;
+using ParkingBuilding.CoreApi.Application.Storage;
 
 namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
 {
@@ -17,15 +18,18 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
         private readonly ParkingDbContext _context;
         private readonly IFeeCalculationService _feeCalculationService;
         private readonly IAuditWriterService _auditWriter;
+        private readonly IParkingSessionImageStorageService _imageStorageService;
 
         public ExitService(
             ParkingDbContext context,
             IFeeCalculationService feeCalculationService,
-            IAuditWriterService auditWriter)
+            IAuditWriterService auditWriter,
+            IParkingSessionImageStorageService imageStorageService)
         {
             _context = context;
             _feeCalculationService = feeCalculationService;
             _auditWriter = auditWriter;
+            _imageStorageService = imageStorageService;
         }
 
         public async Task<ParkingSession> FindActiveSessionByCardCodeAsync(string query)
@@ -512,10 +516,11 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
 
             if (!existingImageTypes.Contains("EXIT_PLATE") && !string.IsNullOrWhiteSpace(exitPlateImageUrl))
             {
+                var storedImageUrl = await _imageStorageService.StoreAsync(exitPlateImageUrl, sessionId, "exit", "plate");
                 _context.ParkingSessionImages.Add(new ParkingSessionImage
                 {
                     SessionId = sessionId,
-                    ImageUrl = exitPlateImageUrl,
+                    ImageUrl = storedImageUrl,
                     ImageType = "EXIT_PLATE",
                     Confidence = ocrConfidence.HasValue ? (decimal)ocrConfidence.Value : null,
                     CapturedAt = DateTimeOffset.UtcNow
@@ -524,10 +529,11 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
 
             if (!existingImageTypes.Contains("EXIT_VEHICLE") && !string.IsNullOrWhiteSpace(exitVehicleImageUrl))
             {
+                var storedImageUrl = await _imageStorageService.StoreAsync(exitVehicleImageUrl, sessionId, "exit", "vehicle");
                 _context.ParkingSessionImages.Add(new ParkingSessionImage
                 {
                     SessionId = sessionId,
-                    ImageUrl = exitVehicleImageUrl,
+                    ImageUrl = storedImageUrl,
                     ImageType = "EXIT_VEHICLE",
                     CapturedAt = DateTimeOffset.UtcNow
                 });

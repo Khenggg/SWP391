@@ -149,6 +149,7 @@ builder.Services.Configure<SupabaseStorageOptions>(options =>
     }
 });
 builder.Services.AddHttpClient<IStorageService, SupabaseStorageService>();
+builder.Services.AddScoped<IParkingSessionImageStorageService, ParkingSessionImageStorageService>();
 builder.Services.AddScoped<ILostCardDocumentService, LostCardDocumentService>();
 builder.Services.AddScoped<IFeeCalculationService, FeeCalculationService>();
 builder.Services.AddScoped<IExitService, ExitService>();

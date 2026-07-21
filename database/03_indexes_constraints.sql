@@ -3,6 +3,21 @@
 
 BEGIN;
 
+-- Supabase Storage prerequisite for parking-session photos. Images are stored
+-- as Storage objects; only their public URLs are persisted in parking_session_images.
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'parking-images',
+    'parking-images',
+    true,
+    5242880,
+    ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']
+)
+ON CONFLICT (id) DO UPDATE
+SET public = EXCLUDED.public,
+    file_size_limit = EXCLUDED.file_size_limit,
+    allowed_mime_types = EXCLUDED.allowed_mime_types;
+
 CREATE UNIQUE INDEX IF NOT EXISTS ux_users_username ON users(username);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_users_email ON users(email) WHERE email IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS ux_users_phone ON users(phone) WHERE phone IS NOT NULL;

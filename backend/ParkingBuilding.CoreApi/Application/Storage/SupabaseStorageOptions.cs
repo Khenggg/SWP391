@@ -12,6 +12,7 @@ public class SupabaseStorageOptions
         "image/jpeg",
         "image/png",
         "image/webp",
+        "image/svg+xml",
         "application/pdf"
     ];
 

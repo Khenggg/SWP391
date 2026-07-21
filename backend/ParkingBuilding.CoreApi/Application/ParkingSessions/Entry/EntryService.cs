@@ -12,8 +12,6 @@ using ParkingBuilding.CoreApi.Application.Audit.Dtos;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.LocationSuggestion;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.Exit;
 using ParkingBuilding.CoreApi.Application.Reservations;
-using System.IO;
-using Microsoft.Extensions.Options;
 using ParkingBuilding.CoreApi.Application.MonthlyPasses;
 using ParkingBuilding.CoreApi.Application.Storage;
 
@@ -28,8 +26,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
         private readonly IReservationEntryTokenService _resTokenService;
         private readonly IMonthlyPassService _monthlyPassService;
         private readonly IMonthlyEntryTokenService _monthlyTokenService;
-        private readonly IStorageService _storageService;
-        private readonly SupabaseStorageOptions _storageOptions;
+        private readonly IParkingSessionImageStorageService _imageStorageService;
         private readonly IFeeCalculationService _feeCalculationService;
 
         public EntryService(
@@ -40,8 +37,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
             IReservationEntryTokenService resTokenService,
             IMonthlyPassService monthlyPassService,
             IMonthlyEntryTokenService monthlyTokenService,
-            IStorageService storageService,
-            IOptions<SupabaseStorageOptions> storageOptions,
+            IParkingSessionImageStorageService imageStorageService,
             IFeeCalculationService feeCalculationService)
         {
             _dbContext = dbContext;
@@ -51,8 +47,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
             _resTokenService = resTokenService;
             _monthlyPassService = monthlyPassService;
             _monthlyTokenService = monthlyTokenService;
-            _storageService = storageService;
-            _storageOptions = storageOptions.Value;
+            _imageStorageService = imageStorageService;
             _feeCalculationService = feeCalculationService;
         }
 
@@ -811,7 +806,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
         {
             if (!string.IsNullOrWhiteSpace(request.EntryPlateImageUrl))
             {
-                var processedUrl = await ProcessImageUrlAsync(request.EntryPlateImageUrl, "entry", "plate", sessionId);
+                var processedUrl = await _imageStorageService.StoreAsync(request.EntryPlateImageUrl, sessionId, "entry", "plate");
                 _dbContext.ParkingSessionImages.Add(new ParkingSessionImage
                 {
                     SessionId = sessionId,
@@ -827,7 +822,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
 
             if (!string.IsNullOrWhiteSpace(request.EntryVehicleImageUrl))
             {
-                var processedUrl = await ProcessImageUrlAsync(request.EntryVehicleImageUrl, "entry", "vehicle", sessionId);
+                var processedUrl = await _imageStorageService.StoreAsync(request.EntryVehicleImageUrl, sessionId, "entry", "vehicle");
                 _dbContext.ParkingSessionImages.Add(new ParkingSessionImage
                 {
                     SessionId = sessionId,
@@ -842,56 +837,6 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
             }
 
             await _dbContext.SaveChangesAsync();
-        }
-
-        private async Task<string> ProcessImageUrlAsync(string inputUrl, string folder, string fileNamePrefix, long sessionId)
-        {
-            if (string.IsNullOrWhiteSpace(inputUrl)) return string.Empty;
-
-            if (inputUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
-            {
-                try
-                {
-                    var commaIndex = inputUrl.IndexOf(',');
-                    if (commaIndex > 0)
-                    {
-                        var header = inputUrl[..commaIndex];
-                        var base64Data = inputUrl[(commaIndex + 1)..];
-                        var mimeType = "image/jpeg";
-                        var extension = ".jpg";
-
-                        if (header.Contains("image/png", StringComparison.OrdinalIgnoreCase))
-                        {
-                            mimeType = "image/png";
-                            extension = ".png";
-                        }
-                        else if (header.Contains("image/webp", StringComparison.OrdinalIgnoreCase))
-                        {
-                            mimeType = "image/webp";
-                            extension = ".webp";
-                        }
-
-                        var bytes = Convert.FromBase64String(base64Data);
-                        using var stream = new MemoryStream(bytes);
-                        var storagePath = $"sessions/{sessionId}/{folder}/{fileNamePrefix}_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid().ToString("N")[..6]}{extension}";
-
-                        await _storageService.UploadAsync(stream, storagePath, mimeType);
-                        if (!string.IsNullOrWhiteSpace(_storageOptions?.Url) && !string.IsNullOrWhiteSpace(_storageOptions?.Bucket))
-                        {
-                            var baseUrl = _storageOptions.Url.TrimEnd('/');
-                            return $"{baseUrl}/storage/v1/object/public/{_storageOptions.Bucket}/{storagePath}";
-                        }
-
-                        return await _storageService.CreateSignedUrlAsync(storagePath);
-                    }
-                }
-                catch
-                {
-                    // Fallback to safely truncated string if Supabase Upload fails or is not configured
-                }
-            }
-
-            return inputUrl.Length > 500 ? inputUrl[..500] : inputUrl;
         }
 
         private CreateEntryResponse MapSessionToResponse(ParkingSession newSession, ParkingCard card, CreateEntryRequest request)

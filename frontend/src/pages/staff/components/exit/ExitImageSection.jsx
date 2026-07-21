@@ -1,8 +1,14 @@
-import React, { useRef } from "react";
-import { Camera, Upload, X, Eye } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Camera, Upload, X, Eye, ImageOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 function ImageSlot({ label, url, onClear, inputRef, onChange, disabled, id, readOnly }) {
+  const [hasLoadError, setHasLoadError] = useState(false);
+
+  useEffect(() => {
+    setHasLoadError(false);
+  }, [url]);
+
   const handleFileSelect = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -18,15 +24,13 @@ function ImageSlot({ label, url, onClear, inputRef, onChange, disabled, id, read
       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
         {label}
       </label>
-      {url ? (
+      {url && !hasLoadError ? (
         <div className="relative group rounded-lg border border-slate-200 bg-slate-50 overflow-hidden aspect-video">
           <img
             src={url}
             alt={label}
             className="w-full h-full object-cover"
-            onError={(event) => {
-              event.currentTarget.style.display = "none";
-            }}
+            onError={() => setHasLoadError(true)}
           />
           {!readOnly && onClear && (
             <button
@@ -45,8 +49,14 @@ function ImageSlot({ label, url, onClear, inputRef, onChange, disabled, id, read
         >
           {readOnly ? (
             <>
-              <Eye className="w-5 h-5 text-slate-200" />
-              <span className="text-[10px] font-semibold text-slate-300">Không có ảnh</span>
+              {hasLoadError ? (
+                <ImageOff className="w-5 h-5 text-amber-400" />
+              ) : (
+                <Eye className="w-5 h-5 text-slate-200" />
+              )}
+              <span className={`text-[10px] font-semibold ${hasLoadError ? "text-amber-600" : "text-slate-300"}`}>
+                {hasLoadError ? "Không tải được ảnh" : "Không có ảnh"}
+              </span>
             </>
           ) : (
             <>
