@@ -10,10 +10,10 @@ Write-Host "==================================================" -ForegroundColor
 
 # 1. Check if ngrok is available on system
 try {
-    $ngrokVer = ngrok --version
+    $ngrokVer = npx ngrok --version
     Write-Host "ngrok is available: $ngrokVer" -ForegroundColor Gray
 } catch {
-    Write-Error "ngrok is not found on your system PATH. Please install ngrok first."
+    Write-Error "ngrok is not found. Please install ngrok or npm first."
     exit 1
 }
 
@@ -23,7 +23,7 @@ $ngrokProcess = Get-Process -Name "ngrok" -ErrorAction SilentlyContinue
 if ($null -eq $ngrokProcess) {
     Write-Host "Starting ngrok tunnel on port $Port..." -ForegroundColor Cyan
     # Run ngrok http $Port in the background
-    $proc = Start-Process -FilePath "ngrok" -ArgumentList "http $Port" -NoNewWindow -PassThru
+    $proc = Start-Process -FilePath "npx.cmd" -ArgumentList "ngrok http $Port" -NoNewWindow -PassThru
     Write-Host "Waiting 3 seconds for ngrok to initialize..." -ForegroundColor Gray
     Start-Sleep -Seconds 3
 } else {

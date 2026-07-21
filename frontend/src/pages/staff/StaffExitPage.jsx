@@ -3,6 +3,10 @@ import { useOutletContext } from "react-router-dom";
 import { toast } from "sonner";
 import { staffSessionService } from "@/services/staffSessionService";
 import { formatDateTime } from "@/lib/format";
+import {
+  getLastGateScanEvent,
+  subscribeGateScanEvents,
+} from "@/services/gateSimulatorBus";
 
 import ExitSearchSection from "./components/exit/ExitSearchSection";
 import ExitSessionInfo from "./components/exit/ExitSessionInfo";
@@ -19,6 +23,9 @@ export default function StaffExitPage() {
 
   const [cardCode, setCardCode] = useState("");
   const [plate, setPlate] = useState("");
+  const [exitPlateImageUrl, setExitPlateImageUrl] = useState("");
+  const [exitVehicleImageUrl, setExitVehicleImageUrl] = useState("");
+  const [ocrConfidence, setOcrConfidence] = useState(0.99);
   const [session, setSession] = useState(null);
   const [fee, setFee] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -55,6 +62,21 @@ export default function StaffExitPage() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  const applyExitDeviceEvent = useCallback((event) => {
+    if (event.gateType !== "EXIT") return;
+    if (event.cardCode) setCardCode(event.cardCode);
+    if (event.detectedPlate) setPlate(event.detectedPlate);
+    if (event.plateImageDataUrl) setExitPlateImageUrl(event.plateImageDataUrl);
+    if (event.vehicleImageDataUrl) setExitVehicleImageUrl(event.vehicleImageDataUrl);
+    if (event.plateConfidence) setOcrConfidence(event.plateConfidence);
+  }, []);
+
+  useEffect(() => {
+    const lastEvent = getLastGateScanEvent("EXIT");
+    if (lastEvent) applyExitDeviceEvent(lastEvent);
+    return subscribeGateScanEvents(applyExitDeviceEvent);
+  }, [applyExitDeviceEvent]);
 
   const loadFee = useCallback(async (sessionId) => {
     try {
@@ -135,6 +157,9 @@ export default function StaffExitPage() {
     setSession(null);
     setFee(null);
     setMismatchCase(null);
+    setExitPlateImageUrl("");
+    setExitVehicleImageUrl("");
+    setOcrConfidence(0.99);
   };
 
   const handlePayCash = async () => {
@@ -155,7 +180,9 @@ export default function StaffExitPage() {
         exitPlateNumber: plate || session.plateNumber,
         exitTime: fee.exitTime,
         detectedPlateNumber: plate || session.plateNumber,
-        ocrConfidence: 0.99
+        ocrConfidence: ocrConfidence,
+        exitPlateImageUrl: exitPlateImageUrl || undefined,
+        exitVehicleImageUrl: exitVehicleImageUrl || undefined
       });
       toast.success("Đã thanh toán và hoàn tất ra xe!");
       resetPage();
@@ -175,7 +202,9 @@ export default function StaffExitPage() {
         exitPlateNumber: plate || session.plateNumber,
         exitTime: fee?.exitTime,
         detectedPlateNumber: plate || session.plateNumber,
-        ocrConfidence: 0.99
+        ocrConfidence: ocrConfidence,
+        exitPlateImageUrl: exitPlateImageUrl || undefined,
+        exitVehicleImageUrl: exitVehicleImageUrl || undefined
       });
       toast.success("Đã hoàn tất xe ra bãi (Đã thanh toán)!");
       resetPage();
@@ -212,7 +241,9 @@ export default function StaffExitPage() {
         exitGateId: Number(exitGateId),
         exitPlateNumber: plate || session.plateNumber,
         detectedPlateNumber: plate || session.plateNumber,
-        ocrConfidence: 0.99
+        ocrConfidence: ocrConfidence,
+        exitPlateImageUrl: exitPlateImageUrl || undefined,
+        exitVehicleImageUrl: exitVehicleImageUrl || undefined
       });
       toast.success("Đã xác nhận xe vé tháng ra bãi!");
       resetPage();

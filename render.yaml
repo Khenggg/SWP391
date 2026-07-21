@@ -1,0 +1,76 @@
+envVarGroups:
+  - name: swp391-shared-jwt
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: Jwt__Issuer
+        value: ParkingBuilding.CoreApi
+      - key: Jwt__Audience
+        value: ParkingBuilding.Frontend
+      - key: JWT_ISSUER
+        value: ParkingBuilding.CoreApi
+      - key: JWT_AUDIENCE
+        value: ParkingBuilding.Frontend
+
+services:
+  - type: web
+    name: swp391-core-api
+    runtime: docker
+    plan: free
+    region: singapore
+    repo: https://github.com/Khenggg/SWP391.git
+    branch: main
+    rootDir: backend/ParkingBuilding.CoreApi
+    healthCheckPath: /api/core/health
+    envVars:
+      - fromGroup: swp391-shared-jwt
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: parking-images
+      - key: SUPABASE_SIGNED_URL_EXPIRES_SECONDS
+        value: "900"
+      - key: SUPABASE_MAX_UPLOAD_BYTES
+        value: "5242880"
+      - key: PAYOS_CLIENT_ID
+        sync: false
+      - key: PAYOS_API_KEY
+        sync: false
+      - key: PAYOS_CHECKSUM_KEY
+        sync: false
+      - key: PAYOS_WEBHOOK_URL
+        sync: false
+      - key: PAYOS_RETURN_URL
+        sync: false
+      - key: PAYOS_CANCEL_URL
+        sync: false
+
+  - type: web
+    name: swp391-support-api
+    runtime: docker
+    plan: free
+    region: singapore
+    repo: https://github.com/Khenggg/SWP391.git
+    branch: main
+    rootDir: backend/parking-building-support-api
+    healthCheckPath: /api/support/health
+    envVars:
+      - fromGroup: swp391-shared-jwt
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: JAVA_TOOL_OPTIONS
+        value: -Xms64m -Xmx320m -XX:+UseSerialGC

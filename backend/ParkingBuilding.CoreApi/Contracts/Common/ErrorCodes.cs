@@ -1,4 +1,4 @@
-namespace ParkingBuilding.CoreApi.Contracts.Common;
+﻿namespace ParkingBuilding.CoreApi.Contracts.Common;
 
 public static class ErrorCodes
 {
@@ -224,4 +224,20 @@ public static class ErrorCodes
     public const string ReservationExtensionPaymentNotImplemented = "RESERVATION_EXTENSION_PAYMENT_NOT_IMPLEMENTED";
     public const string ReservationSlotAlreadyReserved = "RESERVATION_SLOT_ALREADY_RESERVED";
     public const string ReservationAreaFull = "RESERVATION_AREA_FULL";
+    public const string ExitGateInvalid = "EXIT_GATE_INVALID";
+    public const string PlateMismatchRequiresApproval = "PLATE_MISMATCH_REQUIRES_APPROVAL";
+    public const string PaymentRequiredBeforeExit = "PAYMENT_REQUIRED_BEFORE_EXIT";
+    public const string NoPaymentRequired = "NO_PAYMENT_REQUIRED";
+    public const string PaymentAlreadyPending = "PAYMENT_ALREADY_PENDING";
+    public const string WaiveReasonTooShort = "WAIVE_REASON_TOO_SHORT";
+    public const string WaiveReasonTooLong = "WAIVE_REASON_TOO_LONG";
+    public const string WaiveReasonNotAllowed = "WAIVE_REASON_NOT_ALLOWED";
+    public const string LostCardPending = "LOST_CARD_PENDING";
+    public const string LostCardCaseAlreadyProcessed = "LOST_CARD_CASE_ALREADY_PROCESSED";
+    public const string MismatchCaseNotFound = "MISMATCH_CASE_NOT_FOUND";
+    public const string MismatchCaseAlreadyProcessed = "MISMATCH_CASE_ALREADY_PROCESSED";
+    public const string MismatchRejectionReasonRequired = "MISMATCH_REJECTION_REASON_REQUIRED";
+    public const string ApplicationAlreadyReviewed = "APPLICATION_ALREADY_REVIEWED";
+    public const string StartDateTooFar = "START_DATE_TOO_FAR";
+    public const string StartDateInPast = "START_DATE_IN_PAST";
 }

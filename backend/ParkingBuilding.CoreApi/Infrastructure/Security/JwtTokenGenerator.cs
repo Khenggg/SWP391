@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 
 namespace ParkingBuilding.CoreApi.Infrastructure.Security
 {
@@ -23,10 +22,7 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Security
             var issuer = _configuration["Jwt:Issuer"] ?? "ParkingBuilding.CoreApi";
             var audience = _configuration["Jwt:Audience"] ?? "ParkingBuilding.Frontend";
             var secretKey = _configuration["JWT_SECRET"] ?? _configuration["Jwt:Secret"];
-            if (string.IsNullOrEmpty(secretKey))
-            {
-                throw new System.InvalidOperationException("JWT Secret is not configured.");
-            }
+            var secretKeyBytes = JwtSecretValidator.GetValidatedKeyBytes(secretKey);
             var expirationMinutesStr = _configuration["Jwt:ExpirationMinutes"];
             
             if (!int.TryParse(expirationMinutesStr, out var expirationMinutes))
@@ -34,7 +30,7 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Security
                 expirationMinutes = 60; // Default to 60 minutes (3600 seconds)
             }
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+            var key = new SymmetricSecurityKey(secretKeyBytes);
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             jwtId = Guid.NewGuid().ToString("N");

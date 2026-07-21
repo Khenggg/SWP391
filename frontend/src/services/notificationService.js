@@ -1,4 +1,5 @@
 import axios from "axios";
+import { apiRequestTimeout } from "../api/requestTimeout";
 
 // Khởi tạo instance Axios cho Notification API (Spring Boot)
 // Cắt '/support' thay bằng '/notifications' để trúng endpoint của Java Backend
@@ -8,7 +9,7 @@ export const notificationBaseURL = import.meta.env.VITE_SUPPORT_API_URL
 
 const notificationAxiosClient = axios.create({
   baseURL: notificationBaseURL,
-  timeout: 10000,
+  timeout: apiRequestTimeout,
   headers: {
     "Content-Type": "application/json",
   },

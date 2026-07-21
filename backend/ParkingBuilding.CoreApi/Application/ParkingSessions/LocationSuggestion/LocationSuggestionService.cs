@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using ParkingBuilding.CoreApi.Contracts.Common;
 using Microsoft.Extensions.Configuration;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
@@ -48,7 +48,13 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.LocationSuggestion
             }
             var expiresAt = DateTimeOffset.UtcNow.AddSeconds(expireSeconds);
 
-            if (vehicleType.RequiresSlot)
+            var activeReservationSlotIds = await _dbContext.Reservations
+                    .Where(r => r.Status == "PENDING" || r.Status == "CONFIRMED")
+                    .Where(r => r.SlotId != null)
+                    .Select(r => r.SlotId!.Value)
+                    .ToListAsync();
+
+                if (vehicleType.RequiresSlot)
             {
                 var suggestedSlot = await _dbContext.Slots
                     .Include(s => s.Area)
@@ -59,7 +65,8 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.LocationSuggestion
                         s.Area.FloorId == gate.FloorId &&
                         s.Area.Status == "ACTIVE" &&
                         s.Area.Floor.Status == "ACTIVE" &&
-                        s.Area.AreaVehicleTypes.Any(avt => avt.VehicleTypeId == request.VehicleTypeId))
+                        s.Area.AreaVehicleTypes.Any(avt => avt.VehicleTypeId == request.VehicleTypeId) &&
+                        !activeReservationSlotIds.Contains(s.Id))
                     .OrderBy(s => s.Area.PriorityOrder)
                     .ThenBy(s => s.Id)
                     .FirstOrDefaultAsync();
@@ -78,7 +85,8 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.LocationSuggestion
                         s.Area.FloorId == gate.FloorId &&
                         s.Area.Status == "ACTIVE" &&
                         s.Area.Floor.Status == "ACTIVE" &&
-                        s.Area.AreaVehicleTypes.Any(avt => avt.VehicleTypeId == request.VehicleTypeId))
+                        s.Area.AreaVehicleTypes.Any(avt => avt.VehicleTypeId == request.VehicleTypeId) &&
+                        !activeReservationSlotIds.Contains(s.Id))
                     .OrderBy(s => s.Area.PriorityOrder)
                     .ThenBy(s => s.Id)
                     .Take(5)

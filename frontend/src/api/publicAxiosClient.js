@@ -1,9 +1,10 @@
 import axios from "axios";
+import { apiRequestTimeout } from "./requestTimeout";
 
 // Khởi tạo instance Axios cho Public API Service (Spring Boot)
 const publicAxiosClient = axios.create({
   baseURL: import.meta.env.VITE_PUBLIC_API_URL || "/api/public",
-  timeout: 10000,
+  timeout: apiRequestTimeout,
   headers: {
     "Content-Type": "application/json",
   },

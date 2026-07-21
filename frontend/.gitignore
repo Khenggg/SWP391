@@ -18,6 +18,7 @@ pnpm-debug.log*
 .env.development.local
 .env.production.local
 .env.test.local
+!.env.production.example
 
 # IDEs and OS files
 .idea/
