@@ -411,6 +411,7 @@ export default function StaffExitPage() {
               <ExitSessionInfo session={session} vehicleTypes={vehicleTypes} />
             </div>
             <ExitImageSection
+              session={session}
               exitPlateImageUrl={exitPlateImageUrl}
               exitVehicleImageUrl={exitVehicleImageUrl}
               onPlateImageChange={setExitPlateImageUrl}

@@ -160,6 +160,17 @@ namespace ParkingBuilding.CoreApi.Controllers
                 })
                 .FirstOrDefaultAsync();
 
+            var entryImages = await _context.Set<Domain.Entities.ParkingSessionImage>()
+                .AsNoTracking()
+                .Where(img => img.SessionId == session.Id
+                    && (img.ImageType == "ENTRY_PLATE" || img.ImageType == "ENTRY_VEHICLE"))
+                .ToListAsync();
+
+            var entryPlateImageUrl = entryImages
+                .FirstOrDefault(img => img.ImageType == "ENTRY_PLATE")?.ImageUrl;
+            var entryVehicleImageUrl = entryImages
+                .FirstOrDefault(img => img.ImageType == "ENTRY_VEHICLE")?.ImageUrl;
+
             return Success(new
             {
                 sessionId = session.Id,
@@ -175,7 +186,9 @@ namespace ParkingBuilding.CoreApi.Controllers
                 slotId = session.SlotId,
                 monthlyPassId = session.MonthlyPassId,
                 reservationId = session.ReservationId,
-                pendingOnlinePayment
+                pendingOnlinePayment,
+                entryPlateImageUrl,
+                entryVehicleImageUrl
             }, "Tim kiem phien gui xe theo the thanh cong.");
         }
 
