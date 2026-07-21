@@ -37,9 +37,10 @@ export default function ManagerDashboardPage() {
   const [dashboardData, setDashboardData] = useState(null);
   const [auditLogs, setAuditLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const navigate = useNavigate();
 
-  const fetchData = async (isFirstLoad = false) => {
+  const fetchData = async (isFirstLoad = false, showToast = true) => {
     try {
       if (isFirstLoad) setIsLoading(true);
       const [dashRes, auditRes] = await Promise.all([
@@ -48,23 +49,27 @@ export default function ManagerDashboardPage() {
       ]);
       setDashboardData(dashRes);
       setAuditLogs(auditRes || []);
+      setHasError(false);
     } catch (err) {
       console.error("Lỗi tải thông tin Dashboard:", err);
-      toast.error("Không thể tải thông tin Dashboard");
+      // Chỉ hiện toast lần đầu hoặc khi refresh thủ công, không spam mỗi 10s
+      if (showToast) toast.error("Không thể tải thông tin Dashboard");
+      setHasError(true);
     } finally {
       if (isFirstLoad) setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData(true);
+    fetchData(true, true);
     const pollInterval = setInterval(() => {
-      fetchData(false);
-    }, 10000);
+      // Không hiện toast khi auto-poll thất bại
+      fetchData(false, false);
+    }, 30000); // Tăng lên 30s để giảm tải
     return () => clearInterval(pollInterval);
   }, []);
 
-  const handleRefresh = () => fetchData(true);
+  const handleRefresh = () => fetchData(true, true);
 
   // Computed Values
   const occupancyRate = useMemo(() => {
@@ -282,11 +287,10 @@ export default function ManagerDashboardPage() {
               <tr className="bg-[#f8fafc]">
                 <th className="py-3 px-5 text-[12px] font-bold text-[#64748b] uppercase tracking-wider">Thời gian</th>
                 <th className="py-3 px-5 text-[12px] font-bold text-[#64748b] uppercase tracking-wider">Loại sự kiện</th>
-                <th className="py-3 px-5 text-[12px] font-bold text-[#64748b] uppercase tracking-wider">Mã phiên / Mã thẻ</th>
-                <th className="py-3 px-5 text-[12px] font-bold text-[#64748b] uppercase tracking-wider">Biển số</th>
-                <th className="py-3 px-5 text-[12px] font-bold text-[#64748b] uppercase tracking-wider">Khu vực / Slot</th>
-                <th className="py-3 px-5 text-[12px] font-bold text-[#64748b] uppercase tracking-wider">Nhân viên</th>
-                <th className="py-3 px-5 text-[12px] font-bold text-[#64748b] uppercase tracking-wider text-center">Trạng thái</th>
+                <th className="py-3 px-5 text-[12px] font-bold text-[#64748b] uppercase tracking-wider">Nguồn</th>
+                <th className="py-3 px-5 text-[12px] font-bold text-[#64748b] uppercase tracking-wider">Mục tiêu</th>
+                <th className="py-3 px-5 text-[12px] font-bold text-[#64748b] uppercase tracking-wider">Mã tham chiếu</th>
+                <th className="py-3 px-5 text-[12px] font-bold text-[#64748b] uppercase tracking-wider">Nhân viên (ID)</th>
                 <th className="py-3 px-2"></th>
               </tr>
             </thead>
@@ -295,7 +299,7 @@ export default function ManagerDashboardPage() {
                 auditLogs.map((log) => (
                   <tr key={log.id} className="hover:bg-[#f8fafc] transition-colors group">
                     <td className="py-3.5 px-5 text-[13px] font-medium text-[#475569]">
-                      {dayjs(log.timestamp).format('DD/MM/YYYY HH:mm:ss')}
+                      {dayjs(log.createdAt).format('DD/MM/YYYY HH:mm:ss')}
                     </td>
                     <td className="py-3.5 px-5">
                       <div className="flex items-center gap-2 text-[13px] font-bold text-[#1e293b]">
@@ -303,13 +307,10 @@ export default function ManagerDashboardPage() {
                         {getActionLabel(log.action)}
                       </div>
                     </td>
+                    <td className="py-3.5 px-5 text-[13px] font-medium text-[#475569]">{log.sourceService || '-'}</td>
+                    <td className="py-3.5 px-5 text-[13px] font-medium text-[#475569]">{log.targetType || '-'}</td>
                     <td className="py-3.5 px-5 text-[13px] font-medium text-[#475569]">{log.targetId || '-'}</td>
-                    <td className="py-3.5 px-5 text-[13px] font-medium text-[#475569]">{log.plate || '-'}</td>
-                    <td className="py-3.5 px-5 text-[13px] font-medium text-[#475569]">{log.slot || '-'}</td>
-                    <td className="py-3.5 px-5 text-[13px] font-medium text-[#475569]">{log.username || '-'}</td>
-                    <td className="py-3.5 px-5 text-center">
-                      {getStatusBadge(log.status)}
-                    </td>
+                    <td className="py-3.5 px-5 text-[13px] font-medium text-[#475569]">{log.actorUserId || log.actor || '-'}</td>
                     <td className="py-3.5 px-2 text-right">
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
                         <MoreVertical className="w-4 h-4" />
@@ -319,8 +320,8 @@ export default function ManagerDashboardPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="8" className="py-12 text-center text-slate-400 text-sm font-medium">
-                    {isLoading ? 'Đang tải dữ liệu...' : 'Không có hoạt động nào gần đây'}
+                  <td colSpan="7" className="py-12 text-center text-slate-400 text-sm font-medium">
+                    {isLoading ? 'Đang tải dữ liệu...' : hasError ? 'Không thể tải hoạt động. Nhấn Làm mới để thử lại.' : 'Không có hoạt động nào gần đây'}
                   </td>
                 </tr>
               )}

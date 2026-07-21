@@ -15,15 +15,19 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       "/api/core": {
-        target: "http://localhost:5000",
+        target: "http://127.0.0.1:5000",
         changeOrigin: true,
       },
       "/api/support": {
-        target: "http://localhost:8081",
+        target: "http://127.0.0.1:8081",
         changeOrigin: true,
       },
       "/api/public": {
-        target: "http://localhost:8081",
+        target: "http://127.0.0.1:8081",
+        changeOrigin: true,
+      },
+      "/api/notifications": {
+        target: "http://127.0.0.1:8081",
         changeOrigin: true,
       },
     },

@@ -7,6 +7,7 @@ import {
   getLastGateScanEvent,
   subscribeGateScanEvents,
 } from "@/services/gateSimulatorBus";
+import { useMismatchStatus } from "@/hooks/useLicensePlateMismatch";
 
 import ExitSearchSection from "./components/exit/ExitSearchSection";
 import ExitSessionInfo from "./components/exit/ExitSessionInfo";
@@ -35,6 +36,11 @@ export default function StaffExitPage() {
   const [gates, setGates] = useState([]);
   const [vehicleTypes, setVehicleTypes] = useState([]);
   const [exitGateId, setExitGateId] = useState("");
+
+  // Poll mismatch approval status whenever a session is loaded
+  const { data: mismatchStatusData } = useMismatchStatus(session?.sessionId ?? null);
+  const mismatchStatus = mismatchStatusData?.status ?? "NONE";
+  const managerReason = mismatchStatusData?.managerReason ?? null;
 
   useEffect(() => {
     const loadData = async () => {
@@ -145,11 +151,14 @@ export default function StaffExitPage() {
     return !!fee;
   }, [fee, session]);
 
+  // Block payment and exit when mismatch is PENDING or REJECTED
+  const mismatchBlocked = mismatchStatus === "PENDING" || mismatchStatus === "REJECTED";
+
   const canExit = useMemo(() => {
     if (!paymentReady) return false;
-    // Cho phép ra nếu không lệch biển số, hoặc đã lệch biển số nhưng được xử lý xong
+    if (mismatchBlocked) return false;
     return true;
-  }, [paymentReady]);
+  }, [paymentReady, mismatchBlocked]);
 
   const resetPage = () => {
     setCardCode("");
@@ -298,6 +307,8 @@ export default function StaffExitPage() {
               isCreatingMismatch={isCreatingMismatch}
               currentTime={currentTime}
               staffName={currentUser?.fullName || currentUser?.username || "Nhân viên Trực"}
+              mismatchStatus={mismatchStatus}
+              managerReason={managerReason}
             />
           </div>
 
@@ -323,6 +334,8 @@ export default function StaffExitPage() {
               handleCompleteExitPaid={handleCompleteExitPaid}
               handleCompleteMonthlyExit={handleCompleteMonthlyExit}
               refreshSession={runSearch}
+              mismatchBlocked={mismatchBlocked}
+              mismatchStatus={mismatchStatus}
             />
           </div>
 

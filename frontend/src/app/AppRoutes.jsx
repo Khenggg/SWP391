@@ -28,6 +28,7 @@ import ManagerDashboardPage from "../pages/manager/ManagerDashboardPage";
 import ReportsPage from "../pages/manager/ReportsPage";
 import LostCardApprovalsPage from "../pages/manager/LostCardApprovalsPage";
 import MismatchApprovalsPage from "../pages/manager/MismatchApprovalsPage";
+import MismatchCaseDetailPage from "../pages/manager/MismatchCaseDetailPage";
 import AuditLogsPage from "../pages/manager/AuditLogsPage";
 import AdminAuditLogPage from "../pages/admin/AdminAuditLogPage";
 
@@ -35,6 +36,7 @@ import StaffEntryPage from "../pages/staff/StaffEntryPage";
 import StaffExitPage from "../pages/staff/StaffExitPage";
 import StaffLostCardPage from "../pages/staff/StaffLostCardPage";
 import StaffSessionsPage from "../pages/staff/StaffSessionsPage";
+import LicensePlateMismatchPage from "../pages/staff/LicensePlateMismatchPage";
 import GateSimulatorPage from "../pages/simulator/GateSimulatorPage";
 import DriverProfilePage from "../pages/driver/DriverProfilePage";
 import DriverVehiclesPage from "../pages/driver/DriverVehiclesPage";
@@ -91,6 +93,7 @@ export default function AppRoutes({ isAuthenticated, userRole, currentUser, onLo
             <Route path="/manager/reports" element={<ReportsPage />} />
             <Route path="/manager/lost-card-approvals" element={<LostCardApprovalsPage />} />
             <Route path="/manager/mismatch-approvals" element={<MismatchApprovalsPage />} />
+            <Route path="/manager/mismatch-approvals/:id" element={<MismatchCaseDetailPage />} />
             <Route path="/manager/cards" element={<CardManagementPage />} />
             <Route path="/manager/structures" element={<StructureManagementPage />} />
             <Route path="/manager/pricing" element={<PricingManagementPage />} />
@@ -109,6 +112,7 @@ export default function AppRoutes({ isAuthenticated, userRole, currentUser, onLo
             <Route path="/staff/exit" element={<StaffExitPage />} />
             <Route path="/staff/lost-card" element={<StaffLostCardPage />} />
             <Route path="/staff/sessions" element={<StaffSessionsPage />} />
+            <Route path="/staff/license-plate-mismatch" element={<LicensePlateMismatchPage />} />
           </Route>
 
           <Route element={<RequireRole userRole={userRole} allowedRoles={[USER_ROLES.STAFF, USER_ROLES.MANAGER, USER_ROLES.ADMIN]} />}>

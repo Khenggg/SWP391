@@ -5,7 +5,7 @@ import { apiRequestTimeout } from "../api/requestTimeout";
 // Cắt '/support' thay bằng '/notifications' để trúng endpoint của Java Backend
 export const notificationBaseURL = import.meta.env.VITE_SUPPORT_API_URL 
   ? import.meta.env.VITE_SUPPORT_API_URL.replace('/support', '/notifications')
-  : "http://localhost:8080/api/notifications";
+  : "/api/notifications";
 
 const notificationAxiosClient = axios.create({
   baseURL: notificationBaseURL,

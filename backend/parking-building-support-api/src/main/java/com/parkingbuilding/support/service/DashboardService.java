@@ -45,12 +45,34 @@ public class DashboardService {
 
     public DashboardResponse getDashboard() {
 
+        SlotSummaryResponse slot = null;
+        TrafficSummaryResponse traffic = null;
+        RevenueSummaryResponse revenue = null;
+        CardSummaryResponse card = null;
+        PendingSummaryResponse pending = null;
+
+        try { slot = getSlotSummary(); } catch (Exception e) {
+            slot = SlotSummaryResponse.builder().build();
+        }
+        try { traffic = getTrafficSummary(); } catch (Exception e) {
+            traffic = TrafficSummaryResponse.builder().build();
+        }
+        try { revenue = getRevenueSummary(); } catch (Exception e) {
+            revenue = RevenueSummaryResponse.builder().todayRevenue(java.math.BigDecimal.ZERO).build();
+        }
+        try { card = getCardSummary(); } catch (Exception e) {
+            card = CardSummaryResponse.builder().build();
+        }
+        try { pending = getPendingSummary(); } catch (Exception e) {
+            pending = PendingSummaryResponse.builder().build();
+        }
+
         return DashboardResponse.builder()
-                .slot(getSlotSummary())
-                .traffic(getTrafficSummary())
-                .revenue(getRevenueSummary())
-                .card(getCardSummary())
-                .pending(getPendingSummary())
+                .slot(slot)
+                .traffic(traffic)
+                .revenue(revenue)
+                .card(card)
+                .pending(pending)
                 .build();
     }
 
