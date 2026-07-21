@@ -226,7 +226,13 @@ namespace ParkingBuilding.CoreApi.Controllers
                     new[] { ErrorCodes.LoginInvalidCredentials });
             }
 
-            // Update LastLoginAt (optional, but good practice since LastLoginAt exists)
+            var tokenPair = await _authSessionService.CreateSessionAsync(
+                user,
+                HttpContext.Connection.RemoteIpAddress?.ToString());
+
+            _loginRateLimiter.Reset(normalizedUsername, clientIp);
+
+            // Update LastLoginAt only after the token pair and auth session exist.
             try
             {
                 user.LastLoginAt = DateTimeOffset.UtcNow;
@@ -238,18 +244,13 @@ namespace ParkingBuilding.CoreApi.Controllers
                 // Ignore updating login timestamp errors to avoid blocking login flow
             }
 
-            // Write successful login audit log
-            _loginRateLimiter.Reset(normalizedUsername, clientIp);
+            // Record success only after authentication completed successfully.
             await _auditWriterService.WriteAuditLogAsync(
                 action: "LOGIN_SUCCESS",
                 targetType: "users",
                 targetId: user.Id.ToString(),
                 actorUserId: user.Id,
                 reason: "Logged in successfully.");
-
-            var tokenPair = await _authSessionService.CreateSessionAsync(
-                user,
-                HttpContext.Connection.RemoteIpAddress?.ToString());
 
             var response = new LoginResponse
             {

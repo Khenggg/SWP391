@@ -12,7 +12,6 @@ using Microsoft.AspNetCore.Mvc;
 using ParkingBuilding.CoreApi.Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using ParkingBuilding.CoreApi.Application.Audit;
 using ParkingBuilding.CoreApi.Application.Authentication;
 using Microsoft.OpenApi;
@@ -150,10 +149,7 @@ builder.Services.AddScoped<ISessionAdminService, SessionAdminService>();
 
 // Cau hinh JWT Authentication
 var jwtSecret = builder.Configuration["JWT_SECRET"] ?? builder.Configuration["Jwt:Secret"];
-if (string.IsNullOrEmpty(jwtSecret))
-{
-    throw new System.InvalidOperationException("JWT Secret is not configured. Please set the JWT_SECRET environment variable or Jwt:Secret configuration.");
-}
+var jwtSecretBytes = JwtSecretValidator.GetValidatedKeyBytes(jwtSecret);
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "ParkingBuilding.CoreApi";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "ParkingBuilding.Frontend";
 
@@ -173,7 +169,7 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = jwtIssuer,
         ValidAudience = jwtAudience,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+        IssuerSigningKey = new SymmetricSecurityKey(jwtSecretBytes),
         ClockSkew = TimeSpan.Zero,
         RoleClaimType = "role",
         NameClaimType = "username"

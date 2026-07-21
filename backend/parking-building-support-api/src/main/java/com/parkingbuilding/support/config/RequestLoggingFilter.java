@@ -31,7 +31,10 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             String userId = "anonymous";
             var authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication instanceof JwtAuthenticationToken jwtAuthentication) {
-                userId = String.valueOf(jwtAuthentication.getToken().getClaim("user_id"));
+                Object userIdClaim = jwtAuthentication.getToken().getClaim("user_id");
+                if (userIdClaim != null) {
+                    userId = userIdClaim.toString();
+                }
             }
 
             log.info("HTTP {} {} responded {} in {}ms userId={}",
