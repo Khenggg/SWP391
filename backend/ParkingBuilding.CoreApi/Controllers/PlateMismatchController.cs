@@ -37,6 +37,16 @@ public class PlateMismatchController : BaseApiController
         return Success(new { items = result, page, pageSize }, "Get plate mismatch cases successfully.");
     }
 
+    [HttpGet("/api/core/plate-mismatch-cases")]
+    public async Task<IActionResult> GetCompatibilityList(
+        [FromQuery] string? status,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 100)
+    {
+        var result = await _mismatchService.GetListAsync(status, page, pageSize);
+        return Success(result, "Get plate mismatch cases successfully.");
+    }
+
     [HttpGet("{id:long}")]
     public async Task<IActionResult> GetById(long id)
     {

@@ -85,7 +85,7 @@ export default function ApplicationReviewTable({
                   <LicensePlate plate={app.vehiclePlateNumber} size="sm" />
                 </TableCell>
                 <TableCell className="py-4 px-5">
-                  {app.vehicleTypeName === "Ô Tô" ? "🚗 Ô tô" : "🏍️ Xe máy"}
+                  {app.vehicleTypeName || "—"}
                 </TableCell>
                 <TableCell className="py-4 px-5 text-slate-500">{formatDate(app.startDate)}</TableCell>
                 <TableCell className="py-4 px-5 text-right font-black text-amber-600">

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -37,6 +37,20 @@ public class LostCardService : ILostCardService
 
             if (session.ParkingCard == null)
                 throw new BusinessException(ErrorCodes.CardNotFound, StatusCodes.Status400BadRequest);
+
+            if (session.Status != "ACTIVE")
+                throw new BusinessException("Chỉ có thể báo mất thẻ cho phiên gửi xe đang hoạt động (ACTIVE).", StatusCodes.Status400BadRequest);
+
+            if (session.ParkingCard.Status != CardStatus.IN_USE
+                || session.ParkingCard.CurrentSessionId != session.Id)
+                throw new BusinessException(ErrorCodes.CardHasNoActiveSession, StatusCodes.Status409Conflict);
+
+            var hasPendingCase = await _context.LostCardCases
+                .AnyAsync(lc => lc.SessionId == session.Id
+                    && lc.Status == Domain.Enums.LostCardCaseStatus.Pending.ToString().ToUpperInvariant());
+
+            if (hasPendingCase)
+                throw new BusinessException(ErrorCodes.LostCardPending, StatusCodes.Status409Conflict);
 
             var lostCardCase = new LostCardCase
             {
@@ -183,6 +197,9 @@ public class LostCardService : ILostCardService
         int page, 
         int pageSize)
     {
+        var effectivePage = Math.Max(1, page);
+        var effectivePageSize = pageSize > 0 ? pageSize : 20;
+
         var query = _context.LostCardCases
             .Include(lc => lc.ParkingCard)
             .Include(lc => lc.ParkingSession)
@@ -197,17 +214,17 @@ public class LostCardService : ILostCardService
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {
-            query = query.Where(lc => lc.ReporterName.Contains(keyword) || 
-                                     lc.Phone.Contains(keyword));
+            query = query.Where(lc => lc.ReporterName.Contains(keyword)
+                || (lc.Phone != null && lc.Phone.Contains(keyword)));
         }
 
         int totalItems = await query.CountAsync();
-        int totalPages = (int)Math.Ceiling((double)totalItems / (pageSize <= 0 ? 10 : pageSize));
+        int totalPages = (int)Math.Ceiling((double)totalItems / effectivePageSize);
 
         var items = await query
             .OrderByDescending(lc => lc.CreatedAt)
-            .Skip((Math.Max(1, page) - 1) * pageSize)
-            .Take(pageSize)
+            .Skip((effectivePage - 1) * effectivePageSize)
+            .Take(effectivePageSize)
             .ToListAsync();
 
         return (items, totalItems, totalPages);

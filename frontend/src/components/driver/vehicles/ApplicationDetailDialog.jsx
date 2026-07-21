@@ -25,7 +25,7 @@ export default function ApplicationDetailDialog({ open, onClose, application, ge
               </div>
               <div>
                 <span className="text-slate-400 block mb-0.5">Loại xe:</span>
-                <span className="text-slate-800 font-bold">{application.vehicleTypeName === "Ô Tô" ? "🚗 Ô tô" : "🏍️ Xe máy"}</span>
+                <span className="text-slate-800 font-bold">{application.vehicleTypeName || "—"}</span>
               </div>
               <div>
                 <span className="text-slate-400 block mb-0.5">Hãng xe:</span>

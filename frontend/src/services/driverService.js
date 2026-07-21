@@ -180,6 +180,15 @@ export const driverService = {
     throw new Error(res.message || "Không thể gán thẻ RFID và kích hoạt.");
   },
 
+  /**
+   * Tạo link thanh toán trực tuyến qua PayOS cho đơn đăng ký vé tháng (Driver).
+   */
+  createOnlinePayment: async (id) => {
+    const res = await coreAxiosClient.post(`/monthly-passes/applications/${id}/pay-online`);
+    if (res.success && res.data) return res.data;
+    throw new Error(res.message || "Không thể tạo link thanh toán.");
+  },
+
   registerDriverAuth: async (data) => {
     const res = await coreAxiosClient.post("/driver/register", data);
     if (res.success) return res.data;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -37,12 +37,8 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
             var normalizedPlate = request.LicensePlate.Replace("-", "").Replace(".", "").Replace(" ", "").ToUpper();
 
             // Kiểm tra trùng biển số xe đang hoạt động
-            var duplicate = await _context.Vehicles
+            var vehicle = await _context.Vehicles
                 .FirstOrDefaultAsync(v => v.NormalizedPlateNumber == normalizedPlate && v.Status == "ACTIVE");
-            if (duplicate != null)
-            {
-                throw new BusinessException("LICENSE_PLATE_ALREADY_EXISTS", StatusCodes.Status400BadRequest);
-            }
 
             var isCar = "CAR".Equals(request.VehicleType, StringComparison.OrdinalIgnoreCase);
             var vehicleTypeObj = await _context.VehicleTypes
@@ -52,21 +48,48 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
                 throw new BusinessException("INVALID_VEHICLE_TYPE", StatusCodes.Status400BadRequest);
             }
 
-            var vehicle = new Vehicle
+            if (vehicle != null)
             {
-                DriverId = driverProfile.Id,
-                PlateNumber = request.LicensePlate,
-                NormalizedPlateNumber = normalizedPlate,
-                VehicleTypeId = vehicleTypeObj.Id,
-                Brand = request.Brand,
-                Color = request.Color,
-                ApprovalStatus = "PENDING",
-                Description = request.Description,
-                Status = "ACTIVE",
-                CreatedAt = DateTimeOffset.UtcNow,
-                UpdatedAt = DateTimeOffset.UtcNow
-            };
-            _context.Vehicles.Add(vehicle);
+                if (vehicle.DriverId != driverProfile.Id)
+                {
+                    throw new BusinessException("LICENSE_PLATE_ALREADY_EXISTS", StatusCodes.Status400BadRequest);
+                }
+
+                // Check if they already have an active or pending application
+                var pendingOrActiveApp = await _context.MonthlyPassApplications
+                    .AnyAsync(a => a.VehicleId == vehicle.Id && (a.Status == "PENDING" || a.Status == "APPROVED_AWAITING_PAYMENT" || a.Status == "ACTIVE"));
+
+                if (pendingOrActiveApp)
+                {
+                    throw new BusinessException("APPLICATION_ALREADY_IN_PROGRESS_OR_ACTIVE", StatusCodes.Status400BadRequest);
+                }
+
+                // Reuse and update the vehicle
+                vehicle.VehicleTypeId = vehicleTypeObj.Id;
+                vehicle.Brand = request.Brand;
+                vehicle.Color = request.Color;
+                vehicle.Description = request.Description;
+                vehicle.ApprovalStatus = "PENDING";
+                vehicle.UpdatedAt = DateTimeOffset.UtcNow;
+            }
+            else
+            {
+                vehicle = new Vehicle
+                {
+                    DriverId = driverProfile.Id,
+                    PlateNumber = request.LicensePlate,
+                    NormalizedPlateNumber = normalizedPlate,
+                    VehicleTypeId = vehicleTypeObj.Id,
+                    Brand = request.Brand,
+                    Color = request.Color,
+                    ApprovalStatus = "PENDING",
+                    Description = request.Description,
+                    Status = "ACTIVE",
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                };
+                _context.Vehicles.Add(vehicle);
+            }
             await _context.SaveChangesAsync();
 
             // 2. Tìm bảng giá
@@ -423,13 +446,14 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
                 throw new BusinessException(ErrorCodes.CardNotFound, StatusCodes.Status404NotFound);
             }
 
-            if (card.Status != CardStatus.AVAILABLE)
+            if (card.Status != CardStatus.AVAILABLE || card.CurrentSessionId.HasValue)
             {
                 throw new BusinessException(ErrorCodes.CardNotAvailable, StatusCodes.Status400BadRequest);
             }
 
             var cardAssigned = await _context.MonthlyPasses
-                .AnyAsync(mp => mp.CardId == card.Id && mp.Status == "ACTIVE");
+                .AnyAsync(mp => mp.CardId == card.Id
+                    && (mp.Status == "ACTIVE" || mp.Status == "LOCKED"));
             if (cardAssigned)
             {
                 throw new BusinessException("CARD_ALREADY_ASSIGNED", StatusCodes.Status400BadRequest);

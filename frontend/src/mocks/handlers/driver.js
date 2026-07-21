@@ -228,6 +228,41 @@ export const driverHandlers = [
 
   ...enabled(
     MOCK_FLAGS.DRIVER_MONTHLY_PASS,
+    http.post(`${API_BASE_URLS.core}/monthly-passes/applications/:id/pay-online`, async ({ params }) => {
+      await delay(400);
+      const { id } = params;
+      const inMemoryPasses = db.getMonthlyPasses() || [];
+      const idx = inMemoryPasses.findIndex(p => String(p.id) === String(id));
+      if (idx === -1) return notFound("Không tìm thấy đơn đăng ký.");
+      
+      // Simulate webhook payment success after 5 seconds
+      setTimeout(() => {
+        const passes = db.getMonthlyPasses() || [];
+        const i = passes.findIndex(p => String(p.id) === String(id));
+        if (i !== -1 && passes[i].status === "APPROVED_AWAITING_PAYMENT") {
+          passes[i].status = "PAID";
+          passes[i].paymentMethod = "PAYOS";
+          passes[i].paymentReferenceNo = "PAYOS" + Math.floor(Math.random() * 1000000);
+          db.saveMonthlyPasses(passes);
+          console.log(`[MOCK WEBHOOK] Application #${id} marked as PAID via PayOS mock webhook.`);
+        }
+      }, 5000);
+
+      return ok({
+        paymentId: Math.floor(Math.random() * 10000),
+        applicationId: Number(id),
+        amount: inMemoryPasses[idx].price || 500000,
+        totalAmount: inMemoryPasses[idx].price || 500000,
+        status: "PENDING",
+        checkoutUrl: "https://pay.payos.vn/web/demo-payment-link-s1",
+        qrCode: "00020101021238580010A00000072701280006970454011400000000030799",
+        expiredAt: new Date(Date.now() + 15 * 60 * 1000).toISOString()
+      }, "Tạo link thanh toán thành công.");
+    })
+  ),
+
+  ...enabled(
+    MOCK_FLAGS.DRIVER_MONTHLY_PASS,
     http.patch(`${API_BASE_URLS.core}/monthly-passes/applications/:id/assign-rfid`, async ({ request, params }) => {
       await delay(300);
       const { id } = params;
@@ -235,8 +270,14 @@ export const driverHandlers = [
       const inMemoryPasses = db.getMonthlyPasses() || [];
       const idx = inMemoryPasses.findIndex(p => String(p.id) === String(id));
       if (idx === -1) return notFound("Không tìm thấy đơn đăng ký.");
+      
+      if (inMemoryPasses[idx].status !== "PAID") {
+        return badRequest("Đơn đăng ký phải ở trạng thái PAID mới có thể gán thẻ RFID.");
+      }
+
       inMemoryPasses[idx].status = "ACTIVE";
       inMemoryPasses[idx].assignedCardCode = body.rfidCardCode;
+      inMemoryPasses[idx].assignedCardId = Math.floor(Math.random() * 100) + 1; // dummy card id
       db.saveMonthlyPasses(inMemoryPasses);
       return ok(inMemoryPasses[idx], "Gán thẻ RFID và kích hoạt vé tháng thành công.");
     })

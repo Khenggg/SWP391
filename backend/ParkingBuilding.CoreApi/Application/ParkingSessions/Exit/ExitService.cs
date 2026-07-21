@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -43,7 +43,8 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                 throw new BusinessException(ErrorCodes.CardNotFound, StatusCodes.Status404NotFound);
             }
 
-            if (card.Status != CardStatus.IN_USE || !card.CurrentSessionId.HasValue)
+            if ((card.Status != CardStatus.IN_USE && card.Status != CardStatus.LOST)
+                || !card.CurrentSessionId.HasValue)
             {
                 throw new BusinessException(ErrorCodes.CardHasNoActiveSession);
             }
@@ -118,13 +119,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                 var normalizedExit = NormalizePlate(exitPlateInput);
                 if (!string.IsNullOrEmpty(normalizedEntry) && normalizedEntry != normalizedExit)
                 {
-                    var isConfirmedMismatch = await _context.PlateMismatchCases
-                        .AnyAsync(m => m.SessionId == session.Id && m.Status == "CONFIRMED");
-
-                    if (!isConfirmedMismatch)
-                    {
-                        throw new BusinessException(ErrorCodes.PlateMismatchRequiresApproval);
-                    }
+                    await EnsureMismatchApprovedAsync(session.Id, normalizedExit);
                 }
 
                 using var transaction = await _context.Database.BeginTransactionAsync();
@@ -217,7 +212,10 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
 
                     // Release card
                     var card = session.ParkingCard;
-                    card.Status = CardStatus.AVAILABLE;
+                    if (card.Status != CardStatus.LOST)
+                    {
+                        card.Status = CardStatus.AVAILABLE;
+                    }
                     card.CurrentSessionId = null;
                     card.UpdatedAt = DateTime.UtcNow;
 
@@ -349,13 +347,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                 var normalizedExit = NormalizePlate(exitPlateInput);
                 if (!string.IsNullOrEmpty(normalizedEntry) && normalizedEntry != normalizedExit)
                 {
-                    var isConfirmedMismatch = await _context.PlateMismatchCases
-                        .AnyAsync(m => m.SessionId == session.Id && m.Status == "CONFIRMED");
-
-                    if (!isConfirmedMismatch)
-                    {
-                        throw new BusinessException(ErrorCodes.PlateMismatchRequiresApproval);
-                    }
+                    await EnsureMismatchApprovedAsync(session.Id, normalizedExit);
                 }
 
                 using var transaction = await _context.Database.BeginTransactionAsync();
@@ -403,7 +395,10 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
 
                     // Release card
                     var card = session.ParkingCard;
-                    card.Status = CardStatus.AVAILABLE;
+                    if (card.Status != CardStatus.LOST)
+                    {
+                        card.Status = CardStatus.AVAILABLE;
+                    }
                     card.CurrentSessionId = null;
                     card.UpdatedAt = DateTime.UtcNow;
 
@@ -495,6 +490,22 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                     throw;
                 }
             });
+        }
+
+        private async Task EnsureMismatchApprovedAsync(long sessionId, string normalizedExitPlate)
+        {
+            var confirmedExitPlate = await _context.PlateMismatchCases
+                .Where(mismatch => mismatch.SessionId == sessionId && mismatch.Status == "CONFIRMED")
+                .OrderByDescending(mismatch => mismatch.ConfirmedAt)
+                .Select(mismatch => mismatch.ExitPlateNumber)
+                .FirstOrDefaultAsync();
+
+            if (confirmedExitPlate == null || NormalizePlate(confirmedExitPlate) != normalizedExitPlate)
+            {
+                throw new BusinessException(
+                    ErrorCodes.PlateMismatchRequiresApproval,
+                    StatusCodes.Status409Conflict);
+            }
         }
 
         private static string NormalizePlate(string? plate)

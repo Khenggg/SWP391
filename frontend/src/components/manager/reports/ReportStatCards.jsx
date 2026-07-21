@@ -55,7 +55,7 @@ const CARDS = [
     title: "Tỷ lệ lấp đầy",
     icon: <PieChartIcon className="w-5 h-5 text-blue-600" />,
     iconBg: "bg-blue-100",
-    getValue: (d) => `${(d?.occupancy?.occupancyRate ?? 0).toFixed(1)}%`,
+    getValue: (d) => `${((d?.occupancy?.occupancyRate ?? 0) * 100).toFixed(1)}%`,
     getSub: (d) =>
       `Còn trống: ${(d?.occupancy?.available ?? 0).toLocaleString("vi-VN")} chỗ`,
   },
