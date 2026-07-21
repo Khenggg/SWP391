@@ -13,8 +13,8 @@ export const staffSessionService = {
     throw new Error(response.message || "Không tìm thấy phiên đỗ xe hoạt động.");
   },
 
-  previewFee: async (sessionId, exitTime) => {
-    const response = await coreAxiosClient.post(`/parking-sessions/${sessionId}/calculate-fee`, { exitTime });
+  previewFee: async (sessionId, exitTime, includeLostCardFee = false) => {
+    const response = await coreAxiosClient.post(`/parking-sessions/${sessionId}/calculate-fee`, { exitTime, includeLostCardFee });
     if (response.success) return response.data;
     throw new Error(response.message || "Không thể tính phí gửi xe.");
   },
@@ -50,8 +50,15 @@ export const staffSessionService = {
   },
 
   createLostCardCase: async (payload) => {
-    const response = await coreAxiosClient.post(`/parking-sessions/${payload.sessionId}/lost-card`, payload);
+    const { sessionId, ...body } = payload;
+    const response = await coreAxiosClient.post(`/parking-sessions/${sessionId}/lost-card`, body);
     if (response.success) return response.data;
     throw new Error(response.message || "Không thể tạo hồ sơ mất thẻ.");
+  },
+
+  uploadLostCardDocuments: async (caseId, formData) => {
+    const response = await coreAxiosClient.post(`/lost-cards/${caseId}/documents/batch`, formData);
+    if (response.success) return response.data;
+    throw new Error(response.message || "Tải tài liệu lên thất bại.");
   }
 };

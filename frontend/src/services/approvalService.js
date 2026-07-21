@@ -10,22 +10,22 @@ function getDataOrThrow(response, fallbackMessage) {
 
 export const approvalService = {
   getLostCardCases: async () => {
-    const response = await coreAxiosClient.get("/lost-card-cases");
+    const response = await coreAxiosClient.get("/lost-cards");
     return response.success ? response.data : [];
   },
 
   getLostCardCaseById: async (caseId) => {
-    const response = await coreAxiosClient.get(`/lost-card-cases/${caseId}`);
+    const response = await coreAxiosClient.get(`/lost-cards/${caseId}`);
     return getDataOrThrow(response, "Khong the tai chi tiet ho so mat the.");
   },
 
   approveLostCardCase: async (caseId, { reason }) => {
-    const response = await coreAxiosClient.post(`/lost-card-cases/${caseId}/approve`, { reason });
+    const response = await coreAxiosClient.put(`/lost-cards/${caseId}/process`, { status: "APPROVED", reason });
     return getDataOrThrow(response, "Phe duyet ho so mat the that bai.");
   },
 
   rejectLostCardCase: async (caseId, { reason }) => {
-    const response = await coreAxiosClient.post(`/lost-card-cases/${caseId}/reject`, { reason });
+    const response = await coreAxiosClient.put(`/lost-cards/${caseId}/process`, { status: "REJECTED", rejectionReason: reason });
     return getDataOrThrow(response, "Tu choi ho so mat the that bai.");
   },
 

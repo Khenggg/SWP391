@@ -72,16 +72,16 @@ export default function LostCardSidePanel({
           <h4 className="border-b border-slate-200 pb-2 text-base font-bold text-slate-800">Thong tin ho so</h4>
           <div className="grid grid-cols-[140px_1fr] gap-y-3">
             <span className="text-slate-500">Ma phien</span>
-            <span className="font-mono font-medium text-slate-800">{item.sessionCode || "--"}</span>
+            <span className="font-mono font-medium text-slate-800">{item.parkingSession?.sessionCode || item.sessionCode || "--"}</span>
 
             <span className="text-slate-500">Ma the</span>
-            <span className="font-medium text-slate-800">{item.cardCode || "--"}</span>
+            <span className="font-medium text-slate-800">{item.parkingCard?.cardNumber || item.cardCode || "--"}</span>
 
             <span className="text-slate-500">Bien so</span>
-            <span className="font-mono font-medium text-slate-800">{item.plateNumber || "--"}</span>
+            <span className="font-mono font-medium text-slate-800">{item.parkingSession?.plateNumber || item.plateNumber || "--"}</span>
 
             <span className="text-slate-500">Loai xe</span>
-            <span className="font-medium text-slate-800">{item.vehicleTypeName || item.vehicleType || "--"}</span>
+            <span className="font-medium text-slate-800">{item.vehicleTypeName || (item.parkingSession?.vehicleTypeId === 1 ? 'Xe máy' : item.parkingSession?.vehicleTypeId === 2 ? 'Ô tô' : 'Xe vận chuyển') || "--"}</span>
 
             <span className="text-slate-500">So dien thoai</span>
             <span className="font-medium text-slate-800">{item.phone || "--"}</span>

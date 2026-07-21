@@ -5,6 +5,30 @@ import { exitMockData } from "../data/exitData";
 
 export const exitHandlers = [
   ...enabled(
+    MOCK_FLAGS.STAFF_SESSION_BY_PLATE,
+    http.get(`${API_BASE_URLS.core}/parking-sessions/active/by-plate`, async ({ request }) => {
+      await delay(300);
+      const url = new URL(request.url);
+      const plateNumber = url.searchParams.get("plateNumber");
+
+      if (!plateNumber) return badRequest("Thieu bien so xe.");
+
+      // Check against mock data, e.g. from exitMockData
+      if (exitMockData.sessionMonthly.plateNumber.includes(plateNumber)) {
+        return ok(exitMockData.sessionMonthly, "Tim kiem phien gui xe qua bien so thanh cong.");
+      }
+
+      // For any other plate, generate a generic mock session
+      return ok({
+        ...exitMockData.sessionCasual,
+        plateNumber: plateNumber.toUpperCase(),
+        sessionCode: `SS-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+        isCardLost: true, // Simulating a lost card for testing
+      }, "Tim kiem phien gui xe qua bien so thanh cong.");
+    })
+  ),
+
+  ...enabled(
     MOCK_FLAGS.STAFF_EXIT,
     http.get(`${API_BASE_URLS.core}/parking-sessions/by-card-code/:cardCode`, async ({ params }) => {
       await delay(300);

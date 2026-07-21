@@ -31,8 +31,11 @@ export default function ExitFeeSummary({ fee }) {
               ))}
 
               {fee.lostCardFee > 0 && (
-                <div className="flex justify-between items-center text-sm text-red-600">
-                  <span>Phụ thu mất thẻ</span>
+                <div className="flex justify-between items-center text-sm text-red-600 bg-red-50 p-2 rounded-md border border-red-100">
+                  <span className="flex items-center gap-1.5 font-bold">
+                    <AlertTriangle className="w-4 h-4" />
+                    Phí phạt mất thẻ
+                  </span>
                   <span className="font-bold">{formatVND(fee.lostCardFee)}</span>
                 </div>
               )}

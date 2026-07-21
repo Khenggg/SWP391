@@ -82,9 +82,9 @@ export default function StaffExitPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const loadFee = useCallback(async (sessionId, lookupId = null) => {
+  const loadFee = useCallback(async (sessionId, lookupId = null, includeLostCardFee = false) => {
     try {
-      const result = await staffSessionService.previewFee(sessionId, new Date().toISOString());
+      const result = await staffSessionService.previewFee(sessionId, new Date().toISOString(), includeLostCardFee);
       if (lookupId == null || lookupSequenceRef.current === lookupId) {
         setFee(result);
       }
@@ -122,10 +122,12 @@ export default function StaffExitPage() {
         setPlate(foundSession.plateNumber || "");
       }
 
-      if (foundSession.customerType === "CASUAL") {
-        await loadFee(foundSession.sessionId, lookupId);
+      if (foundSession.customerType === "CASUAL" || foundSession.isCardLost) {
+        await loadFee(foundSession.sessionId, lookupId, foundSession.isCardLost);
       }
-      if (!silent) {
+      if (foundSession.isCardLost) {
+        toast.warning("Thẻ của xe này đã được báo mất. Phí phạt sẽ được cộng vào tổng tiền.");
+      } else if (!silent) {
         toast.success(`Đã tìm thấy phiên đỗ xe ${foundSession.sessionCode}`);
       }
     } catch (error) {

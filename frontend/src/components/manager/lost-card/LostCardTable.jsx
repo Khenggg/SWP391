@@ -59,10 +59,10 @@ export default function LostCardTable({
                     {item.caseCode || `LC-${new Date(item.createdAt || new Date()).getFullYear()}-${(item.id || 0).toString().padStart(5, '0')}`}
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm font-bold text-slate-700">{item.cardCode || "CARD-UNKNOWN"}</div>
+                    <div className="text-sm font-bold text-slate-700">{item.parkingCard?.cardNumber || item.cardCode || "CARD-UNKNOWN"}</div>
                     <div className="text-xs text-slate-500">{item.reporterName || "Khách vãng lai"}</div>
                   </TableCell>
-                  <TableCell className="font-mono font-medium text-slate-700 text-sm">{item.plateNumber || "N/A"}</TableCell>
+                  <TableCell className="font-mono font-medium text-slate-700 text-sm">{item.parkingSession?.plateNumber || item.plateNumber || "N/A"}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <div className="h-8 w-8 rounded-full bg-slate-200 overflow-hidden flex-shrink-0">
