@@ -13,8 +13,11 @@ export const licensePlateMismatchService = {
         `/plate-mismatches/session/${parkingSessionId}/status`
       );
       if (response?.success && response.data) {
-        const data = response.data;
-        data.managerReason = data.rejectionReason; // Map backend field to frontend expected field
+        const data = { ...response.data };
+        data.managerReason = data.rejectionReason || data.decisionReason || null;
+        if (data.status === "CONFIRMED") {
+          data.status = "APPROVED";
+        }
         return data;
       }
       return null; // không có mismatch case
@@ -38,9 +41,15 @@ export const licensePlateMismatchService = {
     if (response?.success) {
       // Handle both array response and paginated { items } response
       const data = response.data;
-      if (Array.isArray(data)) return data;
-      if (data?.items && Array.isArray(data.items)) return data.items;
-      return [];
+      let rawItems = [];
+      if (Array.isArray(data)) rawItems = data;
+      else if (data?.items && Array.isArray(data.items)) rawItems = data.items;
+
+      return rawItems.map((item) => ({
+        ...item,
+        status: item.status === "CONFIRMED" ? "APPROVED" : item.status,
+        submittedBy: item.reporterName || item.createdBy,
+      }));
     }
     return [];
   },
@@ -48,7 +57,15 @@ export const licensePlateMismatchService = {
   // Manager: get detail of one mismatch case
   getMismatchCaseDetail: async (id) => {
     const response = await coreAxiosClient.get(`/plate-mismatches/${id}`);
-    return unwrap(response, "Không thể tải chi tiết hồ sơ.");
+    const data = unwrap(response, "Không thể tải chi tiết hồ sơ.");
+    if (data) {
+      data.managerReason = data.rejectionReason || data.decisionReason || null;
+      if (data.status === "CONFIRMED") {
+        data.status = "APPROVED";
+      }
+      data.submittedBy = data.reporterName || data.createdBy;
+    }
+    return data;
   },
 
   // Manager: approve a mismatch case
@@ -56,7 +73,7 @@ export const licensePlateMismatchService = {
   approveMismatch: async ({ requestId, managerReason }) => {
     const response = await coreAxiosClient.patch(
       `/plate-mismatches/${requestId}/status`,
-      { status: "CONFIRMED", rejectionReason: managerReason || null }
+      { status: "CONFIRMED", reason: managerReason || null, rejectionReason: managerReason || null }
     );
     return unwrap(response, "Phê duyệt thất bại.");
   },
@@ -66,7 +83,7 @@ export const licensePlateMismatchService = {
   rejectMismatch: async ({ requestId, managerReason }) => {
     const response = await coreAxiosClient.patch(
       `/plate-mismatches/${requestId}/status`,
-      { status: "REJECTED", rejectionReason: managerReason }
+      { status: "REJECTED", reason: managerReason, rejectionReason: managerReason }
     );
     return unwrap(response, "Từ chối thất bại.");
   },

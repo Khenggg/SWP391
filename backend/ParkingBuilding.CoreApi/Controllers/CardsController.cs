@@ -198,6 +198,10 @@ namespace ParkingBuilding.CoreApi.Controllers
             }
 
             existing.Status = parsedStatus;
+            if (parsedStatus == CardStatus.AVAILABLE || parsedStatus == CardStatus.DAMAGED || parsedStatus == CardStatus.INACTIVE)
+            {
+                existing.CurrentSessionId = null;
+            }
             existing.UpdatedAt = DateTime.UtcNow;
 
             _context.ParkingCards.Update(existing);

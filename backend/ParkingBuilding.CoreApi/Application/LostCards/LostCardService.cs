@@ -34,71 +34,75 @@ public class LostCardService : ILostCardService
         if (string.IsNullOrWhiteSpace(request.VerificationNote))
             throw new BusinessException(ErrorCodes.InvalidRequest, StatusCodes.Status400BadRequest);
 
-        using var transaction = await _context.Database.BeginTransactionAsync();
-        try
+        var strategy = _context.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
         {
-            var session = await _context.ParkingSessions
-                .Include(s => s.ParkingCard)
-                .FirstOrDefaultAsync(s => s.Id == request.SessionId);
-
-            if (session == null)
-                throw new BusinessException(ErrorCodes.SessionNotFound, StatusCodes.Status404NotFound);
-
-            if (session.ParkingCard == null)
-                throw new BusinessException(ErrorCodes.CardNotFound, StatusCodes.Status400BadRequest);
-
-            if (session.Status != "ACTIVE")
-                throw new BusinessException("Chỉ có thể báo mất thẻ cho phiên gửi xe đang hoạt động (ACTIVE).", StatusCodes.Status400BadRequest);
-
-            if (session.ParkingCard.Status != CardStatus.IN_USE
-                || session.ParkingCard.CurrentSessionId != session.Id)
-                throw new BusinessException(ErrorCodes.CardHasNoActiveSession, StatusCodes.Status409Conflict);
-
-            var hasPendingCase = await _context.LostCardCases
-                .AnyAsync(lc => lc.SessionId == session.Id
-                    && lc.Status == Domain.Enums.LostCardCaseStatus.Pending.ToString().ToUpperInvariant());
-
-            if (hasPendingCase)
-                throw new BusinessException(ErrorCodes.LostCardPending, StatusCodes.Status409Conflict);
-
-            var lostCardCase = new LostCardCase
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                SessionId = request.SessionId,
-                CardId = session.ParkingCard.Id,
-                ReporterName = request.ReporterName.Trim(),
-                Phone = request.Phone?.Trim(),
-                Reason = request.Reason.Trim(),
-                VerificationNote = request.VerificationNote.Trim(),
-                LostCardFee = 0m,
-                Status = "PENDING",
-                CreatedBy = staffId,
-                CreatedAt = DateTimeOffset.UtcNow,
-                UpdatedAt = DateTimeOffset.UtcNow
-            };
+                var session = await _context.ParkingSessions
+                    .Include(s => s.ParkingCard)
+                    .FirstOrDefaultAsync(s => s.Id == request.SessionId);
 
-            _context.LostCardCases.Add(lostCardCase);
-            session.Status = "LOST_CARD_PENDING";
+                if (session == null)
+                    throw new BusinessException(ErrorCodes.SessionNotFound, StatusCodes.Status404NotFound);
 
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
+                if (session.ParkingCard == null)
+                    throw new BusinessException(ErrorCodes.CardNotFound, StatusCodes.Status400BadRequest);
 
-            await _auditWriter.WriteAuditLogAsync(new AuditWriteDto
+                if (session.Status != "ACTIVE")
+                    throw new BusinessException("Chỉ có thể báo mất thẻ cho phiên gửi xe đang hoạt động (ACTIVE).", StatusCodes.Status400BadRequest);
+
+                if (session.ParkingCard.Status != CardStatus.IN_USE
+                    || session.ParkingCard.CurrentSessionId != session.Id)
+                    throw new BusinessException(ErrorCodes.CardHasNoActiveSession, StatusCodes.Status409Conflict);
+
+                var hasPendingCase = await _context.LostCardCases
+                    .AnyAsync(lc => lc.SessionId == session.Id
+                        && lc.Status == Domain.Enums.LostCardCaseStatus.Pending.ToString().ToUpperInvariant());
+
+                if (hasPendingCase)
+                    throw new BusinessException(ErrorCodes.LostCardPending, StatusCodes.Status409Conflict);
+
+                var lostCardCase = new LostCardCase
+                {
+                    SessionId = request.SessionId,
+                    CardId = session.ParkingCard.Id,
+                    ReporterName = request.ReporterName.Trim(),
+                    Phone = request.Phone?.Trim(),
+                    Reason = request.Reason.Trim(),
+                    VerificationNote = request.VerificationNote.Trim(),
+                    LostCardFee = 0m,
+                    Status = "PENDING",
+                    CreatedBy = staffId,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                };
+
+                _context.LostCardCases.Add(lostCardCase);
+                session.Status = "LOST_CARD_PENDING";
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                await _auditWriter.WriteAuditLogAsync(new AuditWriteDto
+                {
+                    Action = "LOST_CARD_CREATED",
+                    TargetType = "LostCardCase",
+                    TargetId = lostCardCase.Id.ToString(),
+                    ActorUserId = staffId,
+                    NewValue = JsonSerializer.Serialize(lostCardCase),
+                    Reason = $"Lost card case created for session {session.Id} by staff {staffId}."
+                });
+
+                return lostCardCase;
+            }
+            catch
             {
-                Action = "LOST_CARD_CREATED",
-                TargetType = "LostCardCase",
-                TargetId = lostCardCase.Id.ToString(),
-                ActorUserId = staffId,
-                NewValue = JsonSerializer.Serialize(lostCardCase),
-                Reason = $"Lost card case created for session {session.Id} by staff {staffId}."
-            });
-
-            return lostCardCase;
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
+                await transaction.RollbackAsync();
+                throw;
+            }
+        });
     }
 
     public async Task<LostCardCase> ProcessLostCardCaseAsync(long caseId, ProcessLostCardRequest request, long userId)

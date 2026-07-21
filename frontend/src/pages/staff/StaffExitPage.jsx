@@ -422,6 +422,10 @@ export default function StaffExitPage() {
               staffName={currentUser?.fullName || currentUser?.username || "Nhân viên Trực"}
               mismatchStatus={mismatchStatus}
               managerReason={managerReason}
+              vehicleTypes={vehicleTypes}
+              exitPlateImageUrl={exitPlateImageUrl}
+              exitVehicleImageUrl={exitVehicleImageUrl}
+              ocrConfidence={ocrConfidence}
             />
           </div>
 

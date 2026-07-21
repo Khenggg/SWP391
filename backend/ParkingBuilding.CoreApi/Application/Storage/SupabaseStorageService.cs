@@ -25,11 +25,30 @@ public class SupabaseStorageService : IStorageService
         string contentType,
         CancellationToken ct = default)
     {
-        EnsureConfigured();
-
         if (string.IsNullOrWhiteSpace(path))
         {
             throw new BusinessException(ErrorCodes.InvalidRequest);
+        }
+
+        if (!_options.IsConfigured)
+        {
+            var localDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+            var localPath = Path.Combine(localDir, path.Replace('/', Path.DirectorySeparatorChar));
+            var fileDir = Path.GetDirectoryName(localPath);
+            if (!string.IsNullOrEmpty(fileDir))
+            {
+                Directory.CreateDirectory(fileDir);
+            }
+            using (var fileStream = File.Create(localPath))
+            {
+                await stream.CopyToAsync(fileStream, ct);
+            }
+            return new StorageUploadResult
+            {
+                FilePath = path,
+                SizeBytes = stream.CanSeek ? stream.Length : 0,
+                ContentType = contentType
+            };
         }
 
         var endpoint = BuildStorageUri($"object/{Uri.EscapeDataString(_options.Bucket)}/{EscapePath(path)}");
@@ -62,11 +81,14 @@ public class SupabaseStorageService : IStorageService
         int? expiresInSeconds = null,
         CancellationToken ct = default)
     {
-        EnsureConfigured();
-
         if (string.IsNullOrWhiteSpace(path))
         {
             throw new BusinessException(ErrorCodes.InvalidRequest);
+        }
+
+        if (!_options.IsConfigured)
+        {
+            return $"/uploads/{path.TrimStart('/')}";
         }
 
         var expires = expiresInSeconds ?? _options.SignedUrlExpiresSeconds;
@@ -107,10 +129,15 @@ public class SupabaseStorageService : IStorageService
 
     public async Task DeleteAsync(string path, CancellationToken ct = default)
     {
-        EnsureConfigured();
-
         if (string.IsNullOrWhiteSpace(path))
         {
+            return;
+        }
+
+        if (!_options.IsConfigured)
+        {
+            var localPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", path.Replace('/', Path.DirectorySeparatorChar));
+            if (File.Exists(localPath)) File.Delete(localPath);
             return;
         }
 

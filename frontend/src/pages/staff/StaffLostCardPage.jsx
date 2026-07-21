@@ -29,7 +29,11 @@ export default function StaffLostCardPage() {
     try {
       const found = await staffSessionService.searchActiveSession(query);
       setSession(found);
-      toast.success(`Đã tìm thấy phiên ${found.sessionCode}`);
+      if (found.status === "LOST_CARD_PENDING") {
+        toast.warning(`Phiên ${found.sessionCode} đã có hồ sơ báo mất thẻ đang chờ Manager phê duyệt.`);
+      } else {
+        toast.success(`Đã tìm thấy phiên ${found.sessionCode}`);
+      }
     } catch (error) {
       setSession(null);
       toast.error(error.message || "Không tìm thấy phiên.");
@@ -48,6 +52,10 @@ export default function StaffLostCardPage() {
 
   const handleSubmit = async () => {
     if (!session) return;
+    if (session.status === "LOST_CARD_PENDING") {
+      toast.error(`Phiên ${session.sessionCode} đã được tạo hồ sơ báo mất thẻ trước đó và đang chờ Manager phê duyệt.`);
+      return;
+    }
     if (!form.reporterName.trim() || !form.verificationNote.trim() || !form.reason.trim()) {
       toast.error("Nhập đủ người báo mất, ghi chú xác minh và lý do.");
       return;

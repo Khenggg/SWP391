@@ -23,7 +23,16 @@ function MismatchBadge({ status }) {
 }
 
 // ─── Mismatch Status Block ────────────────────────────────────────────────────
-function MismatchStatusBlock({ status, managerReason, session, plate, vehicleTypes }) {
+function MismatchStatusBlock({
+  status,
+  managerReason,
+  session,
+  plate,
+  vehicleTypes,
+  exitPlateImageUrl,
+  exitVehicleImageUrl,
+  ocrConfidence,
+}) {
   const navigate = useNavigate();
 
   const buildSessionState = () => ({
@@ -43,6 +52,9 @@ function MismatchStatusBlock({ status, managerReason, session, plate, vehicleTyp
       area: session?.areaId,
       slot: session?.slotId,
     },
+    exitPlateImageUrl,
+    exitVehicleImageUrl,
+    ocrConfidence,
   });
 
   // ── NONE: show report button only when plates differ ──────────────────────
@@ -189,6 +201,9 @@ export default function ExitConfirmation({
   mismatchStatus,
   managerReason,
   vehicleTypes,
+  exitPlateImageUrl,
+  exitVehicleImageUrl,
+  ocrConfidence,
 }) {
   return (
     <section className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden min-h-0">
@@ -228,6 +243,9 @@ export default function ExitConfirmation({
           session={session}
           plate={plate}
           vehicleTypes={vehicleTypes}
+          exitPlateImageUrl={exitPlateImageUrl}
+          exitVehicleImageUrl={exitVehicleImageUrl}
+          ocrConfidence={ocrConfidence}
         />
 
         <div className="grid grid-cols-2 gap-4 mt-auto pt-4 border-t border-slate-100">

@@ -147,7 +147,7 @@ namespace ParkingBuilding.CoreApi.Controllers
             var pendingOnlinePayment = await _context.Payments
                 .AsNoTracking()
                 .Where(p => p.SessionId == session.Id
-                         && p.Purpose == "PARKING_FEE"
+                         && (p.Purpose == "PARKING_FEE" || p.Purpose == "LOST_CARD_FEE")
                          && p.Method == "BANK_TRANSFER"
                          && p.Status == "PENDING"
                          && p.ExpiredAt > DateTimeOffset.UtcNow)
@@ -159,6 +159,9 @@ namespace ParkingBuilding.CoreApi.Controllers
                     expiredAt = p.ExpiredAt
                 })
                 .FirstOrDefaultAsync();
+
+            var isCardLost = session.ParkingCard?.Status == Domain.Entities.CardStatus.LOST
+                || await _context.LostCardCases.AnyAsync(lc => lc.SessionId == session.Id && lc.Status == "APPROVED");
 
             var entryImages = await _context.ParkingSessionImages
                 .AsNoTracking()
@@ -177,11 +180,13 @@ namespace ParkingBuilding.CoreApi.Controllers
                 .FirstOrDefault(image => image.ImageType == "ENTRY_PLATE")?.ImageUrl;
             var entryVehicleImageUrl = entryImages
                 .FirstOrDefault(image => image.ImageType == "ENTRY_VEHICLE")?.ImageUrl;
+
             return Success(new
             {
                 sessionId = session.Id,
                 sessionCode = session.SessionCode,
-                cardCode = session.ParkingCard.CardNumber,
+                status = session.Status,
+                cardCode = session.ParkingCard?.CardNumber,
                 plateNumber = session.PlateNumber,
                 entryTime = session.EntryTime,
                 customerType = session.CustomerType,
@@ -192,6 +197,7 @@ namespace ParkingBuilding.CoreApi.Controllers
                 slotId = session.SlotId,
                 monthlyPassId = session.MonthlyPassId,
                 reservationId = session.ReservationId,
+                isCardLost,
                 pendingOnlinePayment,
                 entryPlateImageUrl,
                 entryVehicleImageUrl
