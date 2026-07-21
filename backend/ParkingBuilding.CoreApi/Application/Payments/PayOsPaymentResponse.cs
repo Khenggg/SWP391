@@ -1,10 +1,11 @@
-namespace ParkingBuilding.CoreApi.Application.Payments;
+﻿namespace ParkingBuilding.CoreApi.Application.Payments;
 
 public class PayOsPaymentResponse
 {
     public long PaymentId { get; set; }
     public long? ReservationId { get; set; }
     public long? SessionId { get; set; }
+    public long? MonthlyPassApplicationId { get; set; }
     public long OrderCode { get; set; }
     public decimal Amount { get; set; }
     public string Status { get; set; } = "PENDING";

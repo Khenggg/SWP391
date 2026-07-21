@@ -1,4 +1,4 @@
-using ParkingBuilding.CoreApi.Domain.Entities;
+﻿using ParkingBuilding.CoreApi.Domain.Entities;
 using PayOS.Models.Webhooks;
 
 namespace ParkingBuilding.CoreApi.Application.Payments;
@@ -13,6 +13,11 @@ public interface IPayOsPaymentService
     Task<PayOsPaymentResponse> CreateExitPaymentLinkAsync(
         Payment payment,
         ParkingSession session,
+        CancellationToken cancellationToken = default);
+
+    Task<PayOsPaymentResponse> CreateMonthlyPassPaymentLinkAsync(
+        Payment payment,
+        MonthlyPassApplication application,
         CancellationToken cancellationToken = default);
 
     Task<PayOsWebhookProcessResult> ProcessWebhookAsync(
