@@ -49,6 +49,15 @@ export default function DriverCasualCardPage() {
 
   useEffect(() => {
     fetchMySessions();
+
+    const handleFocus = () => {
+      fetchMySessions();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+    };
   }, []);
 
   const handleClaimCard = async (e, autoOpenPayment = true) => {
@@ -347,7 +356,10 @@ export default function DriverCasualCardPage() {
         session={selectedSessionForPayment}
         onPaymentSuccess={() => {
           setSelectedSessionForPayment(null);
-          fetchMySessions();
+          toast.success("Thanh toán hoàn tất! Đang tự động làm mới trang...");
+          setTimeout(() => {
+            window.location.reload();
+          }, 800);
         }}
       />
     </div>
