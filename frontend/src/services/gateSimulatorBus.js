@@ -81,6 +81,7 @@ export function normalizeGateScanEvent(event) {
     bookingId: event.bookingId || "",
     qrToken: event.qrToken || "",
     detectedPlate: event.detectedPlate || "",
+    vehicleTypeId: event.vehicleTypeId || "",
     vehicleTypeName: event.vehicleTypeName || "Xe Máy",
     plateConfidence: event.plateConfidence !== undefined ? event.plateConfidence : 100,
     plateImageDataUrl: event.plateImageDataUrl || "",

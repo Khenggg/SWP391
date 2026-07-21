@@ -144,21 +144,29 @@ export const driverHandlers = [
       const url = new URL(request.url);
       const page = parseInt(url.searchParams.get("page") || "1");
       const pageSize = parseInt(url.searchParams.get("pageSize") || "20");
+      const statusFilter = url.searchParams.get("status") || "";
       const inMemoryPasses = db.getMonthlyPasses() || [];
-      const applications = inMemoryPasses.map(p => ({
+      let applications = inMemoryPasses.map(p => ({
         id: p.id,
+        driverFullName: p.ownerName || "Nguyễn Văn A",
         vehiclePlateNumber: p.plateNumber,
-        vehicleTypeName: p.vehicleTypeName,
+        vehicleTypeName: p.vehicleTypeName || "Ô Tô",
         startDate: new Date().toISOString(),
         price: p.price || 500000,
         status: p.status || "PENDING",
+        createdAt: new Date().toISOString(),
       }));
+      if (statusFilter) {
+        applications = applications.filter(a => a.status === statusFilter);
+      }
+      const start = (page - 1) * pageSize;
+      const pageItems = applications.slice(start, start + pageSize);
       return ok({
-        items: applications,
+        items: pageItems,
         page,
         pageSize,
         totalItems: applications.length,
-        totalPages: Math.ceil(applications.length / pageSize),
+        totalPages: Math.ceil(applications.length / pageSize) || 1,
       });
     })
   ),
@@ -181,6 +189,87 @@ export const driverHandlers = [
       inMemoryPasses.push(newApp);
       db.saveMonthlyPasses(inMemoryPasses);
       return ok(newApp);
+    })
+  ),
+
+  // ── Application review actions ───────────────────────────────────
+  ...enabled(
+    MOCK_FLAGS.DRIVER_MONTHLY_PASS,
+    http.patch(`${API_BASE_URLS.core}/monthly-passes/applications/:id/status`, async ({ request, params }) => {
+      await delay(300);
+      const { id } = params;
+      const body = await request.json();
+      const inMemoryPasses = db.getMonthlyPasses() || [];
+      const idx = inMemoryPasses.findIndex(p => String(p.id) === String(id));
+      if (idx === -1) return notFound("Không tìm thấy đơn đăng ký.");
+      inMemoryPasses[idx].status = body.status;
+      if (body.reason) inMemoryPasses[idx].rejectionReason = body.reason;
+      db.saveMonthlyPasses(inMemoryPasses);
+      return ok(inMemoryPasses[idx], "Cập nhật trạng thái đơn thành công.");
+    })
+  ),
+
+  ...enabled(
+    MOCK_FLAGS.DRIVER_MONTHLY_PASS,
+    http.patch(`${API_BASE_URLS.core}/monthly-passes/applications/:id/payment`, async ({ request, params }) => {
+      await delay(300);
+      const { id } = params;
+      const body = await request.json();
+      const inMemoryPasses = db.getMonthlyPasses() || [];
+      const idx = inMemoryPasses.findIndex(p => String(p.id) === String(id));
+      if (idx === -1) return notFound("Không tìm thấy đơn đăng ký.");
+      inMemoryPasses[idx].status = "PAID";
+      inMemoryPasses[idx].paymentMethod = body.paymentMethod;
+      inMemoryPasses[idx].paymentReferenceNo = body.referenceNo;
+      db.saveMonthlyPasses(inMemoryPasses);
+      return ok(inMemoryPasses[idx], "Xác nhận thanh toán thành công.");
+    })
+  ),
+
+  ...enabled(
+    MOCK_FLAGS.DRIVER_MONTHLY_PASS,
+    http.patch(`${API_BASE_URLS.core}/monthly-passes/applications/:id/assign-rfid`, async ({ request, params }) => {
+      await delay(300);
+      const { id } = params;
+      const body = await request.json();
+      const inMemoryPasses = db.getMonthlyPasses() || [];
+      const idx = inMemoryPasses.findIndex(p => String(p.id) === String(id));
+      if (idx === -1) return notFound("Không tìm thấy đơn đăng ký.");
+      inMemoryPasses[idx].status = "ACTIVE";
+      inMemoryPasses[idx].assignedCardCode = body.rfidCardCode;
+      db.saveMonthlyPasses(inMemoryPasses);
+      return ok(inMemoryPasses[idx], "Gán thẻ RFID và kích hoạt vé tháng thành công.");
+    })
+  ),
+
+  // Also handle GET single application detail
+  ...enabled(
+    MOCK_FLAGS.DRIVER_MONTHLY_PASS,
+    http.get(`${API_BASE_URLS.core}/monthly-passes/applications/:id`, async ({ params }) => {
+      await delay(200);
+      const { id } = params;
+      const inMemoryPasses = db.getMonthlyPasses() || [];
+      const app = inMemoryPasses.find(p => String(p.id) === String(id));
+      if (!app) return notFound("Không tìm thấy đơn đăng ký.");
+      return ok({
+        ...app,
+        driverFullName: app.ownerName || "Nguyễn Văn A",
+        driverPhone: app.phone || "0987654321",
+        driverEmail: "resident@example.com",
+        driverApartmentNumber: "A-101",
+        driverResidentVerified: true,
+        vehiclePlateNumber: app.plateNumber,
+        vehicleTypeName: app.vehicleTypeName || "Ô Tô",
+        startDate: new Date().toISOString(),
+        price: app.price || 500000,
+        status: app.status || "PENDING",
+        driverVehicles: [],
+        rejectionReason: app.rejectionReason || null,
+        note: null,
+        paymentMethod: app.paymentMethod || null,
+        assignedCardId: app.assignedCardCode ? 1 : null,
+        createdAt: new Date().toISOString(),
+      });
     })
   ),
 

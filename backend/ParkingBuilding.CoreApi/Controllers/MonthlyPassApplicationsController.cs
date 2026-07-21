@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ParkingBuilding.CoreApi.Application.MonthlyPasses;
+using ParkingBuilding.CoreApi.Application.Payments;
+using ParkingBuilding.CoreApi.Infrastructure.Persistence;
+using ParkingBuilding.CoreApi.Contracts.Common;
 
 namespace ParkingBuilding.CoreApi.Controllers
 {
@@ -13,10 +16,14 @@ namespace ParkingBuilding.CoreApi.Controllers
     public class MonthlyPassApplicationsController : BaseApiController
     {
         private readonly MonthlyPassApplicationService _applicationService;
+        private readonly IPayOsPaymentService _payOsPaymentService;
+        private readonly ParkingDbContext _context;
 
-        public MonthlyPassApplicationsController(MonthlyPassApplicationService applicationService)
+        public MonthlyPassApplicationsController(MonthlyPassApplicationService applicationService, IPayOsPaymentService payOsPaymentService, ParkingDbContext context)
         {
             _applicationService = applicationService;
+            _payOsPaymentService = payOsPaymentService;
+            _context = context;
         }
 
         [HttpPost]
@@ -91,7 +98,7 @@ namespace ParkingBuilding.CoreApi.Controllers
         }
 
         [HttpPatch("{id}/payment")]
-        [Authorize(Roles = "ADMIN,STAFF")]
+        [Authorize(Roles = "ADMIN,MANAGER,STAFF")]
         public async Task<IActionResult> ConfirmPayment(long id, [FromBody] ConfirmPaymentRequest request)
         {
             var userId = GetCurrentUserId();
@@ -100,12 +107,38 @@ namespace ParkingBuilding.CoreApi.Controllers
         }
 
         [HttpPatch("{id}/assign-rfid")]
-        [Authorize(Roles = "ADMIN,STAFF")]
+        [Authorize(Roles = "ADMIN,MANAGER,STAFF")]
         public async Task<IActionResult> AssignRfid(long id, [FromBody] AssignRfidRequest request)
         {
             var userId = GetCurrentUserId();
             var result = await _applicationService.AssignRfidAsync(id, request, userId);
             return Success(result, "RFID card assigned and monthly pass activated successfully");
+        }
+
+        [HttpPost("{id}/pay-online")]
+        [Authorize(Roles = "DRIVER,STAFF,MANAGER,ADMIN")]
+        public async Task<IActionResult> CreateOnlinePayment(long id)
+        {
+            var userId = GetCurrentUserId();
+            var payment = await _applicationService.CreateOnlinePaymentAsync(id, userId);
+
+            var application = await _context.MonthlyPassApplications.FindAsync(id);
+            if (application == null)
+                throw new BusinessException(ErrorCodes.NotFound, StatusCodes.Status404NotFound);
+
+            var payOsResult = await _payOsPaymentService.CreateMonthlyPassPaymentLinkAsync(payment, application);
+
+            return Success(new
+            {
+                paymentId = payment.Id,
+                applicationId = id,
+                amount = payment.Amount,
+                totalAmount = payment.TotalAmount,
+                status = payment.Status,
+                checkoutUrl = payOsResult.CheckoutUrl,
+                qrCode = payOsResult.QrCode,
+                expiredAt = payOsResult.ExpiredAt
+            }, "Online payment link created successfully.");
         }
 
         private long GetCurrentUserId()

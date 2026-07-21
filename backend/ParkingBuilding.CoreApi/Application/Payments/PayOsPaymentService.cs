@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -282,6 +282,84 @@ public class PayOsPaymentService : IPayOsPaymentService
         return result;
     }
 
+    public async Task<PayOsPaymentResponse> CreateMonthlyPassPaymentLinkAsync(
+        Payment payment,
+        MonthlyPassApplication application,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureConfiguredInProduction();
+
+        if (payment.Id <= 0)
+            throw new BusinessException(ErrorCodes.PaymentMustBePersisted);
+
+        var orderCode = CreateOrderCode(payment.Id);
+        var amount = ToPayOsAmount(payment.TotalAmount);
+        var expiredAt = payment.ExpiredAt ?? DateTimeOffset.UtcNow.AddMinutes(15);
+
+        PayOsPaymentResponse result;
+        object gatewayPayload;
+
+        if (_client == null)
+        {
+            var paymentLinkId = "local-payos-" + orderCode;
+            result = new PayOsPaymentResponse
+            {
+                PaymentId = payment.Id,
+                MonthlyPassApplicationId = application.Id,
+                OrderCode = orderCode,
+                Amount = amount,
+                Status = "PENDING",
+                Provider = Provider,
+                PaymentLinkId = paymentLinkId,
+                CheckoutUrl = "/local/payos/checkout/" + paymentLinkId,
+                ExpiredAt = expiredAt,
+                IsLocalPlaceholder = true
+            };
+            gatewayPayload = new { provider = Provider, localPlaceholder = true, orderCode, paymentLinkId = result.PaymentLinkId, checkoutUrl = result.CheckoutUrl, amount, expiredAt };
+        }
+        else
+        {
+            var request = new CreatePaymentLinkRequest
+            {
+                OrderCode = orderCode,
+                Amount = amount,
+                Description = "MPASS " + application.Id,
+                ReturnUrl = _options.ReturnUrl!,
+                CancelUrl = _options.CancelUrl!,
+                ExpiredAt = expiredAt.ToUnixTimeSeconds(),
+                Items = new List<PaymentLinkItem> { new() { Name = "Monthly Pass " + application.Id, Quantity = 1, Price = amount } }
+            };
+
+            var response = await _client.PaymentRequests.CreateAsync(request, CreateRequestOptions<CreatePaymentLinkRequest>(cancellationToken));
+
+            result = new PayOsPaymentResponse
+            {
+                PaymentId = payment.Id,
+                MonthlyPassApplicationId = application.Id,
+                OrderCode = response.OrderCode,
+                Amount = response.Amount,
+                Status = "PENDING",
+                Provider = Provider,
+                PaymentLinkId = response.PaymentLinkId,
+                CheckoutUrl = response.CheckoutUrl,
+                QrCode = response.QrCode,
+                ExpiredAt = response.ExpiredAt.HasValue ? DateTimeOffset.FromUnixTimeSeconds(response.ExpiredAt.Value) : expiredAt
+            };
+
+            gatewayPayload = new { provider = Provider, localPlaceholder = false, orderCode = response.OrderCode, paymentLinkId = response.PaymentLinkId, checkoutUrl = response.CheckoutUrl, QrCode = response.QrCode, amount = response.Amount, currency = response.Currency, status = response.Status.ToString(), expiredAt = result.ExpiredAt };
+        }
+
+        payment.Provider = Provider;
+        payment.ProviderTransactionId = result.PaymentLinkId;
+        payment.PaymentUrl = result.CheckoutUrl;
+        payment.ExpiredAt = result.ExpiredAt;
+        payment.PaymentValidUntil = result.ExpiredAt;
+        payment.GatewayPayload = JsonSerializer.Serialize(gatewayPayload);
+        payment.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return result;
+    }
     public async Task<PayOsWebhookProcessResult> ProcessWebhookAsync(
         Webhook webhook,
         CancellationToken cancellationToken = default)
@@ -525,6 +603,52 @@ public class PayOsPaymentService : IPayOsPaymentService
                 OrderCode = data.OrderCode,
                 PaymentStatus = payment.Status,
                 ReservationStatus = payment.Reservation.Status
+            };
+        }
+        else if (payment.Purpose == "MONTHLY_PASS_RENEWAL")
+        {
+            var mpApp = await _context.MonthlyPassApplications
+                .FirstOrDefaultAsync(a => a.Id == payment.MonthlyPassApplicationId, cancellationToken);
+
+            if (mpApp == null)
+                throw new BusinessException(ErrorCodes.NotFound, StatusCodes.Status404NotFound);
+
+            if (payment.Status == "PAID" && mpApp.Status == "PAID")
+            {
+                return new PayOsWebhookProcessResult
+                {
+                    Success = true, Idempotent = true,
+                    Message = "Monthly pass payment already marked as paid.",
+                    PaymentId = payment.Id, OrderCode = data.OrderCode, PaymentStatus = payment.Status
+                };
+            }
+
+            if (payment.TotalAmount != data.Amount)
+                throw new BusinessException(ErrorCodes.PayOsAmountMismatch);
+
+            payment.Status = "PAID";
+            payment.ReceivedAmount = data.Amount;
+            payment.PaidAt = now;
+            payment.UpdatedAt = now;
+            payment.GatewayPayload = MergeGatewayPayload(payment.GatewayPayload, data, webhook);
+
+            mpApp.Status = "PAID";
+            mpApp.PaymentMethod = "BANK_TRANSFER";
+            mpApp.PaymentReferenceNo = data.OrderCode.ToString();
+            mpApp.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditWriter.WriteAuditLogAsync(
+                action: "PAYOS_MONTHLY_PASS_PAYMENT_CONFIRMED",
+                targetType: "Payment", targetId: payment.Id.ToString(),
+                newValue: JsonSerializer.Serialize(new { paymentId = payment.Id, applicationId = mpApp.Id, orderCode = data.OrderCode, webhookAmount = data.Amount }),
+                reason: "payOS webhook confirmed monthly pass payment.");
+
+            return new PayOsWebhookProcessResult
+            {
+                Success = true, Message = "Monthly pass payment marked as paid.",
+                PaymentId = payment.Id, OrderCode = data.OrderCode, PaymentStatus = payment.Status
             };
         }
         else // Purpose is PARKING_FEE or LOST_CARD_FEE
@@ -879,6 +1003,7 @@ public class PayOsPaymentService : IPayOsPaymentService
             var payment = await _context.Payments
                 .Include(p => p.Reservation)
                 .Include(p => p.ParkingSession)
+                .Include(p => p.MonthlyPassApplication)
                 .FirstOrDefaultAsync(p => p.Id == paymentId, cancellationToken);
             if (payment != null)
             {

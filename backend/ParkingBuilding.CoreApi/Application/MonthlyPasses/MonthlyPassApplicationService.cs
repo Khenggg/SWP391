@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -486,6 +486,46 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
             return MapToResponse(application);
         }
 
+        public async Task<Payment> CreateOnlinePaymentAsync(long applicationId, long userId)
+        {
+            var application = await _context.MonthlyPassApplications
+                .Include(a => a.Vehicle)
+                .FirstOrDefaultAsync(a => a.Id == applicationId);
+
+            if (application == null)
+                throw new BusinessException(ErrorCodes.NotFound, StatusCodes.Status404NotFound);
+
+            if (application.Status != "APPROVED_AWAITING_PAYMENT")
+                throw new BusinessException(ErrorCodes.InvalidRequest, StatusCodes.Status400BadRequest);
+
+            var existing = await _context.Payments
+                .Where(p => p.MonthlyPassApplicationId == applicationId
+                         && p.Status == "PENDING"
+                         && p.ExpiredAt > DateTimeOffset.UtcNow)
+                .OrderByDescending(p => p.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (existing != null && !string.IsNullOrEmpty(existing.PaymentUrl))
+                return existing;
+
+            var payment = new Payment
+            {
+                MonthlyPassApplicationId = applicationId,
+                Amount = application.Price,
+                TotalAmount = application.Price,
+                Purpose = "MONTHLY_PASS_RENEWAL",
+                Method = "BANK_TRANSFER",
+                Status = "PENDING",
+                ExpiredAt = DateTimeOffset.UtcNow.AddMinutes(15),
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+
+            _context.Payments.Add(payment);
+            await _context.SaveChangesAsync();
+
+            return payment;
+        }
         private MonthlyPassApplicationResponse MapToResponse(MonthlyPassApplication application)
         {
             // Query other vehicles and passes for this driver

@@ -503,15 +503,44 @@ export const adminHandlers = [
       const url = new URL(request.url);
       const keyword = (url.searchParams.get("keyword") || "").trim().toLowerCase();
       const role = url.searchParams.get("role") || "";
+      const driverTypeParam = (url.searchParams.get("driverType") || "").toUpperCase();
       const status = url.searchParams.get("status") || "";
       const page = Math.max(1, Number(url.searchParams.get("page") || 1));
       const pageSize = Math.min(100, Math.max(1, Number(url.searchParams.get("pageSize") || 20)));
-      const filteredUsers = db.getUsers().filter((user) => {
-        const matchesKeyword = !keyword || [user.username, user.fullName, user.email, user.phone]
+      
+      const rawUsers = db.getUsers().map((user) => {
+        if (user.role === "DRIVER") {
+          const isResident = user.username === "driver01" || user.username === "driver02" || user.driverType === "RESIDENT";
+          return {
+            ...user,
+            driverType: isResident ? "RESIDENT" : "VISITOR",
+            apartmentNumber: isResident ? (user.apartmentNumber || "A-0101") : null,
+          };
+        }
+        return user;
+      });
+
+      const filteredUsers = rawUsers.filter((user) => {
+        const matchesKeyword = !keyword || [user.username, user.fullName, user.email, user.phone, user.apartmentNumber]
           .some((value) => String(value || "").toLowerCase().includes(keyword));
-        return matchesKeyword
-          && (!role || user.role === role)
-          && (!status || user.status === status);
+        
+        let matchesRole = true;
+        if (role === "DRIVER_RESIDENT") {
+          matchesRole = user.role === "DRIVER" && user.driverType === "RESIDENT";
+        } else if (role === "DRIVER_VISITOR") {
+          matchesRole = user.role === "DRIVER" && user.driverType === "VISITOR";
+        } else if (role) {
+          matchesRole = user.role === role;
+        }
+
+        let matchesDriverType = true;
+        if (driverTypeParam === "RESIDENT") {
+          matchesDriverType = user.role === "DRIVER" && user.driverType === "RESIDENT";
+        } else if (driverTypeParam === "VISITOR") {
+          matchesDriverType = user.role === "DRIVER" && user.driverType === "VISITOR";
+        }
+
+        return matchesKeyword && matchesRole && matchesDriverType && (!status || user.status === status);
       });
       const totalItems = filteredUsers.length;
       return ok({

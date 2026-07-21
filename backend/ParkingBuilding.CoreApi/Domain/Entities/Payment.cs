@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace ParkingBuilding.CoreApi.Domain.Entities
 {
@@ -9,6 +9,9 @@ namespace ParkingBuilding.CoreApi.Domain.Entities
         public virtual ParkingSession? ParkingSession { get; set; }
         public long? ReservationId { get; set; }
         public virtual Reservation? Reservation { get; set; }
+        public long? MonthlyPassApplicationId { get; set; }
+        public virtual MonthlyPassApplication? MonthlyPassApplication { get; set; }
+
         public long? MonthlyPassId { get; set; }
         public virtual MonthlyPass? MonthlyPass { get; set; }
         public decimal Amount { get; set; }
