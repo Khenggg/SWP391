@@ -311,6 +311,36 @@ export const reservationService = {
       .map(mapSupportHistoryItem);
   },
 
+  getReservationHistory: async ({
+    keyword = "",
+    status = "",
+    fromDate = null,
+    toDate = null,
+    page = 1,
+    pageSize = 20,
+  } = {}) => {
+    const response = await supportAxiosClient.get("/reservations/me/history", {
+      params: {
+        keyword: keyword || undefined,
+        status: status || undefined,
+        fromDate: fromDate || undefined,
+        toDate: toDate || undefined,
+        page,
+        pageSize,
+        limit: pageSize,
+      },
+    });
+    if (!response.success || !response.data) {
+      return { items: [], totalItems: 0, totalPages: 1 };
+    }
+    const items = Array.isArray(response.data.items) ? response.data.items : [];
+    return {
+      items: items.map(mapSupportHistoryItem),
+      totalItems: response.data.totalItems ?? items.length,
+      totalPages: response.data.totalPages ?? 1,
+    };
+  },
+
   createReservation: async (plateNumber, vehicleTypeId, floorId, areaId, durationHours, slotId, areaName, slotName) => {
     const res = await coreAxiosClient.post("/reservations", {
       plateNumber,
