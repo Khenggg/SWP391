@@ -216,10 +216,17 @@ export default function DriverBookingPage() {
 
   const getDynamicHourlyPrice = () => {
     if (!selectedVehicle) return 0;
+    const targetTypeId = selectedVehicle.vehicleTypeId || (selectedVehicle.vehicleTypeName === "Ô Tô" ? 5 : 3);
     const rule = pricingRules.find(
-      (r) => r.vehicleTypeName === selectedVehicle.vehicleTypeName && r.status === "ACTIVE"
+      (r) => 
+        r.status === "ACTIVE" &&
+        (Number(r.vehicleTypeId) === Number(targetTypeId) || 
+         r.vehicleTypeName?.toLowerCase() === selectedVehicle.vehicleTypeName?.toLowerCase())
     );
-    return rule ? rule.dayPrice : selectedVehicle.vehicleTypeName === "Ô Tô" ? 20000 : 5000;
+    if (rule && rule.reservationHourlyPrice !== undefined && rule.reservationHourlyPrice !== null) {
+      return Number(rule.reservationHourlyPrice);
+    }
+    return selectedVehicle.vehicleTypeName === "Ô Tô" ? 20000 : 5000;
   };
 
   const hourlyPrice = getDynamicHourlyPrice();
