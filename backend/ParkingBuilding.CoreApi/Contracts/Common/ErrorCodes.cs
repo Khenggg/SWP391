@@ -227,4 +227,10 @@ public static class ErrorCodes
     public const string ExitGateInvalid = "EXIT_GATE_INVALID";
     public const string PlateMismatchRequiresApproval = "PLATE_MISMATCH_REQUIRES_APPROVAL";
     public const string PaymentRequiredBeforeExit = "PAYMENT_REQUIRED_BEFORE_EXIT";
+    public const string NoPaymentRequired = "NO_PAYMENT_REQUIRED";
+    public const string PaymentAlreadyPending = "PAYMENT_ALREADY_PENDING";
+    public const string WaiveReasonTooShort = "WAIVE_REASON_TOO_SHORT";
+    public const string WaiveReasonTooLong = "WAIVE_REASON_TOO_LONG";
+    public const string WaiveReasonNotAllowed = "WAIVE_REASON_NOT_ALLOWED";
+    public const string LostCardPending = "LOST_CARD_PENDING";
 }

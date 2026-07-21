@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -40,8 +41,8 @@ namespace ParkingBuilding.CoreApi.Controllers
             return Success(result, "payOS webhook processed successfully.");
         }
 
+        [AllowAnonymous]
         [HttpPost("online/exit-fee")]
-        [AllowAnonymous] // Driver can request online exit payment link anonymously or authorized
         public async Task<IActionResult> CreateOnlineExitFeeLink([FromBody] CreateOnlineExitPaymentRequest request)
         {
             ParkingSession? session = null;
@@ -66,16 +67,11 @@ namespace ParkingBuilding.CoreApi.Controllers
             }
 
             if (session == null)
-            {
-                throw new BusinessException(ErrorCodes.SessionNotFound, Microsoft.AspNetCore.Http.StatusCodes.Status404NotFound);
-            }
+                throw new BusinessException(ErrorCodes.SessionNotFound, StatusCodes.Status404NotFound);
 
             if (session.CustomerType == "MONTHLY")
-            {
-                throw new BusinessException("MONTHLY_PASS_EXIT_DOES_NOT_REQUIRE_PAYMENT");
-            }
+                throw new BusinessException(ErrorCodes.InvalidRequest);
 
-            // Calculate current exit fee
             var feeResult = await _feeCalculationService.CalculateFeeAsync(session.Id, DateTimeOffset.UtcNow, false);
 
             if (feeResult.TotalAmount <= 0m)
@@ -91,9 +87,11 @@ namespace ParkingBuilding.CoreApi.Controllers
                 }, "No payment required.");
             }
 
-            // Check if there is an active PENDING payment link already generated in the last 15 minutes to prevent duplicates
             var existingPayment = await _context.Payments
-                .Where(p => p.SessionId == session.Id && p.Purpose == "PARKING_FEE" && p.Status == "PENDING" && p.ExpiredAt > DateTimeOffset.UtcNow)
+                .Where(p => p.SessionId == session.Id
+                         && p.Purpose == "PARKING_FEE"
+                         && p.Status == "PENDING"
+                         && p.ExpiredAt > DateTimeOffset.UtcNow)
                 .OrderByDescending(p => p.CreatedAt)
                 .FirstOrDefaultAsync();
 
@@ -110,7 +108,6 @@ namespace ParkingBuilding.CoreApi.Controllers
                 }, "Returned existing pending payment link.");
             }
 
-            // Otherwise, create a new payment record
             var payment = new Payment
             {
                 SessionId = session.Id,
@@ -152,6 +149,7 @@ namespace ParkingBuilding.CoreApi.Controllers
                 paymentId = payment.Id,
                 sessionId = payment.SessionId,
                 amount = payment.Amount,
+                lostCardFee = payment.LostCardFee,
                 totalAmount = payment.TotalAmount,
                 status = payment.Status,
                 paidAt = payment.PaidAt
@@ -159,16 +157,23 @@ namespace ParkingBuilding.CoreApi.Controllers
         }
 
         [HttpPost("waive")]
-        [Authorize(Roles = "MANAGER,ADMIN")]
+        [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
         public async Task<IActionResult> CreateWaivedPayment([FromBody] WaivePaymentRequest request)
         {
-            var managerId = GetCurrentUserIdOrThrow();
-            var payment = await _paymentService.CreateWaivedPaymentAsync(request.SessionId, request.WaiveReason, managerId);
+            var actorId = GetCurrentUserIdOrThrow();
+            var actorRole = User.FindFirst(ClaimTypes.Role)?.Value
+                ?? User.FindFirst("role")?.Value
+                ?? "STAFF";
+
+            var payment = await _paymentService.CreateWaivedPaymentAsync(
+                request.SessionId, request.WaiveReason, actorId, actorRole);
+
             return Success(new
             {
                 paymentId = payment.Id,
                 sessionId = payment.SessionId,
                 amount = payment.Amount,
+                lostCardFee = payment.LostCardFee,
                 totalAmount = payment.TotalAmount,
                 status = payment.Status,
                 waiveReason = payment.WaiveReason,
@@ -180,15 +185,9 @@ namespace ParkingBuilding.CoreApi.Controllers
         {
             var userIdClaim = User.FindFirst("user_id")?.Value;
             if (string.IsNullOrEmpty(userIdClaim))
-            {
                 throw new BusinessException(ErrorCodes.AuthUserIdMissing);
-            }
-
             if (!long.TryParse(userIdClaim, out var userId))
-            {
                 throw new BusinessException(ErrorCodes.AuthUserIdInvalid);
-            }
-
             return userId;
         }
     }
