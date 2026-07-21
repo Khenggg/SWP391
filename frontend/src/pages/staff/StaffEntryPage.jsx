@@ -154,12 +154,33 @@ export default function StaffEntryPage() {
     return gates[0]?.id ?? 1;
   }, [form.entryGateId, gates]);
 
+function formatCardCode(value) {
+  let val = String(value || "").trim().toUpperCase();
+  if (!val) return "";
+
+  if (/^CARD-?\d+/i.test(val)) {
+    const num = val.replace(/^CARD-?/i, "");
+    return `C${num.padStart(3, "0")}`;
+  }
+
+  if (/^\d+$/.test(val)) {
+    return `C${val.padStart(3, "0")}`;
+  }
+
+  return val;
+}
+
   const handleCheckCard = useCallback(async (overrideCardCode, overrideGateId) => {
-    const cardCode = normalizeText(overrideCardCode || form.cardCode);
+    const rawCardCode = normalizeText(overrideCardCode || form.cardCode);
+    const cardCode = formatCardCode(rawCardCode);
     const entryGateId = resolveGateId(overrideGateId);
     if (!cardCode || entryGateId == null) {
       toast.error("Nhập mã thẻ và chọn cổng vào hợp lệ trước khi kiểm tra.");
       return;
+    }
+
+    if (cardCode !== form.cardCode) {
+      setForm((prev) => ({ ...prev, cardCode }));
     }
 
     setIsCheckingCard(true);
