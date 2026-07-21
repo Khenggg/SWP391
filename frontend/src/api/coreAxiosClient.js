@@ -1,4 +1,5 @@
 import axios from "axios";
+import { clearAuthStorage, refreshAccessToken } from "../services/sessionService";
 
 // Khởi tạo instance Axios cho Core API Service (.NET)
 const coreAxiosClient = axios.create({
@@ -27,7 +28,7 @@ coreAxiosClient.interceptors.response.use(
     // Trả về phần dữ liệu của phản hồi
     return response.data;
   },
-  (error) => {
+  async (error) => {
     if (error.code === "ECONNABORTED") {
       return Promise.reject({
         success: false,
@@ -37,12 +38,39 @@ coreAxiosClient.interceptors.response.use(
 
     if (error.response) {
       const { status } = error.response;
+      const requestConfig = error.config || {};
+      const requestUrl = requestConfig.url || "";
+      const isAuthEndpoint = /\/auth\/(login|refresh-token|logout)/.test(requestUrl);
+
+      if (status === 401 && !requestConfig._retry && !isAuthEndpoint) {
+        requestConfig._retry = true;
+
+        try {
+          const newAccessToken = await refreshAccessToken();
+          requestConfig.headers = requestConfig.headers || {};
+          requestConfig.headers.Authorization = `Bearer ${newAccessToken}`;
+          return coreAxiosClient(requestConfig);
+        } catch (refreshError) {
+          clearAuthStorage();
+          window.location.href = "/login";
+          return Promise.reject(refreshError);
+        }
+      }
+
+      if (status === 401 && isAuthEndpoint) {
+        return Promise.reject(error.response.data || error.message);
+      }
 
       // Hết phiên đăng nhập -> tự động xóa token và đá về /login
       if (status === 401) {
-        sessionStorage.removeItem("accessToken");
-        sessionStorage.removeItem("currentUser");
+        clearAuthStorage();
         window.location.href = "/login";
+      }
+
+      if (status === 403 && requestUrl.includes("/auth/me")) {
+        clearAuthStorage();
+        window.location.href = "/login";
+        return Promise.reject(error.response.data || error.message);
       }
 
       // Không có quyền truy cập -> chuyển sang trang unauthorized

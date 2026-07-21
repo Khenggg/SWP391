@@ -20,7 +20,7 @@ export default function StaffLostCardPage() {
 
   const handleSearch = async () => {
     try {
-      const found = await staffSessionService.searchActiveSession({ plate: query, cardCode: query });
+      const found = await staffSessionService.searchActiveSession(query);
       setSession(found);
       toast.success(`Đã tìm thấy phiên ${found.sessionCode}`);
     } catch (error) {

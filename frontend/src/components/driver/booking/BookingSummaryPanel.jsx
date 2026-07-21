@@ -41,9 +41,16 @@ export default function BookingSummaryPanel({
   selectedSlotName,
   hourlyPrice = 20000,
   recentHistory = [],
-  isHistoryLoading = false
+  isHistoryLoading = false,
+  activeReservation = null
 }) {
-  const totalPrice = durationHours * hourlyPrice;
+  const displayVehicle = activeReservation 
+    ? { plateNumber: activeReservation.plateNumber, vehicleTypeName: activeReservation.vehicleTypeName || (activeReservation.vehicleTypeId === 5 ? "Ô Tô" : "Xe Máy") }
+    : selectedVehicle;
+    
+  const displayAreaName = activeReservation?.areaName || selectedAreaName;
+  const displaySlotName = activeReservation?.slotName || selectedSlotName;
+  const displayPrice = activeReservation?.bookingAmount ?? (durationHours * hourlyPrice);
 
   return (
     <div className="space-y-6">
@@ -56,10 +63,10 @@ export default function BookingSummaryPanel({
           <div className="flex justify-between gap-4">
             <span className="text-slate-500">Phuong tien</span>
             <span className="font-semibold text-slate-800 text-right">
-              {selectedVehicle ? (
+              {displayVehicle ? (
                 <>
-                  <span className="mr-2 uppercase">{selectedVehicle.plateNumber || selectedVehicle.plate}</span>
-                  <span className="text-xs text-slate-500">({selectedVehicle.vehicleTypeName})</span>
+                  <span className="mr-2 uppercase">{displayVehicle.plateNumber || displayVehicle.plate}</span>
+                  <span className="text-xs text-slate-500">({displayVehicle.vehicleTypeName || "Không xác định"})</span>
                 </>
               ) : "Chua chon"}
             </span>
@@ -71,10 +78,10 @@ export default function BookingSummaryPanel({
           <div className="flex justify-between gap-4">
             <span className="text-slate-500">Vi tri do</span>
             <span className="font-semibold text-slate-800 text-right">
-              {selectedAreaName || "Chua chon"}
-              {selectedSlotName && (
+              {displayAreaName || "Chua chon"}
+              {displaySlotName && (
                 <span className="block text-indigo-600 text-xs font-bold mt-0.5">
-                  Slot: {selectedSlotName}
+                  Slot: {displaySlotName}
                 </span>
               )}
             </span>
@@ -85,10 +92,10 @@ export default function BookingSummaryPanel({
           <div className="flex justify-between items-center mb-2 gap-4">
             <span className="text-slate-500 font-semibold">Gia du kien</span>
             <span className="text-xl font-black text-indigo-600">
-              {totalPrice > 0 ? `${totalPrice.toLocaleString()} VND` : "0 VND"}
+              {displayPrice > 0 ? `${displayPrice.toLocaleString()} VND` : "0 VND"}
             </span>
           </div>
-          {(!selectedVehicle || !selectedAreaName) && (
+          {(!displayVehicle || !displayAreaName) && (
             <div className="bg-blue-50 text-blue-600 text-xs font-semibold p-3 rounded-lg text-center">
               Vui long chon day du thong tin de xem chi tiet.
             </div>

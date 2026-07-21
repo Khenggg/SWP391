@@ -64,8 +64,9 @@ const STATUS_BADGE = {
 
 const ROLES = Object.values(USER_ROLES);
 const STATUSES = Object.values(USER_STATUS);
+const INTERNAL_ROLES = ROLES.filter((role) => role !== USER_ROLES.DRIVER);
 
-const EMPTY_FORM = { username: "", fullName: "", email: "", phone: "", role: USER_ROLES.STAFF, password: "" };
+const EMPTY_FORM = { username: "", fullName: "", email: "", phone: "", role: USER_ROLES.STAFF, password: "", reason: "" };
 
 const Field = ({ label, error, ...props }) => (
   <div>
@@ -77,6 +78,29 @@ const Field = ({ label, error, ...props }) => (
   </div>
 );
 
+const parseUserApiErrors = (error) => {
+  const fieldErrors = {};
+  const errors = Array.isArray(error?.errors) ? error.errors : [];
+  errors.forEach((item) => {
+    const separator = item.indexOf(":");
+    if (separator > 0) {
+      fieldErrors[item.slice(0, separator).trim()] = item.slice(separator + 1).trim();
+    }
+  });
+
+  const errorFieldMap = {
+    USERNAME_ALREADY_EXISTS: "username",
+    EMAIL_ALREADY_EXISTS: "email",
+    PHONE_ALREADY_EXISTS: "phone",
+    INVALID_USER_ROLE: "role",
+    INVALID_USER_STATUS: "status",
+    REASON_REQUIRED: "reason",
+  };
+  const field = errorFieldMap[error?.errorCode];
+  if (field && !fieldErrors[field]) fieldErrors[field] = error.message;
+  return fieldErrors;
+};
+
 export default function UserManagementPage() {
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -86,6 +110,10 @@ export default function UserManagementPage() {
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [searchText, setSearchText] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Selection & Audit
   const [selectedUser, setSelectedUser] = useState(null);
@@ -100,12 +128,21 @@ export default function UserManagementPage() {
   
   const [form, setForm] = useState(EMPTY_FORM);
   const [formErrors, setFormErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchUsers = async () => {
     try {
       setIsLoading(true);
-      const data = await userService.getUsers();
-      setUsers(data);
+      const data = await userService.getUsers({
+        keyword: appliedSearch,
+        role: filterRole === "ALL" ? "" : filterRole,
+        status: filterStatus === "ALL" ? "" : filterStatus,
+        page,
+        pageSize,
+      });
+      setUsers(data.items);
+      setTotalItems(data.totalItems);
+      setTotalPages(Math.max(1, data.totalPages));
     } catch (err) {
       toast.error(err.message || "Không thể tải danh sách người dùng");
     } finally {
@@ -115,7 +152,7 @@ export default function UserManagementPage() {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [appliedSearch, filterRole, filterStatus, page, pageSize]);
 
   useEffect(() => {
     if (selectedUser) {
@@ -159,30 +196,28 @@ export default function UserManagementPage() {
   }, [users]);
 
   // Filtering
-  const filtered = users.filter((u) => {
-    const matchRole = filterRole === "ALL" || u.role === filterRole;
-    const matchStatus = filterStatus === "ALL" || u.status === filterStatus;
-    const matchSearch = !appliedSearch || 
-      u.username.toLowerCase().includes(appliedSearch.toLowerCase()) || 
-      u.fullName.toLowerCase().includes(appliedSearch.toLowerCase()) ||
-      (u.email && u.email.toLowerCase().includes(appliedSearch.toLowerCase())) ||
-      (u.phone && u.phone.includes(appliedSearch));
-    return matchRole && matchStatus && matchSearch;
-  });
+  const filtered = users;
 
-  const handleSearch = () => setAppliedSearch(searchText);
+  const handleSearch = () => {
+    setPage(1);
+    setAppliedSearch(searchText.trim());
+  };
   const handleReset = () => {
     setSearchText("");
     setAppliedSearch("");
     setFilterRole("ALL");
     setFilterStatus("ALL");
+    setPage(1);
   };
 
   // Validations
   const validate = (data, isCreate) => {
     const errs = {};
+    const username = data.username?.trim() || "";
+    const usernamePattern = /^(?=.{6,30}$)(?!.*[_-]{2})[A-Za-z][A-Za-z0-9_-]*[A-Za-z0-9]$/;
     if (!data.fullName?.trim()) errs.fullName = "Bắt buộc";
-    if (isCreate && !data.username?.trim()) errs.username = "Bắt buộc";
+    if (isCreate && !username) errs.username = "Bắt buộc";
+    else if (isCreate && !usernamePattern.test(username)) errs.username = "Username phải dài 6-30 ký tự, bắt đầu bằng chữ cái và không có dấu phân cách liên tiếp.";
     if (isCreate && !data.password?.trim()) errs.password = "Bắt buộc";
     if (!data.role) errs.role = "Bắt buộc";
     if (data.email && !/^\S+@\S+\\.\S+$/.test(data.email)) errs.email = "Email không hợp lệ";
@@ -203,56 +238,91 @@ export default function UserManagementPage() {
   // Modals Handlers
   const openCreate = () => { setForm(EMPTY_FORM); setFormErrors({}); setShowCreateModal(true); };
   const openEdit = (u) => { setForm({ ...u }); setFormErrors({}); setSelectedUser(u); setShowEditModal(true); };
-  const openRole = (u) => { setForm({ ...u }); setSelectedUser(u); setShowRoleModal(true); };
-  const openStatus = (u) => { setForm({ ...u }); setSelectedUser(u); setShowStatusModal(true); };
+  const openRole = (u) => { setForm({ ...u, reason: "" }); setFormErrors({}); setSelectedUser(u); setShowRoleModal(true); };
+  const openStatus = (u) => { setForm({ ...u, reason: "" }); setFormErrors({}); setSelectedUser(u); setShowStatusModal(true); };
 
   const handleCreate = async () => {
+    if (isSubmitting) return;
     const errs = validate(form, true);
     if (Object.keys(errs).length > 0) return setFormErrors(errs);
     try {
+      setIsSubmitting(true);
       const created = await userService.addUser(form);
-      setUsers((prev) => [...prev, created]);
+      setPage(1);
+      await fetchUsers();
+      setIsSubmitting(false);
       setShowCreateModal(false);
       toast.success("Tạo người dùng thành công!");
     } catch (err) {
+      setIsSubmitting(false);
+      const apiErrors = parseUserApiErrors(err);
+      if (Object.keys(apiErrors).length > 0) setFormErrors(apiErrors);
       toast.error(err.message);
     }
   };
 
   const handleEdit = async () => {
+    if (isSubmitting) return;
     const errs = validate(form, false);
     if (Object.keys(errs).length > 0) return setFormErrors(errs);
     try {
+      setIsSubmitting(true);
       const updated = await userService.updateUser(selectedUser.id, form);
       setUsers((prev) => prev.map((u) => u.id === selectedUser.id ? updated : u));
       if (selectedUser?.id === updated.id) setSelectedUser(updated);
+      setIsSubmitting(false);
       setShowEditModal(false);
       toast.success("Cập nhật thông tin thành công!");
     } catch (err) {
+      setIsSubmitting(false);
+      const apiErrors = parseUserApiErrors(err);
+      if (Object.keys(apiErrors).length > 0) setFormErrors(apiErrors);
       toast.error(err.message);
     }
   };
 
   const handleRole = async () => {
+    if (isSubmitting) return;
+    if (!form.reason?.trim()) {
+      setFormErrors({ reason: "Báº¯t buá»™c nháº­p lÃ½ do." });
+      return;
+    }
     try {
-      const updated = await userService.updateUserRole(selectedUser.id, form.role);
-      setUsers((prev) => prev.map((u) => u.id === selectedUser.id ? updated : u));
-      if (selectedUser?.id === updated.id) setSelectedUser(updated);
+      setIsSubmitting(true);
+      const updated = await userService.updateUserRole(selectedUser.id, form.role, form.reason.trim());
+      const merged = { ...selectedUser, ...updated, role: updated.newRole || form.role };
+      setUsers((prev) => prev.map((u) => u.id === selectedUser.id ? merged : u));
+      if (selectedUser?.id === updated.id) setSelectedUser(merged);
+      setIsSubmitting(false);
       setShowRoleModal(false);
       toast.success(`Đã đổi vai trò thành ${form.role}`);
     } catch (err) {
+      setIsSubmitting(false);
+      const apiErrors = parseUserApiErrors(err);
+      if (Object.keys(apiErrors).length > 0) setFormErrors(apiErrors);
       toast.error(err.message);
     }
   };
 
   const handleStatus = async () => {
+    if (isSubmitting) return;
+    if (!form.reason?.trim()) {
+      setFormErrors({ reason: "Báº¯t buá»™c nháº­p lÃ½ do." });
+      return;
+    }
     try {
-      const updated = await userService.updateUserStatus(selectedUser.id, form.status);
-      setUsers((prev) => prev.map((u) => u.id === selectedUser.id ? updated : u));
-      if (selectedUser?.id === updated.id) setSelectedUser(updated);
+      setIsSubmitting(true);
+      const updated = await userService.updateUserStatus(selectedUser.id, form.status, form.reason.trim());
+      const merged = { ...selectedUser, ...updated, status: updated.newStatus || form.status };
+      setUsers((prev) => prev.map((u) => u.id === selectedUser.id ? merged : u));
+      if (selectedUser?.id === updated.id) setSelectedUser(merged);
+      setIsSubmitting(false);
       setShowStatusModal(false);
       toast.success(`Đã cập nhật trạng thái thành ${form.status}`);
     } catch (err) {
+      setIsSubmitting(false);
+      const apiErrors = parseUserApiErrors(err);
+      if (Object.keys(apiErrors).length > 0) setFormErrors(apiErrors);
       toast.error(err.message);
     }
   };
@@ -367,7 +437,7 @@ export default function UserManagementPage() {
             </div>
             <div className="w-40">
               <label className="text-xs font-bold text-slate-500 mb-1.5 block">Vai trò</label>
-              <Select value={filterRole} onValueChange={setFilterRole}>
+              <Select value={filterRole} onValueChange={(value) => { setFilterRole(value); setPage(1); }}>
                 <SelectTrigger className="h-9 bg-white border-slate-200 shadow-sm text-sm font-medium">
                   <SelectValue placeholder="Tất cả vai trò" />
                 </SelectTrigger>
@@ -379,7 +449,7 @@ export default function UserManagementPage() {
             </div>
             <div className="w-40">
               <label className="text-xs font-bold text-slate-500 mb-1.5 block">Trạng thái</label>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <Select value={filterStatus} onValueChange={(value) => { setFilterStatus(value); setPage(1); }}>
                 <SelectTrigger className="h-9 bg-white border-slate-200 shadow-sm text-sm font-medium">
                   <SelectValue placeholder="Tất cả trạng thái" />
                 </SelectTrigger>
@@ -487,10 +557,21 @@ export default function UserManagementPage() {
              <span>Hiển thị {filtered.length > 0 ? 1 : 0} - {filtered.length} trong {filtered.length} kết quả</span>
              {/* Simulating pagination UI from mockup */}
              <div className="flex items-center gap-1">
-                <span className="mr-2">10 / trang</span>
-                <Button variant="outline" size="icon" className="h-7 w-7 border-slate-200" disabled>&laquo;</Button>
-                <Button variant="outline" size="icon" className="h-7 w-7 border-indigo-600 bg-indigo-600 text-white">1</Button>
-                <Button variant="outline" size="icon" className="h-7 w-7 border-slate-200 text-slate-600 disabled">&raquo;</Button>
+                <span className="mr-2">{page} / {totalPages}</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-7 w-7 border-slate-200"
+                  disabled={isLoading || page <= 1}
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                >&laquo;</Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-7 w-7 border-slate-200"
+                  disabled={isLoading || page >= totalPages}
+                  onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                >&raquo;</Button>
              </div>
           </div>
         </div>
@@ -624,7 +705,7 @@ export default function UserManagementPage() {
             <DialogTitle>Tạo Người Dùng Mới</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <Field label="Username" name="username" placeholder="vd: staff03" required value={form.username || ""} onChange={setField} error={formErrors.username} />
+            <Field label="Username" name="username" placeholder="vd: Staff03 hoặc Hung-Tran" required value={form.username || ""} onChange={setField} error={formErrors.username} />
             <Field label="Họ & Tên" name="fullName" placeholder="Nguyễn Văn A" required value={form.fullName || ""} onChange={setField} error={formErrors.fullName} />
             <Field label="Email" name="email" type="email" placeholder="abc@parking.vn" value={form.email || ""} onChange={setField} error={formErrors.email} />
             <Field label="Điện Thoại" name="phone" placeholder="09xxxxxxxx" value={form.phone || ""} onChange={setField} />
@@ -635,7 +716,7 @@ export default function UserManagementPage() {
                   <SelectValue placeholder="Chọn vai trò" />
                 </SelectTrigger>
                 <SelectContent>
-                  {ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  {INTERNAL_ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -675,14 +756,15 @@ export default function UserManagementPage() {
           <div className="py-4">
             <label className="block text-xs font-bold text-slate-600 uppercase mb-3">Vai Trò Mới</label>
             <div className="space-y-2">
-              {ROLES.map((r) => (
+                  {INTERNAL_ROLES.map((r) => (
                 <label key={r} className="flex items-center gap-3 p-3 rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 border border-slate-200 transition">
-                  <input type="radio" name="role" value={r} checked={form.role === r} onChange={() => setField("role", r)} className="accent-indigo-600 w-4 h-4"/>
+                  <input disabled={isSubmitting} type="radio" name="role" value={r} checked={form.role === r} onChange={() => setField("role", r)} className="accent-indigo-600 w-4 h-4"/>
                   <Badge variant="outline" className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase border ${ROLE_BADGE[r]}`}>{r}</Badge>
                 </label>
               ))}
             </div>
           </div>
+          <Field label="Reason" name="reason" placeholder="Reason for role change" required disabled={isSubmitting} value={form.reason || ""} onChange={setField} error={formErrors.reason} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowRoleModal(false)}>Hủy</Button>
             <Button onClick={handleRole} className="bg-indigo-600 hover:bg-indigo-700 text-white">Đổi Vai Trò</Button>
@@ -701,12 +783,13 @@ export default function UserManagementPage() {
             <div className="space-y-2">
               {STATUSES.map((s) => (
                 <label key={s} className="flex items-center gap-3 p-3 rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 border border-slate-200 transition">
-                  <input type="radio" name="status" value={s} checked={form.status === s} onChange={() => setField("status", s)} className="accent-amber-600 w-4 h-4"/>
+                  <input disabled={isSubmitting} type="radio" name="status" value={s} checked={form.status === s} onChange={() => setField("status", s)} className="accent-amber-600 w-4 h-4"/>
                   <Badge variant="outline" className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase border ${STATUS_BADGE[s]}`}>{s}</Badge>
                 </label>
               ))}
             </div>
           </div>
+          <Field label="Reason" name="reason" placeholder="Reason for status change" required disabled={isSubmitting} value={form.reason || ""} onChange={setField} error={formErrors.reason} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowStatusModal(false)}>Hủy</Button>
             <Button onClick={handleStatus} className="bg-amber-600 hover:bg-amber-700 text-white">Cập nhật</Button>

@@ -4,6 +4,7 @@ export const MOCK_FLAGS = {
   PUBLIC_AVAILABLE_SLOTS: "VITE_MOCK_PUBLIC_AVAILABLE_SLOTS",
   DRIVER_BOOKINGS: "VITE_MOCK_DRIVER_BOOKINGS",
   DRIVER_HISTORY: "VITE_MOCK_DRIVER_HISTORY",
+  DRIVER_REGISTER: "VITE_MOCK_DRIVER_REGISTER",
   STAFF_ENTRY: "VITE_MOCK_STAFF_ENTRY",
   AUTH_LOGIN: "VITE_MOCK_AUTH_LOGIN",
   MANAGER_CARDS: "VITE_MOCK_MANAGER_CARDS",
@@ -15,12 +16,14 @@ export const MOCK_FLAGS = {
   ADMIN_AUDIT: "VITE_MOCK_ADMIN_AUDIT",
   ADMIN_SESSIONS: "VITE_MOCK_ADMIN_SESSIONS",
   STAFF_EXIT: "VITE_MOCK_STAFF_EXIT",
+  NOTIFICATIONS: "VITE_MOCK_NOTIFICATIONS",
 };
 
 export const API_BASE_URLS = {
   core: import.meta.env.VITE_CORE_API_URL || "/api/core",
   public: import.meta.env.VITE_PUBLIC_API_URL || "/api/public",
   support: import.meta.env.VITE_SUPPORT_API_URL || "/api/support",
+  notifications: import.meta.env.VITE_SUPPORT_API_URL ? import.meta.env.VITE_SUPPORT_API_URL.replace('/support', '/notifications') : "/api/notifications",
 };
 
 export function isMockEnabled(flagName) {

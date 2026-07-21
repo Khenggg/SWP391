@@ -1,0 +1,1 @@
+using System; using System.Reflection; using Net.payOS.Types; class Program { static void Main() { var props = typeof(CreatePaymentResult).GetProperties(); foreach(var p in props) { Console.WriteLine(p.Name); } } }

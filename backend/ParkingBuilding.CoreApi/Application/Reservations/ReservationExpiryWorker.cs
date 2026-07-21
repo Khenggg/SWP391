@@ -38,6 +38,20 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                     {
                         _logger.LogInformation("Successfully expired {Count} reservations.", expiredCount);
                     }
+
+                    // Check for expiring warning notifications (15-min warning)
+                    try
+                    {
+                        var warningCount = await reservationService.SendExpiringNotificationsAsync();
+                        if (warningCount > 0)
+                        {
+                            _logger.LogInformation("Sent expiring warnings for {Count} reservations.", warningCount);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error scanning for expiring reservation notifications.");
+                    }
                 }
                 catch (OperationCanceledException)
                 {

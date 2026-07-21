@@ -30,6 +30,9 @@ public class VehicleTypeReadEntity {
     @Column(name = "is_active")
     private Boolean isActive;
 
+    @Column(name = "requires_slot")
+    private Boolean requiresSlot;
+
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 

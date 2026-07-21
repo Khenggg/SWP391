@@ -14,7 +14,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using ParkingBuilding.CoreApi.Application.Audit;
+using ParkingBuilding.CoreApi.Application.Authentication;
 using Microsoft.OpenApi;
+using System.IdentityModel.Tokens.Jwt;
 
 // Import đúng namespace chứa các Service
 using ParkingBuilding.CoreApi.Application.ParkingStructure.Floors;
@@ -59,6 +61,10 @@ builder.Services.AddDbContext<ParkingDbContext>(options =>
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuditWriterService, AuditWriterService>();
+builder.Services.AddScoped<IAuthSessionService, AuthSessionService>();
+builder.Services.AddScoped<IDriverRegistrationService, DriverRegistrationService>();
+builder.Services.AddSingleton<ILoginRateLimiter, InMemoryLoginRateLimiter>();
+builder.Services.AddSingleton<IRegistrationRateLimiter, InMemoryRegistrationRateLimiter>();
 builder.Services.AddHostedService<SupabaseConnectionLogger>();
 builder.Services.AddSingleton<JwtTokenGenerator>();
 
@@ -80,6 +86,7 @@ builder.Services.AddHostedService<ReservationExpiryWorker>();
 // Register Monthly Pass services
 builder.Services.AddScoped<IMonthlyPassService, MonthlyPassService>();
 builder.Services.AddScoped<IMonthlyEntryTokenService, MonthlyEntryTokenService>();
+builder.Services.AddScoped<MonthlyPassApplicationService>();
 
 builder.Services.AddScoped<ILostCardService, LostCardService>();
 
@@ -173,6 +180,33 @@ builder.Services.AddAuthentication(options =>
 
     options.Events = new JwtBearerEvents
     {
+        OnTokenValidated = async context =>
+        {
+            var userIdClaim = context.Principal?.FindFirst("user_id")?.Value
+                ?? context.Principal?.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+
+            if (!long.TryParse(userIdClaim, out var userId))
+            {
+                context.Fail("Invalid user identity.");
+                return;
+            }
+
+            var jwtId = context.Principal?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+            var sessionId = Guid.TryParse(
+                context.Principal?.FindFirst(JwtRegisteredClaimNames.Sid)?.Value,
+                out var parsedSessionId)
+                ? parsedSessionId
+                : (Guid?)null;
+
+            using var scope = context.HttpContext.RequestServices.CreateScope();
+            var authSessionService = scope.ServiceProvider.GetRequiredService<IAuthSessionService>();
+
+            if (!await authSessionService.IsUserActiveAsync(userId)
+                || await authSessionService.IsAccessTokenRevokedAsync(jwtId, sessionId))
+            {
+                context.Fail("Authentication session is no longer active.");
+            }
+        },
         OnChallenge = async context =>
         {
             context.HandleResponse();
@@ -273,6 +307,17 @@ using (var scope = app.Services.CreateScope())
         if (context.Database.CanConnect())
         {
             Console.WriteLine("\n[SUCCESS] ======> ĐÃ KẾT NỐI ĐẾN POSTGRESQL/SUPABASE DATABASE THÀNH CÔNG! <======\n");
+            
+            // Tự động cập nhật thêm các cột cho monthly_pass_applications
+            Console.WriteLine("======> Đang kiểm tra và cập nhật Schema cho monthly_pass_applications...");
+            await context.Database.ExecuteSqlRawAsync(@"
+                ALTER TABLE monthly_pass_applications ADD COLUMN IF NOT EXISTS cccd_front_image_url VARCHAR(500);
+                ALTER TABLE monthly_pass_applications ADD COLUMN IF NOT EXISTS cccd_back_image_url VARCHAR(500);
+                ALTER TABLE monthly_pass_applications ADD COLUMN IF NOT EXISTS face_image_url VARCHAR(500);
+                ALTER TABLE monthly_pass_applications ADD COLUMN IF NOT EXISTS plate_image_url VARCHAR(500);
+                ALTER TABLE monthly_pass_applications ADD COLUMN IF NOT EXISTS note TEXT;
+            ");
+            Console.WriteLine("[SUCCESS] ======> Cập nhật Schema hoàn tất! <======\n");
         }
         else
         {

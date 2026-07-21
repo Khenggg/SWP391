@@ -88,10 +88,29 @@ $ownedVehicleId = 3  # Seeded vehicle belonging to driver_profiles.id = 1 (drive
 $otherVehicleId = 2  # Seeded vehicle belonging to driver_profiles.id = 2 (Other Driver), plate: 29A-88888, type: 5
 
 # Reset pricing rule reservation price to 0 for instant confirmation during tests
+$originalMotoPrice = 2000
+$originalCarPrice = 10000
+$motoRule = $null
+$carRule = $null
+
 try {
-    $pricingRes = Invoke-RestMethod -Uri "$baseUrl/pricing-rules/3" -Method Put -Headers $adminHeaders -ContentType "application/json" -Body (@{ reservationHourlyPrice = 0 } | ConvertTo-Json)
-    $pricingRes = Invoke-RestMethod -Uri "$baseUrl/pricing-rules/5" -Method Put -Headers $adminHeaders -ContentType "application/json" -Body (@{ reservationHourlyPrice = 0 } | ConvertTo-Json)
-} catch {}
+    $allRules = Invoke-RestMethod -Uri "$baseUrl/pricing-rules" -Method Get -Headers $adminHeaders
+    $motoRule = $allRules.data | Where-Object { $_.vehicleTypeId -eq 3 -and $_.status -eq "ACTIVE" } | Select-Object -First 1
+    $carRule = $allRules.data | Where-Object { $_.vehicleTypeId -eq 5 -and $_.status -eq "ACTIVE" } | Select-Object -First 1
+
+    if ($motoRule) {
+        $originalMotoPrice = $motoRule.reservationHourlyPrice
+        $pricingRes3 = Invoke-RestMethod -Uri "$baseUrl/pricing-rules/$($motoRule.id)" -Method Put -Headers $adminHeaders -ContentType "application/json" -Body (@{ reservationHourlyPrice = 0 } | ConvertTo-Json)
+        Write-Host "Updated active rule $($motoRule.id) (vehicleType=3) price to: $($pricingRes3.data.reservationHourlyPrice)" -ForegroundColor Cyan
+    }
+    if ($carRule) {
+        $originalCarPrice = $carRule.reservationHourlyPrice
+        $pricingRes5 = Invoke-RestMethod -Uri "$baseUrl/pricing-rules/$($carRule.id)" -Method Put -Headers $adminHeaders -ContentType "application/json" -Body (@{ reservationHourlyPrice = 0 } | ConvertTo-Json)
+        Write-Host "Updated active rule $($carRule.id) (vehicleType=5) price to: $($pricingRes5.data.reservationHourlyPrice)" -ForegroundColor Cyan
+    }
+} catch {
+    Write-Host "Failed to update active pricing rules: $_" -ForegroundColor Red
+}
 
 # ======================================================================
 # TC-BOOK-01: Driver tạo booking xe máy không biển số
@@ -108,11 +127,12 @@ try {
     } | ConvertTo-Json
 
     $res = Invoke-RestMethod -Uri "$baseUrl/reservations" -Method Post -Headers $driverHeaders -ContentType "application/json" -Body $body
+    $reservationData = $res.data.reservation
 
-    if ($res.driverId -eq $driverId -and $res.plateNumber -eq $null -and $res.slotId -eq $null -and $res.status -eq "CONFIRMED") {
+    if ($reservationData.driverId -eq $driverId -and $reservationData.plateNumber -eq $null -and $reservationData.slotId -eq $null -and $reservationData.status -eq "CONFIRMED") {
         Report-Step -StepName "TC-BOOK-01: Driver tạo booking xe máy không biển số (success)" -Success $true
     } else {
-        Report-Step -StepName "TC-BOOK-01: Driver tạo booking xe máy không biển số" -Success $false -ErrorMessage "Driver ID or Plate or Status mismatch. DriverId: $($res.driverId), Status: $($res.status)"
+        Report-Step -StepName "TC-BOOK-01: Driver tạo booking xe máy không biển số" -Success $false -ErrorMessage "Driver ID or Plate or Status mismatch. DriverId: $($reservationData.driverId), Status: $($reservationData.status). Full reservation: $($reservationData | ConvertTo-Json -Depth 20)"
     }
 } catch {
     Report-Step -StepName "TC-BOOK-01: Driver tạo booking xe máy không biển số" -Success $false -ErrorMessage (Get-ErrorDetails $_.Exception)
@@ -135,20 +155,21 @@ try {
     } | ConvertTo-Json
 
     $res = Invoke-RestMethod -Uri "$baseUrl/reservations" -Method Post -Headers $driverHeaders -ContentType "application/json" -Body $body
-    $carResCode = $res.reservationCode
-    $carResId = $res.id
+    $reservationData = $res.data.reservation
+    $carResCode = $reservationData.reservationCode
+    $carResId = $reservationData.id
 
-    if ($res.driverId -eq $driverId -and $res.plateNumber -eq $null -and $res.slotId -eq 13 -and $res.status -eq "CONFIRMED") {
+    if ($reservationData.driverId -eq $driverId -and $reservationData.plateNumber -eq $null -and $reservationData.slotId -eq 13 -and $reservationData.status -eq "CONFIRMED") {
         $slotState = Invoke-RestMethod -Uri "$baseUrl/slots" -Method Get -Headers $adminHeaders
         # Find slot 13
-        $slot13 = $slotState | Where-Object { $_.id -eq 13 }
+        $slot13 = $slotState.data | Where-Object { $_.id -eq 13 }
         if ($slot13.status -eq "RESERVED") {
             Report-Step -StepName "TC-BOOK-02: Driver tạo booking ô tô không biển số (success, slot RESERVED)" -Success $true
         } else {
             Report-Step -StepName "TC-BOOK-02: Driver tạo booking ô tô không biển số" -Success $false -ErrorMessage "Slot status not RESERVED: $($slot13.status)"
         }
     } else {
-        Report-Step -StepName "TC-BOOK-02: Driver tạo booking ô tô không biển số" -Success $false -ErrorMessage "Response mismatch"
+        Report-Step -StepName "TC-BOOK-02: Driver tạo booking ô tô không biển số" -Success $false -ErrorMessage "Response mismatch. Full reservation: $($reservationData | ConvertTo-Json -Depth 20)"
     }
 } catch {
     Report-Step -StepName "TC-BOOK-02: Driver tạo booking ô tô không biển số" -Success $false -ErrorMessage (Get-ErrorDetails $_.Exception)
@@ -169,11 +190,12 @@ try {
     } | ConvertTo-Json
 
     $res = Invoke-RestMethod -Uri "$baseUrl/reservations" -Method Post -Headers $driverHeaders -ContentType "application/json" -Body $body
+    $reservationData = $res.data.reservation
 
-    if ($res.vehicleId -eq $ownedVehicleId -and $res.plateNumber -eq "29A-11111") {
+    if ($reservationData.vehicleId -eq $ownedVehicleId -and $reservationData.plateNumber -eq "29A-11111") {
         Report-Step -StepName "TC-BOOK-03: Driver tạo booking với vehicleId thuộc mình (success, auto-resolve plate)" -Success $true
     } else {
-        Report-Step -StepName "TC-BOOK-03: Driver tạo booking với vehicleId thuộc mình" -Success $false -ErrorMessage "VehicleId or Plate mismatch. VehicleId: $($res.vehicleId), Plate: $($res.plateNumber)"
+        Report-Step -StepName "TC-BOOK-03: Driver tạo booking với vehicleId thuộc mình" -Success $false -ErrorMessage "VehicleId or Plate mismatch. VehicleId: $($reservationData.vehicleId), Plate: $($reservationData.plateNumber)"
     }
 } catch {
     Report-Step -StepName "TC-BOOK-03: Driver tạo booking với vehicleId thuộc mình" -Success $false -ErrorMessage (Get-ErrorDetails $_.Exception)
@@ -259,8 +281,8 @@ try {
         reservedDurationMinutes = 60
     } | ConvertTo-Json
     $resCar2 = Invoke-RestMethod -Uri "$baseUrl/reservations" -Method Post -Headers $driverHeaders -ContentType "application/json" -Body $body
-    $code2 = $resCar2.reservationCode
-    $id2 = $resCar2.id
+    $code2 = $resCar2.data.reservation.reservationCode
+    $id2 = $resCar2.data.reservation.id
 
     # 2. Get entry check
     $check2 = Invoke-RestMethod -Uri "$baseUrl/reservations/$code2/entry-check?entryGateId=1" -Method Get -Headers $staffHeaders
@@ -305,8 +327,8 @@ try {
         reservedDurationMinutes = 60
     } | ConvertTo-Json
     $resCar3 = Invoke-RestMethod -Uri "$baseUrl/reservations" -Method Post -Headers $driverHeaders -ContentType "application/json" -Body $body
-    $code3 = $resCar3.reservationCode
-    $id3 = $resCar3.id
+    $code3 = $resCar3.data.reservation.reservationCode
+    $id3 = $resCar3.data.reservation.id
 
     # 2. Get entry check
     $check3 = Invoke-RestMethod -Uri "$baseUrl/reservations/$code3/entry-check?entryGateId=1" -Method Get -Headers $staffHeaders
@@ -338,9 +360,17 @@ try {
 
 # Restore pricing rules reservation price to standard values
 try {
-    $pricingRes = Invoke-RestMethod -Uri "$baseUrl/pricing-rules/3" -Method Put -Headers $adminHeaders -ContentType "application/json" -Body (@{ reservationHourlyPrice = 2000 } | ConvertTo-Json)
-    $pricingRes = Invoke-RestMethod -Uri "$baseUrl/pricing-rules/5" -Method Put -Headers $adminHeaders -ContentType "application/json" -Body (@{ reservationHourlyPrice = 10000 } | ConvertTo-Json)
-} catch {}
+    if ($motoRule) {
+        $pricingRes = Invoke-RestMethod -Uri "$baseUrl/pricing-rules/$($motoRule.id)" -Method Put -Headers $adminHeaders -ContentType "application/json" -Body (@{ reservationHourlyPrice = $originalMotoPrice } | ConvertTo-Json)
+        Write-Host "Restored active rule $($motoRule.id) (vehicleType=3) price to: $originalMotoPrice" -ForegroundColor Cyan
+    }
+    if ($carRule) {
+        $pricingRes = Invoke-RestMethod -Uri "$baseUrl/pricing-rules/$($carRule.id)" -Method Put -Headers $adminHeaders -ContentType "application/json" -Body (@{ reservationHourlyPrice = $originalCarPrice } | ConvertTo-Json)
+        Write-Host "Restored active rule $($carRule.id) (vehicleType=5) price to: $originalCarPrice" -ForegroundColor Cyan
+    }
+} catch {
+    Write-Host "Failed to restore active pricing rules: $_" -ForegroundColor Red
+}
 
 Write-Host "====================================================" -ForegroundColor Green
 Write-Host " TESTS COMPLETE"

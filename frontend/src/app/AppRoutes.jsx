@@ -15,6 +15,7 @@ import AvailableSlotsPage from "../pages/public/AvailableSlotsPage";
 import QRLookupPage from "../pages/public/QRLookupPage";
 import RegisterPage from "../pages/public/RegisterPage";
 import ForgotPasswordPage from "../pages/public/ForgotPasswordPage";
+import PaymentCallbackPage from "../pages/public/PaymentCallbackPage";
 
 import UserManagementPage from "../pages/admin/UserManagementPage";
 import SessionsAdministrationPage from "../pages/admin/SessionsAdministrationPage";
@@ -61,6 +62,7 @@ export default function AppRoutes({ isAuthenticated, userRole, currentUser, onLo
         <Route path="/card/:qrToken" element={<QRLookupPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/payment-callback" element={<PaymentCallbackPage />} />
         <Route
           path="/login"
           element={

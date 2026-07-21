@@ -8,21 +8,12 @@ export const pricingService = {
     return response.success ? response.data : [];
   },
 
-  // [CHƯA HOÀN THIỆN TỪ BACKEND] API lấy danh sách rules cho Manager (có phân trang, filter)
   getPricingRules: async (params = {}) => {
-    // Tạm thời gọi public api nếu backend manager chưa có, hoặc cứ gọi core
-    // Theo docs spec: GET /api/core/pricing-rules
-    try {
-      const response = await coreAxiosClient.get("/pricing-rules", { params });
-      return response.success ? response.data : [];
-    } catch (error) {
-      // Fallback cho quá trình dev nếu backend chưa có api core
-      const fallback = await publicAxiosClient.get("/pricing");
-      return fallback.success ? fallback.data : [];
-    }
+    const response = await coreAxiosClient.get("/pricing-rules", { params });
+    return response.success ? response.data : [];
   },
 
-  // [CHƯA HOÀN THIỆN TỪ BACKEND] API lấy chi tiết 1 rule
+  // API lấy chi tiết 1 rule
   getPricingRuleById: async (ruleId) => {
     const response = await coreAxiosClient.get(`/pricing-rules/${ruleId}`);
     if (response.success) return response.data;

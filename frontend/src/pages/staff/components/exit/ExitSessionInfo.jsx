@@ -3,7 +3,14 @@ import { CarFront, Clock3, AlertTriangle, CreditCard } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDateTime } from "@/lib/format";
 
-export default function ExitSessionInfo({ session }) {
+export default function ExitSessionInfo({ session, vehicleTypes = [] }) {
+  // Helper to get vehicle type name
+  const getVehicleTypeName = (id) => {
+    if (!id) return "Khác";
+    const vt = vehicleTypes.find(v => Number(v.id) === Number(id));
+    return vt ? vt.name : "Khác";
+  };
+
   return (
     <section className="h-full bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden min-h-0">
       <div className="p-3 border-b flex items-center justify-between bg-white shrink-0">
@@ -38,7 +45,7 @@ export default function ExitSessionInfo({ session }) {
               <div className="space-y-3">
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Loại xe</p>
-                  <p className="font-bold text-slate-700">{session.vehicleTypeId === 1 ? "Xe Máy" : session.vehicleTypeId === 2 ? "Ô tô" : "Khác"}</p>
+                  <p className="font-bold text-slate-700">{getVehicleTypeName(session.vehicleTypeId)}</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Mã thẻ</p>

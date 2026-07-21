@@ -12,10 +12,11 @@ import {
   getLastGateScanEvent,
   subscribeGateScanEvents,
 } from "@/services/gateSimulatorBus";
+import { parkingService } from "@/services/parkingService";
 
 const initialForm = {
   entryMode: "CASUAL",
-  entryGateId: "1",
+  entryGateId: "",
   cardCode: "",
   reservationCode: "",
   licensePlate: "",
@@ -57,6 +58,33 @@ export default function StaffEntryPage() {
   const [isCheckingReservation, setIsCheckingReservation] = useState(false);
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [gates, setGates] = useState([]);
+  const [vehicleTypes, setVehicleTypes] = useState([]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [gRes, vRes] = await Promise.all([
+          parkingService.getGates("ENTRY"),
+          parkingService.getVehicleTypes(),
+        ]);
+        setGates(gRes);
+        setVehicleTypes(vRes);
+        if (gRes?.length > 0) {
+          setForm((prev) => ({ ...prev, entryGateId: String(gRes[0].id) }));
+        }
+        if (vRes?.length > 0) {
+          setForm((prev) => ({
+            ...prev,
+            vehicleTypeId: prev.vehicleTypeId || String(vRes[0].id),
+          }));
+        }
+      } catch (e) {
+        console.error("Failed to load gates/vehicle types", e);
+      }
+    };
+    loadData();
+  }, []);
 
   const setField = useCallback((name, value) => {
     setForm((current) => ({ ...current, [name]: value }));
@@ -583,6 +611,8 @@ export default function StaffEntryPage() {
                 canLoadSuggestion={canLoadSuggestion}
                 isLoadingSuggestion={isLoadingSuggestion}
                 noPlateAllowed={noPlateAllowed}
+                gates={gates}
+                vehicleTypes={vehicleTypes}
               />
             </div>
             <div className="h-[35%] shrink-0">

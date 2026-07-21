@@ -13,9 +13,14 @@ export default function ReportsPage() {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
+      const to = new Date().toISOString();
+      const fromDate = new Date();
+      fromDate.setDate(fromDate.getDate() - 30);
+      const from = fromDate.toISOString();
+
       const [revRes, trafficRes, occRes, cardsRes] = await Promise.allSettled([
-        reportService.getRevenue({}),
-        reportService.getTraffic({}),
+        reportService.getRevenue({ from, to }),
+        reportService.getTraffic({ from, to }),
         reportService.getOccupancy({}),
         reportService.getCardSessionReport({}),
       ]);

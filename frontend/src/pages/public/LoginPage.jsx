@@ -47,9 +47,9 @@ export default function LoginPage({ onLoginSuccess }) {
     setIsLoading(true);
 
     try {
-      const { accessToken, token, user } = await authService.login(username, password);
+      const { accessToken, token, refreshToken, user } = await authService.login(username, password);
 
-      onLoginSuccess(accessToken || token, user);
+      onLoginSuccess(accessToken || token, user, refreshToken);
 
       if (user.role === USER_ROLES.ADMIN) {
         navigate("/admin/users");

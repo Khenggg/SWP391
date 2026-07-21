@@ -511,14 +511,41 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                     var hourlyPrice = pricingRule?.ReservationHourlyPrice ?? reservation.SnapshotReservationHourlyPrice;
                     var extensionAmount = hourlyPrice * ((decimal)request.AddedMinutes / 60m);
 
-                    // TODO: Future task should implement RESERVATION_EXTENSION payment purpose and payOS checkout flow.
-                    if (extensionAmount > 0m)
-                    {
-                        throw new BusinessException(ErrorCodes.ReservationExtensionPaymentNotImplemented);
-                    }
-
                     var oldExpires = reservation.ExpiresAt;
                     var newExpires = oldExpires.AddMinutes(request.AddedMinutes);
+
+                    Payment? payment = null;
+
+                    if (extensionAmount > 0m)
+                    {
+                        var now = DateTimeOffset.UtcNow;
+                        var paymentDeadline = now.AddMinutes(_bookingOptions.PaymentDeadlineMinutes);
+
+                        payment = new Payment
+                        {
+                            ReservationId = reservation.Id,
+                            Amount = extensionAmount,
+                            LostCardFee = 0m,
+                            TotalAmount = extensionAmount,
+                            Purpose = "RESERVATION_EXTENSION",
+                            Method = "BANK_TRANSFER",
+                            Status = "PENDING",
+                            Provider = "PAYOS",
+                            ReceivedAmount = 0m,
+                            FeeCalculatedAt = now,
+                            PaymentValidUntil = paymentDeadline,
+                            ExpiredAt = paymentDeadline,
+                            CreatedAt = now,
+                            UpdatedAt = now
+                        };
+
+                        _context.Payments.Add(payment);
+                        await _context.SaveChangesAsync();
+
+                        reservation.PaymentStatus = "PENDING";
+                        reservation.UpdatedAt = now;
+                        await _context.SaveChangesAsync();
+                    }
 
                     var extension = new ReservationExtension
                     {
@@ -529,6 +556,7 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                         PricingRuleId = pricingRule?.Id ?? reservation.PricingRuleId,
                         SnapshotReservationHourlyPrice = hourlyPrice,
                         Amount = extensionAmount,
+                        PaymentId = payment?.Id, // Link to payment!
                         RequestedBy = userId,
                         CreatedAt = DateTimeOffset.UtcNow,
                         UpdatedAt = DateTimeOffset.UtcNow
@@ -536,25 +564,78 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
 
                     _context.ReservationExtensions.Add(extension);
 
-                    // Update reservation
-                    reservation.ExpiresAt = newExpires;
-                    reservation.BookingAmount += extensionAmount;
-                    reservation.ReservedDurationMinutes += request.AddedMinutes;
-                    reservation.UpdatedAt = DateTimeOffset.UtcNow;
+                    // If extension is free (extensionAmount == 0), update reservation directly!
+                    if (extensionAmount == 0m)
+                    {
+                        reservation.ExpiresAt = newExpires;
+                        reservation.ReservedDurationMinutes += request.AddedMinutes;
+                        reservation.UpdatedAt = DateTimeOffset.UtcNow;
+                    }
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
+                    PayOsPaymentResponse? paymentResponse = null;
+                    if (extensionAmount > 0m && payment != null)
+                    {
+                        try
+                        {
+                            paymentResponse = await _payOsPaymentService.CreateReservationPaymentLinkAsync(payment, reservation);
+                        }
+                        catch (Exception ex)
+                        {
+                            // If payment link creation fails, roll back extension
+                            var recoverStrategy = _context.Database.CreateExecutionStrategy();
+                            await recoverStrategy.ExecuteAsync(async () =>
+                            {
+                                using var recoverTransaction = await _context.Database.BeginTransactionAsync();
+                                try
+                                {
+                                    var extToCancel = await _context.ReservationExtensions.FirstOrDefaultAsync(re => re.PaymentId == payment.Id);
+                                    if (extToCancel != null)
+                                    {
+                                        _context.ReservationExtensions.Remove(extToCancel);
+                                    }
+
+                                    var payToCancel = await _context.Payments.FindAsync(payment.Id);
+                                    if (payToCancel != null)
+                                    {
+                                        payToCancel.Status = "FAILED";
+                                        payToCancel.UpdatedAt = DateTimeOffset.UtcNow;
+                                    }
+
+                                    var resToRestore = await _context.Reservations.FindAsync(reservation.Id);
+                                    if (resToRestore != null)
+                                    {
+                                        resToRestore.PaymentStatus = "PAID"; // restore previous status
+                                        resToRestore.UpdatedAt = DateTimeOffset.UtcNow;
+                                    }
+
+                                    await _context.SaveChangesAsync();
+                                    await recoverTransaction.CommitAsync();
+                                }
+                                catch
+                                {
+                                    try { await recoverTransaction.RollbackAsync(); } catch {}
+                                }
+                            });
+
+                            throw new BusinessException(ErrorCodes.PayOsCreateLinkFailed);
+                        }
+                    }
+
                     // Audit Log
                     await _auditWriter.WriteAuditLogAsync(
-                        action: "RESERVATION_EXTENDED",
+                        action: "RESERVATION_EXTENSION_REQUESTED",
                         targetType: "Reservation",
                         targetId: reservation.Id.ToString(),
                         actorUserId: userId,
-                        newValue: $"New Expires At: {newExpires:yyyy-MM-dd HH:mm:ss}, Added Minutes: {request.AddedMinutes}, Extension Amount: {extensionAmount}"
+                        newValue: $"New Expires At: {newExpires:yyyy-MM-dd HH:mm:ss}, Added Minutes: {request.AddedMinutes}, Extension Amount: {extensionAmount}, PaymentId: {payment?.Id}"
                     );
 
-                    return MapToResponseDto(reservation);
+                    var response = MapToResponseDto(reservation);
+                    response.Payment = paymentResponse;
+                    return response;
                 }
                 catch (Exception)
                 {
@@ -972,6 +1053,42 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
         }
 
         // ================= HELPERS = null =================
+        public async Task<int> SendExpiringNotificationsAsync()
+        {
+            var now = DateTimeOffset.UtcNow;
+            var warningTime = now.AddMinutes(15);
+
+            // Find confirmed active reservations that expire in the next 15 minutes,
+            // haven't checked in, and haven't had a warning sent.
+            var reservations = await _context.Reservations
+                .Include(r => r.Driver)
+                .Where(r => r.Status == "CONFIRMED" && r.CheckedInAt == null && r.ExpiresAt > now && r.ExpiresAt <= warningTime)
+                .ToListAsync();
+
+            int count = 0;
+            foreach (var r in reservations)
+            {
+                // Check if already warned
+                var alreadyWarned = await _context.AuditLogs
+                    .AnyAsync(l => l.TargetType == "Reservation" && l.TargetId == r.Id.ToString() && l.Action == "RESERVATION_EXPIRING_WARNING");
+
+                if (!alreadyWarned)
+                {
+                    // Write warning to audit log as simulated notification
+                    await _auditWriter.WriteAuditLogAsync(
+                        action: "RESERVATION_EXPIRING_WARNING",
+                        targetType: "Reservation",
+                        targetId: r.Id.ToString(),
+                        actorUserId: r.CreatedBy,
+                        newValue: $"Driver: {r.Driver?.FullName}, Code: {r.ReservationCode}, Plate: {r.PlateNumber}, Expires: {r.ExpiresAt:HH:mm:ss}"
+                    );
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
         private static string GenerateReservationCode()
             => $"RES-{DateTimeOffset.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
 

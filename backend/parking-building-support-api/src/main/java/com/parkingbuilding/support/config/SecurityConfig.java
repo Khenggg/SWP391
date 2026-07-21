@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.io.IOException;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -31,9 +32,13 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationFilter;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 @EnableWebSecurity
@@ -66,12 +71,25 @@ public class SecurityConfig {
 
     @Bean
     @Order(2)
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JdbcTemplate jdbcTemplate) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, exception) -> writeSecurityError(
+                                response,
+                                HttpServletResponse.SC_UNAUTHORIZED,
+                                "Unauthorized. Token is invalid or expired.",
+                                "UNAUTHORIZED"))
+                        .accessDeniedHandler((request, response, exception) -> writeSecurityError(
+                                response,
+                                HttpServletResponse.SC_FORBIDDEN,
+                                "You do not have permission to perform this action.",
+                                "FORBIDDEN")))
                 .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                .addFilterAfter(new RequestLoggingFilter(), BearerTokenAuthenticationFilter.class)
+                .addFilterAfter(new JwtAccountStatusFilter(jdbcTemplate), RequestLoggingFilter.class)
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt
                                 .decoder(jwtDecoder())
@@ -79,6 +97,20 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .build();
+    }
+
+    private void writeSecurityError(
+            HttpServletResponse response,
+            int status,
+            String message,
+            String errorCode) throws IOException {
+        response.setStatus(status);
+        response.setContentType("application/json");
+        response.getWriter().write("{\"success\":false,\"message\":\""
+                + message
+                + "\",\"data\":null,\"errors\":[\""
+                + errorCode
+                + "\"]}");
     }
 
     @Bean

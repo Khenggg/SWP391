@@ -1,4 +1,5 @@
 import axios from "axios";
+import { clearAuthStorage, refreshAccessToken } from "../services/sessionService";
 
 // Khởi tạo instance Axios cho Support API Service (Spring Boot)
 const supportAxiosClient = axios.create({
@@ -26,18 +27,39 @@ supportAxiosClient.interceptors.response.use(
   (response) => {
     return response.data;
   },
-  (error) => {
+  async (error) => {
     if (error.response) {
       const { status } = error.response;
+      const requestConfig = error.config || {};
+      const requestUrl = requestConfig.url || "";
+
+      if (status === 401 && !requestConfig._retry) {
+        requestConfig._retry = true;
+
+        try {
+          const newAccessToken = await refreshAccessToken();
+          requestConfig.headers = requestConfig.headers || {};
+          requestConfig.headers.Authorization = `Bearer ${newAccessToken}`;
+          return supportAxiosClient(requestConfig);
+        } catch (refreshError) {
+          clearAuthStorage();
+          window.location.href = "/login";
+          return Promise.reject(refreshError);
+        }
+      }
 
       if (status === 401) {
-        sessionStorage.removeItem("accessToken");
-        sessionStorage.removeItem("currentUser");
+        clearAuthStorage();
         window.location.href = "/login";
       }
 
       if (status === 403) {
-        window.location.href = "/unauthorized";
+        if (requestUrl.includes("/driver") || requestUrl.includes("/auth-check")) {
+          clearAuthStorage();
+          window.location.href = "/login";
+        } else {
+          window.location.href = "/unauthorized";
+        }
       }
 
       return Promise.reject(error.response.data || error.message);

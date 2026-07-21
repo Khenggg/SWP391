@@ -1,14 +1,37 @@
-import React from "react";
-import { Search, QrCode } from "lucide-react";
+import { Search, QrCode, DoorOpen } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-export default function ExitSearchSection({ cardCode, setCardCode, runSearch, isLoading }) {
+export default function ExitSearchSection({ cardCode, setCardCode, runSearch, isLoading, gates = [], exitGateId, setExitGateId }) {
   return (
     <section className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden min-h-0">
-      <div className="p-3 border-b flex items-center gap-2 bg-white shrink-0">
-        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">1</span>
-        <h3 className="font-bold text-slate-800 text-sm">Tìm phiên đang hoạt động</h3>
+      <div className="p-3 border-b flex items-center justify-between bg-white shrink-0">
+        <div className="flex items-center gap-2">
+          <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">1</span>
+          <h3 className="font-bold text-slate-800 text-sm">Tìm phiên xe ra</h3>
+        </div>
+        <div className="flex items-center gap-2">
+          <DoorOpen className="w-4 h-4 text-slate-500" />
+          <Select value={String(exitGateId)} onValueChange={setExitGateId} disabled={isLoading}>
+            <SelectTrigger className="w-[140px] h-8 text-xs bg-slate-50">
+              <SelectValue placeholder="Chọn cổng ra" />
+            </SelectTrigger>
+            <SelectContent>
+              {gates.map((g) => (
+                <SelectItem key={g.id} value={String(g.id)} className="text-xs">
+                  {g.gateCode} - {g.gateType}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       <div className="p-4 flex flex-col gap-4 overflow-y-auto min-h-0 flex-1">
         <div className="flex gap-4">

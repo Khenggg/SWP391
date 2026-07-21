@@ -71,8 +71,13 @@ export const parkingService = {
     return res.success ? res.data : [];
   },
 
+  getGates: async (type = "") => {
+    const res = await coreAxiosClient.get(`/gates${type ? `?type=${type}` : ""}`);
+    return res.success ? res.data : [];
+  },
+
   getVehicleTypes: async () => {
-    const res = await publicAxiosClient.get("/vehicle-types");
+    const res = await coreAxiosClient.get("/vehicle-types");
     return res.success ? res.data : [];
   },
 

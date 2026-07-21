@@ -25,6 +25,29 @@ export default function StaffExitPage() {
   const [mismatchCase, setMismatchCase] = useState(null);
   const [isCreatingMismatch, setIsCreatingMismatch] = useState(false);
   const [currentTime, setCurrentTime] = useState(formatDateTime(new Date()));
+  const [gates, setGates] = useState([]);
+  const [vehicleTypes, setVehicleTypes] = useState([]);
+  const [exitGateId, setExitGateId] = useState("");
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const { parkingService } = await import("@/services/parkingService");
+        const [gRes, vRes] = await Promise.all([
+          parkingService.getGates("EXIT"),
+          parkingService.getVehicleTypes(),
+        ]);
+        setGates(gRes);
+        setVehicleTypes(vRes);
+        if (gRes?.length > 0) {
+          setExitGateId(String(gRes[0].id));
+        }
+      } catch (e) {
+        console.error("Failed to load gates or vehicle types", e);
+      }
+    };
+    loadData();
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -127,7 +150,7 @@ export default function StaffExitPage() {
       });
       // 2. Hoàn tất ra xe
       await staffSessionService.completeExit(session.sessionId, {
-        exitGateId: 2, // Hardcode Làn Ra 01 có ID = 2
+        exitGateId: Number(exitGateId),
         paymentId: paymentRes.paymentId,
         exitPlateNumber: plate || session.plateNumber,
         exitTime: fee.exitTime,
@@ -135,6 +158,26 @@ export default function StaffExitPage() {
         ocrConfidence: 0.99
       });
       toast.success("Đã thanh toán và hoàn tất ra xe!");
+      resetPage();
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCompleteExitPaid = async () => {
+    if (!session) return;
+    try {
+      setIsLoading(true);
+      await staffSessionService.completeExit(session.sessionId, {
+        exitGateId: Number(exitGateId),
+        exitPlateNumber: plate || session.plateNumber,
+        exitTime: fee?.exitTime,
+        detectedPlateNumber: plate || session.plateNumber,
+        ocrConfidence: 0.99
+      });
+      toast.success("Đã hoàn tất xe ra bãi (Đã thanh toán)!");
       resetPage();
     } catch (error) {
       toast.error(error.message);
@@ -166,7 +209,7 @@ export default function StaffExitPage() {
     try {
       setIsLoading(true);
       await staffSessionService.completeMonthlyPassExit(session.sessionId, {
-        exitGateId: 2, // Hardcode Làn Ra 01 có ID = 2
+        exitGateId: Number(exitGateId),
         exitPlateNumber: plate || session.plateNumber,
         detectedPlateNumber: plate || session.plateNumber,
         ocrConfidence: 0.99
@@ -202,13 +245,16 @@ export default function StaffExitPage() {
       <main className="flex-1 overflow-hidden p-4 lg:p-6">
         <div className="h-full grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 max-w-[1600px] mx-auto">
           
-          {/* COLUMN 1: Search & Confirmation */}
-          <div className="flex flex-col gap-4 lg:gap-6 min-h-0">
+          {/* COLUMN 1: Tìm kiếm */}
+          <div className="flex-[0.4] min-h-0 flex flex-col gap-4 relative">
             <ExitSearchSection
               cardCode={cardCode}
               setCardCode={setCardCode}
               runSearch={runSearch}
               isLoading={isLoading}
+              gates={gates}
+              exitGateId={exitGateId}
+              setExitGateId={setExitGateId}
             />
 
             <ExitConfirmation
@@ -227,7 +273,7 @@ export default function StaffExitPage() {
           {/* COLUMN 2: Session Info */}
           <div className="flex flex-col gap-4 lg:gap-6 min-h-0">
             <div className="flex-1 flex flex-col min-h-0">
-              <ExitSessionInfo session={session} />
+              <ExitSessionInfo session={session} vehicleTypes={vehicleTypes} />
             </div>
           </div>
 
@@ -243,7 +289,9 @@ export default function StaffExitPage() {
               isLoading={isLoading}
               handlePayCash={handlePayCash}
               handlePayOS={handlePayOS}
+              handleCompleteExitPaid={handleCompleteExitPaid}
               handleCompleteMonthlyExit={handleCompleteMonthlyExit}
+              refreshSession={runSearch}
             />
           </div>
 
