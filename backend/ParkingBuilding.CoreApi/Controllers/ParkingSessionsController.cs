@@ -19,19 +19,22 @@ namespace ParkingBuilding.CoreApi.Controllers
         private readonly IExitService _exitService;
         private readonly IFeeCalculationService _feeCalculationService;
         private readonly IPlateMismatchService _plateMismatchService;
+        private readonly ParkingBuilding.CoreApi.Application.LostCards.ILostCardService _lostCardService;
 
         public ParkingSessionsController(
             IEntryService entryService,
             ILocationSuggestionService suggestionService,
             IExitService exitService,
             IFeeCalculationService feeCalculationService,
-            IPlateMismatchService plateMismatchService)
+            IPlateMismatchService plateMismatchService,
+            ParkingBuilding.CoreApi.Application.LostCards.ILostCardService lostCardService)
         {
             _entryService = entryService;
             _suggestionService = suggestionService;
             _exitService = exitService;
             _feeCalculationService = feeCalculationService;
             _plateMismatchService = plateMismatchService;
+            _lostCardService = lostCardService;
         }
 
         [HttpPost("entry")]
@@ -180,6 +183,18 @@ namespace ParkingBuilding.CoreApi.Controllers
                 userId);
 
             return Success(result, "Plate mismatch rejected successfully.");
+        }
+
+        [HttpPost("{sessionId:long}/lost-card")]
+        [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
+        public async Task<IActionResult> CreateLostCardCase(
+            long sessionId,
+            [FromBody] ParkingBuilding.CoreApi.Application.LostCards.CreateLostCardRequest request)
+        {
+            var staffId = GetCurrentUserIdOrThrow();
+            request.SessionId = sessionId; // enforce URL match
+            var result = await _lostCardService.CreateLostCardCaseAsync(request, staffId);
+            return CreatedSuccess(result, "Tao ho so mat the thanh cong.");
         }
 
         [HttpPost("{id}/calculate-fee")]

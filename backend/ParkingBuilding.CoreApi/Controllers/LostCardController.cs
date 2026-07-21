@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -28,17 +28,19 @@ public class LostCardController : BaseApiController
     }
 
     [HttpGet]
+    [HttpGet("/api/core/lost-card-cases")]
     public async Task<IActionResult> GetList(
         [FromQuery] string? status,
         [FromQuery] string? keyword,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
+        [FromQuery] int pageSize = 100)
     {
         var (items, totalItems, totalPages) = await _lostCardService.GetListAsync(status, keyword, page, pageSize);
-        return Success(new { items, page, pageSize, totalItems, totalPages }, "Get lost card cases successfully.");
+        return Success(items, "Get lost card cases successfully."); // Return flat items to match frontend expectation
     }
 
     [HttpGet("{id:long}")]
+    [HttpGet("/api/core/lost-card-cases/{id:long}")]
     public async Task<IActionResult> GetDetail(long id)
     {
         var result = await _lostCardService.GetDetailAsync(id);
@@ -52,6 +54,26 @@ public class LostCardController : BaseApiController
         var userId = GetCurrentUserIdOrThrow();
         var result = await _lostCardService.ProcessLostCardCaseAsync(id, request, userId);
         return Success(result, "Lost card case processed successfully.");
+    }
+
+    [HttpPost("/api/core/lost-card-cases/{id:long}/approve")]
+    [Authorize(Roles = "MANAGER,ADMIN")]
+    public async Task<IActionResult> ApproveLostCardCaseCompatibility(long id, [FromBody] ProcessLostCardRequest request)
+    {
+        var userId = GetCurrentUserIdOrThrow();
+        request.Status = "APPROVED"; // override status for approve endpoint
+        var result = await _lostCardService.ProcessLostCardCaseAsync(id, request, userId);
+        return Success(result, "Lost card case approved successfully.");
+    }
+
+    [HttpPost("/api/core/lost-card-cases/{id:long}/reject")]
+    [Authorize(Roles = "MANAGER,ADMIN")]
+    public async Task<IActionResult> RejectLostCardCaseCompatibility(long id, [FromBody] ProcessLostCardRequest request)
+    {
+        var userId = GetCurrentUserIdOrThrow();
+        request.Status = "REJECTED"; // override status for reject endpoint
+        var result = await _lostCardService.ProcessLostCardCaseAsync(id, request, userId);
+        return Success(result, "Lost card case rejected successfully.");
     }
 
     private long GetCurrentUserIdOrThrow()

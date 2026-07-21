@@ -28,36 +28,33 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
             _auditWriter = auditWriter;
         }
 
-        public async Task<ParkingSession> FindActiveSessionByCardCodeAsync(string cardCode)
+        public async Task<ParkingSession> FindActiveSessionByCardCodeAsync(string query)
         {
-            if (string.IsNullOrWhiteSpace(cardCode))
+            if (string.IsNullOrWhiteSpace(query))
             {
-                throw new BusinessException(ErrorCodes.CardCodeRequired);
+                throw new BusinessException(ErrorCodes.CardCodeRequired); // Maintain error code for compatibility
             }
 
-            var card = await _context.ParkingCards
-                .FirstOrDefaultAsync(c => c.CardNumber.ToLower() == cardCode.Trim().ToLower());
+            var queryLower = query.Trim().ToLower();
 
-            if (card == null)
-            {
-                throw new BusinessException(ErrorCodes.CardNotFound, StatusCodes.Status404NotFound);
-            }
-
-            if ((card.Status != CardStatus.IN_USE && card.Status != CardStatus.LOST)
-                || !card.CurrentSessionId.HasValue)
-            {
-                throw new BusinessException(ErrorCodes.CardHasNoActiveSession);
-            }
-
+            // Search for an active session matching EITHER the Card Number OR the License Plate
             var session = await _context.ParkingSessions
                 .Include(s => s.ParkingCard)
                 .Include(s => s.PricingRule)
                 .Include(s => s.Reservation)
-                .FirstOrDefaultAsync(s => s.Id == card.CurrentSessionId.Value && s.Status == "ACTIVE");
+                .FirstOrDefaultAsync(s => 
+                    s.Status == "ACTIVE" && 
+                    (s.ParkingCard.CardNumber.ToLower() == queryLower || s.PlateNumber.ToLower() == queryLower));
 
             if (session == null)
             {
                 throw new BusinessException(ErrorCodes.SessionNotFound, StatusCodes.Status404NotFound);
+            }
+
+            // Ensure the card is in a valid state (IN_USE or LOST)
+            if (session.ParkingCard.Status != CardStatus.IN_USE && session.ParkingCard.Status != CardStatus.LOST)
+            {
+                throw new BusinessException(ErrorCodes.CardHasNoActiveSession);
             }
 
             return session;
