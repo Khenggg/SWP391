@@ -62,12 +62,22 @@ namespace ParkingBuilding.CoreApi.Controllers
             }
 
             var result = await _entryService.ClaimSessionAsync(userId, qrToken);
-            if (!result)
+            return Success(result, "Claim phien gui xe thanh cong.");
+        }
+
+        [HttpGet("my-claimed-sessions")]
+        [Authorize(Roles = "DRIVER")]
+        public async Task<IActionResult> GetMyClaimedSessions()
+        {
+            var userId = User.FindFirst("user_id")?.Value;
+
+            if (string.IsNullOrWhiteSpace(userId))
             {
-                throw new BusinessException(ErrorCodes.ClaimFailed);
+                throw new BusinessException(ErrorCodes.AuthUserIdMissing);
             }
 
-            return Success("Claim phien gui xe thanh cong.");
+            var result = await _entryService.GetMyActiveClaimedSessionsAsync(userId);
+            return Success(result, "Lay danh sach phien gui xe da lien ket thanh cong.");
         }
 
         [HttpGet("location-suggestion")]

@@ -2,12 +2,15 @@ using System;
 using Microsoft.AspNetCore.Http;
 using ParkingBuilding.CoreApi.Contracts.Common;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using ParkingBuilding.CoreApi.Domain.Entities;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
 using ParkingBuilding.CoreApi.Application.Audit;
 using ParkingBuilding.CoreApi.Application.Audit.Dtos;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.LocationSuggestion;
+using ParkingBuilding.CoreApi.Application.ParkingSessions.Exit;
 using ParkingBuilding.CoreApi.Application.Reservations;
 using System.IO;
 using Microsoft.Extensions.Options;
@@ -27,6 +30,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
         private readonly IMonthlyEntryTokenService _monthlyTokenService;
         private readonly IStorageService _storageService;
         private readonly SupabaseStorageOptions _storageOptions;
+        private readonly IFeeCalculationService _feeCalculationService;
 
         public EntryService(
             ParkingDbContext dbContext,
@@ -37,7 +41,8 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
             IMonthlyPassService monthlyPassService,
             IMonthlyEntryTokenService monthlyTokenService,
             IStorageService storageService,
-            IOptions<SupabaseStorageOptions> storageOptions)
+            IOptions<SupabaseStorageOptions> storageOptions,
+            IFeeCalculationService feeCalculationService)
         {
             _dbContext = dbContext;
             _auditWriter = auditWriter;
@@ -48,6 +53,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
             _monthlyTokenService = monthlyTokenService;
             _storageService = storageService;
             _storageOptions = storageOptions.Value;
+            _feeCalculationService = feeCalculationService;
         }
 
         public async Task<CreateEntryResponse> CreateEntryAsync(CreateEntryRequest request, long staffId, string role)
@@ -897,13 +903,15 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
             };
         }
 
-        public async Task<bool> ClaimSessionAsync(string userIdString, string qrToken)
+        public async Task<ClaimSessionResponse> ClaimSessionAsync(string userIdString, string qrToken)
         {
             if (!long.TryParse(userIdString, out var userId))
                 throw new BusinessException(ErrorCodes.AuthUserIdInvalid);
 
             if (string.IsNullOrWhiteSpace(qrToken))
                 throw new BusinessException(ErrorCodes.QrTokenRequired);
+
+            var cleanToken = qrToken.Trim();
 
             var strategy = _dbContext.Database.CreateExecutionStrategy();
 
@@ -932,51 +940,65 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                         throw new BusinessException(ErrorCodes.DriverProfileNotFound);
 
                     var card = await _dbContext.ParkingCards
-                        .FirstOrDefaultAsync(c => c.QrToken == qrToken);
+                        .FirstOrDefaultAsync(c => c.QrToken == cleanToken ||
+                                                  c.CardNumber.ToLower() == cleanToken.ToLower() ||
+                                                  c.Id.ToString() == cleanToken);
 
                     if (card == null)
-                        throw new BusinessException(ErrorCodes.CardQrNotFound);
+                        throw new BusinessException(ErrorCodes.CardQrNotFound, StatusCodes.Status404NotFound);
 
                     if (card.CurrentSessionId == null)
-                        throw new BusinessException(ErrorCodes.CardHasNoActiveSession);
+                        throw new BusinessException(ErrorCodes.CardHasNoActiveSession, StatusCodes.Status400BadRequest);
 
                     var session = await _dbContext.ParkingSessions
+                        .Include(s => s.ParkingCard)
+                        .Include(s => s.Area)
+                        .Include(s => s.Slot)
+                        .Include(s => s.ParkingSessionImages)
                         .FirstOrDefaultAsync(s =>
                             s.Id == card.CurrentSessionId.Value &&
                             s.Status == "ACTIVE");
 
                     if (session == null)
-                        throw new BusinessException(ErrorCodes.SessionNotFound);
+                        throw new BusinessException(ErrorCodes.SessionNotFound, StatusCodes.Status404NotFound);
 
-                    if (session.ClaimedByUserId != null || session.ClaimedAt != null)
-                        throw new BusinessException(ErrorCodes.SessionAlreadyClaimed);
-
-                    session.DriverId = driverProfile.Id;
-                    session.ClaimedByUserId = userId;
-                    session.ClaimedAt = DateTimeOffset.UtcNow;
-                    session.ClaimMethod = "CARD_QR";
-
-                    await _auditWriter.WriteAuditLogAsync(new AuditWriteDto
+                    // Security check: If already claimed by another user, block access!
+                    if (session.ClaimedByUserId.HasValue && session.ClaimedByUserId.Value != userId)
                     {
-                        Action = "SESSION_CLAIMED",
-                        TargetType = "ParkingSession",
-                        TargetId = session.SessionCode,
-                        ActorUserId = userId,
-                        NewValue = System.Text.Json.JsonSerializer.Serialize(new
-                        {
-                            sessionId = session.Id,
-                            sessionCode = session.SessionCode,
-                            driverProfileId = driverProfile.Id,
-                            claimedByUserId = userId,
-                            claimMethod = "CARD_QR"
-                        }),
-                        Reason = "Driver claimed active parking session by card QR."
-                    });
+                        throw new BusinessException(ErrorCodes.SessionAlreadyClaimed, StatusCodes.Status400BadRequest);
+                    }
 
-                    await _dbContext.SaveChangesAsync();
+                    // If not claimed yet, claim it for this user
+                    if (!session.ClaimedByUserId.HasValue)
+                    {
+                        session.DriverId = driverProfile.Id;
+                        session.ClaimedByUserId = userId;
+                        session.ClaimedAt = DateTimeOffset.UtcNow;
+                        session.ClaimMethod = "CARD_QR";
+
+                        await _auditWriter.WriteAuditLogAsync(new AuditWriteDto
+                        {
+                            Action = "SESSION_CLAIMED",
+                            TargetType = "ParkingSession",
+                            TargetId = session.SessionCode,
+                            ActorUserId = userId,
+                            NewValue = System.Text.Json.JsonSerializer.Serialize(new
+                            {
+                                sessionId = session.Id,
+                                sessionCode = session.SessionCode,
+                                driverProfileId = driverProfile.Id,
+                                claimedByUserId = userId,
+                                claimMethod = "CARD_QR"
+                            }),
+                            Reason = "Driver claimed active parking session by card QR."
+                        });
+
+                        await _dbContext.SaveChangesAsync();
+                    }
+
                     await transaction.CommitAsync();
 
-                    return true;
+                    return await BuildClaimSessionResponseAsync(session);
                 }
                 catch
                 {
@@ -984,6 +1006,72 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                     throw;
                 }
             });
+        }
+
+        public async Task<List<ClaimSessionResponse>> GetMyActiveClaimedSessionsAsync(string userIdString)
+        {
+            if (!long.TryParse(userIdString, out var userId))
+                throw new BusinessException(ErrorCodes.AuthUserIdInvalid);
+
+            var activeSessions = await _dbContext.ParkingSessions
+                .Include(s => s.ParkingCard)
+                .Include(s => s.Area)
+                .Include(s => s.Slot)
+                .Include(s => s.ParkingSessionImages)
+                .Where(s => s.ClaimedByUserId == userId && s.Status == "ACTIVE")
+                .OrderByDescending(s => s.EntryTime)
+                .ToListAsync();
+
+            var list = new List<ClaimSessionResponse>();
+            foreach (var session in activeSessions)
+            {
+                list.Add(await BuildClaimSessionResponseAsync(session));
+            }
+
+            return list;
+        }
+
+        private async Task<ClaimSessionResponse> BuildClaimSessionResponseAsync(ParkingSession session)
+        {
+            var feeResult = await _feeCalculationService.CalculateFeeAsync(session.Id, DateTimeOffset.UtcNow, false);
+            var primaryImage = session.ParkingSessionImages
+                .FirstOrDefault(img => img.ImageType == "ENTRY_PLATE" || img.IsPrimary)?.ImageUrl
+                ?? session.ParkingSessionImages.FirstOrDefault()?.ImageUrl;
+
+            var vehicleType = await _dbContext.VehicleTypes.FindAsync(session.VehicleTypeId);
+            var floor = await _dbContext.Floors.FindAsync(session.FloorId);
+
+            var duration = DateTimeOffset.UtcNow - session.EntryTime;
+
+            return new ClaimSessionResponse
+            {
+                SessionId = session.Id,
+                SessionCode = session.SessionCode,
+                CardCode = session.ParkingCard?.CardNumber ?? string.Empty,
+                QrToken = session.ParkingCard?.QrToken ?? string.Empty,
+                PlateNumber = session.PlateNumber,
+                VehicleDescription = session.VehicleDescription,
+                VehicleTypeId = session.VehicleTypeId,
+                VehicleTypeName = vehicleType?.Name ?? string.Empty,
+                EntryTime = session.EntryTime,
+                FloorId = session.FloorId,
+                FloorCode = floor?.FloorCode ?? string.Empty,
+                FloorName = floor?.FloorName ?? string.Empty,
+                AreaId = session.AreaId,
+                AreaCode = session.Area?.AreaCode ?? string.Empty,
+                AreaName = session.Area?.AreaName ?? string.Empty,
+                SlotId = session.SlotId,
+                SlotCode = session.Slot?.SlotCode,
+                Status = session.Status,
+                PaymentStatus = session.PaymentStatus,
+                PaymentRequired = session.PaymentRequired,
+                FeeAmount = feeResult.TotalAmount,
+                DurationHours = Math.Round(duration.TotalHours, 1),
+                ClaimedByUserId = session.ClaimedByUserId,
+                ClaimedAt = session.ClaimedAt,
+                ClaimMethod = session.ClaimMethod,
+                PrimaryImageUrl = primaryImage
+            };
         }
 
         private async Task ValidateEntryRequest(CreateEntryRequest request)

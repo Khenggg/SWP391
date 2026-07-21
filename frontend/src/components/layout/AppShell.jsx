@@ -16,6 +16,7 @@ import {
   Menu,
   MoreHorizontal,
   ParkingCircle,
+  QrCode,
   RadioTower,
   Search,
   Settings,
@@ -60,6 +61,7 @@ const MENUS = {
   ],
   [USER_ROLES.DRIVER]: [
     { label: "Hồ sơ", path: "/driver/profile", icon: UserRoundCog },
+    { label: "Quét thẻ vãng lai", path: "/driver/casual-card", icon: QrCode },
     { label: "Đặt chỗ", path: "/driver/booking", icon: CalendarClock },
     { label: "Xe của tôi", path: "/driver/vehicles", icon: CarFront },
     { label: "Lịch sử booking", path: "/driver/history", icon: BookOpenCheck },

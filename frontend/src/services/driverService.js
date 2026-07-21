@@ -193,5 +193,35 @@ export const driverService = {
     const res = await coreAxiosClient.post("/driver/register", data);
     if (res.success) return res.data;
     throw new Error(res.message || "Đăng ký thất bại");
+  },
+
+  /**
+   * Quét mã QR/mã thẻ vãng lai để liên kết với tài khoản.
+   */
+  claimCasualCard: async (qrToken) => {
+    const res = await coreAxiosClient.post(`/parking-sessions/${encodeURIComponent(qrToken)}/claim`);
+    if (res.success && res.data) return res.data;
+    throw new Error(res.message || "Không thể liên kết thẻ xe vãng lai.");
+  },
+
+  /**
+   * Lấy danh sách các thẻ vãng lai đang đỗ trong bãi đã được tài khoản liên kết.
+   */
+  getMyClaimedSessions: async () => {
+    const res = await coreAxiosClient.get("/parking-sessions/my-claimed-sessions");
+    if (res.success && res.data) return res.data;
+    throw new Error(res.message || "Không thể lấy danh sách thẻ đã liên kết.");
+  },
+
+  /**
+   * Tạo link thanh toán online phí đỗ xe vãng lai qua PayOS.
+   */
+  createOnlineExitPayment: async ({ sessionId, cardCode }) => {
+    const res = await coreAxiosClient.post("/payments/online/exit-fee", {
+      sessionId,
+      cardCode,
+    });
+    if (res.success && res.data) return res.data;
+    throw new Error(res.message || "Không thể tạo link thanh toán PayOS.");
   }
 };

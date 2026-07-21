@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -55,8 +55,9 @@ namespace ParkingBuilding.CoreApi.Controllers
             }
             else if (!string.IsNullOrWhiteSpace(request.CardCode))
             {
+                var cleanCode = request.CardCode.Trim().ToLower();
                 var card = await _context.ParkingCards
-                    .FirstOrDefaultAsync(c => c.CardNumber.ToLower() == request.CardCode.Trim().ToLower());
+                    .FirstOrDefaultAsync(c => c.CardNumber.ToLower() == cleanCode || c.QrToken == request.CardCode.Trim() || c.Id.ToString() == request.CardCode.Trim());
 
                 if (card != null && card.Status == CardStatus.IN_USE && card.CurrentSessionId.HasValue)
                 {
@@ -71,6 +72,29 @@ namespace ParkingBuilding.CoreApi.Controllers
 
             if (session.CustomerType == "MONTHLY")
                 throw new BusinessException(ErrorCodes.InvalidRequest);
+
+            // Security check for claimed session ownership
+            var userIdClaim = User.FindFirst("user_id")?.Value;
+            if (long.TryParse(userIdClaim, out var currentUserId))
+            {
+                if (session.ClaimedByUserId.HasValue && session.ClaimedByUserId.Value != currentUserId)
+                {
+                    throw new BusinessException(ErrorCodes.SessionAlreadyClaimed, StatusCodes.Status400BadRequest);
+                }
+
+                if (!session.ClaimedByUserId.HasValue)
+                {
+                    session.ClaimedByUserId = currentUserId;
+                    session.ClaimedAt = DateTimeOffset.UtcNow;
+                    session.ClaimMethod = "ONLINE_PAYMENT";
+                    await _context.SaveChangesAsync();
+                }
+            }
+            else if (session.ClaimedByUserId.HasValue)
+            {
+                // Unauthenticated request attempting to pay for a claimed session
+                throw new BusinessException(ErrorCodes.SessionAlreadyClaimed, StatusCodes.Status400BadRequest);
+            }
 
             var feeResult = await _feeCalculationService.CalculateFeeAsync(session.Id, DateTimeOffset.UtcNow, false);
 
