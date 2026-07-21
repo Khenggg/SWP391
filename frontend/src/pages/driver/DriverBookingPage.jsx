@@ -294,15 +294,52 @@ export default function DriverBookingPage() {
               )}
 
               {currentStep === 4 && (
-                <div className="text-center py-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <CheckCircle2 className="w-10 h-10" />
+                <div className="py-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="text-center mb-8">
+                    <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle2 className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-2xl font-black text-slate-800 mb-2">Xác nhận thông tin đặt chỗ</h3>
+                    <p className="text-slate-500 max-w-md mx-auto text-sm">
+                      Vui lòng kiểm tra lại thông tin chi tiết đặt chỗ dưới đây trước khi bấm xác nhận.
+                      Hệ thống sẽ giữ chỗ tạm thời trong 10 phút để bạn thực hiện thanh toán.
+                    </p>
                   </div>
-                  <h3 className="text-2xl font-black text-slate-800 mb-2">Xác nhận thông tin</h3>
-                  <p className="text-slate-500 max-w-md mx-auto mb-8">
-                    Kiểm tra lại kỹ thông tin đặt chỗ của bạn bên thanh tóm tắt trước khi bấm xác nhận.
-                    Hệ thống sẽ khóa slot đỗ tạm thời cho bạn trong 10 phút để chờ thanh toán.
-                  </p>
+
+                  {/* Booking Info Card */}
+                  <div className="max-w-md mx-auto bg-slate-50 border border-slate-200/80 rounded-2xl p-6 space-y-4">
+                    <div className="flex justify-between items-center pb-3 border-b border-slate-200/60">
+                      <span className="text-sm text-slate-500">Phương tiện</span>
+                      <span className="text-sm font-bold text-slate-800 uppercase">
+                        {selectedVehicle ? `${selectedVehicle.plateNumber || selectedVehicle.plate} (${selectedVehicle.vehicleTypeName || "Không xác định"})` : "--"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center pb-3 border-b border-slate-200/60">
+                      <span className="text-sm text-slate-500">Thời gian đỗ dự kiến</span>
+                      <span className="text-sm font-bold text-slate-800">
+                        {durationHours} giờ
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center pb-3 border-b border-slate-200/60">
+                      <span className="text-sm text-slate-500">Vị trí đỗ</span>
+                      <div className="text-right">
+                        <span className="text-sm font-bold text-slate-800 block">
+                          {selectedAreaName || "Chưa chọn"}
+                        </span>
+                        {selectedSlotName && (
+                          <span className="text-xs text-indigo-600 font-extrabold block mt-0.5">
+                            Slot: {selectedSlotName}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center pt-1">
+                      <span className="text-sm font-bold text-slate-600">Tổng phí tạm tính</span>
+                      <span className="text-lg font-black text-indigo-600">
+                        {selectedVehicle ? `${(durationHours * hourlyPrice).toLocaleString()} VND` : "0 VND"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               )}
 
