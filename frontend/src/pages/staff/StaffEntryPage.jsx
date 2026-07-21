@@ -169,12 +169,22 @@ export default function StaffEntryPage() {
           entryGateId: String(entryGateId),
           noPlate: false,
           vehicleDescription: "",
-          licensePlate: result.plateNumber || current.licensePlate,
+          licensePlate: current.licensePlate || result.plateNumber || "",
           vehicleTypeId: result.vehicleTypeId
             ? String(result.vehicleTypeId)
             : current.vehicleTypeId,
         }));
-        toast.success("Đã xác định thẻ tháng (Cư dân) hợp lệ.");
+
+        const normInput = String(form.licensePlate || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
+        const normRegistered = String(result.plateNumber || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
+        if (normInput && normRegistered && normInput !== normRegistered) {
+          toast.error(
+            `⚠️ Lệch biển số! Biển số quét (${form.licensePlate}) không khớp biển số đăng ký (${result.plateNumber})`,
+            { duration: 5000 }
+          );
+        } else {
+          toast.success("Đã xác định thẻ tháng (Cư dân) hợp lệ.");
+        }
       } else {
         setForm((current) => ({
           ...current,
@@ -382,6 +392,16 @@ export default function StaffEntryPage() {
       parseNumber(form.entryGateId)
   );
 
+  const isMonthlyPlateMismatch = useMemo(() => {
+    if (form.entryMode !== "MONTHLY" || !cardCheck?.plateNumber || !form.licensePlate) {
+      return false;
+    }
+
+    const normInput = String(form.licensePlate).replace(/[^A-Z0-9]/gi, "").toUpperCase();
+    const normRegistered = String(cardCheck.plateNumber).replace(/[^A-Z0-9]/gi, "").toUpperCase();
+    return normInput !== normRegistered;
+  }, [cardCheck, form.entryMode, form.licensePlate]);
+
   const canSubmit = useMemo(() => {
     if (!normalizeText(form.cardCode)) return false;
     if (!parseNumber(form.entryGateId)) return false;
@@ -395,6 +415,7 @@ export default function StaffEntryPage() {
     }
 
     if (form.entryMode === "MONTHLY") {
+      if (isMonthlyPlateMismatch) return false;
       return Boolean(
         normalizeText(form.licensePlate) &&
           cardCheck?.monthlyPassId &&
@@ -423,6 +444,7 @@ export default function StaffEntryPage() {
     cardCheck,
     derivedVehicleTypeId,
     form,
+    isMonthlyPlateMismatch,
     noPlateAllowed,
     reservationCheck,
     suggestion,
@@ -449,13 +471,15 @@ export default function StaffEntryPage() {
           form.entryMode === "CASUAL"
             ? "Gợi ý vị trí"
             : form.entryMode === "MONTHLY"
-              ? "Xác minh vé tháng"
+              ? isMonthlyPlateMismatch
+                ? `Lệch biển vé tháng (${cardCheck?.plateNumber || ""})`
+                : "Xác minh vé tháng"
               : "Xác minh booking",
         passed:
           form.entryMode === "CASUAL"
             ? Boolean(suggestion?.suggestionToken)
             : form.entryMode === "MONTHLY"
-              ? Boolean(cardCheck?.monthlyEntryToken)
+              ? Boolean(cardCheck?.monthlyEntryToken) && !isMonthlyPlateMismatch
               : Boolean(reservationCheck?.reservationEntryToken),
       },
       {
@@ -463,7 +487,7 @@ export default function StaffEntryPage() {
         passed: !form.noPlate || noPlateAllowed,
       },
     ],
-    [cardCheck, form, noPlateAllowed, reservationCheck, suggestion]
+    [cardCheck, form, isMonthlyPlateMismatch, noPlateAllowed, reservationCheck, suggestion]
   );
 
   const handleLoadSuggestion = async () => {
@@ -676,6 +700,8 @@ export default function StaffEntryPage() {
                 cardCheck={cardCheck}
                 reservationCheck={reservationCheck}
                 onSelectBookingMode={handleSelectBookingMode}
+                isMonthlyPlateMismatch={isMonthlyPlateMismatch}
+                detectedPlate={form.licensePlate}
               />
             </div>
             <div className="shrink-0">
