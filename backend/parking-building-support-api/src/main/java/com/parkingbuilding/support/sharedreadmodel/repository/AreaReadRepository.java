@@ -20,4 +20,7 @@ public interface AreaReadRepository
 
     List<AreaReadEntity> findByIdIn(Set<Long> ids);
 
+    @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(a.totalCapacity), 0) FROM AreaReadEntity a")
+    Integer sumTotalCapacity();
+
 }

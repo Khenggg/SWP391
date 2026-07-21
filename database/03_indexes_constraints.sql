@@ -755,7 +755,7 @@ END $$;
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at = now();
+    NEW.updated_at = now();f
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
