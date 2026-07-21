@@ -51,7 +51,7 @@ export default function DriverCasualCardPage() {
     fetchMySessions();
   }, []);
 
-  const handleClaimCard = async (e) => {
+  const handleClaimCard = async (e, autoOpenPayment = true) => {
     e?.preventDefault();
     if (!inputCode.trim()) {
       toast.error("Vui lòng nhập mã thẻ hoặc mã QR.");
@@ -65,6 +65,10 @@ export default function DriverCasualCardPage() {
       toast.success("Liên kết thẻ đỗ xe vãng lai thành công!");
       setInputCode("");
       await fetchMySessions();
+
+      if (autoOpenPayment && result && result.paymentStatus !== "PAID") {
+        setSelectedSessionForPayment(result);
+      }
     } catch (err) {
       console.error("Claim casual card error:", err);
       const msg = err.message || "Liên kết thẻ xe thất bại.";
@@ -120,33 +124,46 @@ export default function DriverCasualCardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleClaimCard} className="flex flex-col sm:flex-row gap-3">
+          <form onSubmit={(e) => handleClaimCard(e, true)} className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Input
                 value={inputCode}
                 onChange={(e) => setInputCode(e.target.value)}
-                placeholder="Ví dụ: CARD-001 hoặc mã QR token..."
+                placeholder="Ví dụ: C006, CARD-001 hoặc mã QR token..."
                 className="bg-slate-950/80 border-slate-800 text-slate-100 placeholder:text-slate-500 font-mono text-sm pl-10 h-11"
               />
               <Search className="absolute left-3 top-3 size-5 text-slate-500" />
             </div>
-            <Button
-              type="submit"
-              disabled={isSubmitting || !inputCode.trim()}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-black h-11 px-6 shadow-lg shadow-indigo-600/20"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                  Đang kiểm tra...
-                </>
-              ) : (
-                <>
-                  <ShieldCheck className="mr-2 size-4" />
-                  Liên kết thẻ ngay
-                </>
-              )}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="submit"
+                disabled={isSubmitting || !inputCode.trim()}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-black h-11 px-5 shadow-lg shadow-emerald-600/20 uppercase tracking-wider text-xs"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                    Đang xử lý...
+                  </>
+                ) : (
+                  <>
+                    <Receipt className="mr-2 size-4" />
+                    Liên kết & Thanh toán ngay
+                  </>
+                )}
+              </Button>
+
+              <Button
+                type="button"
+                onClick={(e) => handleClaimCard(e, false)}
+                disabled={isSubmitting || !inputCode.trim()}
+                variant="outline"
+                className="border-slate-700 bg-slate-800/80 text-slate-200 hover:bg-slate-700 font-bold h-11 px-4 text-xs"
+              >
+                <ShieldCheck className="mr-1.5 size-4 text-indigo-400" />
+                Chỉ liên kết
+              </Button>
+            </div>
           </form>
 
           {/* Security Alert display if scanned card is owned by someone else */}
