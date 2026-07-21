@@ -390,7 +390,7 @@ export default function DriverBookingPage() {
         <div className="lg:col-span-1">
           <BookingSummaryPanel
             selectedVehicle={selectedVehicle}
-            durationHours={durationHours}
+            durationHours={currentStep >= 2 ? durationHours : null}
             selectedAreaName={selectedAreaName}
             selectedSlotName={selectedSlotName}
             hourlyPrice={hourlyPrice}

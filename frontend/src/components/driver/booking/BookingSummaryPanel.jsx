@@ -50,7 +50,7 @@ export default function BookingSummaryPanel({
     
   const displayAreaName = activeReservation?.areaName || selectedAreaName;
   const displaySlotName = activeReservation?.slotName || selectedSlotName;
-  const displayPrice = activeReservation?.bookingAmount ?? (durationHours * hourlyPrice);
+  const displayPrice = activeReservation?.bookingAmount ?? (durationHours ? (durationHours * hourlyPrice) : 0);
 
   return (
     <div className="space-y-6">
@@ -73,7 +73,9 @@ export default function BookingSummaryPanel({
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Thoi gian</span>
-            <span className="font-semibold text-slate-800">{durationHours} gio</span>
+            <span className="font-semibold text-slate-800">
+              {activeReservation ? `${activeReservation.durationHours || 3} gio` : (durationHours ? `${durationHours} gio` : "Chua chon")}
+            </span>
           </div>
           <div className="flex justify-between gap-4">
             <span className="text-slate-500">Vi tri do</span>
