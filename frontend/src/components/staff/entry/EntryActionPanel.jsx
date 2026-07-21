@@ -52,7 +52,7 @@ export default function EntryActionPanel({
         <Button
           variant="outline"
           className="w-full font-bold h-9 rounded-lg border-slate-200 text-blue-600 hover:bg-blue-50 text-xs"
-          onClick={onCheckCard}
+          onClick={() => onCheckCard()}
           disabled={!canCheckCard || isCheckingCard}
         >
           <CreditCard className="mr-1.5 h-4 w-4" />
@@ -62,7 +62,7 @@ export default function EntryActionPanel({
         <Button
           variant="outline"
           className="w-full font-bold h-9 rounded-lg border-slate-200 text-amber-600 hover:bg-amber-50 text-xs"
-          onClick={onRetryCurrentStep}
+          onClick={() => onRetryCurrentStep()}
           disabled={!canRetryCurrentStep || isRetryingCurrentStep}
         >
           <RotateCcw className="mr-1.5 h-4 w-4" />

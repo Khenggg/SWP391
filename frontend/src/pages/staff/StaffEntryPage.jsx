@@ -171,9 +171,10 @@ function formatCardCode(value) {
 }
 
   const handleCheckCard = useCallback(async (overrideCardCode, overrideGateId) => {
-    const rawCardCode = normalizeText(overrideCardCode || form.cardCode);
-    const cardCode = formatCardCode(rawCardCode);
-    const entryGateId = resolveGateId(overrideGateId);
+    const rawCardCode = typeof overrideCardCode === "string" ? overrideCardCode : form.cardCode;
+    const cardCode = formatCardCode(normalizeText(rawCardCode));
+    const gateParam = (typeof overrideGateId === "number" || typeof overrideGateId === "string") ? overrideGateId : null;
+    const entryGateId = resolveGateId(gateParam);
     if (!cardCode || entryGateId == null) {
       toast.error("Nhập mã thẻ và chọn cổng vào hợp lệ trước khi kiểm tra.");
       return;
@@ -236,11 +237,13 @@ function formatCardCode(value) {
     } finally {
       setIsCheckingCard(false);
     }
-  }, [form.cardCode, resolveGateId]);
+  }, [form.cardCode, form.entryGateId, resolveGateId]);
 
   const handleCheckReservation = useCallback(async (overrideReservationCode, overrideGateId) => {
-    const reservationCode = normalizeText(overrideReservationCode || form.reservationCode);
-    const entryGateId = resolveGateId(overrideGateId);
+    const rawCode = typeof overrideReservationCode === "string" ? overrideReservationCode : form.reservationCode;
+    const reservationCode = normalizeText(rawCode);
+    const gateParam = (typeof overrideGateId === "number" || typeof overrideGateId === "string") ? overrideGateId : null;
+    const entryGateId = resolveGateId(gateParam);
     if (!reservationCode || entryGateId == null) {
       toast.error("Nhập mã booking và chọn cổng vào hợp lệ trước khi kiểm tra.");
       return;
