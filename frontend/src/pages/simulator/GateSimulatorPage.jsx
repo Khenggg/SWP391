@@ -96,6 +96,37 @@ function isBookingToken(value) {
   return /^BK-\d+/i.test(normalizeBookingToken(value));
 }
 
+function generateMockPlateSvg(plateText) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="120" viewBox="0 0 320 120">
+    <rect width="320" height="120" fill="#f8fafc" rx="12"/>
+    <rect x="8" y="8" width="304" height="104" fill="#ffffff" stroke="#0f172a" stroke-width="4" rx="8"/>
+    <rect x="14" y="14" width="292" height="92" fill="none" stroke="#0f172a" stroke-width="1.5" rx="6"/>
+    <circle cx="28" cy="24" r="4" fill="#64748b"/>
+    <circle cx="292" cy="24" r="4" fill="#64748b"/>
+    <text x="160" y="72" font-family="Arial, sans-serif" font-weight="900" font-size="42" fill="#0f172a" text-anchor="middle" letter-spacing="3">${plateText}</text>
+  </svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+function generateMockVehicleSvg(title) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+    <defs>
+      <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#1e293b"/>
+        <stop offset="100%" stop-color="#0f172a"/>
+      </linearGradient>
+    </defs>
+    <rect width="400" height="300" fill="url(#bg)"/>
+    <path d="M50,220 L350,220" stroke="#38bdf8" stroke-width="2" stroke-dasharray="8 8"/>
+    <path d="M120,170 Q140,110 200,110 Q260,110 280,170 L330,170 Q340,170 340,185 L340,210 Q340,220 330,220 L310,220 Q310,200 290,200 Q270,200 270,220 L130,220 Q130,200 110,200 Q90,200 90,220 L70,220 Q60,220 60,210 L60,185 Q60,170 70,170 Z" fill="#3b82f6" stroke="#60a5fa" stroke-width="3"/>
+    <circle cx="110" cy="215" r="22" fill="#0284c7" stroke="#ffffff" stroke-width="3"/>
+    <circle cx="290" cy="215" r="22" fill="#0284c7" stroke="#ffffff" stroke-width="3"/>
+    <rect x="150" y="125" width="100" height="40" rx="4" fill="#93c5fd" opacity="0.6"/>
+    <text x="200" y="270" font-family="Arial, sans-serif" font-weight="bold" font-size="18" fill="#f8fafc" text-anchor="middle">${title}</text>
+  </svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
 const presets = [
   {
     label: "Vé tháng Cư dân",
@@ -110,6 +141,8 @@ const presets = [
       detectedPlate: "51A-99999",
       vehicleTypeName: "Xe máy",
       plateConfidence: 98,
+      plateImageDataUrl: generateMockPlateSvg("51A-99999"),
+      vehicleImageDataUrl: generateMockVehicleSvg("Xe máy cư dân - C007"),
     },
   },
   {
@@ -125,6 +158,8 @@ const presets = [
       detectedPlate: "59B-12345",
       vehicleTypeName: "Xe máy",
       plateConfidence: 95,
+      plateImageDataUrl: generateMockPlateSvg("59B-12345"),
+      vehicleImageDataUrl: generateMockVehicleSvg("Xe máy sai biển - 59B-12345"),
     },
   },
   {
@@ -140,6 +175,8 @@ const presets = [
       detectedPlate: "51K-12345",
       vehicleTypeName: "Xe máy",
       plateConfidence: 96,
+      plateImageDataUrl: generateMockPlateSvg("51K-12345"),
+      vehicleImageDataUrl: generateMockVehicleSvg("Xe máy vãng lai - C004"),
     },
   },
   {
@@ -155,6 +192,8 @@ const presets = [
       detectedPlate: "59H-67890",
       vehicleTypeName: "Ô tô",
       plateConfidence: 97,
+      plateImageDataUrl: generateMockPlateSvg("59H-67890"),
+      vehicleImageDataUrl: generateMockVehicleSvg("Ô tô vãng lai - C005"),
     },
   },
   {
@@ -170,6 +209,8 @@ const presets = [
       detectedPlate: "51A-99999",
       vehicleTypeName: "Xe máy",
       plateConfidence: 98,
+      plateImageDataUrl: generateMockPlateSvg("51A-99999"),
+      vehicleImageDataUrl: generateMockVehicleSvg("Xe máy ra cổng - C007"),
     },
   },
   {
@@ -185,6 +226,8 @@ const presets = [
       detectedPlate: "51K-12345",
       vehicleTypeName: "Xe máy",
       plateConfidence: 96,
+      plateImageDataUrl: generateMockPlateSvg("51K-12345"),
+      vehicleImageDataUrl: generateMockVehicleSvg("Xe vãng lai ra cổng - C004"),
     },
   },
 ];
