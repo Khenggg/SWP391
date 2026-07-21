@@ -60,7 +60,7 @@ export default function DriverProfilePage() {
       try {
         const [profileResult, vehiclesResult, historyResult] = await Promise.allSettled([
           driverService.getDriverProfile(),
-          vehicleService.getVehiclesByOwner(),
+          vehicleService.getVehicles().then(res => res.items),
           reservationService.getHistory(0, 5)
         ]);
 

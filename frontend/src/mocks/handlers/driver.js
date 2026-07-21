@@ -138,6 +138,53 @@ export const driverHandlers = [
   ),
 
   ...enabled(
+    MOCK_FLAGS.DRIVER_MONTHLY_PASS,
+    http.get(`${API_BASE_URLS.core}/monthly-passes/applications`, async ({ request }) => {
+      await delay(250);
+      const url = new URL(request.url);
+      const page = parseInt(url.searchParams.get("page") || "1");
+      const pageSize = parseInt(url.searchParams.get("pageSize") || "20");
+      const inMemoryPasses = db.getMonthlyPasses() || [];
+      const applications = inMemoryPasses.map(p => ({
+        id: p.id,
+        vehiclePlateNumber: p.plateNumber,
+        vehicleTypeName: p.vehicleTypeName,
+        startDate: new Date().toISOString(),
+        price: p.price || 500000,
+        status: p.status || "PENDING",
+      }));
+      return ok({
+        items: applications,
+        page,
+        pageSize,
+        totalItems: applications.length,
+        totalPages: Math.ceil(applications.length / pageSize),
+      });
+    })
+  ),
+
+  ...enabled(
+    MOCK_FLAGS.DRIVER_MONTHLY_PASS,
+    http.post(`${API_BASE_URLS.core}/monthly-passes/applications`, async ({ request }) => {
+      await delay(250);
+      const data = await request.json();
+      const inMemoryPasses = db.getMonthlyPasses() || [];
+      const newApp = {
+        id: Math.floor(Math.random() * 1000),
+        plateNumber: data.licensePlate,
+        vehicleTypeName: data.vehicleType,
+        ownerName: "Nguyễn Văn A",
+        phone: "0987654321",
+        status: "PENDING",
+        price: 500000
+      };
+      inMemoryPasses.push(newApp);
+      db.saveMonthlyPasses(inMemoryPasses);
+      return ok(newApp);
+    })
+  ),
+
+  ...enabled(
     MOCK_FLAGS.DRIVER_BOOKINGS,
     http.get(`${API_BASE_URLS.core}/driver/bookings`, async ({ request }) => {
       await delay(250);
