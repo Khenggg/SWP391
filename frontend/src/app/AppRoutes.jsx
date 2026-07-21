@@ -35,6 +35,7 @@ import StaffEntryPage from "../pages/staff/StaffEntryPage";
 import StaffExitPage from "../pages/staff/StaffExitPage";
 import StaffLostCardPage from "../pages/staff/StaffLostCardPage";
 import StaffSessionsPage from "../pages/staff/StaffSessionsPage";
+import LicensePlateMismatchPage from "../pages/staff/LicensePlateMismatchPage";
 import GateSimulatorPage from "../pages/simulator/GateSimulatorPage";
 import DriverProfilePage from "../pages/driver/DriverProfilePage";
 import DriverVehiclesPage from "../pages/driver/DriverVehiclesPage";
@@ -109,6 +110,7 @@ export default function AppRoutes({ isAuthenticated, userRole, currentUser, onLo
             <Route path="/staff/exit" element={<StaffExitPage />} />
             <Route path="/staff/lost-card" element={<StaffLostCardPage />} />
             <Route path="/staff/sessions" element={<StaffSessionsPage />} />
+            <Route path="/staff/license-plate-mismatch" element={<LicensePlateMismatchPage />} />
           </Route>
 
           <Route element={<RequireRole userRole={userRole} allowedRoles={[USER_ROLES.STAFF, USER_ROLES.MANAGER, USER_ROLES.ADMIN]} />}>

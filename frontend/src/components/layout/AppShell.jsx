@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
+  AlertTriangle,
   ArrowRightFromLine,
   BarChart3,
   BellDot,
@@ -37,6 +38,7 @@ const MENUS = {
     { label: "Giả lập cổng", path: "/simulator/gate", icon: RadioTower },
     { label: "Báo mất thẻ", path: "/staff/lost-card", icon: ShieldAlert },
     { label: "Tìm phiên gửi", path: "/staff/sessions", icon: Search },
+    { label: "License Plate Mismatch", path: "/staff/license-plate-mismatch", icon: AlertTriangle },
   ],
   [USER_ROLES.MANAGER]: [
     { label: "Bảng vận hành", path: "/manager/dashboard", icon: LayoutDashboard },

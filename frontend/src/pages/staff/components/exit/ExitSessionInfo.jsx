@@ -1,9 +1,11 @@
 import React from "react";
 import { CarFront, Clock3, AlertTriangle, CreditCard } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { formatDateTime } from "@/lib/format";
 
 export default function ExitSessionInfo({ session, vehicleTypes = [] }) {
+  const navigate = useNavigate();
   // Helper to get vehicle type name
   const getVehicleTypeName = (id) => {
     if (!id) return "Khác";
@@ -75,6 +77,17 @@ export default function ExitSessionInfo({ session, vehicleTypes = [] }) {
                   </Badge>
                 </div>
               </div>
+            </div>
+
+            <div className="mt-2 pt-4 border-t border-slate-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => navigate("/staff/license-plate-mismatch", { state: { parkingSessionId: session.sessionId || session.id } })}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors"
+              >
+                <AlertTriangle className="w-4 h-4" />
+                ⚠ Report Plate Mismatch
+              </button>
             </div>
           </>
         ) : (
