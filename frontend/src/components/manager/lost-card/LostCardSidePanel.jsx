@@ -101,13 +101,19 @@ export default function LostCardSidePanel({
             <span className="leading-relaxed text-slate-700">{item.verificationNote || "--"}</span>
 
             <span className="text-slate-500">Nguoi duyet</span>
-            <span className="font-medium text-slate-800">{item.decidedBy || "--"}</span>
+            <span className="font-medium text-slate-800">
+              {item.approvedByUser?.fullName
+                || item.approvedByUser?.username
+                || (item.approvedBy ? `UID-${item.approvedBy}` : "--")}
+            </span>
 
             <span className="text-slate-500">Thoi gian duyet</span>
-            <span className="font-medium text-slate-800">{item.decidedAt ? formatDateTime(item.decidedAt) : "--"}</span>
+            <span className="font-medium text-slate-800">{item.approvedAt ? formatDateTime(item.approvedAt) : "--"}</span>
 
             <span className="text-slate-500">Ly do quyet dinh</span>
-            <span className="leading-relaxed text-slate-700">{item.decisionReason || "--"}</span>
+            <span className="leading-relaxed text-slate-700">
+              {item.rejectionReason || item.reason || "--"}
+            </span>
           </div>
         </section>
       </div>

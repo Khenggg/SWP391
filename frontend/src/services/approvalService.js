@@ -11,7 +11,11 @@ function getDataOrThrow(response, fallbackMessage) {
 export const approvalService = {
   getLostCardCases: async () => {
     const response = await coreAxiosClient.get("/lost-cards");
-    return response.success ? response.data : [];
+    if (!response.success) return [];
+    // BE /lost-cards trả { items, page, pageSize, totalItems, totalPages }
+    // Unwrap .items; fallback nếu BE trả array trực tiếp
+    const data = response.data;
+    return Array.isArray(data) ? data : (data?.items ?? []);
   },
 
   getLostCardCaseById: async (caseId) => {
