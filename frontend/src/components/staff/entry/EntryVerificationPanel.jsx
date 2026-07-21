@@ -11,6 +11,8 @@ export default function EntryVerificationPanel({
   cardCheck,
   reservationCheck,
   onSelectBookingMode,
+  isMonthlyPlateMismatch,
+  detectedPlate,
 }) {
   return (
     <Card className="flex flex-col border-slate-200 bg-white shadow-sm h-full overflow-hidden">
@@ -93,27 +95,64 @@ export default function EntryVerificationPanel({
 
           {cardCheck && (
             <div className="w-full flex flex-col gap-2">
-              <div className="flex flex-col items-center">
-                <div className="h-12 w-12 rounded-full bg-emerald-50 flex items-center justify-center border-4 border-emerald-100">
-                  <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+              {isMonthlyPlateMismatch ? (
+                <div className="flex flex-col items-center">
+                  <div className="h-12 w-12 rounded-full bg-red-50 flex items-center justify-center border-4 border-red-100 animate-pulse">
+                    <ShieldAlert className="h-6 w-6 text-red-600" />
+                  </div>
+                  <h3 className="text-sm font-bold text-red-600 mt-1">
+                    Lệch biển số vé tháng!
+                  </h3>
+                  <p className="text-[11px] text-red-500 font-medium mt-0.5">
+                    Không khớp biển số đăng ký
+                  </p>
                 </div>
-                <h3 className="text-sm font-bold text-emerald-700 mt-1">
-                  Thẻ hợp lệ
-                </h3>
-              </div>
-              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 w-full text-left space-y-1.5">
+              ) : (
+                <div className="flex flex-col items-center">
+                  <div className="h-12 w-12 rounded-full bg-emerald-50 flex items-center justify-center border-4 border-emerald-100">
+                    <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+                  </div>
+                  <h3 className="text-sm font-bold text-emerald-700 mt-1">
+                    Thẻ hợp lệ
+                  </h3>
+                </div>
+              )}
+
+              <div
+                className={`rounded-xl p-3 border w-full text-left space-y-1.5 ${
+                  isMonthlyPlateMismatch
+                    ? "bg-red-50/60 border-red-200"
+                    : "bg-slate-50 border-slate-100"
+                }`}
+              >
                 <div className="flex justify-between text-xs">
                   <span className="text-slate-500">Mã thẻ</span>
-                  <span className="font-semibold text-slate-800">{cardCheck.cardCode}</span>
+                  <span className="font-semibold text-slate-800">
+                    {cardCheck.cardCode}
+                  </span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-slate-500">Loại thẻ</span>
-                  <span className="font-semibold text-slate-800">{cardCheck.entryCardType}</span>
+                  <span className="font-semibold text-slate-800">
+                    {cardCheck.entryCardType}
+                  </span>
                 </div>
                 {cardCheck.monthlyPassId && (
                   <div className="flex justify-between text-xs">
-                    <span className="text-slate-500">Mã vé tháng</span>
-                    <span className="font-semibold text-slate-800">{cardCheck.monthlyPassId}</span>
+                    <span className="text-slate-500">Biển số đăng ký</span>
+                    <span className="font-bold text-blue-700">
+                      {cardCheck.plateNumber || "--"}
+                    </span>
+                  </div>
+                )}
+                {isMonthlyPlateMismatch && (
+                  <div className="flex justify-between text-xs pt-1 border-t border-red-200">
+                    <span className="text-red-600 font-bold">
+                      Biển số quét được
+                    </span>
+                    <span className="font-black text-red-700">
+                      {detectedPlate || "--"}
+                    </span>
                   </div>
                 )}
               </div>
