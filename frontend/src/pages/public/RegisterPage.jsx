@@ -116,7 +116,8 @@ export default function RegisterPage() {
         username: formData.username.trim(),
         email: formData.email,
         phone: formData.phone,
-        password: formData.password
+        password: formData.password,
+        confirmPassword: formData.confirmPassword
       });
       setInfoMessage("Đăng ký thành công! Đang chuyển tới trang đăng nhập...");
       toast.success("Đăng ký tài khoản thành công!");
