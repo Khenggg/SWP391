@@ -1,4 +1,4 @@
-import { Check, QrCode, ArrowRight, RefreshCw, Lock } from "lucide-react";
+import { Check, QrCode, ArrowRight, RefreshCw, Lock, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function ExitPayment({
@@ -15,6 +15,7 @@ export default function ExitPayment({
   refreshSession,
   mismatchBlocked,
   mismatchStatus,
+  hasExitImage,
 }) {
   const isMonthly = session?.customerType === "MONTHLY";
   const isPaid = session?.paymentStatus === "PAID";
@@ -28,7 +29,7 @@ export default function ExitPayment({
   return (
     <section className="bg-slate-50 rounded-xl border border-slate-200 shadow-sm p-4 mt-auto shrink-0 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-2">
-        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">5</span>
+        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">6</span>
         <h3 className="font-bold text-slate-800 text-sm">Thanh toán &amp; Xác nhận</h3>
       </div>
 
@@ -53,6 +54,16 @@ export default function ExitPayment({
         </div>
       ) : (
         <>
+          {/* Warning when no exit image */}
+          {!hasExitImage && session && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 flex items-start gap-2">
+              <Camera className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-bold text-amber-900">Chưa có ảnh chụp xe ra</p>
+                <p className="text-[10px] text-amber-700 mt-0.5">Vui lòng chụp hoặc tải lên ít nhất 1 ảnh ở mục "Ảnh chụp xe ra" trước khi xác nhận xe ra.</p>
+              </div>
+            </div>
+          )}
           {!isMonthly && isZeroCharge && (
             <Button
               className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg shadow-lg shadow-emerald-200"

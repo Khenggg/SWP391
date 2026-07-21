@@ -193,7 +193,7 @@ export default function ExitConfirmation({
   return (
     <section className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden min-h-0">
       <div className="p-3 border-b flex items-center gap-2 bg-white shrink-0">
-        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">4</span>
+        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">5</span>
         <h3 className="font-bold text-slate-800 text-sm">Xác nhận thông tin ra xe</h3>
         {/* Show current mismatch badge in header for quick reference */}
         {mismatchStatus && mismatchStatus !== "NONE" && (

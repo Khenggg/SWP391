@@ -24,6 +24,7 @@ import ExitSessionInfo from "./components/exit/ExitSessionInfo";
 import ExitFeeSummary from "./components/exit/ExitFeeSummary";
 import ExitConfirmation from "./components/exit/ExitConfirmation";
 import ExitPayment from "./components/exit/ExitPayment";
+import ExitImageSection from "./components/exit/ExitImageSection";
 
 function normalizePlate(value) {
   return String(value || "").replace(/[^a-z0-9]/gi, "").toUpperCase();
@@ -223,6 +224,8 @@ export default function StaffExitPage() {
     [fee?.totalAmount, session?.customerType]
   );
 
+  const hasExitImage = Boolean(exitPlateImageUrl || exitVehicleImageUrl);
+
   const paymentReady = useMemo(() => {
     if (session?.customerType === "MONTHLY") return true;
     if (session?.paymentStatus === "PAID") return true;
@@ -235,8 +238,9 @@ export default function StaffExitPage() {
   const canExit = useMemo(() => {
     if (!paymentReady) return false;
     if (mismatchBlocked) return false;
+    if (!hasExitImage) return false;
     return true;
-  }, [paymentReady, mismatchBlocked]);
+  }, [paymentReady, mismatchBlocked, hasExitImage]);
 
   const resetPage = () => {
     setCardCode("");
@@ -401,11 +405,18 @@ export default function StaffExitPage() {
             />
           </div>
 
-          {/* COLUMN 2: Session Info */}
+          {/* COLUMN 2: Session Info + Exit Images */}
           <div className="flex flex-col gap-4 lg:gap-6 min-h-0">
             <div className="flex-1 flex flex-col min-h-0">
               <ExitSessionInfo session={session} vehicleTypes={vehicleTypes} />
             </div>
+            <ExitImageSection
+              exitPlateImageUrl={exitPlateImageUrl}
+              exitVehicleImageUrl={exitVehicleImageUrl}
+              onPlateImageChange={setExitPlateImageUrl}
+              onVehicleImageChange={setExitVehicleImageUrl}
+              disabled={!session}
+            />
           </div>
 
           {/* COLUMN 3: Fee Summary & Payment */}
@@ -427,6 +438,7 @@ export default function StaffExitPage() {
               refreshSession={runSearch}
               mismatchBlocked={mismatchBlocked}
               mismatchStatus={mismatchStatus}
+              hasExitImage={hasExitImage}
             />
           </div>
 
