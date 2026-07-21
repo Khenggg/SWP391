@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { formatDateTime } from "@/lib/format";
 
-export default function ExitSessionInfo({ session, vehicleTypes = [] }) {
+export default function ExitSessionInfo({ session, vehicleTypes = [], embedded = false }) {
   const navigate = useNavigate();
   // Helper to get vehicle type name
   const getVehicleTypeName = (id) => {
@@ -14,15 +14,17 @@ export default function ExitSessionInfo({ session, vehicleTypes = [] }) {
   };
 
   return (
-    <section className="h-full bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden min-h-0">
-      <div className="p-3 border-b flex items-center justify-between bg-white shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">2</span>
-          <h3 className="font-bold text-slate-800 text-sm">Thông tin phiên</h3>
+    <section className={embedded ? "flex flex-col gap-4" : "h-full bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden min-h-0"}>
+      {!embedded && (
+        <div className="p-3 border-b flex items-center justify-between bg-white shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">2</span>
+            <h3 className="font-bold text-slate-800 text-sm">Thông tin phiên</h3>
+          </div>
+          {session && <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">Đang hoạt động</Badge>}
         </div>
-        {session && <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">Đang hoạt động</Badge>}
-      </div>
-      <div className="p-4 flex flex-col gap-4 overflow-y-auto min-h-0 flex-1">
+      )}
+      <div className={embedded ? "flex flex-col gap-4" : "p-4 flex flex-col gap-4 overflow-y-auto min-h-0 flex-1"}>
         {session ? (
           <>
             <div className="flex gap-4 p-3 bg-slate-50 rounded-lg border border-slate-100">

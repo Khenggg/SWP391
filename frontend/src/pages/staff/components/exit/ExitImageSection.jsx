@@ -91,6 +91,7 @@ export default function ExitImageSection({
   onPlateImageChange,
   onVehicleImageChange,
   disabled,
+  embedded = false,
 }) {
   const plateInputRef = useRef(null);
   const vehicleInputRef = useRef(null);
@@ -100,12 +101,14 @@ export default function ExitImageSection({
   const hasAnyEntryImage = Boolean(entryPlateUrl || entryVehicleUrl);
 
   return (
-    <section className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
-      <div className="p-3 border-b flex items-center justify-between bg-white shrink-0">
+    <section className={embedded ? "flex flex-col" : "bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden"}>
+      <div className={embedded ? "flex items-center justify-between gap-3" : "p-3 border-b flex items-center justify-between bg-white shrink-0"}>
         <div className="flex items-center gap-2">
-          <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">
-            3
-          </span>
+          {!embedded && (
+            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">
+              3
+            </span>
+          )}
           <h3 className="font-bold text-slate-800 text-sm">Ảnh xe vào / ra</h3>
         </div>
         {hasExitVehicleImage ? (
@@ -118,7 +121,7 @@ export default function ExitImageSection({
           </span>
         )}
       </div>
-      <div className="p-4 space-y-4">
+      <div className={embedded ? "mt-4 space-y-4" : "p-4 space-y-4"}>
         {session && (
           <div>
             <div className="flex items-center gap-2 mb-2">

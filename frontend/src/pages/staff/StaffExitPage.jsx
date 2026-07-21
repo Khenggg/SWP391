@@ -425,19 +425,34 @@ export default function StaffExitPage() {
             />
           </div>
 
-          {/* COLUMN 2: Session Info + Exit Images */}
-          <div className="flex flex-col gap-4 lg:gap-6 min-h-0">
-            <div className="flex-1 flex flex-col min-h-0">
-              <ExitSessionInfo session={session} vehicleTypes={vehicleTypes} />
-            </div>
-            <ExitImageSection
-              session={session}
-              exitPlateImageUrl={exitPlateImageUrl}
-              exitVehicleImageUrl={exitVehicleImageUrl}
-              onPlateImageChange={setExitPlateImageUrl}
-              onVehicleImageChange={setExitVehicleImageUrl}
-              disabled={!session}
-            />
+          {/* COLUMN 2: Session details and entry/exit evidence share one scrollable card. */}
+          <div className="min-h-0">
+            <section className="h-full bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden min-h-0">
+              <div className="p-3 border-b flex items-center justify-between bg-white shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px]">2</span>
+                  <h3 className="font-bold text-slate-800 text-sm">Thông tin phiên & ảnh xe</h3>
+                </div>
+                {session && (
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                    Đang hoạt động
+                  </span>
+                )}
+              </div>
+              <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-5">
+                <ExitSessionInfo session={session} vehicleTypes={vehicleTypes} embedded />
+                <div className="border-t border-dashed border-slate-200" />
+                <ExitImageSection
+                  session={session}
+                  exitPlateImageUrl={exitPlateImageUrl}
+                  exitVehicleImageUrl={exitVehicleImageUrl}
+                  onPlateImageChange={setExitPlateImageUrl}
+                  onVehicleImageChange={setExitVehicleImageUrl}
+                  disabled={!session}
+                  embedded
+                />
+              </div>
+            </section>
           </div>
 
           {/* COLUMN 3: Fee Summary & Payment */}
