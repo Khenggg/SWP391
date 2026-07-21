@@ -44,16 +44,17 @@ export default function PayOSCasualPaymentModal({ open, onClose, session, onPaym
 
         setPaymentData(res);
 
-        if (res.paymentUrl) {
-          const dataUrl = await QRCode.toDataURL(res.paymentUrl, {
-            width: 220,
+        const qrTarget = res.qrCode || res.paymentUrl;
+        if (qrTarget) {
+          const dataUrl = await QRCode.toDataURL(qrTarget, {
+            width: 240,
             margin: 1,
             errorCorrectionLevel: "M",
-            color: { dark: "#1e1b4b", light: "#ffffff" },
+            color: { dark: "#0f172a", light: "#ffffff" },
           });
           setQrDataUrl(dataUrl);
         } else {
-          setQrError("Không thể tạo dữ liệu QR VietQR từ PayOS.");
+          setQrError("Không thể tạo dữ liệu VietQR từ PayOS.");
         }
 
         if (res.expiredAt) {

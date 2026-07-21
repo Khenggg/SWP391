@@ -134,6 +134,20 @@ namespace ParkingBuilding.CoreApi.Controllers
 
             if (existingPayment != null && !string.IsNullOrEmpty(existingPayment.PaymentUrl))
             {
+                string? existingQrCode = null;
+                if (!string.IsNullOrEmpty(existingPayment.GatewayPayload))
+                {
+                    try
+                    {
+                        using var doc = System.Text.Json.JsonDocument.Parse(existingPayment.GatewayPayload);
+                        if (doc.RootElement.TryGetProperty("QrCode", out var qrProp) || doc.RootElement.TryGetProperty("qrCode", out qrProp))
+                        {
+                            existingQrCode = qrProp.GetString();
+                        }
+                    }
+                    catch { }
+                }
+
                 return Success(new
                 {
                     paymentId = existingPayment.Id,
@@ -141,6 +155,7 @@ namespace ParkingBuilding.CoreApi.Controllers
                     amount = existingPayment.Amount,
                     totalAmount = existingPayment.TotalAmount,
                     paymentUrl = existingPayment.PaymentUrl,
+                    qrCode = existingQrCode,
                     expiredAt = existingPayment.ExpiredAt
                 }, "Returned existing pending payment link.");
             }
@@ -171,6 +186,7 @@ namespace ParkingBuilding.CoreApi.Controllers
                 amount = payment.Amount,
                 totalAmount = payment.TotalAmount,
                 paymentUrl = payOsRes.CheckoutUrl,
+                qrCode = payOsRes.QrCode,
                 expiredAt = payOsRes.ExpiredAt
             }, "Online payment link created successfully.");
         }
