@@ -29,5 +29,13 @@ export const cardService = {
       return response.data;
     }
     throw new Error(response.message || "Cập nhật trạng thái thẻ thất bại");
+  },
+
+  getAvailableCards: async () => {
+    const response = await coreAxiosClient.get("/cards/available");
+    if (response.success && response.data) {
+      return response.data;
+    }
+    return [];
   }
 };

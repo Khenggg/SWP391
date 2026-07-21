@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import {
-  User, Shield, MessageSquare, XCircle, CheckCircle2, CreditCard, Wifi,
+  User, Shield, MessageSquare, XCircle, CheckCircle2, CreditCard, Wifi, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import LicensePlate from "@/components/ui/license-plate";
 import { driverService } from "../../../services/driverService";
+import { cardService } from "../../../services/cardService";
 import { toast } from "sonner";
 
 const APP_STATUS_BADGE = {
@@ -50,8 +51,24 @@ export default function ApplicationReviewPanel({ application, onClose, onRefresh
   // RFID dialog
   const [showRfidModal, setShowRfidModal] = useState(false);
   const [rfidCardCode, setRfidCardCode] = useState("");
+  const [availableCards, setAvailableCards] = useState([]);
+  const [loadingCards, setLoadingCards] = useState(false);
 
   const [saving, setSaving] = useState(false);
+
+  const handleOpenRfidModal = async () => {
+    setLoadingCards(true);
+    setRfidCardCode("");
+    try {
+      const cards = await cardService.getAvailableCards();
+      setAvailableCards(cards);
+      setShowRfidModal(true);
+    } catch (e) {
+      toast.error("Không thể tải danh sách thẻ trống.");
+    } finally {
+      setLoadingCards(false);
+    }
+  };
 
   if (!application) return null;
 
@@ -304,7 +321,7 @@ export default function ApplicationReviewPanel({ application, onClose, onRefresh
           {application.status === "PAID" && (
             <Button
               className="text-xs font-bold rounded-xl flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
-              onClick={() => setShowRfidModal(true)}
+              onClick={handleOpenRfidModal}
               disabled={saving}
             >
               <Wifi className="w-3.5 h-3.5 mr-1" /> Cấp thẻ RFID
@@ -393,12 +410,30 @@ export default function ApplicationReviewPanel({ application, onClose, onRefresh
           </DialogHeader>
           <div className="space-y-4 py-2 text-xs font-semibold">
             <div>
-              <label className="block text-slate-500 mb-1.5">Nhập mã thẻ RFID:</label>
-              <Input
-                placeholder="Vd: CARD001..."
-                value={rfidCardCode}
-                onChange={(e) => setRfidCardCode(e.target.value)}
-              />
+              <label className="block text-slate-500 mb-1.5">Chọn thẻ RFID trống:</label>
+              {loadingCards ? (
+                <div className="flex items-center gap-2 py-2 text-slate-400">
+                  <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
+                  Đang tải danh sách thẻ...
+                </div>
+              ) : availableCards.length === 0 ? (
+                <div className="text-rose-500 py-2 font-bold">
+                  Không còn thẻ xe nào trống! Hãy thêm thẻ mới trong mục Quản lý thẻ.
+                </div>
+              ) : (
+                <Select value={rfidCardCode} onValueChange={setRfidCardCode}>
+                  <SelectTrigger className="w-full text-xs font-bold bg-white border-slate-200">
+                    <SelectValue placeholder="Chọn một thẻ xe..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableCards.map((card) => (
+                      <SelectItem key={card.id} value={card.cardNumber || card.code || ""}>
+                        Thẻ {card.cardNumber || card.code} ({card.note || "Không có ghi chú"})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
           <DialogFooter>
@@ -408,7 +443,7 @@ export default function ApplicationReviewPanel({ application, onClose, onRefresh
             <Button
               className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
               onClick={handleAssignRfid}
-              disabled={!rfidCardCode.trim() || saving}
+              disabled={!rfidCardCode.trim() || saving || loadingCards}
             >
               <Wifi className="w-3.5 h-3.5 mr-1" /> Kích hoạt vé tháng
             </Button>

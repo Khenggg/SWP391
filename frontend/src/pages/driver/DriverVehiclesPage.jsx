@@ -11,6 +11,7 @@ import ApplicationFormDialog from "../../components/driver/vehicles/ApplicationF
 import ApplicationDetailDialog from "../../components/driver/vehicles/ApplicationDetailDialog";
 import ApplicationTable from "../../components/driver/vehicles/ApplicationTable";
 import ActiveVehiclesSection from "../../components/driver/vehicles/ActiveVehiclesSection";
+import PayOSPaymentModal from "../../components/driver/vehicles/PayOSPaymentModal";
 
 // ── Shared Helpers ────────────────────────────────────────────────────────────
 
@@ -79,6 +80,7 @@ export default function DriverVehiclesPage() {
   // Dialogs
   const [showCreate, setShowCreate] = useState(false);
   const [detailTarget, setDetailTarget] = useState(null);
+  const [payTarget, setPayTarget] = useState(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -214,6 +216,7 @@ export default function DriverVehiclesPage() {
         setDetailTarget={setDetailTarget}
         formatDate={formatDate}
         getStatusBadge={getStatusBadge}
+        onPayClick={(app) => setPayTarget(app)}
       />
 
       {/* Dialog Components */}
@@ -228,6 +231,16 @@ export default function DriverVehiclesPage() {
         onClose={() => setDetailTarget(null)}
         application={detailTarget}
         getStatusBadge={getStatusBadge}
+      />
+
+      <PayOSPaymentModal
+        open={!!payTarget}
+        onClose={() => setPayTarget(null)}
+        application={payTarget}
+        onPaymentSuccess={async () => {
+          setPayTarget(null);
+          await fetchData();
+        }}
       />
     </div>
   );

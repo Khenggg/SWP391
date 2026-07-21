@@ -26,6 +26,7 @@ export default function ApplicationTable({
   setDetailTarget,
   formatDate,
   getStatusBadge,
+  onPayClick,
 }) {
   if (loading) {
     return (
@@ -80,7 +81,7 @@ export default function ApplicationTable({
                 <LicensePlate plate={app.vehiclePlateNumber} size="sm" />
               </TableCell>
               <TableCell className="py-4 px-6 font-bold text-slate-700">
-                {app.vehicleTypeName === "Ô Tô" ? "🚗 Ô tô" : "🏍️ Xe máy"}
+                {app.vehicleTypeName || "—"}
               </TableCell>
               <TableCell className="py-4 px-6 text-slate-500">
                 {formatDate(app.startDate)}
@@ -92,14 +93,25 @@ export default function ApplicationTable({
                 {getStatusBadge(app.status)}
               </TableCell>
               <TableCell className="py-4 px-6 text-right">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-[11px] font-bold border-indigo-200 text-indigo-600 hover:bg-indigo-50 px-3 py-1 rounded-lg"
-                  onClick={() => setDetailTarget(app)}
-                >
-                  Xem chi tiết
-                </Button>
+                <div className="flex justify-end items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-[11px] font-bold border-indigo-200 text-indigo-600 hover:bg-indigo-50 px-3 py-1 rounded-lg"
+                    onClick={() => setDetailTarget(app)}
+                  >
+                    Xem chi tiết
+                  </Button>
+                  {app.status === "APPROVED_AWAITING_PAYMENT" && onPayClick && (
+                    <Button
+                      size="sm"
+                      className="text-[11px] font-black bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-lg border-0 shadow-sm transition"
+                      onClick={() => onPayClick(app)}
+                    >
+                      Thanh toán
+                    </Button>
+                  )}
+                </div>
               </TableCell>
             </TableRow>
           ))}
