@@ -41,22 +41,36 @@ export default function HistoryList({ history, formatDate, formatDateTime }) {
               </TableRow>
             ) : (
               recentHistory.map((h, idx) => {
-                const isPaidOrCompleted = h.status === "COMPLETED" || h.paymentStatus === "PAID";
+                const isPaid = h.paymentStatus === "PAID";
+                const isCompleted = h.status === "COMPLETED";
                 const isCancelled = h.status === "CANCELLED";
+                const isExpired = h.status === "EXPIRED";
+                const isConfirmed = h.status === "CONFIRMED";
+                const isPending = h.status === "PENDING";
 
-                const statusColor = isPaidOrCompleted
-                  ? "bg-emerald-50 text-emerald-600 border-emerald-200"
-                  : isCancelled
-                    ? "bg-red-50 text-red-600 border-red-200"
-                    : "bg-amber-50 text-amber-600 border-amber-200";
+                const statusColor =
+                  isPaid || isCompleted
+                    ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+                    : isConfirmed
+                      ? "bg-blue-50 text-blue-600 border-blue-200"
+                      : isCancelled
+                        ? "bg-red-50 text-red-600 border-red-200"
+                        : isExpired
+                          ? "bg-slate-100 text-slate-500 border-slate-200"
+                          : "bg-amber-50 text-amber-600 border-amber-200";
 
-                const statusText = isPaidOrCompleted
-                  ? "Đã thanh toán"
-                  : isCancelled
-                    ? "Đã hủy"
-                    : h.status === "CONFIRMED"
+                const statusText =
+                  isPaid || isCompleted
+                    ? "Đã thanh toán"
+                    : isConfirmed
                       ? "Đã xác nhận"
-                      : "Đang chờ";
+                      : isCancelled
+                        ? "Đã hủy"
+                        : isExpired
+                          ? "Hết hạn"
+                          : isPending
+                            ? "Đang chờ"
+                            : h.status || "Không xác định";
 
                 return (
                   <TableRow key={idx} className="hover:bg-slate-50 transition-colors">
