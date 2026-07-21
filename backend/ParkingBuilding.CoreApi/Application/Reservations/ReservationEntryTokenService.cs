@@ -23,14 +23,18 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
         {
             var isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
             var secretKey = _configuration["RESERVATION_ENTRY_TOKEN_SECRET"]
-                ?? _configuration["ReservationEntryToken:Secret"];
+                ?? _configuration["ReservationEntryToken:Secret"]
+                // Render provisions JWT_SECRET for the Core API. Reservation-entry
+                // tokens use a distinct issuer and audience, so this is a safe
+                // fallback when a separate signing key has not been configured.
+                ?? _configuration["JWT_SECRET"]
+                ?? _configuration["Jwt:Secret"];
 
             if (string.IsNullOrEmpty(secretKey))
             {
                 if (isDevelopment)
                 {
-                    secretKey = _configuration["Jwt:Secret"]
-                        ?? "DEVELOPMENT_SECRET_KEY_FOR_LOCAL_TESTING_ONLY_2026_SWP391_RESERVATION";
+                    secretKey = "DEVELOPMENT_SECRET_KEY_FOR_LOCAL_TESTING_ONLY_2026_SWP391_RESERVATION";
                 }
                 else
                 {
