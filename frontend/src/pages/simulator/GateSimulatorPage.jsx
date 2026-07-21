@@ -8,6 +8,7 @@ import {
   RadioTower,
   RotateCcw,
   Send,
+  Sparkles,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -438,6 +439,40 @@ export default function GateSimulatorPage() {
 
       <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
         <div className="flex min-w-0 flex-col gap-6">
+          <Card className="app-card border-blue-200 bg-blue-50/40">
+            <CardHeader className="py-3">
+              <CardTitle className="text-sm font-bold flex items-center gap-2 text-blue-900">
+                <Sparkles className="size-4 text-blue-600 shrink-0" />
+                Mẫu test nhanh 1-Click (Presets)
+              </CardTitle>
+              <CardDescription className="text-xs text-blue-700">
+                Bấm vào một mẫu bên dưới để tự động chọn đúng Thẻ, Biển số và Cổng từ Database:
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {presets.map((preset, index) => (
+                  <Button
+                    key={index}
+                    type="button"
+                    variant="outline"
+                    className="flex flex-col items-start justify-center h-auto py-2 px-3 bg-white hover:bg-blue-100 hover:border-blue-300 border-blue-200 text-left transition-all shadow-sm rounded-lg"
+                    onClick={() => {
+                      setForm((current) => ({
+                        ...current,
+                        ...preset.values,
+                      }));
+                      toast.success(`Đã chọn mẫu "${preset.label}". Bấm "Send sang Staff UI" để gửi.`);
+                    }}
+                  >
+                    <span className="font-bold text-xs text-blue-950">{preset.label}</span>
+                    <span className="text-[10px] text-slate-500 font-normal leading-tight mt-0.5">{preset.description}</span>
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="app-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
