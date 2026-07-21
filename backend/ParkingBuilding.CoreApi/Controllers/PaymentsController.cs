@@ -55,9 +55,22 @@ namespace ParkingBuilding.CoreApi.Controllers
             }
             else if (!string.IsNullOrWhiteSpace(request.CardCode))
             {
-                var cleanCode = request.CardCode.Trim().ToLower();
+                var cleanCode = request.CardCode.Trim();
+                if (cleanCode.Contains("/"))
+                {
+                    var parts = cleanCode.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                    cleanCode = parts.Last().Split('?')[0].Trim();
+                }
+
+                var lowerClean = cleanCode.ToLower();
+                var normalizedCode = lowerClean.Replace("-", "").Replace(" ", "");
+
                 var card = await _context.ParkingCards
-                    .FirstOrDefaultAsync(c => c.CardNumber.ToLower() == cleanCode || c.QrToken == request.CardCode.Trim() || c.Id.ToString() == request.CardCode.Trim());
+                    .FirstOrDefaultAsync(c => c.CardNumber.ToLower() == lowerClean ||
+                                              c.CardNumber.ToLower().Replace("-", "").Replace(" ", "") == normalizedCode ||
+                                              c.QrToken == cleanCode ||
+                                              c.QrToken.ToLower().Contains(lowerClean) ||
+                                              c.Id.ToString() == cleanCode);
 
                 if (card != null && card.Status == CardStatus.IN_USE && card.CurrentSessionId.HasValue)
                 {

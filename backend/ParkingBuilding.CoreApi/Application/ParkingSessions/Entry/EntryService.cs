@@ -912,6 +912,13 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                 throw new BusinessException(ErrorCodes.QrTokenRequired);
 
             var cleanToken = qrToken.Trim();
+            if (cleanToken.Contains("/"))
+            {
+                var parts = cleanToken.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                cleanToken = parts.Last().Split('?')[0].Trim();
+            }
+
+            var normalizedToken = cleanToken.ToLower().Replace("-", "").Replace(" ", "");
 
             var strategy = _dbContext.Database.CreateExecutionStrategy();
 
@@ -942,7 +949,9 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                     var card = await _dbContext.ParkingCards
                         .FirstOrDefaultAsync(c => c.QrToken == cleanToken ||
                                                   c.CardNumber.ToLower() == cleanToken.ToLower() ||
-                                                  c.Id.ToString() == cleanToken);
+                                                  c.CardNumber.ToLower().Replace("-", "").Replace(" ", "") == normalizedToken ||
+                                                  c.Id.ToString() == cleanToken ||
+                                                  c.QrToken.ToLower().Contains(cleanToken.ToLower()));
 
                     if (card == null)
                         throw new BusinessException(ErrorCodes.CardQrNotFound, StatusCodes.Status404NotFound);
