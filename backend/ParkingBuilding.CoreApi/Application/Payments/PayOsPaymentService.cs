@@ -19,6 +19,9 @@ namespace ParkingBuilding.CoreApi.Application.Payments;
 public class PayOsPaymentService : IPayOsPaymentService
 {
     private const string Provider = "PAYOS";
+    private const long LegacyOrderCodeBase = 900_000_000_000;
+    private const long MaximumPayOsOrderCode = 999_999_999_999;
+    private static long _lastGeneratedOrderCode;
     private readonly ParkingDbContext _context;
     private readonly IAuditWriterService _auditWriter;
     private readonly PayOsOptions _options;
@@ -90,7 +93,7 @@ public class PayOsPaymentService : IPayOsPaymentService
             throw new BusinessException(ErrorCodes.PaymentMustBePersisted);
         }
 
-        var orderCode = CreateOrderCode(payment.Id);
+        var orderCode = CreateOrderCode();
         var amount = ToPayOsAmount(payment.TotalAmount);
         var expiredAt = payment.ExpiredAt ?? reservation.ExpiresAt;
 
@@ -192,7 +195,7 @@ public class PayOsPaymentService : IPayOsPaymentService
             throw new BusinessException(ErrorCodes.PaymentMustBePersisted);
         }
 
-        var orderCode = CreateOrderCode(payment.Id);
+        var orderCode = CreateOrderCode();
         var amount = ToPayOsAmount(payment.TotalAmount);
         var expiredAt = payment.ExpiredAt ?? DateTimeOffset.UtcNow.AddMinutes(15);
 
@@ -292,7 +295,7 @@ public class PayOsPaymentService : IPayOsPaymentService
         if (payment.Id <= 0)
             throw new BusinessException(ErrorCodes.PaymentMustBePersisted);
 
-        var orderCode = CreateOrderCode(payment.Id);
+        var orderCode = CreateOrderCode();
         var amount = ToPayOsAmount(payment.TotalAmount);
         var expiredAt = payment.ExpiredAt ?? DateTimeOffset.UtcNow.AddMinutes(15);
 
@@ -766,7 +769,7 @@ public class PayOsPaymentService : IPayOsPaymentService
             return false;
         }
 
-        var orderCode = CreateOrderCode(payment.Id);
+        var orderCode = ResolveOrderCode(payment);
         PaymentLink providerPayment;
         try
         {
@@ -997,28 +1000,50 @@ public class PayOsPaymentService : IPayOsPaymentService
 
     private async Task<Payment?> FindPaymentAsync(WebhookData data, CancellationToken cancellationToken)
     {
-        long paymentId = data.OrderCode - 900_000_000_000;
-        if (paymentId > 0)
+        var paymentByProviderReference = await _context.Payments
+            .Include(p => p.Reservation)
+            .Include(p => p.ParkingSession)
+            .Include(p => p.MonthlyPassApplication)
+            .FirstOrDefaultAsync(p =>
+                p.Provider == Provider
+                && (p.ProviderTransactionId == data.PaymentLinkId
+                    || p.ProviderTransactionId == data.OrderCode.ToString()),
+                cancellationToken);
+
+        if (paymentByProviderReference != null)
+        {
+            return paymentByProviderReference;
+        }
+
+        var legacyPaymentId = data.OrderCode - LegacyOrderCodeBase;
+        if (data.OrderCode >= LegacyOrderCodeBase && legacyPaymentId > 0)
         {
             var payment = await _context.Payments
                 .Include(p => p.Reservation)
                 .Include(p => p.ParkingSession)
                 .Include(p => p.MonthlyPassApplication)
-                .FirstOrDefaultAsync(p => p.Id == paymentId, cancellationToken);
+                .FirstOrDefaultAsync(p => p.Id == legacyPaymentId, cancellationToken);
             if (payment != null)
             {
                 return payment;
             }
         }
 
-        // Fallback: search by ProviderTransactionId
-        return await _context.Payments
+        // Fallback for new globally-generated order codes. The provider includes
+        // paymentLinkId in normal webhooks, but orderCode remains the durable
+        // correlation key when a retry payload omits that identifier.
+        var providerPayments = await _context.Payments
             .Include(p => p.Reservation)
             .Include(p => p.ParkingSession)
-            .FirstOrDefaultAsync(p =>
-                p.Provider == Provider
-                && (p.ProviderTransactionId == data.PaymentLinkId || p.ProviderTransactionId == data.OrderCode.ToString()),
-                cancellationToken);
+            .Include(p => p.MonthlyPassApplication)
+            .Where(p => p.Provider == Provider && p.GatewayPayload != null)
+            .ToListAsync(cancellationToken);
+
+        return providerPayments.FirstOrDefault(p =>
+            string.Equals(
+                TryReadGatewayString(p.GatewayPayload, "orderCode"),
+                data.OrderCode.ToString(),
+                StringComparison.Ordinal));
     }
 
     private static PayOsPaymentResponse CreateLocalPlaceholderResponse(
@@ -1067,8 +1092,36 @@ public class PayOsPaymentService : IPayOsPaymentService
         };
     }
 
-    private static long CreateOrderCode(long paymentId)
-        => 900_000_000_000 + paymentId;
+    private static long CreateOrderCode()
+    {
+        // payOS requires an integer order code that is unique within the payment
+        // channel. Database identity values can restart after a reset, while a
+        // timestamp-derived value remains distinct from earlier orders.
+        var timestampCandidate = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() / 10;
+
+        while (true)
+        {
+            var previous = Interlocked.Read(ref _lastGeneratedOrderCode);
+            var next = Math.Max(timestampCandidate, previous + 1);
+            if (next > MaximumPayOsOrderCode)
+            {
+                throw new BusinessException(ErrorCodes.PayOsCreateLinkFailed);
+            }
+
+            if (Interlocked.CompareExchange(ref _lastGeneratedOrderCode, next, previous) == previous)
+            {
+                return next;
+            }
+        }
+    }
+
+    private static long ResolveOrderCode(Payment payment)
+    {
+        var persistedOrderCode = TryReadGatewayString(payment.GatewayPayload, "orderCode");
+        return long.TryParse(persistedOrderCode, out var orderCode) && orderCode > 0
+            ? orderCode
+            : LegacyOrderCodeBase + payment.Id;
+    }
 
     private static long ToPayOsAmount(decimal amount)
         => decimal.ToInt64(decimal.Round(amount, 0, MidpointRounding.AwayFromZero));
