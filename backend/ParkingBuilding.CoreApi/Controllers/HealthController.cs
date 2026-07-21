@@ -365,6 +365,25 @@ namespace ParkingBuilding.CoreApi.Controllers
                         AND monthly_pass_id IS NULL
                     )
                 );
+
+                -- Reset all sequences to match max ID
+                DO $seq$
+                DECLARE
+                    r RECORD;
+                    seq_name TEXT;
+                BEGIN
+                    FOR r IN
+                        SELECT table_name, column_name
+                        FROM information_schema.columns
+                        WHERE table_schema = 'public' 
+                          AND column_default LIKE 'nextval%'
+                    LOOP
+                        seq_name := pg_get_serial_sequence(r.table_name, r.column_name);
+                        IF seq_name IS NOT NULL THEN
+                            EXECUTE 'SELECT setval(''' || seq_name || ''', COALESCE((SELECT max(' || quote_ident(r.column_name) || ') FROM ' || quote_ident(r.table_name) || '), 1), true)';
+                        END IF;
+                    END LOOP;
+                END $seq$;
             ");
 
             var constraints = new System.Collections.Generic.List<string>();
