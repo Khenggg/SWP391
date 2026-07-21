@@ -1,10 +1,11 @@
 import axios from "axios";
+import { apiRequestTimeout } from "./requestTimeout";
 import { clearAuthStorage, refreshAccessToken } from "../services/sessionService";
 
 // Khởi tạo instance Axios cho Support API Service (Spring Boot)
 const supportAxiosClient = axios.create({
   baseURL: import.meta.env.VITE_SUPPORT_API_URL || "/api/support",
-  timeout: 10000,
+  timeout: apiRequestTimeout,
   headers: {
     "Content-Type": "application/json",
   },

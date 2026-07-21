@@ -1,5 +1,5 @@
 server:
-  port: ${SERVER_PORT:8081}
+  port: ${PORT:${SERVER_PORT:8081}}
   error:
     include-message: always
     include-stacktrace: always
@@ -24,4 +24,7 @@ spring:
 jwt:
   issuer: ${JWT_ISSUER:ParkingBuilding.CoreApi}
   audience: ${JWT_AUDIENCE:ParkingBuilding.Frontend}
-  secret: ${JWT_SECRET:DEVELOPMENT_SECRET_KEY_FOR_LOCAL_TESTING_ONLY_2026_SWP391}
+  secret: ${JWT_SECRET}
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
