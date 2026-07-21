@@ -163,28 +163,33 @@ export default function StaffEntryPage() {
       if (result.entryCardType === "MONTHLY") {
         setReservationCheck(null);
         setSuggestion(null);
-        setForm((current) => ({
-          ...current,
-          entryMode: "MONTHLY",
-          entryGateId: String(entryGateId),
-          noPlate: false,
-          vehicleDescription: "",
-          licensePlate: current.licensePlate || result.plateNumber || "",
-          vehicleTypeId: result.vehicleTypeId
-            ? String(result.vehicleTypeId)
-            : current.vehicleTypeId,
-        }));
+        setForm((current) => {
+          const effectivePlate = current.licensePlate || current.detectedPlateNumber || "";
+          const normInput = String(effectivePlate).replace(/[^A-Z0-9]/gi, "").toUpperCase();
+          const normRegistered = String(result.plateNumber || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
+          const isMismatch = Boolean(normInput && normRegistered && normInput !== normRegistered);
 
-        const normInput = String(form.licensePlate || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
-        const normRegistered = String(result.plateNumber || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
-        if (normInput && normRegistered && normInput !== normRegistered) {
-          toast.error(
-            `⚠️ Lệch biển số! Biển số quét (${form.licensePlate}) không khớp biển số đăng ký (${result.plateNumber})`,
-            { duration: 5000 }
-          );
-        } else {
-          toast.success("Đã xác định thẻ tháng (Cư dân) hợp lệ.");
-        }
+          if (isMismatch) {
+            toast.error(
+              `⚠️ Lệch biển số! Biển quét (${effectivePlate}) KHÔNG KHỚP với biển đăng ký vé tháng (${result.plateNumber})`,
+              { duration: 6000 }
+            );
+          } else {
+            toast.success("Đã xác định thẻ tháng (Cư dân) hợp lệ.");
+          }
+
+          return {
+            ...current,
+            entryMode: "MONTHLY",
+            entryGateId: String(entryGateId),
+            noPlate: false,
+            vehicleDescription: "",
+            licensePlate: effectivePlate,
+            vehicleTypeId: result.vehicleTypeId
+              ? String(result.vehicleTypeId)
+              : current.vehicleTypeId,
+          };
+        });
       } else {
         setForm((current) => ({
           ...current,
@@ -393,14 +398,15 @@ export default function StaffEntryPage() {
   );
 
   const isMonthlyPlateMismatch = useMemo(() => {
-    if (form.entryMode !== "MONTHLY" || !cardCheck?.plateNumber || !form.licensePlate) {
+    const inputPlate = form.licensePlate || form.detectedPlateNumber || "";
+    if (form.entryMode !== "MONTHLY" || !cardCheck?.plateNumber || !inputPlate) {
       return false;
     }
 
-    const normInput = String(form.licensePlate).replace(/[^A-Z0-9]/gi, "").toUpperCase();
+    const normInput = String(inputPlate).replace(/[^A-Z0-9]/gi, "").toUpperCase();
     const normRegistered = String(cardCheck.plateNumber).replace(/[^A-Z0-9]/gi, "").toUpperCase();
-    return normInput !== normRegistered;
-  }, [cardCheck, form.entryMode, form.licensePlate]);
+    return Boolean(normInput && normRegistered && normInput !== normRegistered);
+  }, [cardCheck, form.entryMode, form.licensePlate, form.detectedPlateNumber]);
 
   const canSubmit = useMemo(() => {
     if (!normalizeText(form.cardCode)) return false;
