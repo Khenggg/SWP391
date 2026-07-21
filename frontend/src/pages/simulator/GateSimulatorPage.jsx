@@ -672,24 +672,43 @@ function ModeButton({ active, children, onClick }) {
 }
 
 function ImageUploadField({ label, image, onChange }) {
+  const inputRef = React.useRef(null);
+
+  const handleBoxClick = () => {
+    if (inputRef.current) {
+      inputRef.current.click();
+    }
+  };
+
   return (
     <div className="rounded-xl border bg-muted/30 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="text-xs font-black uppercase tracking-wide text-muted-foreground">{label}</span>
         <Upload className="size-4 text-muted-foreground" />
       </div>
-      <div className="flex aspect-video items-center justify-center overflow-hidden rounded-lg border bg-background">
+      <div 
+        className="flex aspect-video items-center justify-center overflow-hidden rounded-lg border bg-background cursor-pointer hover:bg-muted/50 transition-colors"
+        onClick={handleBoxClick}
+      >
         {image ? (
           <img src={image} alt={label} width="320" height="180" className="h-full w-full object-cover" />
         ) : (
-          <span className="text-xs font-bold text-muted-foreground">Chưa có ảnh</span>
+          <span className="text-xs font-bold text-muted-foreground flex flex-col items-center gap-2">
+            <Upload className="size-5" />
+            Bấm để chọn ảnh
+          </span>
         )}
       </div>
       <Input
+        ref={inputRef}
         type="file"
         accept="image/png,image/jpeg,image/webp"
-        onChange={(event) => onChange(event.target.files?.[0])}
-        className="mt-3"
+        onChange={(event) => {
+          onChange(event.target.files?.[0]);
+          // Reset value to allow uploading the same file again if needed
+          if (event.target) event.target.value = '';
+        }}
+        className="hidden"
       />
     </div>
   );
