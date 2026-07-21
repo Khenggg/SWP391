@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using ParkingBuilding.CoreApi.Application.LostCards;
@@ -23,6 +25,33 @@ public class LostCardController : BaseApiController
         var staffId = GetCurrentUserIdOrThrow();
         var result = await _lostCardService.CreateLostCardCaseAsync(request, staffId);
         return CreatedSuccess(result, "Tao ho so mat the thanh cong.");
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetList(
+        [FromQuery] string? status,
+        [FromQuery] string? keyword,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        var (items, totalItems, totalPages) = await _lostCardService.GetListAsync(status, keyword, page, pageSize);
+        return Success(new { items, page, pageSize, totalItems, totalPages }, "Get lost card cases successfully.");
+    }
+
+    [HttpGet("{id:long}")]
+    public async Task<IActionResult> GetDetail(long id)
+    {
+        var result = await _lostCardService.GetDetailAsync(id);
+        return Success(result, "Get lost card case detail successfully.");
+    }
+
+    [HttpPut("{id:long}/process")]
+    [Authorize(Roles = "MANAGER,ADMIN")]
+    public async Task<IActionResult> ProcessLostCardCase(long id, [FromBody] ProcessLostCardRequest request)
+    {
+        var userId = GetCurrentUserIdOrThrow();
+        var result = await _lostCardService.ProcessLostCardCaseAsync(id, request, userId);
+        return Success(result, "Lost card case processed successfully.");
     }
 
     private long GetCurrentUserIdOrThrow()

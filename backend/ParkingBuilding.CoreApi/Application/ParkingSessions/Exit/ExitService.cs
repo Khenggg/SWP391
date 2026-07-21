@@ -62,6 +62,30 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
             return session;
         }
 
+        public async Task<ParkingSession> FindActiveSessionByPlateAsync(string plateNumber, long vehicleTypeId)
+        {
+            if (string.IsNullOrWhiteSpace(plateNumber))
+            {
+                throw new BusinessException(ErrorCodes.LicensePlateRequired);
+            }
+
+            var normalizedPlate = NormalizePlate(plateNumber);
+
+            var session = await _context.ParkingSessions
+                .Include(s => s.ParkingCard)
+                .Include(s => s.PricingRule)
+                .Include(s => s.Reservation)
+                .FirstOrDefaultAsync(s => s.Status == "ACTIVE"
+                    && s.VehicleTypeId == vehicleTypeId
+                    && NormalizePlate(s.PlateNumber) == normalizedPlate);
+
+            if (session == null)
+            {
+                throw new BusinessException(ErrorCodes.SessionNotFound, StatusCodes.Status404NotFound);
+            }
+
+            return session;
+        }
         public async Task<ExitResponse> CompleteCasualExitAsync(long sessionId, ExitRequest request, long staffId)
         {
             var strategy = _context.Database.CreateExecutionStrategy();
@@ -137,7 +161,12 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                     }
 
                     var exitTime = request.ExitTime ?? DateTimeOffset.UtcNow;
-                    var feeResult = await _feeCalculationService.CalculateFeeAsync(session.Id, exitTime, false);
+                                        // Check if there is an APPROVED lost card case for this session
+                    var hasApprovedLostCard = await _context.LostCardCases
+                        .AnyAsync(lc => lc.SessionId == session.Id && lc.Status == "APPROVED");
+
+                    var includeLostCardFee = hasApprovedLostCard;
+                    var feeResult = await _feeCalculationService.CalculateFeeAsync(session.Id, exitTime, includeLostCardFee);
 
                     // Validate payment
                     if (session.PaymentStatus != "PAID")

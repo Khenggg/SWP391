@@ -174,4 +174,61 @@ public class LostCardService : ILostCardService
             }
         });
     }
+    /// <summary>
+    /// Lấy danh sách yêu cầu báo mất thẻ (Hỗ trợ phân trang và lọc)
+    /// </summary>
+    public async Task<(List<LostCardCase> Items, int TotalItems, int TotalPages)> GetListAsync(
+        string? status, 
+        string? keyword, 
+        int page, 
+        int pageSize)
+    {
+        var query = _context.LostCardCases
+            .Include(lc => lc.ParkingCard)
+            .Include(lc => lc.ParkingSession)
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            var upperStatus = status.ToUpperInvariant();
+            query = query.Where(lc => lc.Status == upperStatus);
+        }
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            query = query.Where(lc => lc.ReporterName.Contains(keyword) || 
+                                     lc.Phone.Contains(keyword));
+        }
+
+        int totalItems = await query.CountAsync();
+        int totalPages = (int)Math.Ceiling((double)totalItems / (pageSize <= 0 ? 10 : pageSize));
+
+        var items = await query
+            .OrderByDescending(lc => lc.CreatedAt)
+            .Skip((Math.Max(1, page) - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalItems, totalPages);
+    }
+
+    /// <summary>
+    /// Lấy thông tin chi tiết của 1 case báo mất thẻ
+    /// </summary>
+    public async Task<LostCardCase> GetDetailAsync(long caseId)
+    {
+        var lostCardCase = await _context.LostCardCases
+            .Include(lc => lc.ParkingCard)
+            .Include(lc => lc.ParkingSession)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(lc => lc.Id == caseId);
+
+        if (lostCardCase == null)
+        {
+            throw new BusinessException(ErrorCodes.LostCardCaseNotFound, StatusCodes.Status404NotFound);
+        }
+
+        return lostCardCase;
+    }
 }
