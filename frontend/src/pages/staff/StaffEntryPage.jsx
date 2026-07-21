@@ -138,6 +138,7 @@ export default function StaffEntryPage() {
       cardCode: event.cardCode || current.cardCode,
       licensePlate: event.detectedPlate || current.licensePlate,
       detectedPlateNumber: event.detectedPlate || current.detectedPlateNumber,
+      vehicleTypeId: event.vehicleTypeId || current.vehicleTypeId,
       ocrConfidence:
         event.plateConfidence != null
           ? String(event.plateConfidence)

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   Camera,
   CarFront,
@@ -29,6 +29,8 @@ import {
   normalizeGateScanEvent,
   sendGateScanEvent,
 } from "@/services/gateSimulatorBus";
+import { parkingService } from "@/services/parkingService";
+import { staffSessionService } from "@/services/staffSessionService";
 
 const MAX_SOURCE_IMAGE_BYTES = 8 * 1024 * 1024;
 const MAX_RESIZED_IMAGE_BYTES = 900 * 1024;
@@ -41,13 +43,13 @@ const IMAGE_MIN_QUALITY = 0.5;
 const defaultForm = {
   gateType: "ENTRY",
   scanType: "CARD",
-  gateCode: "GATE-IN-01",
-  cardCode: "CARD-0001",
+  gateCode: "",
+  cardCode: "",
   bookingId: "",
   qrToken: "",
-  detectedPlate: "51K-24680",
-  vehicleTypeName: "Xe Máy",
-  plateConfidence: 97,
+  detectedPlate: "",
+  vehicleTypeId: "",
+  plateConfidence: 100,
   plateImageDataUrl: "",
   vehicleImageDataUrl: "",
   driverImageDataUrl: "",
@@ -68,16 +70,12 @@ function withScanTypeDefaults(form, scanType, gateType = form.gateType) {
 
   if (scanType === "BOOKING_QR") {
     next.gateType = "ENTRY";
-    next.gateCode = next.gateCode?.startsWith("GATE-IN") ? next.gateCode : "GATE-IN-02";
     next.cardCode = "";
-    next.bookingId = next.bookingId || "BK-100001";
-    next.qrToken = "";
   }
 
   if (scanType === "CARD") {
-    next.cardCode = next.cardCode || (gateType === "ENTRY" ? "CARD-0001" : "CARD-0002");
     next.bookingId = "";
-    next.qrToken = gateType === "EXIT" ? next.qrToken || "qr-card-0002" : "";
+    if (gateType === "ENTRY") next.qrToken = "";
   }
 
   if (scanType === "PLATE_ONLY") {
@@ -344,6 +342,37 @@ async function resizeImageFile(file) {
 export default function GateSimulatorPage() {
   const [form, setForm] = useState(defaultForm);
   const [lastSent, setLastSent] = useState(null);
+  const [vehicleTypes, setVehicleTypes] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  useEffect(() => {
+    parkingService.getVehicleTypes().then((res) => {
+      setVehicleTypes(res);
+      if (res.length > 0 && !form.vehicleTypeId) {
+        setForm(f => ({ ...f, vehicleTypeId: String(res[0].id) }));
+      }
+    });
+  }, []);
+
+  const handleSearchCard = async (cardCode) => {
+    if (!cardCode || form.gateType !== "EXIT") return;
+    setIsSearching(true);
+    try {
+      const session = await staffSessionService.getSessionByCardCode(cardCode);
+      if (session) {
+        setForm(f => ({
+          ...f,
+          detectedPlate: session.licensePlate || "",
+          vehicleTypeId: session.vehicleTypeId ? String(session.vehicleTypeId) : f.vehicleTypeId
+        }));
+        toast.success("Đã tìm thấy phiên gửi xe theo mã thẻ.");
+      }
+    } catch (error) {
+      toast.error(error.message || "Không tìm thấy phiên gửi xe.");
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   const scanOptions = form.gateType === "ENTRY"
     ? ["CARD", "BOOKING_QR"]
@@ -435,14 +464,6 @@ export default function GateSimulatorPage() {
             Mô phỏng đầu đọc thẻ, QR và camera OCR để đẩy dữ liệu sang màn hình Staff Entry/Exit đang mở cùng domain.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {presets.map((preset) => (
-            <Button key={preset.label} type="button" variant="outline" onClick={() => applyPreset(preset)}>
-              <RotateCcw data-icon="inline-start" />
-              {preset.label}
-            </Button>
-          ))}
-        </div>
       </div>
 
       <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
@@ -488,15 +509,16 @@ export default function GateSimulatorPage() {
                 </Field>
 
                 <Field label="Loại xe">
-                  <Select value={form.vehicleTypeName} onValueChange={(value) => updateForm("vehicleTypeName", value)}>
+                  <Select value={form.vehicleTypeId} onValueChange={(value) => updateForm("vehicleTypeId", value)}>
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Xe Máy">Xe Máy</SelectItem>
-                      <SelectItem value="Ô Tô">Ô Tô</SelectItem>
-                      <SelectItem value="Xe Đạp">Xe Đạp</SelectItem>
-                      <SelectItem value="Xe Vận Chuyển">Xe Vận Chuyển</SelectItem>
+                      {vehicleTypes.map((vt) => (
+                        <SelectItem key={vt.id} value={String(vt.id)}>
+                          {vt.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </Field>
@@ -505,7 +527,8 @@ export default function GateSimulatorPage() {
                   <Input
                     value={form.cardCode}
                     onChange={(event) => updateForm("cardCode", event.target.value.toUpperCase())}
-                    placeholder={form.scanType === "BOOKING_QR" ? "Quet NFC o buoc sau" : "CARD-0002"}
+                    onBlur={(event) => handleSearchCard(event.target.value.toUpperCase())}
+                    placeholder={form.scanType === "BOOKING_QR" ? "Quét NFC ở bước sau" : ""}
                     disabled={form.scanType === "BOOKING_QR" || form.scanType === "PLATE_ONLY"}
                   />
                 </Field>
@@ -517,7 +540,7 @@ export default function GateSimulatorPage() {
                       const value = event.target.value;
                       updateForm(form.scanType === "BOOKING_QR" ? "bookingId" : "qrToken", value);
                     }}
-                    placeholder={form.scanType === "BOOKING_QR" ? "BK-100001" : "qr-card-0002"}
+                    placeholder={form.scanType === "BOOKING_QR" ? "BK-100001" : ""}
                   />
                 </Field>
 
@@ -525,7 +548,7 @@ export default function GateSimulatorPage() {
                   <Input
                     value={form.detectedPlate}
                     onChange={(event) => updateForm("detectedPlate", event.target.value.toUpperCase())}
-                    placeholder="51A-12345"
+                    placeholder=""
                   />
                 </Field>
 
@@ -699,14 +722,19 @@ function ImageUploadField({ label, image, onChange }) {
           </span>
         )}
       </div>
-      <Input
+      <input
         ref={inputRef}
         type="file"
         accept="image/png,image/jpeg,image/webp"
         onChange={(event) => {
-          onChange(event.target.files?.[0]);
-          // Reset value to allow uploading the same file again if needed
-          if (event.target) event.target.value = '';
+          const file = event.target.files?.[0];
+          if (file) {
+            onChange(file);
+          }
+          // Delay resetting the input value so the browser doesn't invalidate the File object
+          setTimeout(() => {
+            if (event.target) event.target.value = '';
+          }, 1000);
         }}
         className="hidden"
       />

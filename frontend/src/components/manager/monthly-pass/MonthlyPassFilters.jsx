@@ -1,5 +1,5 @@
 import React from "react";
-import { Search, RefreshCw, Plus, Info, X } from "lucide-react";
+import { Search, RefreshCw, Info, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,7 +19,6 @@ export default function MonthlyPassFilters({
   vehicleTypes,
   onSearch,
   onReset,
-  onCreate
 }) {
   const [showAlert, setShowAlert] = React.useState(true);
 
@@ -87,9 +86,6 @@ export default function MonthlyPassFilters({
           </Button>
           <Button variant="outline" className="h-10 px-4 border-slate-200 text-slate-600" onClick={onReset}>
             <RefreshCw className="w-4 h-4 mr-2" /> Làm mới
-          </Button>
-          <Button variant="primary" className="bg-blue-600 hover:bg-blue-700 h-10 px-4 ml-2" onClick={onCreate}>
-            <Plus className="w-4 h-4 mr-2" /> Tạo vé tháng
           </Button>
         </div>
       </div>

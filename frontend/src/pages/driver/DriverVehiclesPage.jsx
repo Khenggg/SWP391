@@ -10,6 +10,7 @@ import { driverService } from "../../services/driverService";
 import ApplicationFormDialog from "../../components/driver/vehicles/ApplicationFormDialog";
 import ApplicationDetailDialog from "../../components/driver/vehicles/ApplicationDetailDialog";
 import ApplicationTable from "../../components/driver/vehicles/ApplicationTable";
+import ActiveVehiclesSection from "../../components/driver/vehicles/ActiveVehiclesSection";
 
 // ── Shared Helpers ────────────────────────────────────────────────────────────
 
@@ -60,6 +61,7 @@ const getStatusBadge = (status) => {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function DriverVehiclesPage() {
+  const [vehicles, setVehicles] = useState([]);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -78,29 +80,33 @@ export default function DriverVehiclesPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [detailTarget, setDetailTarget] = useState(null);
 
-  const fetchApplications = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const result = await driverService.getMonthlyPassApplications({
-        keyword,
-        status: filterStatus,
-        page,
-        pageSize: PAGE_SIZE,
-      });
-      setApplications(result.items);
-      setTotalPages(result.totalPages);
-      setTotalItems(result.totalItems);
+      const [vehiclesRes, appsRes] = await Promise.all([
+        import("../../services/vehicleService").then(m => m.vehicleService.getVehicles()),
+        driverService.getMonthlyPassApplications({
+          keyword,
+          status: filterStatus,
+          page,
+          pageSize: PAGE_SIZE,
+        })
+      ]);
+      setVehicles(vehiclesRes.items || []);
+      setApplications(appsRes.items);
+      setTotalPages(appsRes.totalPages);
+      setTotalItems(appsRes.totalItems);
     } catch (err) {
-      setError(err.message || "Không thể tải danh sách đơn đăng ký.");
+      setError(err.message || "Không thể tải dữ liệu.");
     } finally {
       setLoading(false);
     }
   }, [keyword, filterStatus, page]);
 
   useEffect(() => {
-    fetchApplications();
-  }, [fetchApplications]);
+    fetchData();
+  }, [fetchData]);
 
   const applyFilter = (setter) => (val) => {
     setter(val);
@@ -110,7 +116,7 @@ export default function DriverVehiclesPage() {
   const handleCreate = async (form) => {
     await driverService.submitMonthlyPassApplication(form);
     setPage(1);
-    await fetchApplications();
+    await fetchData();
   };
 
   return (
@@ -119,10 +125,10 @@ export default function DriverVehiclesPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
           <h2 className="text-2xl font-black text-slate-800 uppercase tracking-wide">
-            Đăng Ký Vé Tháng Cư Dân
+            Quản Lý Phương Tiện & Vé Tháng
           </h2>
           <p className="text-slate-500 text-sm font-semibold">
-            Danh sách đơn đăng ký gửi xe vé tháng. Xe của bạn chỉ được phép đỗ sau khi được duyệt.
+            Danh sách phương tiện và đơn đăng ký gửi xe vé tháng của bạn.
           </p>
         </div>
         <Button
@@ -133,6 +139,17 @@ export default function DriverVehiclesPage() {
           Đăng ký vé tháng
         </Button>
       </div>
+
+      {/* Active Vehicles Section */}
+      <ActiveVehiclesSection 
+        vehicles={vehicles}
+        loading={loading}
+        getStatusBadge={getStatusBadge}
+      />
+
+      <div className="border-t border-slate-200 my-8"></div>
+
+      <h3 className="text-lg font-bold text-slate-800">Lịch sử đăng ký vé tháng</h3>
 
       {/* Info warning card */}
       <Card className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex gap-3 text-xs text-slate-600 font-medium">
@@ -177,7 +194,7 @@ export default function DriverVehiclesPage() {
         <Button
           variant="outline"
           size="icon"
-          onClick={fetchApplications}
+          onClick={fetchData}
           title="Làm mới"
           className="shrink-0"
         >
