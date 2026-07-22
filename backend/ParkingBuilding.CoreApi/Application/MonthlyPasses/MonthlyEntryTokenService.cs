@@ -24,6 +24,7 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
             var isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
             var secretKey = _configuration["MONTHLY_ENTRY_TOKEN_SECRET"]
                 ?? _configuration["MonthlyEntryToken:Secret"]
+                ?? _configuration["JWT_SECRET"]
                 ?? _configuration["Jwt:Secret"];
 
             if (string.IsNullOrEmpty(secretKey))

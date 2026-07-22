@@ -22,9 +22,13 @@ export default function ActiveVehiclesSection({ vehicles, loading, getStatusBadg
                 </div>
                 <div className="text-xs font-semibold text-slate-500 mt-1 flex items-center gap-2">
                   <span>{v.vehicleType?.name || v.vehicleTypeName || v.vehicleType || "Không rõ"}</span>
-                  {v.approvalStatus === 'APPROVED' ? (
+                  {(v.hasMonthlyPass || v.monthlyPassId || v.isMonthlyPass) ? (
                     <span className="px-2 py-0.5 rounded text-[10px] bg-purple-100 text-purple-700 font-bold uppercase tracking-wider">
                       Vé Tháng
+                    </span>
+                  ) : v.approvalStatus === 'APPROVED' ? (
+                    <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-700 font-bold uppercase tracking-wider">
+                      Đã Duyệt
                     </span>
                   ) : v.approvalStatus === 'PENDING' ? (
                     <span className="px-2 py-0.5 rounded text-[10px] bg-amber-100 text-amber-700 font-bold uppercase tracking-wider">
