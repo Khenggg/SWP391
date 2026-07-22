@@ -223,6 +223,9 @@ export default function StaffExitPage() {
     }
   };
 
+  const [isPayosQrModalOpen, setIsPayosQrModalOpen] = useState(false);
+  const [payosQrString, setPayosQrString] = useState("");
+
   const handlePayOS = async () => {
     if (!session) return;
     const popup = window.open("", "_blank");
@@ -235,12 +238,15 @@ export default function StaffExitPage() {
       setIsLoading(true);
       const result = await staffSessionService.createOnlinePayment({ sessionId: session.sessionId, cardCode: session.cardCode });
       const url = result.paymentUrl || result.checkoutUrl;
-      if (url) {
-        setPayosPaymentUrl(url);
-        if (popup && !popup.closed) {
+      const qr = result.qrCode || url;
+      if (url || qr) {
+        setPayosPaymentUrl(url || "");
+        setPayosQrString(qr || url || "");
+        setIsPayosQrModalOpen(true);
+        if (popup && !popup.closed && url) {
           popup.location.href = url;
-        } else {
-          window.open(url, "_blank");
+        } else if (popup && !popup.closed) {
+          popup.close();
         }
         toast.success("Đã tạo QR PayOS. Chờ webhook xác minh thanh toán.");
       } else {
@@ -289,10 +295,50 @@ export default function StaffExitPage() {
             <ExitConfirmation plate={plate} setPlate={setPlate} session={session} hasMismatch={hasMismatch} mismatchCase={mismatchCase} handleCreateMismatchCase={handleCreateMismatchCase} isCreatingMismatch={isCreatingMismatch} currentTime={currentTime} staffName={currentUser?.fullName || currentUser?.username || "Nhân viên trực"} mismatchStatus={mismatchStatus} managerReason={managerReason} vehicleTypes={vehicleTypes} exitPlateImageUrl={exitPlateImageUrl} exitVehicleImageUrl={exitVehicleImageUrl} ocrConfidence={ocrConfidence} />
           </div>
           <div className="min-h-0"><section className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"><div className="flex shrink-0 items-center justify-between border-b bg-white p-3"><div className="flex items-center gap-2"><span className="flex size-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">2</span><h3 className="text-sm font-bold text-slate-800">Thông tin phiên và ảnh xe</h3></div>{session && <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Đang hoạt động</span>}</div><div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4"><ExitSessionInfo session={session} vehicleTypes={vehicleTypes} embedded /><div className="border-t border-dashed border-slate-200" /><ExitImageSection session={session} exitPlateImageUrl={exitPlateImageUrl} exitVehicleImageUrl={exitVehicleImageUrl} onPlateImageChange={setExitPlateImageUrl} onVehicleImageChange={setExitVehicleImageUrl} disabled={!session || isLoading} embedded /></div></section></div>
-          <div className="flex min-h-0 flex-col gap-4 lg:gap-6"><div className="flex min-h-0 flex-1 flex-col"><ExitFeeSummary fee={fee} /></div><ExitPayment session={session} fee={fee} canExit={canExit} isZeroCharge={isZeroCharge} hasPendingOnlinePayment={Boolean(session?.pendingOnlinePayment)} payosPaymentUrl={payosPaymentUrl || session?.pendingOnlinePayment?.checkoutUrl || session?.pendingOnlinePayment?.paymentUrl} isLoading={isLoading} handleRequestCash={handleRequestCash} handlePayOS={handlePayOS} handleCompleteExitPaid={handleCompleteExitPaid} handleCompleteMonthlyExit={handleCompleteMonthlyExit} refreshSession={runSearch} mismatchBlocked={mismatchBlocked} mismatchStatus={mismatchStatus} hasExitImages={hasRequiredExitImages} /></div>
+          <div className="flex min-h-0 flex-col gap-4 lg:gap-6"><div className="flex min-h-0 flex-1 flex-col"><ExitFeeSummary fee={fee} /></div><ExitPayment session={session} fee={fee} canExit={canExit} isZeroCharge={isZeroCharge} hasPendingOnlinePayment={Boolean(session?.pendingOnlinePayment)} payosPaymentUrl={payosPaymentUrl || session?.pendingOnlinePayment?.checkoutUrl || session?.pendingOnlinePayment?.paymentUrl} onShowQrModal={() => setIsPayosQrModalOpen(true)} isLoading={isLoading} handleRequestCash={handleRequestCash} handlePayOS={handlePayOS} handleCompleteExitPaid={handleCompleteExitPaid} handleCompleteMonthlyExit={handleCompleteMonthlyExit} refreshSession={runSearch} mismatchBlocked={mismatchBlocked} mismatchStatus={mismatchStatus} hasExitImages={hasRequiredExitImages} /></div>
         </div>
       </main>
       <Dialog open={isCashConfirmOpen} onOpenChange={setIsCashConfirmOpen}><DialogContent className="sm:max-w-md" showCloseButton={!isLoading}><DialogHeader><DialogTitle>Xác nhận đã thu tiền mặt</DialogTitle><DialogDescription>Chỉ xác nhận sau khi Staff đã nhận đủ tiền. Backend sẽ tự tính lại phí tại thời điểm ghi nhận.</DialogDescription></DialogHeader><div className="rounded-lg border border-indigo-100 bg-indigo-50 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Tổng cần thu</p><p className="mt-1 text-2xl font-black text-indigo-700">{formatVND(fee?.totalAmount || 0)}</p></div><DialogFooter><Button type="button" variant="outline" onClick={() => setIsCashConfirmOpen(false)} disabled={isLoading}>Hủy</Button><Button type="button" onClick={handleConfirmCash} disabled={isLoading}>{isLoading ? "Đang ghi nhận..." : "Đã thu đủ tiền"}</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={isPayosQrModalOpen} onOpenChange={setIsPayosQrModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-lg font-bold text-slate-800">Quét mã QR Thanh toán PayOS</DialogTitle>
+            <DialogDescription className="text-center text-xs text-slate-500">
+              Khách hàng quét mã QR dưới đây bằng ứng dụng Ngân hàng để thanh toán.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-xl border border-slate-200 gap-3">
+            {payosQrString ? (
+              <img 
+                src={payosQrString.startsWith("http") && !payosQrString.includes("pay.payos.vn") ? payosQrString : `https://quickchart.io/qr?text=${encodeURIComponent(payosQrString)}&size=300`} 
+                alt="PayOS QR Code"
+                className="size-60 rounded-lg border bg-white p-2 shadow-sm object-contain"
+              />
+            ) : (
+              <div className="size-60 flex items-center justify-center bg-slate-100 text-slate-400 text-sm">Đang tải QR...</div>
+            )}
+            <div className="text-center">
+              <p className="text-xs font-semibold text-slate-500">Số tiền cần thanh toán</p>
+              <p className="text-2xl font-black text-emerald-600">{formatVND(fee?.totalAmount || 0)}</p>
+              <p className="text-[11px] text-slate-400 mt-1">Biển số: {session?.plateNumber || "—"} | Thẻ: {session?.cardCode || "—"}</p>
+            </div>
+          </div>
+          <DialogFooter className="flex flex-row justify-between items-center gap-2">
+            {payosPaymentUrl && (
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.open(payosPaymentUrl, "_blank")}
+                className="text-xs"
+              >
+                Mở web PayOS
+              </Button>
+            )}
+            <Button type="button" onClick={() => setIsPayosQrModalOpen(false)}>Đóng</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
