@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   History, Search, ChevronLeft, ChevronRight,
   RefreshCw, Image as ImageIcon, X, Clock, CheckCircle2,
-  Car, Bike, CalendarClock,
+  Car, Bike, CalendarClock, QrCode, Eye, Copy, Check, ExternalLink,
 } from "lucide-react";
 import { driverService } from "../../services/driverService";
 import { reservationService } from "../../services/reservationService";
@@ -356,6 +357,139 @@ function SessionHistoryTab() {
   );
 }
 
+// ── Booking Detail Modal ───────────────────────────────────────────────────────
+
+function BookingDetailModal({ open, onClose, booking }) {
+  const [copied, setCopied] = useState(false);
+  const navigate = useNavigate();
+
+  if (!booking) return null;
+
+  const handleCopyCode = () => {
+    if (booking?.reservationCode) {
+      navigator.clipboard.writeText(booking.reservationCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const checkInQrUrl = booking?.reservationCode
+    ? `https://quickchart.io/qr?text=${encodeURIComponent(booking.reservationCode)}&size=240`
+    : "";
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md p-0 overflow-hidden rounded-3xl border-0 shadow-2xl">
+        <DialogHeader className="bg-gradient-to-r from-indigo-600 to-indigo-700 p-5 text-white text-left">
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-base font-black tracking-wide flex items-center gap-2 text-white">
+              <QrCode className="w-5 h-5 text-indigo-200" />
+              Chi tiết vé đặt chỗ
+            </DialogTitle>
+            <BookingStatusBadge status={booking.status} paymentStatus={booking.paymentStatus} />
+          </div>
+          <p className="text-xs text-indigo-100 font-medium mt-1">
+            Mã QR check-in & thông tin chi tiết lượt giữ chỗ.
+          </p>
+        </DialogHeader>
+
+        <div className="p-5 space-y-4 bg-white">
+          {/* QR Code section */}
+          {checkInQrUrl && (
+            <div className="flex flex-col items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                QUÉT TẠI CỔNG ĐỂ CHECK-IN
+              </span>
+              <img
+                src={checkInQrUrl}
+                alt="Booking Check-in QR"
+                className="w-44 h-44 object-contain rounded-xl bg-white p-2 border border-slate-100 shadow-sm"
+              />
+              {/* Copyable Reservation Code */}
+              <div
+                onClick={handleCopyCode}
+                className="flex items-center gap-2 mt-3 px-3.5 py-1.5 bg-white rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition active:scale-95 shadow-sm"
+                title="Sao chép mã đặt chỗ"
+              >
+                <span className="font-mono font-black text-slate-800 text-sm tracking-wider">
+                  {booking.reservationCode || "—"}
+                </span>
+                {copied ? (
+                  <Check className="w-4 h-4 text-emerald-600" />
+                ) : (
+                  <Copy className="w-4 h-4 text-slate-400" />
+                )}
+              </div>
+              <span className="text-[10px] font-bold text-slate-400 mt-1">
+                {copied ? "✓ Đã sao chép mã!" : "Chạm vào mã để sao chép"}
+              </span>
+            </div>
+          )}
+
+          {/* Booking Info List */}
+          <div className="space-y-2 text-xs font-semibold text-slate-600 divide-y divide-slate-100">
+            <div className="flex items-center justify-between pb-1.5">
+              <span className="text-slate-400 font-bold">Biển số xe:</span>
+              <LicensePlate plate={booking.plateNumber} size="sm" />
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-slate-400 font-bold">Khu vực / Slot:</span>
+              <div className="text-right">
+                <span className="font-bold text-slate-800">{booking.areaName || "—"}</span>
+                {booking.slotName && (
+                  <span className="text-slate-500 font-medium ml-1.5">({booking.slotName})</span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-slate-400 font-bold">Thời gian giữ chỗ:</span>
+              <div className="text-right font-mono text-[11px] text-slate-700">
+                <div>{formatDateTime(booking.reservationStartTime)}</div>
+                <div className="text-slate-400 font-semibold">➔ {formatDateTime(booking.reservationEndTime)}</div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-slate-400 font-bold">Phí giữ chỗ:</span>
+              <span className="font-black text-indigo-700 text-sm">
+                {formatCurrency(booking.bookingAmount)}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-slate-400 font-bold">Ngày tạo đơn:</span>
+              <span className="font-bold text-slate-700">{formatDateTime(booking.createdAt)}</span>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 pt-2">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="flex-1 rounded-xl text-xs font-bold py-2.5"
+            >
+              Đóng
+            </Button>
+            <Button
+              onClick={() => {
+                onClose();
+                navigate(`/driver/bookings/${booking.id}`);
+              }}
+              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold py-2.5 flex items-center justify-center gap-1.5"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              Xem trang đầy đủ
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── Booking History Tab ───────────────────────────────────────────────────────
 
 function BookingHistoryTab() {
@@ -369,6 +503,7 @@ function BookingHistoryTab() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+  const [selectedBooking, setSelectedBooking] = useState(null);
   const PAGE_SIZE = 20;
 
   const fetchBookings = useCallback(async () => {
@@ -445,7 +580,7 @@ function BookingHistoryTab() {
 
       {/* Table */}
       {loading ? (
-        <TableSkeleton cols={6} />
+        <TableSkeleton cols={7} />
       ) : error ? (
         <EmptyState icon="⚠️" title="Không thể tải lịch sử đặt chỗ" description={error} />
       ) : items.length === 0 ? (
@@ -462,6 +597,7 @@ function BookingHistoryTab() {
                   <TableHead className="py-4 px-5">Thời gian</TableHead>
                   <TableHead className="py-4 px-5 text-right">Phí booking</TableHead>
                   <TableHead className="py-4 px-5 text-center">Trạng thái</TableHead>
+                  <TableHead className="py-4 px-5 text-center">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-slate-100 text-xs font-semibold text-slate-600">
@@ -485,6 +621,17 @@ function BookingHistoryTab() {
                     <TableCell className="py-4 px-5 text-center">
                       <BookingStatusBadge status={item.status} paymentStatus={item.paymentStatus} />
                     </TableCell>
+                    <TableCell className="py-4 px-5 text-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedBooking(item)}
+                        className="text-xs font-bold text-indigo-600 border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300 rounded-xl px-3 py-1 flex items-center gap-1.5 mx-auto transition shadow-sm"
+                      >
+                        <QrCode className="w-3.5 h-3.5" />
+                        <span>Mã QR & Chi tiết</span>
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -493,6 +640,13 @@ function BookingHistoryTab() {
           <Pagination page={page} totalPages={totalPages} totalItems={totalItems} count={items.length} onPrev={() => setPage((p) => p - 1)} onNext={() => setPage((p) => p + 1)} />
         </Card>
       )}
+
+      {/* Booking Detail Modal */}
+      <BookingDetailModal
+        open={Boolean(selectedBooking)}
+        onClose={() => setSelectedBooking(null)}
+        booking={selectedBooking}
+      />
     </div>
   );
 }
