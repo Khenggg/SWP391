@@ -9,6 +9,7 @@ using ParkingBuilding.CoreApi.Application.Audit.Dtos;
 using ParkingBuilding.CoreApi.Contracts.Common;
 using ParkingBuilding.CoreApi.Domain.Entities;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
+using ParkingBuilding.CoreApi.Application.Storage;
 
 namespace ParkingBuilding.CoreApi.Application.Mismatch;
 
@@ -16,11 +17,16 @@ public class PlateMismatchService : IPlateMismatchService
 {
     private readonly ParkingDbContext _context;
     private readonly IAuditWriterService _auditWriter;
+    private readonly IParkingSessionImageStorageService _imageStorageService;
 
-    public PlateMismatchService(ParkingDbContext context, IAuditWriterService auditWriter)
+    public PlateMismatchService(
+        ParkingDbContext context, 
+        IAuditWriterService auditWriter,
+        IParkingSessionImageStorageService imageStorageService)
     {
         _context = context;
         _auditWriter = auditWriter;
+        _imageStorageService = imageStorageService;
     }
 
     public async Task<PlateMismatchResponse> CreateMismatchAsync(CreatePlateMismatchRequest request, long staffId)
@@ -69,11 +75,12 @@ public class PlateMismatchService : IPlateMismatchService
 
                 if (!string.IsNullOrWhiteSpace(request.ExitPlateImageUrl))
                 {
+                    var processedPlateUrl = await _imageStorageService.StoreAsync(request.ExitPlateImageUrl, session.Id, "exit", "plate");
                     _context.ParkingSessionImages.Add(new ParkingSessionImage
                     {
                         SessionId = session.Id,
                         ImageType = "EXIT_PLATE",
-                        ImageUrl = request.ExitPlateImageUrl,
+                        ImageUrl = processedPlateUrl,
                         DetectedPlateNumber = request.ExitPlateNumber.Trim(),
                         DetectedNormalizedPlateNumber = normalizedExit,
                         Confidence = request.OcrConfidence.HasValue ? (decimal)request.OcrConfidence.Value : null,
@@ -86,11 +93,12 @@ public class PlateMismatchService : IPlateMismatchService
 
                 if (!string.IsNullOrWhiteSpace(request.ExitVehicleImageUrl))
                 {
+                    var processedVehicleUrl = await _imageStorageService.StoreAsync(request.ExitVehicleImageUrl, session.Id, "exit", "vehicle");
                     _context.ParkingSessionImages.Add(new ParkingSessionImage
                     {
                         SessionId = session.Id,
                         ImageType = "EXIT_VEHICLE",
-                        ImageUrl = request.ExitVehicleImageUrl,
+                        ImageUrl = processedVehicleUrl,
                         IsPrimary = false,
                         CapturedAt = DateTimeOffset.UtcNow,
                         CreatedAt = DateTimeOffset.UtcNow,

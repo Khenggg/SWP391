@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
@@ -9,11 +9,144 @@ import {
   Loader2,
   Send,
   RefreshCw,
+  Upload,
+  X,
+  Camera,
+  ImageIcon,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import LicensePlateInfo from "./components/LicensePlateInfo";
 import { useSubmitLicensePlateMismatch } from "../../hooks/useSubmitLicensePlateMismatch";
 import { useMismatchStatus } from "../../hooks/useLicensePlateMismatch";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+const ACCEPTED_TYPES = ["image/jpeg", "image/png"];
+const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+// ─── Image Upload Slot ────────────────────────────────────────────────────────
+function ImageUploadSlot({ id, label, description, preview, onSelect, onRemove, error, disabled }) {
+  const inputRef = useRef(null);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    if (!ACCEPTED_TYPES.includes(file.type.toLowerCase())) {
+      toast.error("Chỉ chấp nhận ảnh JPG hoặc PNG.");
+      return;
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      toast.error("Ảnh tối đa 10 MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => onSelect(reader.result);
+    reader.onerror = () => toast.error("Không thể đọc ảnh đã chọn.");
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-bold text-slate-700">
+            {label} <span className="text-rose-500">*</span>
+          </p>
+          <p className="text-xs text-slate-400 mt-0.5">{description}</p>
+        </div>
+        {preview && (
+          <button
+            type="button"
+            onClick={onRemove}
+            disabled={disabled}
+            className="flex items-center gap-1 px-2 py-1 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition-colors disabled:opacity-50"
+          >
+            <X className="w-3 h-3" />
+            Xóa
+          </button>
+        )}
+      </div>
+
+      {preview ? (
+        <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shadow-sm">
+          <img
+            src={preview}
+            alt={label}
+            className="w-full h-48 object-cover"
+          />
+          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent px-3 py-2">
+            <p className="text-xs text-white font-semibold truncate">{label}</p>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={disabled}
+          className={`flex flex-col items-center justify-center gap-3 w-full h-48 rounded-xl border-2 border-dashed transition-colors ${
+            error
+              ? "border-rose-400 bg-rose-50/50"
+              : "border-slate-200 bg-slate-50 hover:border-amber-400 hover:bg-amber-50/30"
+          } disabled:cursor-not-allowed disabled:opacity-60`}
+        >
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+            error ? "bg-rose-100" : "bg-slate-100"
+          }`}>
+            <Camera className={`w-6 h-6 ${error ? "text-rose-400" : "text-slate-300"}`} />
+          </div>
+          <div className="text-center">
+            <p className={`text-sm font-semibold ${
+              error ? "text-rose-500" : "text-slate-400"
+            }`}>
+              {error ? "Ảnh bắt buộc" : "Nhấn để tải ảnh lên"}
+            </p>
+            <p className="text-xs text-slate-400 mt-0.5">JPG, PNG • Tối đa 10 MB</p>
+          </div>
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold ${
+            error
+              ? "bg-rose-100 text-rose-600"
+              : "bg-slate-200 text-slate-500"
+          }`}>
+            <Upload className="w-3.5 h-3.5" />
+            Tải ảnh lên
+          </div>
+        </button>
+      )}
+
+      {error && (
+        <p className="text-xs text-rose-500 font-medium flex items-center gap-1">
+          <AlertTriangle className="w-3.5 h-3.5" />
+          {error}
+        </p>
+      )}
+
+      <input
+        ref={inputRef}
+        id={id}
+        type="file"
+        accept="image/jpeg,image/png"
+        className="hidden"
+        onChange={handleFileChange}
+        disabled={disabled}
+      />
+
+      {!preview && (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={disabled}
+          className="flex items-center justify-center gap-1.5 w-full py-2 text-xs font-bold text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+        >
+          <Upload className="w-3.5 h-3.5" />
+          Chọn ảnh
+        </button>
+      )}
+    </div>
+  );
+}
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 function StatusBadge({ status }) {
@@ -109,6 +242,11 @@ export default function LicensePlateMismatchPage() {
   const prefillPlate     = location.state?.prefillPlate ?? "";
   const prefillReason    = location.state?.prefillReason ?? "";
 
+  // Exit image state
+  const [exitPlatePreview, setExitPlatePreview]     = useState(null);
+  const [exitVehiclePreview, setExitVehiclePreview] = useState(null);
+  const [imageErrors, setImageErrors]               = useState({});
+
   // Always fetch fresh — staleTime: 0, no cache
   const {
     data: statusData,
@@ -138,6 +276,10 @@ export default function LicensePlateMismatchPage() {
   // Prefill values when navigated with prefill data
   useEffect(() => {
     reset({ actualPlate: prefillPlate, reason: prefillReason });
+    // Also reset images on resubmit navigation
+    setExitPlatePreview(null);
+    setExitVehiclePreview(null);
+    setImageErrors({});
   }, [prefillPlate, prefillReason, reset]);
 
   if (!parkingSessionId) {
@@ -160,13 +302,23 @@ export default function LicensePlateMismatchPage() {
   }
 
   const onSubmit = (data) => {
+    // Validate images
+    const newImageErrors = {};
+    if (!exitPlatePreview)    newImageErrors.exitPlate    = "Vui lòng tải ảnh biển số xe ra.";
+    if (!exitVehiclePreview)  newImageErrors.exitVehicle  = "Vui lòng tải ảnh toàn xe ra.";
+    if (Object.keys(newImageErrors).length > 0) {
+      setImageErrors(newImageErrors);
+      return;
+    }
+    setImageErrors({});
+
     submitMismatch(
       {
         sessionId: Number(parkingSessionId),
         exitPlateNumber: data.actualPlate,
         reason: data.reason,
-        exitPlateImageUrl: location.state?.exitPlateImageUrl || undefined,
-        exitVehicleImageUrl: location.state?.exitVehicleImageUrl || undefined,
+        exitPlateImageUrl: exitPlatePreview,
+        exitVehicleImageUrl: exitVehiclePreview,
         ocrConfidence: location.state?.ocrConfidence ?? undefined,
       },
       {
@@ -306,6 +458,67 @@ export default function LicensePlateMismatchPage() {
                   Manager sẽ xét duyệt lại yêu cầu mới.
                 </div>
               )}
+            </div>
+
+            {/* ── Exit Vehicle Images ── */}
+            <div className="border-t border-slate-100">
+              <div className="px-5 pt-4 pb-1 flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-bold text-slate-800">Ảnh Xe Ra (Exit Vehicle Images)</h3>
+              </div>
+              <p className="px-5 pb-3 text-xs text-slate-500">
+                Tải lên hai ảnh xe ra bãi để Manager có thể so sánh với ảnh xe vào.
+              </p>
+              <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <ImageUploadSlot
+                  id="exit-plate-image"
+                  label="Exit Plate Image"
+                  description="Photo clearly showing the rear/front license plate of the vehicle leaving."
+                  preview={exitPlatePreview}
+                  onSelect={(dataUrl) => {
+                    setExitPlatePreview(dataUrl);
+                    setImageErrors((prev) => ({ ...prev, exitPlate: undefined }));
+                  }}
+                  onRemove={() => {
+                    setExitPlatePreview(null);
+                    setImageErrors((prev) => ({ ...prev, exitPlate: "Vui lòng tải ảnh biển số xe ra." }));
+                  }}
+                  error={imageErrors.exitPlate}
+                  disabled={isSubmitting}
+                />
+                <ImageUploadSlot
+                  id="exit-vehicle-image"
+                  label="Exit Full Vehicle Image"
+                  description="Photo showing the complete vehicle leaving the parking lot."
+                  preview={exitVehiclePreview}
+                  onSelect={(dataUrl) => {
+                    setExitVehiclePreview(dataUrl);
+                    setImageErrors((prev) => ({ ...prev, exitVehicle: undefined }));
+                  }}
+                  onRemove={() => {
+                    setExitVehiclePreview(null);
+                    setImageErrors((prev) => ({ ...prev, exitVehicle: "Vui lòng tải ảnh toàn xe ra." }));
+                  }}
+                  error={imageErrors.exitVehicle}
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              {/* Both images required banner */}
+              <div className={`mx-5 mb-5 rounded-lg border px-3 py-2 text-xs font-semibold flex items-center gap-2 ${
+                exitPlatePreview && exitVehiclePreview
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  : "border-amber-200 bg-amber-50 text-amber-700"
+              }`}>
+                {exitPlatePreview && exitVehiclePreview ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                ) : (
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                )}
+                {exitPlatePreview && exitVehiclePreview
+                  ? "Đã tải đủ 2 ảnh xe ra."
+                  : "Bắt buộc tải đủ 2 ảnh xe ra trước khi gửi báo cáo."}
+              </div>
             </div>
 
             <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3">
