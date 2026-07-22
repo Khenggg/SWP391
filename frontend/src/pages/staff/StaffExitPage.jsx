@@ -75,7 +75,9 @@ export default function StaffExitPage() {
     }
   }, []);
 
-  const loadSessionByCard = useCallback(async (rawCardCode, { preserveExitImages = false, silent = false, notifyOnError = true } = {}) => {
+  const [payosPaymentUrl, setPayosPaymentUrl] = useState("");
+
+  const loadSessionByCard = useCallback(async (rawCardCode, { preserveExitImages = false, silent = false, notifyOnError = true, silentPolling = false } = {}) => {
     const normalizedCardCode = String(rawCardCode || "").trim().toUpperCase();
     if (!normalizedCardCode) {
       if (!silent) toast.error("Nhập mã thẻ hoặc biển số để tìm phiên đỗ xe.");
@@ -83,10 +85,12 @@ export default function StaffExitPage() {
     }
 
     const lookupId = ++lookupSequenceRef.current;
-    setIsLoading(true);
-    setSession(null);
-    setFee(null);
-    setMismatchCase(null);
+    if (!silentPolling) {
+      setIsLoading(true);
+      setSession(null);
+      setFee(null);
+      setMismatchCase(null);
+    }
     if (!preserveExitImages) {
       setExitPlateImageUrl("");
       setExitVehicleImageUrl("");
@@ -98,18 +102,23 @@ export default function StaffExitPage() {
       setSession(foundSession);
       setCardCode(foundSession.cardCode || normalizedCardCode);
       setPlate(foundSession.plateNumber || "");
+      if (foundSession?.pendingOnlinePayment?.checkoutUrl || foundSession?.pendingOnlinePayment?.paymentUrl) {
+        setPayosPaymentUrl(foundSession.pendingOnlinePayment.checkoutUrl || foundSession.pendingOnlinePayment.paymentUrl);
+      }
       if (foundSession.customerType === "CASUAL" || foundSession.isCardLost) {
         await loadFee(foundSession.sessionId, lookupId, foundSession.isCardLost);
       }
-      if (foundSession.isCardLost) toast.warning("Thẻ của xe này đã được báo mất. Phí phạt sẽ được cộng vào tổng tiền.");
+      if (foundSession.isCardLost && !silentPolling) toast.warning("Thẻ của xe này đã được báo mất. Phí phạt sẽ được cộng vào tổng tiền.");
       else if (!silent) toast.success(`Đã tìm thấy phiên đỗ xe ${foundSession.sessionCode}.`);
     } catch (error) {
       if (lookupSequenceRef.current !== lookupId) return;
-      setSession(null);
-      setFee(null);
+      if (!silentPolling) {
+        setSession(null);
+        setFee(null);
+      }
       if (notifyOnError) toast.error(error.message || "Không tìm thấy phiên đỗ xe đang hoạt động.");
     } finally {
-      if (lookupSequenceRef.current === lookupId) setIsLoading(false);
+      if (!silentPolling && lookupSequenceRef.current === lookupId) setIsLoading(false);
     }
   }, [loadFee]);
 
@@ -118,8 +127,8 @@ export default function StaffExitPage() {
   useEffect(() => {
     if (!session?.pendingOnlinePayment || session.paymentStatus === "PAID") return undefined;
     const intervalId = window.setInterval(() => {
-      void loadSessionByCard(session.cardCode, { preserveExitImages: true, silent: true, notifyOnError: false });
-    }, 5000);
+      void loadSessionByCard(session.cardCode, { preserveExitImages: true, silent: true, notifyOnError: false, silentPolling: true });
+    }, 3000);
     return () => window.clearInterval(intervalId);
   }, [loadSessionByCard, session?.cardCode, session?.paymentStatus, session?.pendingOnlinePayment]);
 
@@ -216,17 +225,31 @@ export default function StaffExitPage() {
 
   const handlePayOS = async () => {
     if (!session) return;
+    const popup = window.open("", "_blank");
+    if (popup) {
+      popup.document.write(
+        "<html><head><title>PayOS Checkout</title></head><body style='font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f8fafc;'><div style='text-align:center;padding:2rem;background:white;border-radius:12px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);'><h3 style='color:#1e293b;margin-bottom:8px;'>Đang khởi tạo cổng thanh toán PayOS...</h3><p style='color:#64748b;font-size:14px;'>Vui lòng chờ trong giây lát</p></div></body></html>"
+      );
+    }
     try {
       setIsLoading(true);
       const result = await staffSessionService.createOnlinePayment({ sessionId: session.sessionId, cardCode: session.cardCode });
-      if (result.paymentUrl) {
-        window.open(result.paymentUrl, "_blank", "width=800,height=800");
+      const url = result.paymentUrl || result.checkoutUrl;
+      if (url) {
+        setPayosPaymentUrl(url);
+        if (popup && !popup.closed) {
+          popup.location.href = url;
+        } else {
+          window.open(url, "_blank");
+        }
         toast.success("Đã tạo QR PayOS. Chờ webhook xác minh thanh toán.");
       } else {
+        if (popup && !popup.closed) popup.close();
         toast.info("Phiên này chưa phát sinh phí, có thể xác nhận xe ra.");
       }
-      await loadSessionByCard(session.cardCode, { preserveExitImages: true, silent: true });
+      await loadSessionByCard(session.cardCode, { preserveExitImages: true, silent: true, silentPolling: true });
     } catch (error) {
+      if (popup && !popup.closed) popup.close();
       toast.error(error.message || "Tạo thanh toán online thất bại.");
     } finally {
       setIsLoading(false);
@@ -266,7 +289,7 @@ export default function StaffExitPage() {
             <ExitConfirmation plate={plate} setPlate={setPlate} session={session} hasMismatch={hasMismatch} mismatchCase={mismatchCase} handleCreateMismatchCase={handleCreateMismatchCase} isCreatingMismatch={isCreatingMismatch} currentTime={currentTime} staffName={currentUser?.fullName || currentUser?.username || "Nhân viên trực"} mismatchStatus={mismatchStatus} managerReason={managerReason} vehicleTypes={vehicleTypes} exitPlateImageUrl={exitPlateImageUrl} exitVehicleImageUrl={exitVehicleImageUrl} ocrConfidence={ocrConfidence} />
           </div>
           <div className="min-h-0"><section className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"><div className="flex shrink-0 items-center justify-between border-b bg-white p-3"><div className="flex items-center gap-2"><span className="flex size-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">2</span><h3 className="text-sm font-bold text-slate-800">Thông tin phiên và ảnh xe</h3></div>{session && <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Đang hoạt động</span>}</div><div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4"><ExitSessionInfo session={session} vehicleTypes={vehicleTypes} embedded /><div className="border-t border-dashed border-slate-200" /><ExitImageSection session={session} exitPlateImageUrl={exitPlateImageUrl} exitVehicleImageUrl={exitVehicleImageUrl} onPlateImageChange={setExitPlateImageUrl} onVehicleImageChange={setExitVehicleImageUrl} disabled={!session || isLoading} embedded /></div></section></div>
-          <div className="flex min-h-0 flex-col gap-4 lg:gap-6"><div className="flex min-h-0 flex-1 flex-col"><ExitFeeSummary fee={fee} /></div><ExitPayment session={session} fee={fee} canExit={canExit} isZeroCharge={isZeroCharge} hasPendingOnlinePayment={Boolean(session?.pendingOnlinePayment)} isLoading={isLoading} handleRequestCash={handleRequestCash} handlePayOS={handlePayOS} handleCompleteExitPaid={handleCompleteExitPaid} handleCompleteMonthlyExit={handleCompleteMonthlyExit} refreshSession={runSearch} mismatchBlocked={mismatchBlocked} mismatchStatus={mismatchStatus} hasExitImages={hasRequiredExitImages} /></div>
+          <div className="flex min-h-0 flex-col gap-4 lg:gap-6"><div className="flex min-h-0 flex-1 flex-col"><ExitFeeSummary fee={fee} /></div><ExitPayment session={session} fee={fee} canExit={canExit} isZeroCharge={isZeroCharge} hasPendingOnlinePayment={Boolean(session?.pendingOnlinePayment)} payosPaymentUrl={payosPaymentUrl || session?.pendingOnlinePayment?.checkoutUrl || session?.pendingOnlinePayment?.paymentUrl} isLoading={isLoading} handleRequestCash={handleRequestCash} handlePayOS={handlePayOS} handleCompleteExitPaid={handleCompleteExitPaid} handleCompleteMonthlyExit={handleCompleteMonthlyExit} refreshSession={runSearch} mismatchBlocked={mismatchBlocked} mismatchStatus={mismatchStatus} hasExitImages={hasRequiredExitImages} /></div>
         </div>
       </main>
       <Dialog open={isCashConfirmOpen} onOpenChange={setIsCashConfirmOpen}><DialogContent className="sm:max-w-md" showCloseButton={!isLoading}><DialogHeader><DialogTitle>Xác nhận đã thu tiền mặt</DialogTitle><DialogDescription>Chỉ xác nhận sau khi Staff đã nhận đủ tiền. Backend sẽ tự tính lại phí tại thời điểm ghi nhận.</DialogDescription></DialogHeader><div className="rounded-lg border border-indigo-100 bg-indigo-50 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Tổng cần thu</p><p className="mt-1 text-2xl font-black text-indigo-700">{formatVND(fee?.totalAmount || 0)}</p></div><DialogFooter><Button type="button" variant="outline" onClick={() => setIsCashConfirmOpen(false)} disabled={isLoading}>Hủy</Button><Button type="button" onClick={handleConfirmCash} disabled={isLoading}>{isLoading ? "Đang ghi nhận..." : "Đã thu đủ tiền"}</Button></DialogFooter></DialogContent></Dialog>
