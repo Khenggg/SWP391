@@ -47,7 +47,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                 .Include(s => s.PricingRule)
                 .Include(s => s.Reservation)
                 .FirstOrDefaultAsync(s => 
-                    s.Status == "ACTIVE" && 
+                    (s.Status == "ACTIVE" || s.Status == "LOST_CARD_PENDING") && 
                     ((s.ParkingCard != null && s.ParkingCard.CardNumber != null && s.ParkingCard.CardNumber.ToLower() == queryLower) 
                      || (s.PlateNumber != null && s.PlateNumber.ToLower() == queryLower)));
 

@@ -67,24 +67,28 @@ public class LostCardDocumentService : ILostCardDocumentService
         await EnsureDocumentTypeAvailableAsync(caseId, validated.DocumentType, ct);
 
         var uploadedPaths = new List<string>();
-        await using var transaction = await _context.Database.BeginTransactionAsync(ct);
-        try
+        var strategy = _context.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
         {
-            await UploadValidatedFileAsync(validated, uploadedPaths, ct);
-            var entity = CreateEntity(caseId, validated, uploadedBy);
-            _context.LostCardCaseDocuments.Add(entity);
-            await _context.SaveChangesAsync(ct);
-            await transaction.CommitAsync(ct);
+            await using var transaction = await _context.Database.BeginTransactionAsync(ct);
+            try
+            {
+                await UploadValidatedFileAsync(validated, uploadedPaths, ct);
+                var entity = CreateEntity(caseId, validated, uploadedBy);
+                _context.LostCardCaseDocuments.Add(entity);
+                await _context.SaveChangesAsync(ct);
+                await transaction.CommitAsync(ct);
 
-            await WriteAuditAsync("LOST_CARD_DOCUMENT_UPLOADED", entity, uploadedBy, ct);
-            return await MapToResponseAsync(entity, ct);
-        }
-        catch
-        {
-            await transaction.RollbackAsync(ct);
-            await DeleteUploadedFilesBestEffortAsync(uploadedPaths, ct);
-            throw;
-        }
+                await WriteAuditAsync("LOST_CARD_DOCUMENT_UPLOADED", entity, uploadedBy, ct);
+                return await MapToResponseAsync(entity, ct);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(ct);
+                await DeleteUploadedFilesBestEffortAsync(uploadedPaths, ct);
+                throw;
+            }
+        });
     }
 
     public async Task<IReadOnlyList<LostCardDocumentResponse>> UploadBatchAsync(
@@ -111,48 +115,52 @@ public class LostCardDocumentService : ILostCardDocumentService
         }
 
         var uploadedPaths = new List<string>();
-        await using var transaction = await _context.Database.BeginTransactionAsync(ct);
-        try
+        var batchStrategy = _context.Database.CreateExecutionStrategy();
+        return await batchStrategy.ExecuteAsync(async () =>
         {
-            var entities = new List<LostCardCaseDocument>();
-            foreach (var validated in validatedFiles)
+            await using var transaction = await _context.Database.BeginTransactionAsync(ct);
+            try
             {
-                await UploadValidatedFileAsync(validated, uploadedPaths, ct);
-                var entity = CreateEntity(caseId, validated, uploadedBy);
-                _context.LostCardCaseDocuments.Add(entity);
-                entities.Add(entity);
-            }
-
-            await _context.SaveChangesAsync(ct);
-            await transaction.CommitAsync(ct);
-
-            await _auditWriter.WriteAuditLogAsync(
-                action: "LOST_CARD_DOCUMENT_BATCH_UPLOADED",
-                targetType: "LostCardCase",
-                targetId: caseId.ToString(),
-                actorUserId: uploadedBy,
-                newValue: JsonSerializer.Serialize(new
+                var entities = new List<LostCardCaseDocument>();
+                foreach (var validated in validatedFiles)
                 {
-                    caseId,
-                    documentIds = entities.Select(x => x.Id),
-                    count = entities.Count
-                }),
-                reason: "Lost card documents uploaded.");
+                    await UploadValidatedFileAsync(validated, uploadedPaths, ct);
+                    var entity = CreateEntity(caseId, validated, uploadedBy);
+                    _context.LostCardCaseDocuments.Add(entity);
+                    entities.Add(entity);
+                }
 
-            var responses = new List<LostCardDocumentResponse>();
-            foreach (var entity in entities)
-            {
-                responses.Add(await MapToResponseAsync(entity, ct));
+                await _context.SaveChangesAsync(ct);
+                await transaction.CommitAsync(ct);
+
+                await _auditWriter.WriteAuditLogAsync(
+                    action: "LOST_CARD_DOCUMENT_BATCH_UPLOADED",
+                    targetType: "LostCardCase",
+                    targetId: caseId.ToString(),
+                    actorUserId: uploadedBy,
+                    newValue: JsonSerializer.Serialize(new
+                    {
+                        caseId,
+                        documentIds = entities.Select(x => x.Id),
+                        count = entities.Count
+                    }),
+                    reason: "Lost card documents uploaded.");
+
+                var responses = new List<LostCardDocumentResponse>();
+                foreach (var entity in entities)
+                {
+                    responses.Add(await MapToResponseAsync(entity, ct));
+                }
+
+                return responses;
             }
-
-            return responses;
-        }
-        catch
-        {
-            await transaction.RollbackAsync(ct);
-            await DeleteUploadedFilesBestEffortAsync(uploadedPaths, ct);
-            throw;
-        }
+            catch
+            {
+                await transaction.RollbackAsync(ct);
+                await DeleteUploadedFilesBestEffortAsync(uploadedPaths, ct);
+                throw;
+            }
+        });
     }
 
     public async Task<IReadOnlyList<LostCardDocumentResponse>> GetByCaseAsync(

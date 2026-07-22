@@ -162,9 +162,12 @@ export default function LicensePlateMismatchPage() {
   const onSubmit = (data) => {
     submitMismatch(
       {
-        sessionId:       Number(parkingSessionId),
+        sessionId: Number(parkingSessionId),
         exitPlateNumber: data.actualPlate,
-        reason:          data.reason,
+        reason: data.reason,
+        exitPlateImageUrl: location.state?.exitPlateImageUrl || undefined,
+        exitVehicleImageUrl: location.state?.exitVehicleImageUrl || undefined,
+        ocrConfidence: location.state?.ocrConfidence ?? undefined,
       },
       {
         onSuccess: () => {

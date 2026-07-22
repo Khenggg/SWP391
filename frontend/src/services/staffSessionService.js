@@ -70,7 +70,11 @@ export const staffSessionService = {
   },
 
   uploadLostCardDocuments: async (caseId, formData) => {
-    const response = await coreAxiosClient.post(`/lost-cards/${caseId}/documents/batch`, formData);
+    const response = await coreAxiosClient.post(`/lost-cards/${caseId}/documents/batch`, formData, {
+      headers: {
+        "Content-Type": undefined,
+      },
+    });
     if (response.success) return response.data;
     throw new Error(response.message || "Tải tài liệu lên thất bại.");
   }

@@ -108,30 +108,32 @@ export default function MismatchCaseDetailPage() {
 
   const isSubmitting = isApproving || isRejecting;
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-  } = useForm({ defaultValues: { managerReason: "" } });
+  const [managerReasonText, setManagerReasonText] = useState("");
+  const [reasonError, setReasonError] = useState("");
 
   const isPending =
     !caseDetail?.status ||
     caseDetail.status === "PENDING";
 
-  const onApprove = (data) => {
+  const onApprove = () => {
+    setReasonError("");
     approveMismatch(
-      { requestId: Number(id), managerReason: data.managerReason },
+      { requestId: Number(id), managerReason: managerReasonText.trim() || null },
       { onSuccess: () => navigate(-1) }
     );
   };
 
-  const onReject = handleSubmit((data) => {
+  const onReject = () => {
+    if (!managerReasonText || managerReasonText.trim().length < 5) {
+      setReasonError("Vui lòng nhập lý do từ chối (tối thiểu 5 ký tự).");
+      return;
+    }
+    setReasonError("");
     rejectMismatch(
-      { requestId: Number(id), managerReason: data.managerReason },
+      { requestId: Number(id), managerReason: managerReasonText.trim() },
       { onSuccess: () => navigate(-1) }
     );
-  });
+  };
 
   // ── Loading ──────────────────────────────────────────────────────────────
   if (isLoading) {
@@ -230,30 +232,30 @@ export default function MismatchCaseDetailPage() {
 
         {/* ── Manager Review ── (only when PENDING) */}
         {isPending ? (
-          <form className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="p-4 border-b border-slate-100 bg-slate-50/50">
               <h2 className="font-bold text-slate-800">Xem xét của Manager</h2>
             </div>
             <div className="p-5 flex flex-col gap-4">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">
-                  Lý do / Ghi chú <span className="text-rose-500">*</span>
+                  Lý do / Ghi chú <span className="text-slate-400 font-normal text-xs">(bắt buộc nếu từ chối)</span>
                 </label>
                 <textarea
                   rows={4}
+                  value={managerReasonText}
+                  onChange={(e) => {
+                    setManagerReasonText(e.target.value);
+                    if (reasonError) setReasonError("");
+                  }}
                   className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none text-sm ${
-                    errors.managerReason ? "border-rose-500" : "border-slate-300"
+                    reasonError ? "border-rose-500" : "border-slate-300"
                   }`}
-                  placeholder="Nhập lý do phê duyệt hoặc từ chối..."
+                  placeholder="Nhập lý do phê duyệt hoặc lý do từ chối..."
                   disabled={isSubmitting}
-                  {...register("managerReason", {
-                    required: "Vui lòng nhập lý do.",
-                    minLength: { value: 10, message: "Lý do phải có ít nhất 10 ký tự." },
-                    maxLength: { value: 500, message: "Lý do không được vượt quá 500 ký tự." },
-                  })}
                 />
-                {errors.managerReason && (
-                  <p className="mt-1 text-sm text-rose-500 font-medium">{errors.managerReason.message}</p>
+                {reasonError && (
+                  <p className="mt-1 text-sm text-rose-500 font-medium">{reasonError}</p>
                 )}
               </div>
 
@@ -278,7 +280,7 @@ export default function MismatchCaseDetailPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={handleSubmit(onApprove)}
+                  onClick={onApprove}
                   disabled={isSubmitting}
                   className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-sm disabled:opacity-50"
                 >
@@ -287,7 +289,7 @@ export default function MismatchCaseDetailPage() {
                 </button>
               </div>
             </div>
-          </form>
+          </div>
         ) : (
           // Show manager's decision (read-only) when already processed
           d.managerReason && (
