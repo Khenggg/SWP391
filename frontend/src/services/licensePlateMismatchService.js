@@ -30,7 +30,12 @@ export const licensePlateMismatchService = {
 
   // Staff: submit new mismatch report
   submitMismatch: async (data) => {
-    const response = await coreAxiosClient.post("/plate-mismatches", data);
+    let payload = data;
+    let config = {};
+    if (data instanceof FormData) {
+      config = { headers: { "Content-Type": undefined } };
+    }
+    const response = await coreAxiosClient.post("/plate-mismatches", payload, config);
     return unwrap(response, "Gửi yêu cầu thất bại.");
   },
 

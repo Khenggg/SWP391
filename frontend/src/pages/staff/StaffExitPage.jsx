@@ -101,7 +101,8 @@ export default function StaffExitPage() {
       if (foundSession.customerType === "CASUAL" || foundSession.isCardLost) {
         await loadFee(foundSession.sessionId, lookupId, foundSession.isCardLost);
       }
-      if (foundSession.isCardLost) toast.warning("Thẻ của xe này đã được báo mất. Phí phạt sẽ được cộng vào tổng tiền.");
+      if (foundSession.lostCardStatus === "REJECTED") toast.error(`Hồ sơ báo mất thẻ đã bị từ chối: ${foundSession.lostCardRejectionReason}. Yêu cầu gửi lại.`);
+      else if (foundSession.isCardLost) toast.warning("Thẻ của xe này đã được báo mất. Phí phạt sẽ được cộng vào tổng tiền.");
       else if (!silent) toast.success(`Đã tìm thấy phiên đỗ xe ${foundSession.sessionCode}.`);
     } catch (error) {
       if (lookupSequenceRef.current !== lookupId) return;
@@ -254,6 +255,20 @@ export default function StaffExitPage() {
     }
   };
 
+  const handleCancelQR = useCallback(async () => {
+    if (!session || !session.pendingOnlinePayment) return;
+    try {
+      setIsLoading(true);
+      await staffSessionService.cancelOnlinePayment(session.pendingOnlinePayment.paymentId, "Cancelled by staff");
+      setSession(prev => prev ? { ...prev, pendingOnlinePayment: null } : null);
+      toast.success("Đã hủy thanh toán chuyển khoản.");
+    } catch (error) {
+      toast.error(error.message || "Hủy chuyển khoản thất bại.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [session]);
+
   return (
     <div className="flex h-full flex-col overflow-hidden bg-slate-50">
       <header className="z-10 flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6 shadow-sm">
@@ -266,7 +281,7 @@ export default function StaffExitPage() {
             <ExitConfirmation plate={plate} setPlate={setPlate} session={session} hasMismatch={hasMismatch} mismatchCase={mismatchCase} handleCreateMismatchCase={handleCreateMismatchCase} isCreatingMismatch={isCreatingMismatch} currentTime={currentTime} staffName={currentUser?.fullName || currentUser?.username || "Nhân viên trực"} mismatchStatus={mismatchStatus} managerReason={managerReason} vehicleTypes={vehicleTypes} exitPlateImageUrl={exitPlateImageUrl} exitVehicleImageUrl={exitVehicleImageUrl} ocrConfidence={ocrConfidence} />
           </div>
           <div className="min-h-0"><section className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"><div className="flex shrink-0 items-center justify-between border-b bg-white p-3"><div className="flex items-center gap-2"><span className="flex size-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">2</span><h3 className="text-sm font-bold text-slate-800">Thông tin phiên và ảnh xe</h3></div>{session && <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Đang hoạt động</span>}</div><div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4"><ExitSessionInfo session={session} vehicleTypes={vehicleTypes} embedded /><div className="border-t border-dashed border-slate-200" /><ExitImageSection session={session} exitPlateImageUrl={exitPlateImageUrl} exitVehicleImageUrl={exitVehicleImageUrl} onPlateImageChange={setExitPlateImageUrl} onVehicleImageChange={setExitVehicleImageUrl} disabled={!session || isLoading} embedded /></div></section></div>
-          <div className="flex min-h-0 flex-col gap-4 lg:gap-6"><div className="flex min-h-0 flex-1 flex-col"><ExitFeeSummary fee={fee} /></div><ExitPayment session={session} fee={fee} canExit={canExit} isZeroCharge={isZeroCharge} hasPendingOnlinePayment={Boolean(session?.pendingOnlinePayment)} isLoading={isLoading} handleRequestCash={handleRequestCash} handlePayOS={handlePayOS} handleCompleteExitPaid={handleCompleteExitPaid} handleCompleteMonthlyExit={handleCompleteMonthlyExit} refreshSession={runSearch} mismatchBlocked={mismatchBlocked} mismatchStatus={mismatchStatus} hasExitImages={hasRequiredExitImages} /></div>
+          <div className="flex min-h-0 flex-col gap-4 lg:gap-6"><div className="flex min-h-0 flex-1 flex-col"><ExitFeeSummary fee={fee} /></div><ExitPayment session={session} fee={fee} canExit={canExit} isZeroCharge={isZeroCharge} hasPendingOnlinePayment={Boolean(session?.pendingOnlinePayment)} isLoading={isLoading} handleRequestCash={handleRequestCash} handlePayOS={handlePayOS} handleCompleteExitPaid={handleCompleteExitPaid} handleCompleteMonthlyExit={handleCompleteMonthlyExit} refreshSession={runSearch} mismatchBlocked={mismatchBlocked} mismatchStatus={mismatchStatus} hasExitImages={hasRequiredExitImages} cancelQR={handleCancelQR} /></div>
         </div>
       </main>
       <Dialog open={isCashConfirmOpen} onOpenChange={setIsCashConfirmOpen}><DialogContent className="sm:max-w-md" showCloseButton={!isLoading}><DialogHeader><DialogTitle>Xác nhận đã thu tiền mặt</DialogTitle><DialogDescription>Chỉ xác nhận sau khi Staff đã nhận đủ tiền. Backend sẽ tự tính lại phí tại thời điểm ghi nhận.</DialogDescription></DialogHeader><div className="rounded-lg border border-indigo-100 bg-indigo-50 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Tổng cần thu</p><p className="mt-1 text-2xl font-black text-indigo-700">{formatVND(fee?.totalAmount || 0)}</p></div><DialogFooter><Button type="button" variant="outline" onClick={() => setIsCashConfirmOpen(false)} disabled={isLoading}>Hủy</Button><Button type="button" onClick={handleConfirmCash} disabled={isLoading}>{isLoading ? "Đang ghi nhận..." : "Đã thu đủ tiền"}</Button></DialogFooter></DialogContent></Dialog>

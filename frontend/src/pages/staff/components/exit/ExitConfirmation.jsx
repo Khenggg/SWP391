@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 function MismatchBadge({ status }) {
@@ -80,7 +81,13 @@ function MismatchStatusBlock({
         </div>
         <Button
           size="sm"
-          onClick={() => navigate("/staff/license-plate-mismatch", { state: buildSessionState() })}
+          onClick={() => {
+            if (!exitPlateImageUrl || !exitVehicleImageUrl) {
+              toast.error("Vui lòng đợi camera hoặc chụp đủ ảnh xe ra trước khi báo cáo.");
+              return;
+            }
+            navigate("/staff/license-plate-mismatch", { state: buildSessionState() });
+          }}
           className="w-fit h-7 text-[10px] bg-amber-600 hover:bg-amber-700 text-white font-bold"
         >
           <AlertTriangle className="w-3 h-3 mr-1" />
@@ -163,17 +170,20 @@ function MismatchStatusBlock({
         {session && (
           <Button
             size="sm"
-            onClick={() =>
+            onClick={() => {
+              if (!exitPlateImageUrl || !exitVehicleImageUrl) {
+                toast.error("Vui lòng đợi camera hoặc chụp đủ ảnh xe ra trước khi báo cáo.");
+                return;
+              }
               navigate("/staff/license-plate-mismatch", {
                 state: {
                   ...buildSessionState(),
-                  // Prefill: let mismatch page know this is a "submit again"
                   prefillPlate: plate || "",
                   prefillReason: "",
                   isResubmit: true,
                 },
-              })
-            }
+              });
+            }}
             className="w-fit h-7 text-[10px] bg-red-600 hover:bg-red-700 text-white font-bold"
           >
             <RefreshCw className="w-3 h-3 mr-1" />

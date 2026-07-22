@@ -199,6 +199,25 @@ namespace ParkingBuilding.CoreApi.Controllers
             }, "Online payment link created successfully.");
         }
 
+        [HttpPost("{paymentId:long}/cancel")]
+        [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
+        public async Task<IActionResult> CancelPayment(long paymentId, [FromBody] CancelPaymentRequest request)
+        {
+            var payment = await _context.Payments
+                .Include(p => p.Reservation)
+                .Include(p => p.ParkingSession)
+                .FirstOrDefaultAsync(p => p.Id == paymentId);
+                
+            if (payment == null) 
+                throw new BusinessException(ErrorCodes.PaymentNotFound);
+                
+            if (payment.Status != "PENDING")
+                return Success(true, "Payment is not in pending state.");
+                
+            await _payOsPaymentService.CancelPaymentLinkAsync(payment, request.Reason ?? "Cancelled by staff");
+            return Success(true, "Payment cancelled successfully.");
+        }
+
         [HttpPost("cash")]
         [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
         public async Task<IActionResult> CreateCashPayment([FromBody] CashPaymentRequest request)

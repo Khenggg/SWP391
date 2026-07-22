@@ -31,6 +31,8 @@ export default function StaffLostCardPage() {
       setSession(found);
       if (found.status === "LOST_CARD_PENDING") {
         toast.warning(`Phiên ${found.sessionCode} đã có hồ sơ báo mất thẻ đang chờ Manager phê duyệt.`);
+      } else if (found.lostCardStatus === "REJECTED") {
+        toast.error(`Hồ sơ mất thẻ bị từ chối: ${found.lostCardRejectionReason || "Không rõ lý do"}. Bạn có thể gửi lại.`);
       } else {
         toast.success(`Đã tìm thấy phiên ${found.sessionCode}`);
       }
@@ -159,6 +161,12 @@ export default function StaffLostCardPage() {
               <CardDescription>Thông tin này sẽ được đưa vào hàng đợi phê duyệt của Manager.</CardDescription>
             </CardHeader>
             <CardContent>
+              {session.lostCardStatus === "REJECTED" && (
+                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-red-800">
+                  <p className="text-sm font-bold">Hồ sơ trước đó đã bị từ chối!</p>
+                  <p className="text-sm mt-1">Lý do: {session.lostCardRejectionReason || "Không có lý do"}</p>
+                </div>
+              )}
               <div className="grid gap-3 md:grid-cols-2">
                 <Input placeholder="Người báo mất" value={form.reporterName} onChange={(event) => setForm({ ...form, reporterName: event.target.value })} disabled={isSubmitting} />
                 <Input placeholder="Số điện thoại" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} disabled={isSubmitting} />

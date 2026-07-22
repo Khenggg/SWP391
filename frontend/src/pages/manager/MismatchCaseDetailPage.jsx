@@ -186,15 +186,29 @@ export default function MismatchCaseDetailPage() {
         </header>
 
         {/* ── Vehicle Images ── */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
           <div className="p-4 border-b border-slate-100 bg-slate-50/50">
             <h2 className="font-bold text-slate-800">Hình ảnh xe</h2>
           </div>
-          <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <ImageCard label="Ảnh biển số (vào)" url={d.entryPlateImageUrl} />
-            <ImageCard label="Ảnh biển số (ra)" url={d.exitPlateImageUrl} />
-            <ImageCard label="Ảnh xe (vào)" url={d.entryVehicleImageUrl} />
-            <ImageCard label="Ảnh xe (ra)" url={d.exitVehicleImageUrl} />
+          
+          <div className="p-5 flex flex-col gap-6">
+            {/* Entry Images */}
+            <div className="flex flex-col gap-3">
+              <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide border-b pb-2">Vehicle Entry</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <ImageCard label="Entry Plate Image" url={d.entryPlateImageUrl} />
+                <ImageCard label="Entry Vehicle Image" url={d.entryVehicleImageUrl} />
+              </div>
+            </div>
+
+            {/* Exit Images */}
+            <div className="flex flex-col gap-3">
+              <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide border-b pb-2">Vehicle Exit</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <ImageCard label="Exit Plate Image" url={d.exitPlateImageUrl} />
+                <ImageCard label="Exit Vehicle Image" url={d.exitVehicleImageUrl} />
+              </div>
+            </div>
           </div>
         </div>
 

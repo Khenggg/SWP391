@@ -31,6 +31,12 @@ export const staffSessionService = {
     throw new Error(response.message || "Tạo link thanh toán online thất bại.");
   },
 
+  cancelOnlinePayment: async (paymentId, reason) => {
+    const response = await coreAxiosClient.post(`/payments/${paymentId}/cancel`, { reason });
+    if (response.success) return response.data;
+    throw new Error(response.message || "Hủy QR thất bại.");
+  },
+
   completeExit: async (sessionId, payload) => {
     const response = await coreAxiosClient.post(`/parking-sessions/${sessionId}/exit`, payload);
     if (response.success) return response.data;

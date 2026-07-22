@@ -229,6 +229,14 @@ export default function StaffEntryPage() {
       !== normalizeText(form.licensePlate).replace(/[^A-Z0-9]/gi, "").toUpperCase();
   }, [cardCheck, form.entryMode, form.licensePlate]);
 
+  const cardError = useMemo(() => {
+    if (!cardCheck) return null;
+    if (form.entryMode === "CASUAL" && (!isNormalCardVerified)) {
+      return "Thẻ không hợp lệ hoặc đang được sử dụng. Vui lòng kiểm tra lại.";
+    }
+    return null;
+  }, [cardCheck, form.entryMode, isNormalCardVerified]);
+
   const canCheckCard = Boolean(normalizeText(form.cardCode) && entryGateId && entryGateId > 0);
   const canCheckReservation = Boolean(form.entryMode === "RESERVATION" && normalizeText(form.reservationCode) && entryGateId && entryGateId > 0);
   const canLoadSuggestion = Boolean(form.entryMode === "CASUAL" && isNormalCardVerified && derivedVehicleTypeId && entryGateId && entryGateId > 0);
@@ -365,7 +373,7 @@ export default function StaffEntryPage() {
             <div className="min-h-0 flex-1">
               <EntryFormPanel form={form} derivedVehicleTypeId={derivedVehicleTypeId} onFieldChange={setField} onEntryModeChange={setEntryMode} onLoadSuggestion={handleLoadSuggestion} canLoadSuggestion={canLoadSuggestion} isLoadingSuggestion={isLoadingSuggestion} noPlateAllowed={noPlateAllowed} gates={gates} vehicleTypes={vehicleTypes} />
             </div>
-            <div className="h-[35%] shrink-0"><EntrySuggestionPanel suggestion={suggestion} /></div>
+            <div className="h-[35%] shrink-0"><EntrySuggestionPanel suggestion={suggestion} cardError={cardError} /></div>
           </div>
 
           <div className="flex min-h-0 flex-col gap-4 md:col-span-3">

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { formatDateTime } from "@/lib/format";
 
-export default function EntrySuggestionPanel({ suggestion }) {
+export default function EntrySuggestionPanel({ suggestion, cardError }) {
   return (
     <Card className="flex flex-col border-slate-200 bg-white shadow-sm h-full overflow-hidden">
       <CardHeader className="border-b border-slate-100 py-2.5 px-3 shrink-0">
@@ -56,6 +56,13 @@ export default function EntrySuggestionPanel({ suggestion }) {
                   : "--"}
               </span>
             </div>
+          </div>
+        ) : cardError ? (
+          <div className="flex flex-col items-center justify-center gap-1.5 text-rose-500 py-2">
+            <AlertCircle className="h-6 w-6" />
+            <span className="text-xs font-bold text-center px-4">
+              {cardError}
+            </span>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center gap-1.5 text-slate-400 py-2">

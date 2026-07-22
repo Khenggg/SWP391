@@ -11,9 +11,9 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
-import LicensePlateInfo from "./components/LicensePlateInfo";
 import { useSubmitLicensePlateMismatch } from "../../hooks/useSubmitLicensePlateMismatch";
 import { useMismatchStatus } from "../../hooks/useLicensePlateMismatch";
+import { useState, useRef } from "react";
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 function StatusBadge({ status }) {
@@ -140,6 +140,30 @@ export default function LicensePlateMismatchPage() {
     reset({ actualPlate: prefillPlate, reason: prefillReason });
   }, [prefillPlate, prefillReason, reset]);
 
+  // Image Upload State
+  const [exitPlateImage, setExitPlateImage] = useState(null);
+  const [exitVehicleImage, setExitVehicleImage] = useState(null);
+  
+  const handleImageChange = (e, setter) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    // Validate type
+    const validTypes = ["image/jpeg", "image/png", "image/jpg"];
+    if (!validTypes.includes(file.type)) {
+      toast.error("Chỉ chấp nhận định dạng JPG, JPEG, PNG");
+      return;
+    }
+    
+    // Validate size (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Kích thước ảnh không được vượt quá 10MB");
+      return;
+    }
+    
+    setter(file);
+  };
+
   if (!parkingSessionId) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-6 bg-slate-50">
@@ -160,15 +184,25 @@ export default function LicensePlateMismatchPage() {
   }
 
   const onSubmit = (data) => {
+    if (!exitPlateImage || !exitVehicleImage) {
+      toast.error("Vui lòng tải lên đủ 2 ảnh (Ảnh biển số ra và Ảnh toàn xe ra)");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("parkingSessionId", Number(parkingSessionId));
+    formData.append("actualPlate", data.actualPlate);
+    formData.append("reason", data.reason);
+    formData.append("exitPlateImage", exitPlateImage);
+    formData.append("exitVehicleImage", exitVehicleImage);
+
+    // Also pass existing context info if backend still needs it (optional since we send images)
+    if (location.state?.ocrConfidence) {
+      formData.append("ocrConfidence", location.state.ocrConfidence);
+    }
+
     submitMismatch(
-      {
-        sessionId: Number(parkingSessionId),
-        exitPlateNumber: data.actualPlate,
-        reason: data.reason,
-        exitPlateImageUrl: location.state?.exitPlateImageUrl || undefined,
-        exitVehicleImageUrl: location.state?.exitVehicleImageUrl || undefined,
-        ocrConfidence: location.state?.ocrConfidence ?? undefined,
-      },
+      formData,
       {
         onSuccess: () => {
           navigate("/staff/exit");
@@ -297,6 +331,69 @@ export default function LicensePlateMismatchPage() {
                 {errors.reason && (
                   <p className="mt-1 text-sm text-rose-500 font-medium">{errors.reason.message}</p>
                 )}
+              </div>
+
+              {/* Exit Vehicle Images */}
+              <div className="flex flex-col gap-4 border-t border-slate-100 pt-5">
+                <h4 className="font-bold text-slate-800 text-sm">Hình ảnh xe ra</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Exit Plate Image */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-bold text-slate-700">
+                      Ảnh biển số xe ra <span className="text-rose-500">*</span>
+                    </label>
+                    <p className="text-xs text-slate-500 mb-1">Ảnh chụp rõ nét biển số xe ra</p>
+                    <div className="relative border border-dashed border-slate-300 rounded-lg h-40 bg-slate-50 flex items-center justify-center overflow-hidden">
+                      {exitPlateImage ? (
+                        <>
+                          <img src={URL.createObjectURL(exitPlateImage)} alt="Exit Plate" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setExitPlateImage(null)}
+                            className="absolute top-2 right-2 w-8 h-8 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+                          >
+                            <XCircle className="w-5 h-5" />
+                          </button>
+                        </>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-slate-100 transition-colors">
+                          <span className="text-sm font-medium text-indigo-600">Chọn ảnh tải lên</span>
+                          <span className="text-xs text-slate-400 mt-1">JPG, PNG (Tối đa 10MB)</span>
+                          <input type="file" className="hidden" accept="image/jpeg,image/png,image/jpg" onChange={(e) => handleImageChange(e, setExitPlateImage)} />
+                        </label>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Exit Vehicle Image */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-bold text-slate-700">
+                      Ảnh toàn xe ra <span className="text-rose-500">*</span>
+                    </label>
+                    <p className="text-xs text-slate-500 mb-1">Ảnh chụp toàn bộ phương tiện</p>
+                    <div className="relative border border-dashed border-slate-300 rounded-lg h-40 bg-slate-50 flex items-center justify-center overflow-hidden">
+                      {exitVehicleImage ? (
+                        <>
+                          <img src={URL.createObjectURL(exitVehicleImage)} alt="Exit Vehicle" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setExitVehicleImage(null)}
+                            className="absolute top-2 right-2 w-8 h-8 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+                          >
+                            <XCircle className="w-5 h-5" />
+                          </button>
+                        </>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-slate-100 transition-colors">
+                          <span className="text-sm font-medium text-indigo-600">Chọn ảnh tải lên</span>
+                          <span className="text-xs text-slate-400 mt-1">JPG, PNG (Tối đa 10MB)</span>
+                          <input type="file" className="hidden" accept="image/jpeg,image/png,image/jpg" onChange={(e) => handleImageChange(e, setExitVehicleImage)} />
+                        </label>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Info note for resubmit */}

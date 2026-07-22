@@ -160,8 +160,14 @@ namespace ParkingBuilding.CoreApi.Controllers
                 })
                 .FirstOrDefaultAsync();
 
+            var lostCardCase = await _context.LostCardCases
+                .AsNoTracking()
+                .Where(lc => lc.SessionId == session.Id)
+                .OrderByDescending(lc => lc.CreatedAt)
+                .FirstOrDefaultAsync();
+
             var isCardLost = session.ParkingCard?.Status == Domain.Entities.CardStatus.LOST
-                || await _context.LostCardCases.AnyAsync(lc => lc.SessionId == session.Id && lc.Status == "APPROVED");
+                || (lostCardCase != null && lostCardCase.Status == "APPROVED");
 
             var entryImages = await _context.ParkingSessionImages
                 .AsNoTracking()
@@ -198,6 +204,8 @@ namespace ParkingBuilding.CoreApi.Controllers
                 monthlyPassId = session.MonthlyPassId,
                 reservationId = session.ReservationId,
                 isCardLost,
+                lostCardStatus = lostCardCase?.Status,
+                lostCardRejectionReason = lostCardCase?.RejectionReason,
                 pendingOnlinePayment,
                 entryPlateImageUrl,
                 entryVehicleImageUrl
