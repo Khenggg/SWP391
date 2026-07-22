@@ -1,18 +1,22 @@
 import { ArrowRight, Camera, Check, ExternalLink, Lock, QrCode, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function ExitPayment({ session, fee, canExit, isZeroCharge, hasPendingOnlinePayment, payosPaymentUrl, isLoading, handleRequestCash, handlePayOS, handleCompleteExitPaid, handleCompleteMonthlyExit, refreshSession, mismatchBlocked, mismatchStatus, hasExitImages }) {
+export default function ExitPayment({ session, fee, canExit, isZeroCharge, hasPendingOnlinePayment, payosPaymentUrl, onShowQrModal, isLoading, handleRequestCash, handlePayOS, handleCompleteExitPaid, handleCompleteMonthlyExit, refreshSession, mismatchBlocked, mismatchStatus, hasExitImages }) {
   const isMonthly = session?.customerType === "MONTHLY";
   const isPaid = session?.paymentStatus === "PAID";
   const isWaitingOnline = Boolean(hasPendingOnlinePayment && !isPaid);
   const blockedMessage = mismatchStatus === "REJECTED" ? "Yêu cầu bị từ chối. Nhân viên cần gửi lại yêu cầu." : "Đang chờ Manager xử lý lệch biển số.";
 
   const handleOpenPaymentUrl = () => {
-    const targetUrl = payosPaymentUrl || session?.pendingOnlinePayment?.paymentUrl || session?.pendingOnlinePayment?.checkoutUrl;
-    if (targetUrl) {
-      window.open(targetUrl, "_blank");
+    if (onShowQrModal) {
+      onShowQrModal();
     } else {
-      void handlePayOS();
+      const targetUrl = payosPaymentUrl || session?.pendingOnlinePayment?.paymentUrl || session?.pendingOnlinePayment?.checkoutUrl;
+      if (targetUrl) {
+        window.open(targetUrl, "_blank");
+      } else {
+        void handlePayOS();
+      }
     }
   };
 
