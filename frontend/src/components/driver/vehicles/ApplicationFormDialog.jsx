@@ -2,10 +2,13 @@ import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { FileText } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FileText, Car } from "lucide-react";
 import { toast } from "sonner";
+import { vehicleService } from "@/services/vehicleService";
+import { parkingService } from "@/services/parkingService";
 
-export default function ApplicationFormDialog({ open, onClose, onSubmit }) {
+export default function ApplicationFormDialog({ open, onClose, onSubmit, vehicles: initialVehicles = [] }) {
   const [form, setForm] = useState({
     licensePlate: "",
     vehicleType: "",
@@ -16,6 +19,11 @@ export default function ApplicationFormDialog({ open, onClose, onSubmit }) {
     startDate: new Date().toISOString().split("T")[0],
   });
 
+  const [selectedVehicleId, setSelectedVehicleId] = useState("");
+  const [userVehicles, setUserVehicles] = useState(initialVehicles);
+  const [dbVehicleTypes, setDbVehicleTypes] = useState([]);
+  const [loadingVehicles, setLoadingVehicles] = useState(false);
+  const [loadingTypes, setLoadingTypes] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -30,9 +38,74 @@ export default function ApplicationFormDialog({ open, onClose, onSubmit }) {
         note: "",
         startDate: new Date().toISOString().split("T")[0],
       });
+      setSelectedVehicleId("");
       setErrors({});
+
+      // 1. Tải danh sách xe của tài khoản từ CSDL
+      const loadUserVehicles = async () => {
+        setLoadingVehicles(true);
+        try {
+          const res = await vehicleService.getVehicles({ pageSize: 50 });
+          if (res.items) {
+            setUserVehicles(res.items);
+          }
+        } catch (err) {
+          console.error("Lỗi tải danh sách xe của tài khoản:", err);
+        } finally {
+          setLoadingVehicles(false);
+        }
+      };
+
+      // 2. Tải trực tiếp tất cả loại phương tiện từ CSDL qua API getVehicleTypes
+      const loadVehicleTypes = async () => {
+        setLoadingTypes(true);
+        try {
+          const types = await parkingService.getVehicleTypes();
+          if (Array.isArray(types)) {
+            setDbVehicleTypes(types);
+          }
+        } catch (err) {
+          console.error("Lỗi gọi API getVehicleTypes:", err);
+        } finally {
+          setLoadingTypes(false);
+        }
+      };
+
+      loadUserVehicles();
+      loadVehicleTypes();
     }
   }, [open]);
+
+  useEffect(() => {
+    if (initialVehicles && initialVehicles.length > 0) {
+      setUserVehicles(initialVehicles);
+    }
+  }, [initialVehicles]);
+
+  const handleSelectVehicle = (vehicleId) => {
+    setSelectedVehicleId(vehicleId);
+    if (!vehicleId || vehicleId === "CUSTOM") {
+      return;
+    }
+    const found = userVehicles.find((v) => String(v.id) === String(vehicleId));
+    if (found) {
+      const typeStr = found.vehicleTypeName || found.vehicleType || "";
+      setForm((prev) => ({
+        ...prev,
+        licensePlate: found.licensePlate || found.plateNumber || "",
+        vehicleType: typeStr,
+        brand: found.brand || "",
+        color: found.color || "",
+        description: found.description || prev.description || "",
+      }));
+      setErrors({});
+    }
+  };
+
+  const handleSelectType = (val) => {
+    setForm((prev) => ({ ...prev, vehicleType: val }));
+    setErrors((prev) => ({ ...prev, vehicleType: undefined }));
+  };
 
   const validate = () => {
     const e = {};
@@ -102,9 +175,56 @@ export default function ApplicationFormDialog({ open, onClose, onSubmit }) {
           )}
 
           <div className="space-y-4">
-            <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">
-              Thông tin phương tiện
-            </h3>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">
+                Thông tin phương tiện
+              </h3>
+              {loadingVehicles && (
+                <span className="text-[11px] text-indigo-600 font-semibold animate-pulse">
+                  Đang tải danh sách xe...
+                </span>
+              )}
+            </div>
+
+            {/* Select Vehicle from DB Dropdown */}
+            <div className="bg-indigo-50/50 p-3.5 rounded-xl border border-indigo-100/80 space-y-1.5">
+              <label className="block text-xs font-extrabold text-indigo-950 flex items-center gap-1.5">
+                <Car className="w-4 h-4 text-indigo-600" />
+                Chọn xe có sẵn trong tài khoản (từ CSDL)
+              </label>
+              <Select value={selectedVehicleId} onValueChange={handleSelectVehicle}>
+                <SelectTrigger className="w-full text-xs font-semibold bg-white border-indigo-200 focus:ring-indigo-500">
+                  <SelectValue
+                    placeholder={
+                      loadingVehicles
+                        ? "Đang tải danh sách xe..."
+                        : userVehicles.length > 0
+                        ? "-- Chọn phương tiện đã đăng ký trong hệ thống --"
+                        : "Chưa có xe nào trong CSDL (Vui lòng tự nhập ở dưới)"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CUSTOM">-- Tự nhập thông tin xe mới --</SelectItem>
+                  {userVehicles.map((v) => {
+                    const plate = v.licensePlate || v.plateNumber || "Xe chưa có biển";
+                    const brandColor = [v.brand, v.color].filter(Boolean).join(" - ");
+                    const typeLabel = v.vehicleTypeName || v.vehicleType || "Phương tiện";
+                    return (
+                      <SelectItem key={v.id} value={String(v.id)}>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-bold text-indigo-600">{plate}</span>
+                          <span className="text-slate-600 text-xs">
+                            {brandColor ? `(${brandColor})` : ""} [{typeLabel}]
+                          </span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1">
@@ -124,11 +244,27 @@ export default function ApplicationFormDialog({ open, onClose, onSubmit }) {
                 <label className="block text-xs font-bold text-slate-600 mb-1">
                   Loại phương tiện <span className="text-rose-500">*</span>
                 </label>
-                <Input
-                  placeholder="Vd: CAR hoặc MOTORBIKE"
-                  className="text-sm font-semibold uppercase"
-                  {...field("vehicleType")}
-                />
+                <Select
+                  value={form.vehicleType}
+                  onValueChange={handleSelectType}
+                >
+                  <SelectTrigger className="w-full text-sm font-semibold uppercase">
+                    <SelectValue
+                      placeholder={
+                        loadingTypes
+                          ? "Đang lấy danh sách loại xe từ CSDL..."
+                          : "Chọn loại phương tiện..."
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dbVehicleTypes.map((vt) => (
+                      <SelectItem key={vt.id} value={vt.name}>
+                        {vt.name.toUpperCase()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {errors.vehicleType && (
                   <p className="text-[11px] text-rose-500 mt-1">{errors.vehicleType}</p>
                 )}

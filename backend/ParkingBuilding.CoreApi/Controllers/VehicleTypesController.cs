@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ParkingBuilding.CoreApi.Controllers
 {
-    [Authorize(Roles = "ADMIN,MANAGER,STAFF")]
+    [Authorize(Roles = "ADMIN,MANAGER,STAFF,DRIVER")]
     [Route("api/core/vehicle-types")]
     public class VehicleTypesController : BaseApiController
     {

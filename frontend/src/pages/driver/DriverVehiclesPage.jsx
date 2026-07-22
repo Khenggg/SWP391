@@ -231,11 +231,11 @@ export default function DriverVehiclesPage() {
         </>
       )}
 
-      {/* Dialog Components */}
       <ApplicationFormDialog
         open={showCreate}
         onClose={() => setShowCreate(false)}
         onSubmit={handleCreate}
+        vehicles={vehicles}
       />
       
       <ApplicationDetailDialog
