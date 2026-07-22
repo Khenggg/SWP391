@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -55,14 +55,17 @@ namespace ParkingBuilding.CoreApi.Application.Payments
                     if (hasFinal || session.PaymentStatus == "PAID" || session.PaymentStatus == "WAIVED")
                         throw new BusinessException(ErrorCodes.PaymentAlreadyFinal);
 
-                    var hasActiveOnlinePayment = await _context.Payments
-                        .AnyAsync(p => p.SessionId == session.Id
-                                    && p.Purpose == "PARKING_FEE"
-                                    && p.Method == "BANK_TRANSFER"
-                                    && p.Status == "PENDING"
-                                    && p.ExpiredAt > DateTimeOffset.UtcNow);
-                    if (hasActiveOnlinePayment)
-                        throw new BusinessException(ErrorCodes.PaymentAlreadyPending);
+                    var activeOnlinePayments = await _context.Payments
+                        .Where(p => p.SessionId == session.Id
+                                 && p.Method == "BANK_TRANSFER"
+                                 && p.Status == "PENDING")
+                        .ToListAsync();
+
+                    foreach (var pendingOnline in activeOnlinePayments)
+                    {
+                        pendingOnline.Status = "CANCELLED";
+                        pendingOnline.UpdatedAt = DateTimeOffset.UtcNow;
+                    }
 
                     // Server-side fee calculation -- NEVER trust client amount
                     var feeResult = await _feeCalculationService.CalculateFeeAsync(
@@ -144,14 +147,18 @@ namespace ParkingBuilding.CoreApi.Application.Payments
                     if (!session.PaymentRequired)
                         throw new BusinessException(ErrorCodes.NoPaymentRequired);
 
-                    // 2. Check for existing online PENDING payment (conflict)
-                    bool hasOnlinePending = await _context.Payments
-                        .AnyAsync(p => p.SessionId == session.Id
-                                    && p.Method == "BANK_TRANSFER"
-                                    && p.Status == "PENDING"
-                                    && p.ExpiredAt > DateTimeOffset.UtcNow);
-                    if (hasOnlinePending)
-                        throw new BusinessException(ErrorCodes.PaymentAlreadyPending);
+                    // 2. Cancel any existing online PENDING payment
+                    var pendingOnlineList = await _context.Payments
+                        .Where(p => p.SessionId == session.Id
+                                 && p.Method == "BANK_TRANSFER"
+                                 && p.Status == "PENDING")
+                        .ToListAsync();
+
+                    foreach (var pOnline in pendingOnlineList)
+                    {
+                        pOnline.Status = "CANCELLED";
+                        pOnline.UpdatedAt = DateTimeOffset.UtcNow;
+                    }
 
                     // 3. Check if there is already a final payment
                     bool hasFinal = await _context.Payments

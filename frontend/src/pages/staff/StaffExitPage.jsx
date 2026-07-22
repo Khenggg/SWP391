@@ -13,6 +13,7 @@ import ExitFeeSummary from "./components/exit/ExitFeeSummary";
 import ExitConfirmation from "./components/exit/ExitConfirmation";
 import ExitPayment from "./components/exit/ExitPayment";
 import ExitImageSection from "./components/exit/ExitImageSection";
+import StaffPayOSPaymentModal from "@/components/staff/exit/StaffPayOSPaymentModal";
 
 function normalizePlate(value) {
   return String(value || "").replace(/[^a-z0-9]/gi, "").toUpperCase();
@@ -299,46 +300,14 @@ export default function StaffExitPage() {
         </div>
       </main>
       <Dialog open={isCashConfirmOpen} onOpenChange={setIsCashConfirmOpen}><DialogContent className="sm:max-w-md" showCloseButton={!isLoading}><DialogHeader><DialogTitle>Xác nhận đã thu tiền mặt</DialogTitle><DialogDescription>Chỉ xác nhận sau khi Staff đã nhận đủ tiền. Backend sẽ tự tính lại phí tại thời điểm ghi nhận.</DialogDescription></DialogHeader><div className="rounded-lg border border-indigo-100 bg-indigo-50 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Tổng cần thu</p><p className="mt-1 text-2xl font-black text-indigo-700">{formatVND(fee?.totalAmount || 0)}</p></div><DialogFooter><Button type="button" variant="outline" onClick={() => setIsCashConfirmOpen(false)} disabled={isLoading}>Hủy</Button><Button type="button" onClick={handleConfirmCash} disabled={isLoading}>{isLoading ? "Đang ghi nhận..." : "Đã thu đủ tiền"}</Button></DialogFooter></DialogContent></Dialog>
-      <Dialog open={isPayosQrModalOpen} onOpenChange={setIsPayosQrModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-center text-lg font-bold text-slate-800">Quét mã QR Thanh toán PayOS</DialogTitle>
-            <DialogDescription className="text-center text-xs text-slate-500">
-              Khách hàng quét mã QR dưới đây bằng ứng dụng Ngân hàng để thanh toán.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-xl border border-slate-200 gap-3">
-            {payosQrString ? (
-              <img 
-                src={payosQrString.startsWith("http") && !payosQrString.includes("pay.payos.vn") ? payosQrString : `https://quickchart.io/qr?text=${encodeURIComponent(payosQrString)}&size=300`} 
-                alt="PayOS QR Code"
-                className="size-60 rounded-lg border bg-white p-2 shadow-sm object-contain"
-              />
-            ) : (
-              <div className="size-60 flex items-center justify-center bg-slate-100 text-slate-400 text-sm">Đang tải QR...</div>
-            )}
-            <div className="text-center">
-              <p className="text-xs font-semibold text-slate-500">Số tiền cần thanh toán</p>
-              <p className="text-2xl font-black text-emerald-600">{formatVND(fee?.totalAmount || 0)}</p>
-              <p className="text-[11px] text-slate-400 mt-1">Biển số: {session?.plateNumber || "—"} | Thẻ: {session?.cardCode || "—"}</p>
-            </div>
-          </div>
-          <DialogFooter className="flex flex-row justify-between items-center gap-2">
-            {payosPaymentUrl && (
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm"
-                onClick={() => window.open(payosPaymentUrl, "_blank")}
-                className="text-xs"
-              >
-                Mở web PayOS
-              </Button>
-            )}
-            <Button type="button" onClick={() => setIsPayosQrModalOpen(false)}>Đóng</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <StaffPayOSPaymentModal
+        open={isPayosQrModalOpen}
+        onClose={() => setIsPayosQrModalOpen(false)}
+        session={session}
+        fee={fee}
+        payosPaymentUrl={payosPaymentUrl || session?.pendingOnlinePayment?.checkoutUrl || session?.pendingOnlinePayment?.paymentUrl}
+        qrCodeData={payosQrString}
+      />
     </div>
   );
 }
