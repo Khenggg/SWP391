@@ -8,8 +8,9 @@ export default function ExitPayment({ session, fee, canExit, isZeroCharge, hasPe
   const blockedMessage = mismatchStatus === "REJECTED" ? "Yêu cầu bị từ chối. Nhân viên cần gửi lại yêu cầu." : "Đang chờ Manager xử lý lệch biển số.";
 
   const handleOpenPaymentUrl = () => {
-    if (payosPaymentUrl) {
-      window.open(payosPaymentUrl, "_blank", "width=800,height=800");
+    const targetUrl = payosPaymentUrl || session?.pendingOnlinePayment?.paymentUrl || session?.pendingOnlinePayment?.checkoutUrl;
+    if (targetUrl) {
+      window.open(targetUrl, "_blank");
     } else {
       void handlePayOS();
     }
