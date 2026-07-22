@@ -225,19 +225,31 @@ export default function StaffExitPage() {
 
   const handlePayOS = async () => {
     if (!session) return;
+    const popup = window.open("", "_blank");
+    if (popup) {
+      popup.document.write(
+        "<html><head><title>PayOS Checkout</title></head><body style='font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f8fafc;'><div style='text-align:center;padding:2rem;background:white;border-radius:12px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);'><h3 style='color:#1e293b;margin-bottom:8px;'>Đang khởi tạo cổng thanh toán PayOS...</h3><p style='color:#64748b;font-size:14px;'>Vui lòng chờ trong giây lát</p></div></body></html>"
+      );
+    }
     try {
       setIsLoading(true);
       const result = await staffSessionService.createOnlinePayment({ sessionId: session.sessionId, cardCode: session.cardCode });
       const url = result.paymentUrl || result.checkoutUrl;
       if (url) {
         setPayosPaymentUrl(url);
-        window.open(url, "_blank", "width=800,height=800");
+        if (popup && !popup.closed) {
+          popup.location.href = url;
+        } else {
+          window.open(url, "_blank");
+        }
         toast.success("Đã tạo QR PayOS. Chờ webhook xác minh thanh toán.");
       } else {
+        if (popup && !popup.closed) popup.close();
         toast.info("Phiên này chưa phát sinh phí, có thể xác nhận xe ra.");
       }
       await loadSessionByCard(session.cardCode, { preserveExitImages: true, silent: true, silentPolling: true });
     } catch (error) {
+      if (popup && !popup.closed) popup.close();
       toast.error(error.message || "Tạo thanh toán online thất bại.");
     } finally {
       setIsLoading(false);
