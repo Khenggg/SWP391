@@ -1069,6 +1069,9 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
             if (string.IsNullOrWhiteSpace(request.EntryVehicleImageUrl))
                 throw new BusinessException(ErrorCodes.EntryVehicleImageRequired);
 
+            if (string.IsNullOrWhiteSpace(request.EntryPlateImageUrl))
+                throw new BusinessException(ErrorCodes.EntryPlateImageRequired);
+
             if (!request.NoPlate && string.IsNullOrWhiteSpace(request.LicensePlate))
                 throw new BusinessException(ErrorCodes.LicensePlateRequired);
 

@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ParkingBuilding.CoreApi.Application.Audit;
 using ParkingBuilding.CoreApi.Contracts.Common;
@@ -26,15 +27,18 @@ public class PayOsPaymentService : IPayOsPaymentService
     private readonly IAuditWriterService _auditWriter;
     private readonly PayOsOptions _options;
     private readonly PayOSClient? _client;
+    private readonly ILogger<PayOsPaymentService> _logger;
 
     public PayOsPaymentService(
         ParkingDbContext context,
         IAuditWriterService auditWriter,
-        IOptions<PayOsOptions> options)
+        IOptions<PayOsOptions> options,
+        ILogger<PayOsPaymentService> logger)
     {
         _context = context;
         _auditWriter = auditWriter;
         _options = options.Value;
+        _logger = logger;
 
         if (_options.IsConfigured)
         {
@@ -67,6 +71,30 @@ public class PayOsPaymentService : IPayOsPaymentService
             MaxRetries = 0,
             CancellationToken = cancellationToken
         };
+
+    private async Task<CreatePaymentLinkResponse> CreateProviderPaymentLinkAsync(
+        CreatePaymentLinkRequest request,
+        string purpose,
+        long paymentId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _client!.PaymentRequests.CreateAsync(
+                request,
+                CreateRequestOptions<CreatePaymentLinkRequest>(cancellationToken));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "PayOS could not create a {Purpose} payment link for payment {PaymentId}, order code {OrderCode}.",
+                purpose,
+                paymentId,
+                request.OrderCode);
+            throw;
+        }
+    }
 
     private void EnsureConfiguredInProduction()
     {
@@ -135,9 +163,11 @@ public class PayOsPaymentService : IPayOsPaymentService
                 }
             };
 
-            var response = await _client.PaymentRequests.CreateAsync(
+            var response = await CreateProviderPaymentLinkAsync(
                 request,
-                CreateRequestOptions<CreatePaymentLinkRequest>(cancellationToken));
+                "RESERVATION_FEE",
+                payment.Id,
+                cancellationToken);
 
             result = new PayOsPaymentResponse
             {
@@ -237,9 +267,11 @@ public class PayOsPaymentService : IPayOsPaymentService
                 }
             };
 
-            var response = await _client.PaymentRequests.CreateAsync(
+            var response = await CreateProviderPaymentLinkAsync(
                 request,
-                CreateRequestOptions<CreatePaymentLinkRequest>(cancellationToken));
+                "PARKING_FEE",
+                payment.Id,
+                cancellationToken);
 
             result = new PayOsPaymentResponse
             {
@@ -333,7 +365,11 @@ public class PayOsPaymentService : IPayOsPaymentService
                 Items = new List<PaymentLinkItem> { new() { Name = "Monthly Pass " + application.Id, Quantity = 1, Price = amount } }
             };
 
-            var response = await _client.PaymentRequests.CreateAsync(request, CreateRequestOptions<CreatePaymentLinkRequest>(cancellationToken));
+            var response = await CreateProviderPaymentLinkAsync(
+                request,
+                "MONTHLY_PASS_RENEWAL",
+                payment.Id,
+                cancellationToken);
 
             result = new PayOsPaymentResponse
             {

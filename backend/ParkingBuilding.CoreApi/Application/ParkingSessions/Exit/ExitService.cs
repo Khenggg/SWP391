@@ -115,7 +115,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                     throw new BusinessException(ErrorCodes.ExitGateInvalid);
                 }
 
-                await EnsureRequiredVehicleImagesAsync(session.Id, request.ExitVehicleImageUrl);
+                await EnsureRequiredVehicleImagesAsync(session.Id, request.ExitPlateImageUrl, request.ExitVehicleImageUrl);
 
                 // Plate verification before transaction to prevent rollback of mismatch case log
                 var normalizedEntry = NormalizePlate(session.PlateNumber);
@@ -318,7 +318,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                     throw new BusinessException(ErrorCodes.ExitGateInvalid);
                 }
 
-                await EnsureRequiredVehicleImagesAsync(session.Id, request.ExitVehicleImageUrl);
+                await EnsureRequiredVehicleImagesAsync(session.Id, request.ExitPlateImageUrl, request.ExitVehicleImageUrl);
 
                 var pass = await _context.MonthlyPasses.FindAsync(session.MonthlyPassId.Value);
                 if (pass == null || pass.Status != "ACTIVE")
@@ -477,8 +477,21 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
             });
         }
 
-        private async Task EnsureRequiredVehicleImagesAsync(long sessionId, string? exitVehicleImageUrl)
+        private async Task EnsureRequiredVehicleImagesAsync(
+            long sessionId,
+            string? exitPlateImageUrl,
+            string? exitVehicleImageUrl)
         {
+            var hasEntryPlateImage = await _context.ParkingSessionImages
+                .AnyAsync(image => image.SessionId == sessionId
+                    && image.ImageType == "ENTRY_PLATE"
+                    && !string.IsNullOrWhiteSpace(image.ImageUrl));
+
+            if (!hasEntryPlateImage)
+            {
+                throw new BusinessException(ErrorCodes.EntryPlateImageMissing);
+            }
+
             var hasEntryVehicleImage = await _context.ParkingSessionImages
                 .AnyAsync(image => image.SessionId == sessionId
                     && image.ImageType == "ENTRY_VEHICLE"
@@ -487,6 +500,17 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
             if (!hasEntryVehicleImage)
             {
                 throw new BusinessException(ErrorCodes.EntryVehicleImageMissing);
+            }
+
+            var hasExitPlateImage = !string.IsNullOrWhiteSpace(exitPlateImageUrl)
+                || await _context.ParkingSessionImages
+                    .AnyAsync(image => image.SessionId == sessionId
+                        && image.ImageType == "EXIT_PLATE"
+                        && !string.IsNullOrWhiteSpace(image.ImageUrl));
+
+            if (!hasExitPlateImage)
+            {
+                throw new BusinessException(ErrorCodes.ExitPlateImageRequired);
             }
 
             var hasExitVehicleImage = !string.IsNullOrWhiteSpace(exitVehicleImageUrl)

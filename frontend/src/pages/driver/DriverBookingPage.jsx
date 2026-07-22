@@ -92,14 +92,15 @@ export default function DriverBookingPage() {
           return;
         }
 
-        setActiveReservation(activeData);
         if (activeData.status === "PENDING" && activeData.paymentStatus === "PENDING") {
+          setActiveReservation(activeData);
           setCurrentStep(5);
           return;
         }
 
-        // Nếu có đặt chỗ CONFIRMED đang hoạt động, không tự động chuyển hướng.
-        // Cứ để cho tài xế tiếp tục đặt chỗ khác bình thường.
+        // Booking đã thanh toán được hiển thị ở lịch sử. Không dùng nó làm dữ liệu
+        // của form mới, tránh nhầm xe/khu vực của booking cũ với booking đang tạo.
+        setActiveReservation(null);
       } catch (error) {
         console.error("Error fetching booking data:", error);
       } finally {
@@ -270,7 +271,7 @@ export default function DriverBookingPage() {
               <div>
                 <h2 className="text-xl font-black text-slate-800">Đặt chỗ trước</h2>
                 <p className="text-sm text-slate-500 mt-1">
-                  Đặt trước chỗ đỗ ô tô tại tầng B2. Giữ chỗ tối đa 10 phút kể từ thời điểm xác nhận.
+                  Chọn chỗ đỗ phù hợp cho xe máy hoặc ô tô. Giữ chỗ tối đa 10 phút kể từ thời điểm xác nhận.
                 </p>
               </div>
               {isInitialLoading && (

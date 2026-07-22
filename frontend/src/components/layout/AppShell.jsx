@@ -17,7 +17,6 @@ import {
   MoreHorizontal,
   ParkingCircle,
   QrCode,
-  RadioTower,
   Search,
   Settings,
   ShieldAlert,
@@ -36,7 +35,6 @@ const MENUS = {
   [USER_ROLES.STAFF]: [
     { label: "Cho xe vào", path: "/staff/entry", icon: ParkingCircle },
     { label: "Cho xe ra", path: "/staff/exit", icon: ArrowRightFromLine },
-    { label: "Giả lập cổng", path: "/simulator/gate", icon: RadioTower },
     { label: "Báo mất thẻ", path: "/staff/lost-card", icon: ShieldAlert },
     { label: "Tìm phiên gửi", path: "/staff/sessions", icon: Search },
     { label: "License Plate Mismatch", path: "/staff/license-plate-mismatch", icon: AlertTriangle },
@@ -51,13 +49,11 @@ const MENUS = {
     { label: "Cấu hình giá", path: "/manager/pricing", icon: Settings },
     { label: "Vé tháng", path: "/manager/monthly-passes", icon: CalendarClock },
     { label: "Nhật ký", path: "/manager/audit-logs", icon: FileClock },
-    { label: "Giả lập cổng", path: "/simulator/gate", icon: RadioTower },
   ],
   [USER_ROLES.ADMIN]: [
     { label: "Người dùng", path: "/admin/users", icon: UsersRound },
     { label: "Quản trị phiên", path: "/admin/sessions-administration", icon: UserRoundCog },
     { label: "Nhật ký", path: "/admin/audit-logs", icon: FileClock },
-    { label: "Giả lập cổng", path: "/simulator/gate", icon: RadioTower },
   ],
   [USER_ROLES.DRIVER]: [
     { label: "Hồ sơ", path: "/driver/profile", icon: UserRoundCog },

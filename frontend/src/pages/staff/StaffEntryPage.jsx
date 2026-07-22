@@ -1,18 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import EntryActionPanel from "@/components/staff/entry/EntryActionPanel";
-import EntryDevicePanel from "@/components/staff/entry/EntryDevicePanel";
+import EntryImageSection from "@/components/staff/entry/EntryImageSection";
 import EntryFormPanel from "@/components/staff/entry/EntryFormPanel";
 import EntryVerificationPanel from "@/components/staff/entry/EntryVerificationPanel";
 import EntrySystemChecksPanel from "@/components/staff/entry/EntrySystemChecksPanel";
 import EntrySuggestionPanel from "@/components/staff/entry/EntrySuggestionPanel";
-import ImagePreviewDialog from "@/components/staff/entry/ImagePreviewDialog";
 import { entryService } from "@/services/entryService";
-import {
-  acknowledgeGateScanEvent,
-  consumeLastGateScanEvent,
-  subscribeGateScanEvents,
-} from "@/services/gateSimulatorBus";
 import { parkingService } from "@/services/parkingService";
 
 const initialForm = {
@@ -24,8 +18,6 @@ const initialForm = {
   noPlate: false,
   vehicleDescription: "",
   vehicleTypeId: "",
-  detectedPlateNumber: "",
-  ocrConfidence: "",
   entryPlateImageUrl: "",
   entryVehicleImageUrl: "",
 };
@@ -47,14 +39,21 @@ function canReservationProceed(status) {
   return status === "VALID";
 }
 
+function formatCardCode(value) {
+  const cardCode = String(value || "").trim().toUpperCase();
+  if (!cardCode) return "";
+  if (/^CARD-?\d+/i.test(cardCode)) {
+    return `C${cardCode.replace(/^CARD-?/i, "").padStart(3, "0")}`;
+  }
+  if (/^\d+$/.test(cardCode)) return `C${cardCode.padStart(3, "0")}`;
+  return cardCode;
+}
+
 export default function StaffEntryPage() {
-  const processedEventRef = useRef("");
   const [form, setForm] = useState(initialForm);
-  const [lastDeviceEvent, setLastDeviceEvent] = useState(null);
   const [cardCheck, setCardCheck] = useState(null);
   const [reservationCheck, setReservationCheck] = useState(null);
   const [suggestion, setSuggestion] = useState(null);
-  const [previewImage, setPreviewImage] = useState(null);
   const [isCheckingCard, setIsCheckingCard] = useState(false);
   const [isCheckingReservation, setIsCheckingReservation] = useState(false);
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
@@ -65,556 +64,211 @@ export default function StaffEntryPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [gRes, vRes] = await Promise.all([
+        const [gateResponse, vehicleTypeResponse] = await Promise.all([
           parkingService.getGates("ENTRY"),
           parkingService.getVehicleTypes(),
         ]);
-        setGates(gRes);
-        setVehicleTypes(vRes);
-        if (gRes?.length > 0) {
-          setForm((prev) => ({ ...prev, entryGateId: String(gRes[0].id) }));
-        }
-        if (vRes?.length > 0) {
-          setForm((prev) => ({
-            ...prev,
-            vehicleTypeId: prev.vehicleTypeId || String(vRes[0].id),
-          }));
-        }
-      } catch (e) {
-        console.error("Failed to load gates/vehicle types", e);
+        setGates(gateResponse);
+        setVehicleTypes(vehicleTypeResponse);
+        setForm((current) => ({
+          ...current,
+          entryGateId: current.entryGateId || (gateResponse[0] ? String(gateResponse[0].id) : ""),
+          vehicleTypeId: current.vehicleTypeId || (vehicleTypeResponse[0] ? String(vehicleTypeResponse[0].id) : ""),
+        }));
+      } catch (error) {
+        console.error("Failed to load entry metadata", error);
+        toast.error("Không thể tải cổng vào hoặc loại xe.");
       }
     };
-    loadData();
+    void loadData();
   }, []);
 
   const setField = useCallback((name, value) => {
     setForm((current) => ({ ...current, [name]: value }));
-
-    // Every token/check is bound to the exact card, reservation, gate and
-    // vehicle type that produced it. Never let a previous response authorize
-    // changed form data.
     if (["cardCode", "entryGateId", "vehicleTypeId"].includes(name)) {
       setCardCheck(null);
       setSuggestion(null);
     }
-
     if (["reservationCode", "entryGateId"].includes(name)) {
       setReservationCheck(null);
     }
   }, []);
 
-  const setEntryMode = useCallback((nextMode) => {
-    setForm((current) => {
-      const nextForm = { ...current, entryMode: nextMode };
-
-      if (nextMode !== "RESERVATION") {
-        nextForm.reservationCode = "";
-      }
-
-      if (nextMode === "MONTHLY") {
-        nextForm.noPlate = false;
-        nextForm.vehicleDescription = "";
-      }
-
-      return nextForm;
-    });
-
-    if (nextMode !== "RESERVATION") {
-      setReservationCheck(null);
-    }
-
-    if (nextMode !== "CASUAL") {
-      setSuggestion(null);
-    }
+  const setEntryMode = useCallback((entryMode) => {
+    setForm((current) => ({
+      ...current,
+      entryMode,
+      reservationCode: entryMode === "RESERVATION" ? current.reservationCode : "",
+      noPlate: entryMode === "MONTHLY" ? false : current.noPlate,
+      vehicleDescription: entryMode === "MONTHLY" ? "" : current.vehicleDescription,
+    }));
+    setSuggestion(null);
+    if (entryMode !== "RESERVATION") setReservationCheck(null);
   }, []);
 
   const resetFlow = useCallback(() => {
-    setForm((current) => ({
-      ...initialForm,
-      entryGateId: current.entryGateId,
-    }));
+    setForm((current) => ({ ...initialForm, entryGateId: current.entryGateId, vehicleTypeId: current.vehicleTypeId }));
     setCardCheck(null);
     setReservationCheck(null);
     setSuggestion(null);
-    setLastDeviceEvent(null);
   }, []);
 
-  const resolveGateId = useCallback((overrideGateId) => {
-    const direct = parseNumber(overrideGateId);
-    if (direct != null && direct > 0) return direct;
+  const entryGateId = parseNumber(form.entryGateId);
 
-    const gateStr = String(overrideGateId || "").trim().toUpperCase();
-    if (gateStr) {
-      const matched = gates.find(
-        (g) => String(g.gateCode || "").trim().toUpperCase() === gateStr
-      );
-      if (matched) return matched.id;
-
-      const KNOWN_GATE_MAP = {
-        "B1-IN": 1,
-        "B1-OUT": 2,
-        "B2-IN": 3,
-        "B2-OUT": 4,
-        "B3-IN": 5,
-        "B3-OUT": 6,
-      };
-      if (KNOWN_GATE_MAP[gateStr]) return KNOWN_GATE_MAP[gateStr];
-    }
-
-    const currentGateId = parseNumber(form.entryGateId);
-    if (currentGateId != null && currentGateId > 0) return currentGateId;
-
-    return gates[0]?.id ?? 1;
-  }, [form.entryGateId, gates]);
-
-function formatCardCode(value) {
-  let val = String(value || "").trim().toUpperCase();
-  if (!val) return "";
-
-  if (/^CARD-?\d+/i.test(val)) {
-    const num = val.replace(/^CARD-?/i, "");
-    return `C${num.padStart(3, "0")}`;
-  }
-
-  if (/^\d+$/.test(val)) {
-    return `C${val.padStart(3, "0")}`;
-  }
-
-  return val;
-}
-
-  const handleCheckCard = useCallback(async (
-    overrideCardCode,
-    overrideGateId,
-    expectedDeviceEventId = null,
-    isBookingCard = false
-  ) => {
-    const isCurrentDeviceEvent = () => !expectedDeviceEventId || processedEventRef.current === expectedDeviceEventId;
-    const rawCardCode = typeof overrideCardCode === "string" ? overrideCardCode : form.cardCode;
-    const cardCode = formatCardCode(normalizeText(rawCardCode));
-    const gateParam = (typeof overrideGateId === "number" || typeof overrideGateId === "string") ? overrideGateId : null;
-    const entryGateId = resolveGateId(gateParam);
-    if (!cardCode || entryGateId == null) {
+  const handleCheckCard = useCallback(async () => {
+    const cardCode = formatCardCode(form.cardCode);
+    if (!cardCode || entryGateId == null || entryGateId <= 0) {
       toast.error("Nhập mã thẻ và chọn cổng vào hợp lệ trước khi kiểm tra.");
       return;
     }
 
-    if (cardCode !== form.cardCode) {
-      setForm((prev) => ({ ...prev, cardCode }));
-    }
-
-    // Invalidate prior approval while the current card is being checked.
+    setField("cardCode", cardCode);
     setCardCheck(null);
     setSuggestion(null);
     setIsCheckingCard(true);
     try {
-      const result = await entryService.checkCardEntry({
-        cardCode,
-        entryGateId,
-      });
-
-      if (!isCurrentDeviceEvent()) return;
-
+      const result = await entryService.checkCardEntry({ cardCode, entryGateId });
       setCardCheck(result);
 
       if (result.entryCardType === "MONTHLY") {
         setReservationCheck(null);
         setSuggestion(null);
-        setForm((current) => {
-          const effectivePlate = current.licensePlate || current.detectedPlateNumber || "";
-          const normInput = String(effectivePlate).replace(/[^A-Z0-9]/gi, "").toUpperCase();
-          const normRegistered = String(result.plateNumber || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
-          const isMismatch = Boolean(normInput && normRegistered && normInput !== normRegistered);
-
-          if (isMismatch) {
-            toast.error(
-              `⚠️ Lệch biển số! Biển quét (${effectivePlate}) KHÔNG KHỚP với biển đăng ký vé tháng (${result.plateNumber})`,
-              { duration: 6000 }
-            );
-          } else {
-            toast.success("Đã xác định thẻ tháng (Cư dân) hợp lệ.");
-          }
-
-          return {
-            ...current,
-            entryMode: "MONTHLY",
-            entryGateId: String(entryGateId),
-            noPlate: false,
-            vehicleDescription: "",
-            licensePlate: effectivePlate,
-            vehicleTypeId: result.vehicleTypeId
-              ? String(result.vehicleTypeId)
-              : current.vehicleTypeId,
-          };
-        });
-      } else {
-        setSuggestion(null);
         setForm((current) => ({
           ...current,
-          entryMode: isBookingCard || current.reservationCode ? "RESERVATION" : "CASUAL",
-          entryGateId: String(entryGateId),
+          entryMode: "MONTHLY",
+          noPlate: false,
+          vehicleDescription: "",
+          licensePlate: result.plateNumber || current.licensePlate,
+          vehicleTypeId: result.vehicleTypeId ? String(result.vehicleTypeId) : current.vehicleTypeId,
         }));
-        toast.success(
-          isBookingCard
-            ? "Đã xác minh thẻ lượt cho booking."
-            : "Thẻ hợp lệ cho luồng khách vãng lai."
-        );
+        toast.success("Đã xác minh thẻ tháng cư dân.");
+      } else {
+        setForm((current) => ({ ...current, entryMode: current.reservationCode ? "RESERVATION" : "CASUAL" }));
+        toast.success(form.reservationCode ? "Đã xác minh thẻ lượt cho booking." : "Thẻ hợp lệ cho khách vãng lai.");
       }
     } catch (error) {
-      if (!isCurrentDeviceEvent()) return;
       setCardCheck(null);
       setSuggestion(null);
       toast.error(error.message || "Kiểm tra thẻ thất bại.");
     } finally {
-      if (isCurrentDeviceEvent()) {
-        setIsCheckingCard(false);
-      }
+      setIsCheckingCard(false);
     }
-  }, [form.cardCode, form.entryGateId, resolveGateId]);
+  }, [entryGateId, form.cardCode, form.reservationCode, setField]);
 
-  const handleCheckReservation = useCallback(async (overrideReservationCode, overrideGateId, expectedDeviceEventId = null) => {
-    const isCurrentDeviceEvent = () => !expectedDeviceEventId || processedEventRef.current === expectedDeviceEventId;
-    const rawCode = typeof overrideReservationCode === "string" ? overrideReservationCode : form.reservationCode;
-    const reservationCode = normalizeText(rawCode);
-    const gateParam = (typeof overrideGateId === "number" || typeof overrideGateId === "string") ? overrideGateId : null;
-    const entryGateId = resolveGateId(gateParam);
-    if (!reservationCode || entryGateId == null) {
+  const handleCheckReservation = useCallback(async () => {
+    const reservationCode = normalizeText(form.reservationCode);
+    if (!reservationCode || entryGateId == null || entryGateId <= 0) {
       toast.error("Nhập mã booking và chọn cổng vào hợp lệ trước khi kiểm tra.");
       return;
     }
 
+    setReservationCheck(null);
+    setSuggestion(null);
     setIsCheckingReservation(true);
     try {
-      const result = await entryService.checkReservationEntry({
-        reservationCode,
-        entryGateId,
-      });
-
-      if (!isCurrentDeviceEvent()) return;
-
+      const result = await entryService.checkReservationEntry({ reservationCode, entryGateId });
       setReservationCheck(result);
-      setSuggestion(null);
       setForm((current) => ({
         ...current,
         entryMode: "RESERVATION",
-        entryGateId: String(entryGateId),
         noPlate: result.plateRequiredAtEntry ? false : current.noPlate,
-        vehicleDescription: result.plateRequiredAtEntry
-          ? ""
-          : current.vehicleDescription,
+        vehicleDescription: result.plateRequiredAtEntry ? "" : current.vehicleDescription,
         licensePlate: result.plateNumber || current.licensePlate,
-        vehicleTypeId: result.vehicleTypeId
-          ? String(result.vehicleTypeId)
-          : current.vehicleTypeId,
+        vehicleTypeId: result.vehicleTypeId ? String(result.vehicleTypeId) : current.vehicleTypeId,
       }));
 
-      if (result.status === "VALID") {
-        toast.success("Booking hợp lệ cho xe vào.");
-      } else if (result.status === "EXPIRED") {
-        toast.error("Booking đã hết hạn.");
-      } else if (result.status === "PAYMENT_PENDING") {
-        toast.error("Booking chưa thanh toán.");
-      } else if (result.status === "ALREADY_CHECKED_IN") {
-        toast.error("Booking này đã được check-in trước đó.");
-      } else if (result.status === "CANCELLED") {
-        toast.error("Booking đã bị hủy.");
-      } else if (result.status === "NOT_FOUND") {
-        toast.error("Không tìm thấy booking.");
-      } else {
-        toast.error(`Trạng thái booking: ${result.status}`);
-      }
+      if (result.status === "VALID") toast.success("Booking hợp lệ cho xe vào.");
+      else toast.error(`Booking chưa thể vào bãi: ${result.status || "không hợp lệ"}.`);
     } catch (error) {
-      if (!isCurrentDeviceEvent()) return;
       setReservationCheck(null);
       toast.error(error.message || "Kiểm tra booking thất bại.");
     } finally {
-      if (isCurrentDeviceEvent()) {
-        setIsCheckingReservation(false);
-      }
+      setIsCheckingReservation(false);
     }
-  }, [form.reservationCode, resolveGateId]);
-
-  const applyEntryDeviceEvent = useCallback((event) => {
-    if (event.gateType !== "ENTRY" || processedEventRef.current === event.id) {
-      return;
-    }
-
-    processedEventRef.current = event.id;
-    acknowledgeGateScanEvent(event);
-    setLastDeviceEvent(event);
-
-    const targetCardCode = event.cardCode || "";
-    const targetReservationCode = event.qrToken || event.bookingId;
-    const isBookingScan = event.scanType === "BOOKING_QR" || (targetReservationCode && /^BK-/i.test(targetReservationCode));
-    const matchedGateId = resolveGateId(event.gateCode || event.gateId);
-
-    setCardCheck(null);
-    setReservationCheck(null);
-    setSuggestion(null);
-    setIsCheckingCard(false);
-    setIsCheckingReservation(false);
-    setForm({
-      ...initialForm,
-      entryMode: isBookingScan ? "RESERVATION" : "CASUAL",
-      entryGateId: matchedGateId ? String(matchedGateId) : "",
-      cardCode: targetCardCode,
-      reservationCode: isBookingScan ? targetReservationCode : "",
-      licensePlate: event.detectedPlate || "",
-      detectedPlateNumber: event.detectedPlate || "",
-      ocrConfidence: event.plateConfidence != null ? String(event.plateConfidence) : "",
-      entryPlateImageUrl: event.plateImageDataUrl || "",
-      entryVehicleImageUrl: event.vehicleImageDataUrl || "",
-    });
-
-    // Booking uses both a QR reservation and an available normal parking card.
-    // Validate each one against the same device event before enabling entry.
-    if (isBookingScan && targetReservationCode) {
-      setTimeout(() => {
-        if (processedEventRef.current === event.id) {
-          void handleCheckReservation(targetReservationCode, matchedGateId, event.id);
-        }
-      }, 100);
-    }
-
-    if (targetCardCode) {
-      setTimeout(() => {
-        if (processedEventRef.current === event.id) {
-          void handleCheckCard(targetCardCode, matchedGateId, event.id, isBookingScan);
-        }
-      }, 100);
-    }
-  }, [acknowledgeGateScanEvent, handleCheckCard, handleCheckReservation, resolveGateId]);
-
-  useEffect(() => {
-    const lastEvent = consumeLastGateScanEvent("ENTRY");
-    if (lastEvent) {
-      applyEntryDeviceEvent(lastEvent);
-    }
-
-    return subscribeGateScanEvents(applyEntryDeviceEvent);
-  }, [applyEntryDeviceEvent]);
+  }, [entryGateId, form.reservationCode]);
 
   const derivedVehicleTypeId = useMemo(() => {
-    if (form.entryMode === "MONTHLY") {
-      return cardCheck?.vehicleTypeId ? String(cardCheck.vehicleTypeId) : "";
-    }
-
-    if (form.entryMode === "RESERVATION") {
-      return reservationCheck?.vehicleTypeId
-        ? String(reservationCheck.vehicleTypeId)
-        : "";
-    }
-
+    if (form.entryMode === "MONTHLY") return cardCheck?.vehicleTypeId ? String(cardCheck.vehicleTypeId) : "";
+    if (form.entryMode === "RESERVATION") return reservationCheck?.vehicleTypeId ? String(reservationCheck.vehicleTypeId) : "";
     return form.vehicleTypeId;
   }, [cardCheck, form.entryMode, form.vehicleTypeId, reservationCheck]);
 
   const selectedAreaId = useMemo(() => {
-    if (form.entryMode === "MONTHLY") {
-      return cardCheck?.fixedAreaId ?? null;
-    }
-
-    if (form.entryMode === "RESERVATION") {
-      return reservationCheck?.reservedAreaId ?? null;
-    }
-
+    if (form.entryMode === "MONTHLY") return cardCheck?.fixedAreaId ?? null;
+    if (form.entryMode === "RESERVATION") return reservationCheck?.reservedAreaId ?? null;
     return suggestion?.suggestedAreaId ?? null;
   }, [cardCheck, form.entryMode, reservationCheck, suggestion]);
 
   const selectedSlotId = useMemo(() => {
-    if (form.entryMode === "MONTHLY") {
-      return cardCheck?.fixedSlotId ?? null;
-    }
-
-    if (form.entryMode === "RESERVATION") {
-      return reservationCheck?.reservedSlotId ?? null;
-    }
-
+    if (form.entryMode === "MONTHLY") return cardCheck?.fixedSlotId ?? null;
+    if (form.entryMode === "RESERVATION") return reservationCheck?.reservedSlotId ?? null;
     return suggestion?.suggestedSlotId ?? null;
   }, [cardCheck, form.entryMode, reservationCheck, suggestion]);
 
   const noPlateAllowed = useMemo(() => {
-    if (form.entryMode === "MONTHLY") {
-      return false;
-    }
-
-    if (
-      form.entryMode === "RESERVATION" &&
-      reservationCheck?.plateRequiredAtEntry
-    ) {
-      return false;
-    }
-
+    if (form.entryMode === "MONTHLY") return false;
+    if (form.entryMode === "RESERVATION" && reservationCheck?.plateRequiredAtEntry) return false;
     return !requiresSlotFromVehicleTypeId(derivedVehicleTypeId);
   }, [derivedVehicleTypeId, form.entryMode, reservationCheck]);
 
   useEffect(() => {
     if (!noPlateAllowed && form.noPlate) {
-      setForm((current) => ({
-        ...current,
-        noPlate: false,
-        vehicleDescription: "",
-      }));
+      setForm((current) => ({ ...current, noPlate: false, vehicleDescription: "" }));
     }
   }, [form.noPlate, noPlateAllowed]);
 
-  const canCheckCard = Boolean(
-    normalizeText(form.cardCode) && parseNumber(form.entryGateId)
-  );
-  const canCheckReservation = Boolean(
-    form.entryMode === "RESERVATION" &&
-      normalizeText(form.reservationCode) &&
-      parseNumber(form.entryGateId)
-  );
   const isNormalCardVerified = Boolean(
     cardCheck?.entryCardType === "NORMAL" &&
-      cardCheck?.cardStatus === "AVAILABLE" &&
-      normalizeText(cardCheck?.cardCode).toUpperCase() ===
-        normalizeText(form.cardCode).toUpperCase()
-  );
-  const canLoadSuggestion = Boolean(
-    form.entryMode === "CASUAL" &&
-      isNormalCardVerified &&
-      derivedVehicleTypeId &&
-      parseNumber(form.entryGateId)
+    cardCheck?.cardStatus === "AVAILABLE" &&
+    normalizeText(cardCheck?.cardCode).toUpperCase() === normalizeText(form.cardCode).toUpperCase()
   );
 
   const isMonthlyPlateMismatch = useMemo(() => {
-    const inputPlate = form.licensePlate || form.detectedPlateNumber || "";
-    if (form.entryMode !== "MONTHLY" || !cardCheck?.plateNumber || !inputPlate) {
-      return false;
-    }
+    if (form.entryMode !== "MONTHLY" || !cardCheck?.plateNumber || !form.licensePlate) return false;
+    return normalizeText(cardCheck.plateNumber).replace(/[^A-Z0-9]/gi, "").toUpperCase()
+      !== normalizeText(form.licensePlate).replace(/[^A-Z0-9]/gi, "").toUpperCase();
+  }, [cardCheck, form.entryMode, form.licensePlate]);
 
-    const normInput = String(inputPlate).replace(/[^A-Z0-9]/gi, "").toUpperCase();
-    const normRegistered = String(cardCheck.plateNumber).replace(/[^A-Z0-9]/gi, "").toUpperCase();
-    return Boolean(normInput && normRegistered && normInput !== normRegistered);
-  }, [cardCheck, form.entryMode, form.licensePlate, form.detectedPlateNumber]);
+  const canCheckCard = Boolean(normalizeText(form.cardCode) && entryGateId && entryGateId > 0);
+  const canCheckReservation = Boolean(form.entryMode === "RESERVATION" && normalizeText(form.reservationCode) && entryGateId && entryGateId > 0);
+  const canLoadSuggestion = Boolean(form.entryMode === "CASUAL" && isNormalCardVerified && derivedVehicleTypeId && entryGateId && entryGateId > 0);
+  const hasEntryImages = Boolean(normalizeText(form.entryPlateImageUrl) && normalizeText(form.entryVehicleImageUrl));
 
   const canSubmit = useMemo(() => {
-    if (!normalizeText(form.cardCode)) return false;
-    if (!parseNumber(form.entryGateId)) return false;
-    if (!normalizeText(form.entryVehicleImageUrl)) return false;
+    if (!normalizeText(form.cardCode) || !entryGateId || !hasEntryImages) return false;
+    if (form.noPlate ? !normalizeText(form.vehicleDescription) || !noPlateAllowed : !normalizeText(form.licensePlate)) return false;
 
-    if (form.entryMode === "CASUAL") {
-      if (
-        !isNormalCardVerified ||
-        !derivedVehicleTypeId ||
-        !suggestion?.suggestionToken
-      ) return false;
-      if (form.noPlate) {
-        return noPlateAllowed && Boolean(normalizeText(form.vehicleDescription));
-      }
-      return Boolean(normalizeText(form.licensePlate));
-    }
+    if (form.entryMode === "CASUAL") return Boolean(isNormalCardVerified && derivedVehicleTypeId && suggestion?.suggestionToken);
+    if (form.entryMode === "MONTHLY") return Boolean(cardCheck?.monthlyPassId && cardCheck?.monthlyEntryToken && !isMonthlyPlateMismatch);
+    return Boolean(
+      isNormalCardVerified &&
+      reservationCheck?.reservationId &&
+      reservationCheck?.reservationEntryToken &&
+      canReservationProceed(reservationCheck?.status)
+    );
+  }, [cardCheck, derivedVehicleTypeId, entryGateId, form, hasEntryImages, isMonthlyPlateMismatch, isNormalCardVerified, noPlateAllowed, reservationCheck, suggestion]);
 
-    if (form.entryMode === "MONTHLY") {
-      if (isMonthlyPlateMismatch) return false;
-      return Boolean(
-        normalizeText(form.licensePlate) &&
-          cardCheck?.monthlyPassId &&
-          cardCheck?.monthlyEntryToken
-      );
-    }
+  const workflowChecks = useMemo(() => [
+    { label: "Thẻ hợp lệ", passed: form.entryMode === "MONTHLY" ? Boolean(cardCheck?.monthlyEntryToken) : isNormalCardVerified },
+    { label: "Cổng vào hợp lệ", passed: Boolean(entryGateId && entryGateId > 0) },
+    { label: form.noPlate ? "Mô tả xe" : "Biển số", passed: form.noPlate ? Boolean(normalizeText(form.vehicleDescription)) : Boolean(normalizeText(form.licensePlate)) },
+    { label: "Ảnh biển số xe vào", passed: Boolean(normalizeText(form.entryPlateImageUrl)) },
+    { label: "Ảnh toàn xe vào", passed: Boolean(normalizeText(form.entryVehicleImageUrl)) },
+    {
+      label: form.entryMode === "CASUAL" ? "Gợi ý vị trí" : form.entryMode === "MONTHLY" ? "Xác minh vé tháng" : "Xác minh booking",
+      passed: form.entryMode === "CASUAL" ? Boolean(suggestion?.suggestionToken) : form.entryMode === "MONTHLY" ? Boolean(cardCheck?.monthlyEntryToken) && !isMonthlyPlateMismatch : Boolean(reservationCheck?.reservationEntryToken) && canReservationProceed(reservationCheck?.status),
+    },
+  ], [cardCheck, entryGateId, form, isMonthlyPlateMismatch, isNormalCardVerified, reservationCheck, suggestion]);
 
-    if (
-      !reservationCheck?.reservationId ||
-      !reservationCheck?.reservationEntryToken ||
-      !canReservationProceed(reservationCheck?.status) ||
-      !isNormalCardVerified
-    ) {
-      return false;
-    }
-
-    if (reservationCheck?.plateRequiredAtEntry) {
-      return Boolean(normalizeText(form.licensePlate));
-    }
-
-    if (form.noPlate) {
-      return noPlateAllowed && Boolean(normalizeText(form.vehicleDescription));
-    }
-
-    return Boolean(normalizeText(form.licensePlate));
-  }, [
-    cardCheck,
-    derivedVehicleTypeId,
-    form,
-    isNormalCardVerified,
-    isMonthlyPlateMismatch,
-    noPlateAllowed,
-    reservationCheck,
-    suggestion,
-  ]);
-
-  const workflowChecks = useMemo(
-    () => [
-      {
-        label: "Thẻ hợp lệ",
-        passed:
-          form.entryMode === "CASUAL"
-            ? isNormalCardVerified
-            : form.entryMode === "MONTHLY"
-              ? Boolean(cardCheck?.monthlyEntryToken)
-              : isNormalCardVerified,
-      },
-      {
-        label: "Cổng vào hợp lệ",
-        passed: Boolean(parseNumber(form.entryGateId)),
-      },
-      {
-        label: form.noPlate ? "Mô tả xe" : "Biển số",
-        passed: form.noPlate
-          ? Boolean(normalizeText(form.vehicleDescription))
-          : Boolean(normalizeText(form.licensePlate)),
-      },
-      {
-        label: "Ảnh tổng thể xe vào",
-        passed: Boolean(normalizeText(form.entryVehicleImageUrl)),
-      },
-      {
-        label:
-          form.entryMode === "CASUAL"
-            ? "Gợi ý vị trí"
-            : form.entryMode === "MONTHLY"
-              ? isMonthlyPlateMismatch
-                ? `Lệch biển vé tháng (${cardCheck?.plateNumber || ""})`
-                : "Xác minh vé tháng"
-              : "Xác minh booking",
-        passed:
-          form.entryMode === "CASUAL"
-            ? Boolean(suggestion?.suggestionToken)
-            : form.entryMode === "MONTHLY"
-              ? Boolean(cardCheck?.monthlyEntryToken) && !isMonthlyPlateMismatch
-              : Boolean(reservationCheck?.reservationEntryToken),
-      },
-      {
-        label: "Quy tắc không biển số",
-        passed: !form.noPlate || noPlateAllowed,
-      },
-    ],
-    [
-      cardCheck,
-      form,
-      isMonthlyPlateMismatch,
-      isNormalCardVerified,
-      noPlateAllowed,
-      reservationCheck,
-      suggestion,
-    ]
-  );
-
-  const handleLoadSuggestion = async () => {
-    const entryGateId = parseNumber(form.entryGateId);
+  const handleLoadSuggestion = useCallback(async () => {
     const vehicleTypeId = parseNumber(derivedVehicleTypeId);
-    if (!canLoadSuggestion || entryGateId == null || vehicleTypeId == null) {
-      toast.error("Nhập loại xe và cổng vào hợp lệ trước khi lấy gợi ý.");
+    if (!canLoadSuggestion || vehicleTypeId == null || entryGateId == null) {
+      toast.error("Kiểm tra thẻ, loại xe và cổng vào trước khi lấy gợi ý.");
       return;
     }
-
     setIsLoadingSuggestion(true);
     try {
-      const result = await entryService.getLocationSuggestion({
-        vehicleTypeId,
-        entryGateId,
-      });
+      const result = await entryService.getLocationSuggestion({ vehicleTypeId, entryGateId });
       setSuggestion(result);
       toast.success("Đã lấy gợi ý vị trí đỗ.");
     } catch (error) {
@@ -623,19 +277,11 @@ function formatCardCode(value) {
     } finally {
       setIsLoadingSuggestion(false);
     }
-  };
+  }, [canLoadSuggestion, derivedVehicleTypeId, entryGateId]);
 
   const buildCreatePayload = () => {
-    const entryGateId = parseNumber(form.entryGateId);
     const vehicleTypeId = parseNumber(derivedVehicleTypeId);
-
-    if (entryGateId == null || vehicleTypeId == null) {
-      throw new Error("VehicleTypeId hoặc EntryGateId không hợp lệ.");
-    }
-
-    const detectedNormalizedPlateNumber = normalizeText(form.detectedPlateNumber)
-      .replace(/[^A-Za-z0-9]/g, "")
-      .toUpperCase();
+    if (entryGateId == null || vehicleTypeId == null) throw new Error("Cổng vào hoặc loại xe không hợp lệ.");
 
     const basePayload = {
       entryMode: form.entryMode,
@@ -647,208 +293,91 @@ function formatCardCode(value) {
       entryGateId,
       selectedAreaId,
       selectedSlotId,
-      entryPlateImageUrl: normalizeText(form.entryPlateImageUrl) || null,
-      entryVehicleImageUrl: normalizeText(form.entryVehicleImageUrl) || null,
-      detectedPlateNumber: normalizeText(form.detectedPlateNumber) || null,
-      detectedNormalizedPlateNumber: detectedNormalizedPlateNumber || null,
-      ocrConfidence: form.ocrConfidence ? Number(form.ocrConfidence) : null,
+      entryPlateImageUrl: form.entryPlateImageUrl,
+      entryVehicleImageUrl: form.entryVehicleImageUrl,
+      detectedPlateNumber: form.noPlate ? null : normalizeText(form.licensePlate),
+      detectedNormalizedPlateNumber: form.noPlate ? null : normalizeText(form.licensePlate).replace(/[^A-Za-z0-9]/g, "").toUpperCase(),
+      ocrConfidence: null,
     };
 
-    if (form.entryMode === "CASUAL") {
-      return {
-        ...basePayload,
-        suggestionToken: suggestion?.suggestionToken || null,
-      };
-    }
-
-    if (form.entryMode === "MONTHLY") {
-      return {
-        ...basePayload,
-        monthlyPassId: cardCheck?.monthlyPassId || null,
-        monthlyEntryToken: cardCheck?.monthlyEntryToken || null,
-      };
-    }
-
-    return {
-      ...basePayload,
-      reservationId: reservationCheck?.reservationId || null,
-      reservationEntryToken: reservationCheck?.reservationEntryToken || null,
-    };
+    if (form.entryMode === "CASUAL") return { ...basePayload, suggestionToken: suggestion?.suggestionToken || null };
+    if (form.entryMode === "MONTHLY") return { ...basePayload, monthlyPassId: cardCheck?.monthlyPassId || null, monthlyEntryToken: cardCheck?.monthlyEntryToken || null };
+    return { ...basePayload, reservationId: reservationCheck?.reservationId || null, reservationEntryToken: reservationCheck?.reservationEntryToken || null };
   };
 
   const handleCreateEntry = async () => {
-    if (!normalizeText(form.entryVehicleImageUrl)) {
-      toast.error("Cần ảnh tổng thể xe vào trước khi tạo phiên.");
+    if (!hasEntryImages) {
+      toast.error("Cần tải đủ ảnh biển số và ảnh toàn xe vào trước khi tạo phiên.");
       return;
     }
-
     if (!canSubmit) {
-      toast.error("Hoàn thiện các bước xác minh trước khi tạo entry.");
+      toast.error("Hoàn thiện các bước xác minh trước khi tạo phiên.");
       return;
     }
-
     setIsSubmitting(true);
     try {
-      const payload = buildCreatePayload();
-      const result = await entryService.createEntry(payload);
+      const result = await entryService.createEntry(buildCreatePayload());
       toast.success(`Đã tạo phiên ${result.sessionCode}.`);
-      setCardCheck(null);
-      setReservationCheck(null);
-      setSuggestion(null);
-      setForm((current) => ({
-        ...initialForm,
-        entryGateId: current.entryGateId,
-      }));
+      resetFlow();
     } catch (error) {
-      toast.error(error.message || "Tạo entry thất bại.");
+      toast.error(error.message || "Tạo phiên vào bãi thất bại.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleSelectBookingMode = useCallback(
-    (mode) => {
-      if (mode === "RESERVATION") {
-        setEntryMode("RESERVATION");
-        return;
-      }
-
-      if (cardCheck?.entryCardType === "MONTHLY") {
-        setEntryMode("MONTHLY");
-        return;
-      }
-
-      setEntryMode("CASUAL");
-    },
-    [cardCheck, setEntryMode]
-  );
+  const handleSelectBookingMode = useCallback((mode) => {
+    if (mode === "RESERVATION") setEntryMode("RESERVATION");
+    else if (cardCheck?.entryCardType === "MONTHLY") setEntryMode("MONTHLY");
+    else setEntryMode("CASUAL");
+  }, [cardCheck, setEntryMode]);
 
   const handleRetryCurrentStep = useCallback(() => {
-    if (form.entryMode === "RESERVATION") {
-      void handleCheckReservation();
-      return;
-    }
+    if (form.entryMode === "RESERVATION") void handleCheckReservation();
+    else if (form.entryMode === "MONTHLY") void handleCheckCard();
+    else void handleLoadSuggestion();
+  }, [form.entryMode, handleCheckCard, handleCheckReservation, handleLoadSuggestion]);
 
-    if (form.entryMode === "MONTHLY") {
-      void handleCheckCard();
-      return;
-    }
-
-    void handleLoadSuggestion();
-  }, [form.entryMode, handleLoadSuggestion, handleCheckCard, handleCheckReservation]);
-
-  const canRetryCurrentStep = useMemo(() => {
-    if (form.entryMode === "RESERVATION") {
-      return canCheckReservation && !isCheckingReservation;
-    }
-
-    if (form.entryMode === "MONTHLY") {
-      return canCheckCard && !isCheckingCard;
-    }
-
-    return canLoadSuggestion && !isLoadingSuggestion;
-  }, [
-    canCheckCard,
-    canCheckReservation,
-    canLoadSuggestion,
-    form.entryMode,
-    isCheckingCard,
-    isCheckingReservation,
-    isLoadingSuggestion,
-  ]);
+  const canRetryCurrentStep = form.entryMode === "RESERVATION"
+    ? canCheckReservation && !isCheckingReservation
+    : form.entryMode === "MONTHLY"
+      ? canCheckCard && !isCheckingCard
+      : canLoadSuggestion && !isLoadingSuggestion;
 
   return (
-    <div className="-m-4 md:-m-6 h-[calc(100dvh-4rem)] flex flex-col bg-slate-50 overflow-hidden text-slate-900">
-      <div className="flex-1 min-h-0 p-3 lg:p-4">
-        <div className="h-full grid grid-cols-1 md:grid-cols-12 gap-4">
-          <div className="md:col-span-4 flex flex-col gap-4 min-h-0">
+    <div className="-m-4 flex h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-slate-50 text-slate-900 md:-m-6">
+      <div className="min-h-0 flex-1 p-3 lg:p-4">
+        <div className="grid h-full grid-cols-1 gap-4 md:grid-cols-12">
+          <div className="flex min-h-0 flex-col gap-4 md:col-span-4">
             <div className="h-[60%] shrink-0">
-              <EntryDevicePanel
-                lastDeviceEvent={lastDeviceEvent}
+              <EntryImageSection
                 plateImageUrl={form.entryPlateImageUrl}
                 vehicleImageUrl={form.entryVehicleImageUrl}
-                onPreviewPlate={() =>
-                  setPreviewImage({
-                    title: "Entry plate image",
-                    image: form.entryPlateImageUrl,
-                  })
-                }
-                onPreviewVehicle={() =>
-                  setPreviewImage({
-                    title: "Entry vehicle image",
-                    image: form.entryVehicleImageUrl,
-                  })
-                }
+                onPlateImageChange={(value) => setField("entryPlateImageUrl", value)}
+                onVehicleImageChange={(value) => setField("entryVehicleImageUrl", value)}
+                disabled={isSubmitting}
               />
             </div>
-            <div className="flex-1 min-h-0">
-              <EntrySystemChecksPanel
-                workflowChecks={workflowChecks}
-                canSubmit={canSubmit}
-              />
-            </div>
+            <div className="min-h-0 flex-1"><EntrySystemChecksPanel workflowChecks={workflowChecks} canSubmit={canSubmit} /></div>
           </div>
 
-          <div className="md:col-span-5 flex flex-col gap-4 min-h-0">
-            <div className="flex-1 min-h-0">
-              <EntryFormPanel
-                form={form}
-                derivedVehicleTypeId={derivedVehicleTypeId}
-                onFieldChange={setField}
-                onEntryModeChange={setEntryMode}
-                onLoadSuggestion={handleLoadSuggestion}
-                canLoadSuggestion={canLoadSuggestion}
-                isLoadingSuggestion={isLoadingSuggestion}
-                noPlateAllowed={noPlateAllowed}
-                gates={gates}
-                vehicleTypes={vehicleTypes}
-              />
+          <div className="flex min-h-0 flex-col gap-4 md:col-span-5">
+            <div className="min-h-0 flex-1">
+              <EntryFormPanel form={form} derivedVehicleTypeId={derivedVehicleTypeId} onFieldChange={setField} onEntryModeChange={setEntryMode} onLoadSuggestion={handleLoadSuggestion} canLoadSuggestion={canLoadSuggestion} isLoadingSuggestion={isLoadingSuggestion} noPlateAllowed={noPlateAllowed} gates={gates} vehicleTypes={vehicleTypes} />
             </div>
-            <div className="h-[35%] shrink-0">
-              <EntrySuggestionPanel suggestion={suggestion} />
-            </div>
+            <div className="h-[35%] shrink-0"><EntrySuggestionPanel suggestion={suggestion} /></div>
           </div>
 
-          <div className="md:col-span-3 flex flex-col gap-4 min-h-0">
-            <div className="flex-1 min-h-0">
-              <EntryVerificationPanel
-                entryMode={form.entryMode}
-                cardCheck={cardCheck}
-                reservationCheck={reservationCheck}
-                onSelectBookingMode={handleSelectBookingMode}
-                isMonthlyPlateMismatch={isMonthlyPlateMismatch}
-                detectedPlate={form.licensePlate}
-              />
+          <div className="flex min-h-0 flex-col gap-4 md:col-span-3">
+            <div className="min-h-0 flex-1">
+              <EntryVerificationPanel entryMode={form.entryMode} cardCheck={cardCheck} reservationCheck={reservationCheck} onSelectBookingMode={handleSelectBookingMode} isMonthlyPlateMismatch={isMonthlyPlateMismatch} detectedPlate={form.licensePlate} />
             </div>
             <div className="shrink-0">
-              <EntryActionPanel
-                entryMode={form.entryMode}
-                canSubmit={canSubmit}
-                isSubmitting={isSubmitting}
-                onCreateEntry={handleCreateEntry}
-                onCheckCard={handleCheckCard}
-                canCheckCard={canCheckCard}
-                isCheckingCard={isCheckingCard}
-                onRetryCurrentStep={handleRetryCurrentStep}
-                canRetryCurrentStep={canRetryCurrentStep}
-                isRetryingCurrentStep={
-                  form.entryMode === "RESERVATION"
-                    ? isCheckingReservation
-                    : form.entryMode === "MONTHLY"
-                      ? isCheckingCard
-                      : isLoadingSuggestion
-                }
-                onReset={resetFlow}
-              />
+              <EntryActionPanel entryMode={form.entryMode} canSubmit={canSubmit} isSubmitting={isSubmitting} onCreateEntry={handleCreateEntry} onCheckCard={handleCheckCard} canCheckCard={canCheckCard} isCheckingCard={isCheckingCard} onRetryCurrentStep={handleRetryCurrentStep} canRetryCurrentStep={canRetryCurrentStep} isRetryingCurrentStep={form.entryMode === "RESERVATION" ? isCheckingReservation : form.entryMode === "MONTHLY" ? isCheckingCard : isLoadingSuggestion} onReset={resetFlow} />
             </div>
           </div>
         </div>
       </div>
-
-      <ImagePreviewDialog
-        preview={previewImage}
-        onOpenChange={(open) => !open && setPreviewImage(null)}
-      />
     </div>
   );
 }

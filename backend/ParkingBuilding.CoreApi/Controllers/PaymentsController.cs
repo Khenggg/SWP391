@@ -42,7 +42,7 @@ namespace ParkingBuilding.CoreApi.Controllers
         }
 
         [HttpPost("online/exit-fee")]
-        [Authorize(Roles = "STAFF,MANAGER,ADMIN")]
+        [Authorize(Roles = "DRIVER,STAFF,MANAGER,ADMIN")]
         public async Task<IActionResult> CreateOnlineExitFeeLink([FromBody] CreateOnlineExitPaymentRequest request)
         {
             ParkingSession? session = null;
@@ -84,6 +84,23 @@ namespace ParkingBuilding.CoreApi.Controllers
 
             if (session == null)
                 throw new BusinessException(ErrorCodes.SessionNotFound, StatusCodes.Status404NotFound);
+
+            var role = User.FindFirst(ClaimTypes.Role)?.Value
+                ?? User.FindFirst("role")?.Value
+                ?? string.Empty;
+
+            if (string.Equals(role, "DRIVER", StringComparison.OrdinalIgnoreCase))
+            {
+                var driverUserId = GetCurrentUserIdOrThrow();
+                var isLinkedToDriver = session.ClaimedByUserId == driverUserId
+                    || (session.DriverId.HasValue && await _context.DriverProfiles
+                        .AnyAsync(profile => profile.Id == session.DriverId.Value && profile.UserId == driverUserId));
+
+                if (!isLinkedToDriver)
+                {
+                    throw new BusinessException(ErrorCodes.SessionNotOwnedByDriver);
+                }
+            }
 
             var hasApprovedLostCard = await _context.LostCardCases
                 .AnyAsync(lostCardCase => lostCardCase.SessionId == session.Id && lostCardCase.Status == "APPROVED");

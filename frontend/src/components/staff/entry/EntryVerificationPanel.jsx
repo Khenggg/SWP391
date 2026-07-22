@@ -213,7 +213,7 @@ export default function EntryVerificationPanel({
             <div>
               <p className="text-xs font-bold text-amber-800 leading-tight">Chờ thao tác...</p>
               <p className="text-[10px] text-amber-700 mt-0.5 leading-tight">
-                Vui lòng điền đủ thông tin và quét thẻ / kiểm tra.
+                Vui lòng điền đủ thông tin, nhập mã thẻ và kiểm tra.
               </p>
             </div>
           </div>

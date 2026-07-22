@@ -25,7 +25,7 @@ export default function VehicleSelectionStep({ selectedVehicle, onSelectVehicle 
       <div>
         <h3 className="text-lg font-black text-slate-800 mb-1">Nhập thông tin phương tiện</h3>
         <p className="text-sm text-slate-500">
-          Vui lòng chọn loại xe và nhập chính xác biển số xe để hệ thống nhận diện tự động tại bốt cổng.
+          Vui lòng chọn loại xe và nhập chính xác biển số xe cho booking của bạn.
         </p>
       </div>
 

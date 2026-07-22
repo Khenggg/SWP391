@@ -136,12 +136,15 @@ public static class ErrorCodes
     public const string EntryModeInvalid = "ENTRY_MODE_INVALID";
     public const string EntryPlateRequired = "ENTRY_PLATE_REQUIRED";
     public const string EntryVehicleImageRequired = "ENTRY_VEHICLE_IMAGE_REQUIRED";
+    public const string EntryPlateImageRequired = "ENTRY_PLATE_IMAGE_REQUIRED";
     public const string EntryVehicleImageMissing = "ENTRY_VEHICLE_IMAGE_MISSING";
+    public const string EntryPlateImageMissing = "ENTRY_PLATE_IMAGE_MISSING";
     public const string PlateRequiredForSlotVehicle = "PLATE_REQUIRED_FOR_SLOT_VEHICLE";
     public const string QrTokenRequired = "QR_TOKEN_REQUIRED";
     public const string ClaimFailed = "CLAIM_FAILED";
     public const string SessionNotFound = "SESSION_NOT_FOUND";
     public const string SessionAlreadyClaimed = "SESSION_ALREADY_CLAIMED";
+    public const string SessionNotOwnedByDriver = "SESSION_NOT_OWNED_BY_DRIVER";
     public const string LicensePlateRequired = "LICENSE_PLATE_REQUIRED";
     public const string PlateAlreadyMapped = "PLATE_ALREADY_MAPPED";
     public const string PlateAlreadyHasActiveReservation = "PLATE_ALREADY_HAS_ACTIVE_RESERVATION";
@@ -228,6 +231,7 @@ public static class ErrorCodes
     public const string ReservationAreaFull = "RESERVATION_AREA_FULL";
     public const string ExitGateInvalid = "EXIT_GATE_INVALID";
     public const string ExitVehicleImageRequired = "EXIT_VEHICLE_IMAGE_REQUIRED";
+    public const string ExitPlateImageRequired = "EXIT_PLATE_IMAGE_REQUIRED";
     public const string PlateMismatchRequiresApproval = "PLATE_MISMATCH_REQUIRES_APPROVAL";
     public const string PaymentRequiredBeforeExit = "PAYMENT_REQUIRED_BEFORE_EXIT";
     public const string NoPaymentRequired = "NO_PAYMENT_REQUIRED";

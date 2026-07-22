@@ -56,7 +56,7 @@ export default function EntryActionPanel({
           disabled={!canCheckCard || isCheckingCard}
         >
           <CreditCard className="mr-1.5 h-4 w-4" />
-          {isCheckingCard ? "Đang quét..." : "Quét thẻ"}
+          {isCheckingCard ? "Đang kiểm tra..." : "Kiểm tra thẻ"}
         </Button>
 
         <Button

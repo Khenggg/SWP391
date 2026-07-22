@@ -127,12 +127,15 @@ public static class ErrorMessages
         [ErrorCodes.EntryModeInvalid] = "Che do xe vao khong hop le.",
         [ErrorCodes.EntryPlateRequired] = "Vui long nhap bien so khi xe vao cong.",
         [ErrorCodes.EntryVehicleImageRequired] = "Vui long cung cap anh tong the xe khi xe vao cong.",
+        [ErrorCodes.EntryPlateImageRequired] = "Vui long cung cap anh bien so khi xe vao cong.",
         [ErrorCodes.EntryVehicleImageMissing] = "Phien gui xe khong co anh tong the xe luc vao, khong the xac nhan xe ra.",
+        [ErrorCodes.EntryPlateImageMissing] = "Phien gui xe khong co anh bien so luc vao, khong the xac nhan xe ra.",
         [ErrorCodes.PlateRequiredForSlotVehicle] = "Xe can vi tri co dinh bat buoc phai co bien so.",
         [ErrorCodes.QrTokenRequired] = "Ma token QR la bat buoc.",
         [ErrorCodes.ClaimFailed] = "Khong the lien ket phien gui xe voi tai khoan lai xe.",
         [ErrorCodes.SessionNotFound] = "Khong tim thay phien gui xe.",
         [ErrorCodes.SessionAlreadyClaimed] = "Phien gui xe da duoc lien ket voi tai khoan khac.",
+        [ErrorCodes.SessionNotOwnedByDriver] = "Phien gui xe chua duoc lien ket voi tai khoan lai xe nay.",
         [ErrorCodes.LicensePlateRequired] = "Bien so xe la bat buoc.",
         [ErrorCodes.PlateAlreadyMapped] = "Bien so da duoc gan cho doi tuong khac.",
         [ErrorCodes.PlateAlreadyHasActiveReservation] = "Bien so da co booking dang hoat dong.",
@@ -212,7 +215,8 @@ public static class ErrorMessages
         [ErrorCodes.ReservationExtensionPaymentNotImplemented] = "Gia han booking co phi chua duoc ho tro.",
         [ErrorCodes.ReservationSlotAlreadyReserved] = "Vi tri do xe da duoc dat truoc.",
         [ErrorCodes.ReservationAreaFull] = "Khu vuc do xe da day.",
-        [ErrorCodes.ExitVehicleImageRequired] = "Vui long cung cap anh tong the xe khi xe ra cong."
+        [ErrorCodes.ExitVehicleImageRequired] = "Vui long cung cap anh tong the xe khi xe ra cong.",
+        [ErrorCodes.ExitPlateImageRequired] = "Vui long cung cap anh bien so khi xe ra cong."
     };
 
     public static string GetMessage(string errorCode)
