@@ -3,6 +3,7 @@ import { API_BASE_URLS, MOCK_FLAGS } from "../mockConfig";
 import { ok, badRequest, notFound, enabled } from "./helpers";
 import { sessionDb } from "./sessionUtils";
 import { db } from "./db";
+import { mockNotifications } from "../data/notificationData";
 
 function normalizePlate(value) {
   return String(value || "").replace(/[^a-z0-9]/gi, "").toUpperCase();
@@ -123,15 +124,65 @@ export const adminHandlers = [
     return ok(session);
   }),
 
+  http.get(`${API_BASE_URLS.core}/lost-cards`, async () => {
+    await delay(150);
+    const items = sessionDb.getLostCards();
+    return ok({ items, page: 1, pageSize: 100, totalItems: items.length, totalPages: 1 });
+  }),
+
   http.get(`${API_BASE_URLS.core}/lost-card-cases`, async () => {
     await delay(150);
     return ok(sessionDb.getLostCards());
+  }),
+
+  http.get(`${API_BASE_URLS.core}/lost-cards/:caseId`, async ({ params }) => {
+    await delay(150);
+    const item = sessionDb.getLostCards().find((caseItem) => Number(caseItem.id) === Number(params.caseId));
+    if (!item) return notFound("Khong tim thay ho so bao mat the.");
+    return ok(item);
   }),
 
   http.get(`${API_BASE_URLS.core}/lost-card-cases/:caseId`, async ({ params }) => {
     await delay(150);
     const item = sessionDb.getLostCards().find((caseItem) => Number(caseItem.id) === Number(params.caseId));
     if (!item) return notFound("Khong tim thay ho so bao mat the.");
+    return ok(item);
+  }),
+
+  http.put(`${API_BASE_URLS.core}/lost-cards/:caseId/process`, async ({ params, request }) => {
+    await delay(200);
+    const body = await request.json();
+    const cases = sessionDb.getLostCards();
+    const item = cases.find((caseItem) => Number(caseItem.id) === Number(params.caseId));
+    if (!item) return notFound("Không tìm thấy hồ sơ báo mất thẻ.");
+
+    if (item.status !== "PENDING") return badRequest("Hồ sơ này không còn ở trạng thái chờ duyệt.");
+    
+    const newStatus = body.status === "APPROVED" ? "APPROVED" : "REJECTED";
+    const decisionReason = body.reason || body.rejectionReason || "";
+    
+    item.status = newStatus;
+    item.decidedAt = new Date().toISOString();
+    item.decidedBy = "manager01";
+    item.decisionReason = decisionReason;
+    item.rejectionReason = decisionReason;
+    sessionDb.saveLostCards(cases);
+
+    // Push notification for Staff
+    mockNotifications.unshift({
+      id: Date.now(),
+      title: newStatus === "APPROVED" ? "Hồ sơ báo mất thẻ đã được phê duyệt" : "Hồ sơ báo mất thẻ bị từ chối",
+      content: `Hồ sơ ${item.caseCode || `LC-${item.id}`} (Xe ${item.plateNumber || "vãng lai"}) đã được Manager ${newStatus === "APPROVED" ? "PHÊ DUYỆT" : "TỪ CHỐI"}.${decisionReason ? ` Ghi chú: ${decisionReason}` : ""}`,
+      type: "PARKING",
+      priority: newStatus === "APPROVED" ? "HIGH" : "NORMAL",
+      isRead: false,
+      readAt: null,
+      createdAt: new Date().toISOString(),
+      userId: 2,
+      staffUser: "staff01",
+      targetRole: "STAFF"
+    });
+
     return ok(item);
   }),
 

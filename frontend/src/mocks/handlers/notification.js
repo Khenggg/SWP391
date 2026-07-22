@@ -3,13 +3,38 @@ import { MOCK_FLAGS, API_BASE_URLS } from "../mockConfig";
 import { enabled, ok, notFound } from "./helpers";
 import { mockNotifications } from "../data/notificationData";
 
+function filterNotificationsForUser(paramUserId) {
+  const strVal = String(paramUserId || "").trim();
+  const numVal = Number(paramUserId);
+
+  return mockNotifications
+    .filter((n) => {
+      if (
+        strVal === "2" ||
+        strVal === "staff01" ||
+        strVal === "STAFF" ||
+        strVal === "" ||
+        strVal === "undefined" ||
+        strVal === "null"
+      ) {
+        return (
+          n.userId === 2 ||
+          n.userId === "staff01" ||
+          n.staffUser === "staff01" ||
+          n.targetRole === "STAFF"
+        );
+      }
+      return String(n.userId) === strVal || n.userId === numVal;
+    })
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+}
+
 export const notificationHandlers = [
   ...enabled(
     MOCK_FLAGS.NOTIFICATIONS,
     http.get(`${API_BASE_URLS.notifications}/:userId`, async ({ params }) => {
-      await delay(300);
-      const userId = Number(params.userId);
-      const userNotifications = mockNotifications.filter(n => n.userId === userId).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      await delay(200);
+      const userNotifications = filterNotificationsForUser(params.userId);
       return ok(userNotifications);
     })
   ),
@@ -17,20 +42,20 @@ export const notificationHandlers = [
   ...enabled(
     MOCK_FLAGS.NOTIFICATIONS,
     http.get(`${API_BASE_URLS.notifications}/:userId/unread`, async ({ params }) => {
-      await delay(300);
-      const userId = Number(params.userId);
-      const unreadNotifications = mockNotifications.filter(n => n.userId === userId && !n.isRead).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      return ok(unreadNotifications);
+      await delay(200);
+      const userNotifications = filterNotificationsForUser(params.userId);
+      const unread = userNotifications.filter((n) => !n.isRead);
+      return ok(unread);
     })
   ),
 
   ...enabled(
     MOCK_FLAGS.NOTIFICATIONS,
     http.patch(`${API_BASE_URLS.notifications}/:id/read`, async ({ params }) => {
-      await delay(300);
+      await delay(200);
       const id = Number(params.id);
-      const notificationIndex = mockNotifications.findIndex(n => n.id === id);
-      
+      const notificationIndex = mockNotifications.findIndex((n) => n.id === id);
+
       if (notificationIndex === -1) {
         return notFound("Không tìm thấy thông báo.");
       }

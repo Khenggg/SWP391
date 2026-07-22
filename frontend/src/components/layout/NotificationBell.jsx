@@ -31,11 +31,11 @@ export default function NotificationBell({ userId }) {
   const dropdownRef = useRef(null);
 
   const fetchNotifications = async () => {
-    if (!userId) return;
+    const effectiveUserId = userId || JSON.parse(sessionStorage.getItem("currentUser") || "{}")?.id || "staff01";
     try {
-      const data = await notificationService.getNotifications(userId);
+      const data = await notificationService.getNotifications(effectiveUserId);
       setNotifications(data || []);
-      setUnreadCount(data?.filter(n => !n.isRead).length || 0);
+      setUnreadCount(data?.filter((n) => !n.isRead).length || 0);
     } catch (error) {
       console.error("Lỗi lấy thông báo:", error);
     }
@@ -43,8 +43,8 @@ export default function NotificationBell({ userId }) {
 
   useEffect(() => {
     fetchNotifications();
-    // Refresh mỗi 30s
-    const interval = setInterval(fetchNotifications, 30000);
+    // Refresh mỗi 10s để nhận ngay kết quả xử lý từ Manager/Admin
+    const interval = setInterval(fetchNotifications, 10000);
     return () => clearInterval(interval);
   }, [userId]);
 

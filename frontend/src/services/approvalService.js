@@ -24,12 +24,12 @@ export const approvalService = {
   },
 
   approveLostCardCase: async (caseId, { reason }) => {
-    const response = await coreAxiosClient.put(`/lost-cards/${caseId}/process`, { status: "APPROVED", reason });
+    const response = await coreAxiosClient.put(`/lost-cards/${caseId}/process`, { status: "APPROVED", reason, rejectionReason: reason });
     return getDataOrThrow(response, "Phe duyet ho so mat the that bai.");
   },
 
   rejectLostCardCase: async (caseId, { reason }) => {
-    const response = await coreAxiosClient.put(`/lost-cards/${caseId}/process`, { status: "REJECTED", rejectionReason: reason });
+    const response = await coreAxiosClient.put(`/lost-cards/${caseId}/process`, { status: "REJECTED", reason, rejectionReason: reason });
     return getDataOrThrow(response, "Tu choi ho so mat the that bai.");
   },
 

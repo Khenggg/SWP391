@@ -147,6 +147,10 @@ public class LostCardService : ILostCardService
                     lostCardCase.Status = "APPROVED";
                     lostCardCase.ApprovedBy = userId;
                     lostCardCase.ApprovedAt = DateTimeOffset.UtcNow;
+                    if (!string.IsNullOrWhiteSpace(request.RejectionReason))
+                    {
+                        lostCardCase.RejectionReason = request.RejectionReason;
+                    }
                 }
                 else if (status == "REJECTED")
                 {
