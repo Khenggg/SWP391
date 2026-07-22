@@ -23,14 +23,14 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
         {
             var isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
             var secretKey = _configuration["MONTHLY_ENTRY_TOKEN_SECRET"]
-                ?? _configuration["MonthlyEntryToken:Secret"];
+                ?? _configuration["MonthlyEntryToken:Secret"]
+                ?? _configuration["Jwt:Secret"];
 
             if (string.IsNullOrEmpty(secretKey))
             {
                 if (isDevelopment)
                 {
-                    secretKey = _configuration["Jwt:Secret"]
-                        ?? "DEVELOPMENT_SECRET_KEY_FOR_LOCAL_TESTING_ONLY_2026_SWP391_MONTHLY_ENTRY";
+                    secretKey = "DEVELOPMENT_SECRET_KEY_FOR_LOCAL_TESTING_ONLY_2026_SWP391_MONTHLY_ENTRY";
                 }
                 else
                 {
