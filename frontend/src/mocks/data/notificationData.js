@@ -1,5 +1,44 @@
 export const mockNotifications = [
   {
+    id: 101,
+    title: "Hồ sơ báo mất thẻ đã được phê duyệt",
+    content: "Hồ sơ LC-12 (Xe 30A12341 - Thẻ C009) đã được Manager phê duyệt. Cho phép xe xuất bến.",
+    type: "PARKING",
+    priority: "HIGH",
+    isRead: false,
+    readAt: null,
+    createdAt: new Date(Date.now() - 1000 * 60 * 3).toISOString(), // 3 mins ago
+    userId: 2,
+    staffUser: "staff01",
+    targetRole: "STAFF",
+  },
+  {
+    id: 102,
+    title: "Hồ sơ báo mất thẻ bị từ chối",
+    content: "Hồ sơ LC-13 (Xe 30A-234.23 - Thẻ C010) bị Manager từ chối. Lý do: Giấy tờ cà vẹt không khớp tên chủ xe.",
+    type: "PARKING",
+    priority: "NORMAL",
+    isRead: false,
+    readAt: null,
+    createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 mins ago
+    userId: 2,
+    staffUser: "staff01",
+    targetRole: "STAFF",
+  },
+  {
+    id: 103,
+    title: "Xác nhận báo cáo lệch biển số",
+    content: "Manager đã xác nhận phiên SE-1002 lệch biển số là hợp lệ. Cho phép mở barie xuất bến.",
+    type: "PARKING",
+    priority: "NORMAL",
+    isRead: true,
+    readAt: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
+    createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+    userId: 2,
+    staffUser: "staff01",
+    targetRole: "STAFF",
+  },
+  {
     id: 1,
     title: "Vé tháng sắp hết hạn",
     content: "Vé tháng cho xe 29A-12345 của bạn sẽ hết hạn vào ngày 30/11. Vui lòng gia hạn để không bị gián đoạn dịch vụ.",
@@ -7,7 +46,7 @@ export const mockNotifications = [
     priority: "HIGH",
     isRead: false,
     readAt: null,
-    createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 minutes ago
+    createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
     userId: 4, // driver01
     monthlyPassId: 101,
   },
@@ -19,7 +58,7 @@ export const mockNotifications = [
     priority: "NORMAL",
     isRead: false,
     readAt: null,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
     userId: 4,
     reservationId: 201,
   },
@@ -30,7 +69,7 @@ export const mockNotifications = [
     type: "PAYMENT",
     priority: "NORMAL",
     isRead: true,
-    readAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
+    readAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 25).toISOString(),
     userId: 4,
     paymentId: 301,
