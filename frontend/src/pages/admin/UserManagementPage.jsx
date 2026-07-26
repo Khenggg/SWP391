@@ -611,9 +611,6 @@ export default function UserManagementPage() {
              </div>
           </div>
         </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Create Modal */}
