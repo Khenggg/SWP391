@@ -70,10 +70,17 @@ export default function CardDetailSidebar({
           </div>
         </div>
 
-        {/* SECTION 1: Người sử dụng thẻ / Đăng ký vé tháng */}
+        {/* SECTION 1: Người sử dụng thẻ / Đăng ký vé tháng / Liên kết vãng lai */}
         <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
-          <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-            <User className="w-4 h-4 text-purple-600" /> Người sử dụng & Chủ thẻ
+          <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <User className="w-4 h-4 text-purple-600" /> Người sử dụng & Chủ thẻ
+            </span>
+            {isMonthlyPass ? (
+              <Badge className="bg-purple-100 text-purple-700 border border-purple-300 text-[10px]">Chủ vé tháng</Badge>
+            ) : (activeSession?.claimedUserFullName || activeSession?.claimedUserName || activeSession?.claimedByUserId) ? (
+              <Badge className="bg-emerald-100 text-emerald-700 border border-emerald-300 text-[10px]">Tài xế vãng lai</Badge>
+            ) : null}
           </h5>
 
           {isMonthlyPass ? (
@@ -101,9 +108,32 @@ export default function CardDetailSidebar({
                 </Badge>
               </div>
             </div>
+          ) : (activeSession?.claimedUserFullName || activeSession?.claimedUserName || activeSession?.claimedByUserId) ? (
+            <div className="space-y-2 text-sm bg-white p-3 rounded-lg border border-slate-200">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 text-xs flex items-center gap-1.5"><User className="w-3.5 h-3.5 text-emerald-600" /> Tài xế liên kết</span>
+                <span className="font-bold text-emerald-900">
+                  {activeSession.claimedUserFullName || activeSession.claimedUserName || `User #${activeSession.claimedByUserId}`}
+                </span>
+              </div>
+              {activeSession.claimedUserPhone && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500 text-xs flex items-center gap-1.5"><Tag className="w-3.5 h-3.5 text-gray-400" /> Số điện thoại</span>
+                  <span className="font-mono text-xs font-medium text-gray-800">{activeSession.claimedUserPhone}</span>
+                </div>
+              )}
+              {activeSession.claimedAt && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500 text-xs flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-gray-400" /> Đã liên kết lúc</span>
+                  <span className="text-xs text-gray-600">
+                    {new Date(activeSession.claimedAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}
+                  </span>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="text-xs text-gray-500 italic py-1">
-              Thẻ này chưa gán cho chủ xe vé tháng nào (dùng làm thẻ lượt vãng lai).
+              Thẻ lượt vãng lai (chưa gán chủ vé tháng & chưa có tài xế vãng lai liên kết ứng dụng).
             </div>
           )}
         </div>
