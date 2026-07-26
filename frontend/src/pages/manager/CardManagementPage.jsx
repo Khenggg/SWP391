@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { cardService } from "@/services/cardService";
 import { auditService } from "@/services/auditService";
+import { staffSessionService } from "@/services/staffSessionService";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,8 @@ export default function CardManagementPage() {
   const [selectedCard, setSelectedCard] = useState(null);
   const [auditLogs, setAuditLogs] = useState([]);
   const [isLogsLoading, setIsLogsLoading] = useState(false);
+  const [activeSession, setActiveSession] = useState(null);
+  const [isActiveSessionLoading, setIsActiveSessionLoading] = useState(false);
 
   // Modals state
   const [showCreate, setShowCreate] = useState(false);
@@ -76,11 +79,30 @@ export default function CardManagementPage() {
 
   useEffect(() => {
     if (selectedCard) {
-      fetchAuditLogs(selectedCard.cardNumber || selectedCard.code);
+      const queryCode = selectedCard.cardNumber || selectedCard.code;
+      fetchAuditLogs(queryCode);
+      if (selectedCard.status === "IN_USE" || selectedCard.currentSessionId) {
+        fetchActiveSession(queryCode);
+      } else {
+        setActiveSession(null);
+      }
     } else {
       setAuditLogs([]);
+      setActiveSession(null);
     }
   }, [selectedCard]);
+
+  const fetchActiveSession = async (cardCode) => {
+    setIsActiveSessionLoading(true);
+    try {
+      const sessionData = await staffSessionService.searchActiveSession(cardCode);
+      setActiveSession(sessionData);
+    } catch (e) {
+      setActiveSession(null);
+    } finally {
+      setIsActiveSessionLoading(false);
+    }
+  };
 
   const fetchAuditLogs = async (queryCode) => {
     setIsLogsLoading(true);
@@ -271,6 +293,8 @@ export default function CardManagementPage() {
           openStatusModal={openStatusModal}
           isLogsLoading={isLogsLoading}
           auditLogs={auditLogs}
+          activeSession={activeSession}
+          isActiveSessionLoading={isActiveSessionLoading}
         />
       </div>
 
