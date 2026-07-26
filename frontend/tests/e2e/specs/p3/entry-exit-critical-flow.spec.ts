@@ -1,0 +1,3 @@
+import { test } from "@playwright/test";
+
+test.skip(true, "Scaffold only - team se implement entry/exit critical flow.");

@@ -473,7 +473,16 @@ public class UsersController : BaseApiController
         await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var user = await _context.Users.FirstOrDefaultAsync(item => item.Id == id && !item.DeletedAt.HasValue);
         if (user == null)
+        {
+            await transaction.RollbackAsync();
             return UserNotFoundFailure();
+        }
+
+        if (user.Role == UserRole.DRIVER)
+        {
+            await transaction.RollbackAsync();
+            return Failure("Tài khoản Driver không thể thay đổi vai trò.", ErrorCodes.InvalidUserRole, StatusCodes.Status400BadRequest, new[] { ErrorCodes.InvalidUserRole });
+        }
 
         var actorUserId = GetActorUserId();
         if (actorUserId == user.Id && user.Role == UserRole.ADMIN && parsedRole != UserRole.ADMIN)
