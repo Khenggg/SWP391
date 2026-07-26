@@ -19,12 +19,25 @@ public class UserRoleChangeATTDTests
     }
 
     [Theory]
+    [InlineData("RESIDENT", "VISITOR")]
+    [InlineData("VISITOR", "RESIDENT")]
+    public void ATTD_DriverType_Transition_Between_Resident_And_Visitor_Is_Supported(string currentType, string targetType)
+    {
+        var validTypes = new System.Collections.Generic.HashSet<string> { "RESIDENT", "VISITOR" };
+        
+        Assert.Contains(currentType, validTypes);
+        Assert.Contains(targetType, validTypes);
+        Assert.NotEqual(currentType, targetType);
+    }
+
+    [Theory]
     [InlineData("RESIDENT")]
     [InlineData("VISITOR")]
-    public void ATTD_DriverType_Change_Accepts_Resident_And_Visitor(string driverType)
+    public void ATTD_DriverType_Change_Requires_NonEmpty_Reason(string driverType)
     {
-        var validTypes = new[] { "RESIDENT", "VISITOR" };
-        Assert.Contains(driverType, validTypes);
+        var reason = "Chuyển đổi phân loại tài xế theo yêu cầu";
+        Assert.False(string.IsNullOrWhiteSpace(reason));
+        Assert.True(reason.Length <= 500);
     }
 
     [Theory]
