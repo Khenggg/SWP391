@@ -466,60 +466,71 @@ public class UsersController : BaseApiController
         if (reason.Length > 500)
             return ValidationFailure(new[] { "reason: Reason must not exceed 500 characters." });
 
-        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-        var user = await _context.Users.FirstOrDefaultAsync(item => item.Id == id && !item.DeletedAt.HasValue);
-        if (user == null)
+        IActionResult result = null!;
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            await transaction.RollbackAsync();
-            return UserNotFoundFailure();
-        }
+            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var user = await _context.Users.FirstOrDefaultAsync(item => item.Id == id && !item.DeletedAt.HasValue);
+            if (user == null)
+            {
+                await transaction.RollbackAsync();
+                result = UserNotFoundFailure();
+                return;
+            }
 
-        if (user.Role == UserRole.DRIVER)
-        {
-            await transaction.RollbackAsync();
-            return Failure("Tài khoản Driver không thể thay đổi vai trò.", ErrorCodes.InvalidUserRole, StatusCodes.Status400BadRequest, new[] { ErrorCodes.InvalidUserRole });
-        }
+            if (user.Role == UserRole.DRIVER)
+            {
+                await transaction.RollbackAsync();
+                result = Failure("Tài khoản Driver không thể thay đổi vai trò.", ErrorCodes.InvalidUserRole, StatusCodes.Status400BadRequest, new[] { ErrorCodes.InvalidUserRole });
+                return;
+            }
 
-        var actorUserId = GetActorUserId();
-        if (actorUserId == user.Id && user.Role == UserRole.ADMIN && parsedRole != UserRole.ADMIN)
-        {
-            await transaction.RollbackAsync();
-            await WriteAuditAsync("USER_SELF_PROTECTION_BLOCKED", id.ToString(), reason: ErrorCodes.CannotChangeOwnRole);
-            return ConflictFailure(ErrorCodes.CannotChangeOwnRole);
-        }
+            var actorUserId = GetActorUserId();
+            if (actorUserId == user.Id && user.Role == UserRole.ADMIN && parsedRole != UserRole.ADMIN)
+            {
+                await transaction.RollbackAsync();
+                await WriteAuditAsync("USER_SELF_PROTECTION_BLOCKED", id.ToString(), reason: ErrorCodes.CannotChangeOwnRole);
+                result = ConflictFailure(ErrorCodes.CannotChangeOwnRole);
+                return;
+            }
 
-        if (user.Role == UserRole.ADMIN
-            && user.Status == UserStatus.ACTIVE
-            && parsedRole != UserRole.ADMIN
-            && !await HasAnotherActiveAdminAsync(user.Id))
-        {
-            await transaction.RollbackAsync();
-            await WriteAuditAsync("USER_LAST_ADMIN_PROTECTION_BLOCKED", id.ToString(), reason: ErrorCodes.CannotDemoteLastAdmin);
-            return ConflictFailure(ErrorCodes.CannotDemoteLastAdmin);
-        }
+            if (user.Role == UserRole.ADMIN
+                && user.Status == UserStatus.ACTIVE
+                && parsedRole != UserRole.ADMIN
+                && !await HasAnotherActiveAdminAsync(user.Id))
+            {
+                await transaction.RollbackAsync();
+                await WriteAuditAsync("USER_LAST_ADMIN_PROTECTION_BLOCKED", id.ToString(), reason: ErrorCodes.CannotDemoteLastAdmin);
+                result = ConflictFailure(ErrorCodes.CannotDemoteLastAdmin);
+                return;
+            }
 
-        var oldRole = user.Role.ToString().ToUpper();
-        user.Role = parsedRole;
-        user.UpdatedAt = DateTimeOffset.UtcNow;
-        await _context.SaveChangesAsync();
-        await transaction.CommitAsync();
+            var oldRole = user.Role.ToString().ToUpper();
+            user.Role = parsedRole;
+            user.UpdatedAt = DateTimeOffset.UtcNow;
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
 
-        await WriteAuditAsync(
-            "USER_ROLE_CHANGED",
-            user.Id.ToString(),
-            JsonSerializer.Serialize(new { role = oldRole }),
-            JsonSerializer.Serialize(new { role = user.Role.ToString().ToUpper(), reason }));
+            await WriteAuditAsync(
+                "USER_ROLE_CHANGED",
+                user.Id.ToString(),
+                JsonSerializer.Serialize(new { role = oldRole }),
+                JsonSerializer.Serialize(new { role = user.Role.ToString().ToUpper(), reason }));
 
-        return Success(new
-        {
-            id = user.Id,
-            fullName = user.FullName,
-            username = user.Username,
-            oldRole,
-            newRole = user.Role.ToString().ToUpper(),
-            reason,
-            updatedAt = user.UpdatedAt
-        }, "User role changed successfully");
+            result = Success(new
+            {
+                id = user.Id,
+                fullName = user.FullName,
+                username = user.Username,
+                oldRole,
+                newRole = user.Role.ToString().ToUpper(),
+                reason,
+                updatedAt = user.UpdatedAt
+            }, "User role changed successfully");
+        });
+
+        return result;
     }
 
     // This remains a soft-delete operation; no hard delete is performed.
