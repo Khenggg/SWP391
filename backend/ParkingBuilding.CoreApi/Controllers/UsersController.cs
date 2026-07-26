@@ -614,7 +614,7 @@ public class UsersController : BaseApiController
                     if (pass.SlotId.HasValue)
                     {
                         var slot = await _context.Slots.FindAsync(pass.SlotId.Value);
-                        if (slot != null) slot.IsOccupied = false;
+                        if (slot != null) slot.Status = "AVAILABLE";
                     }
                 }
             }
