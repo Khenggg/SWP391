@@ -1,5 +1,8 @@
 import React from "react";
-import { CreditCard, XCircle, Calendar, RefreshCw, Tag, Hash, Activity } from "lucide-react";
+import { 
+  CreditCard, XCircle, Calendar, RefreshCw, Tag, Hash, Activity, 
+  User, Car, MapPin, Clock, ShieldCheck, Camera
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CARD_STATUS } from "@/constants";
@@ -25,12 +28,18 @@ export default function CardDetailSidebar({
   setSelectedCard, 
   openStatusModal, 
   isLogsLoading, 
-  auditLogs 
+  auditLogs,
+  activeSession,
+  isActiveSessionLoading
 }) {
   if (!selectedCard) return null;
 
+  const monthlyPass = selectedCard.monthlyPass;
+  const isMonthlyPass = Boolean(monthlyPass);
+
   return (
     <div className="w-full lg:w-[350px] flex-shrink-0 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col h-full overflow-y-auto">
+      {/* Header Bar */}
       <div className="p-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
         <h3 className="font-bold text-gray-900 flex items-center gap-2">
           <CreditCard className="w-4 h-4 text-blue-600" /> Chi tiết thẻ
@@ -52,44 +61,126 @@ export default function CardDetailSidebar({
               <Badge variant="outline" className={CARD_STATUS_BADGE[selectedCard.status]}>
                 {STATUS_LABELS[selectedCard.status]}
               </Badge>
-              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full font-mono truncate max-w-[150px]" title={selectedCard.qrToken}>
-                {selectedCard.qrToken ? selectedCard.qrToken.substring(0, 16) + "..." : "Không có QR"}
-              </span>
+              {isMonthlyPass ? (
+                <Badge className="bg-purple-100 text-purple-700 border border-purple-300">Vé tháng</Badge>
+              ) : (
+                <Badge variant="outline" className="bg-gray-100 text-gray-600">Vé lượt</Badge>
+              )}
             </div>
           </div>
         </div>
 
+        {/* SECTION 1: Người sử dụng thẻ / Đăng ký vé tháng */}
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+          <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+            <User className="w-4 h-4 text-purple-600" /> Người sử dụng & Chủ thẻ
+          </h5>
+
+          {isMonthlyPass ? (
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 text-xs flex items-center gap-1.5"><User className="w-3.5 h-3.5" /> Chủ thẻ</span>
+                <span className="font-bold text-gray-900">{monthlyPass.ownerName || "N/A"}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 text-xs flex items-center gap-1.5"><Car className="w-3.5 h-3.5" /> Biển số đăng ký</span>
+                <span className="font-mono font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                  {monthlyPass.plateNumber || "N/A"}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 text-xs flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> Thời hạn vé</span>
+                <span className="text-xs font-medium text-gray-700">
+                  {monthlyPass.startDate ? new Date(monthlyPass.startDate).toLocaleDateString("vi-VN") : ""} - {monthlyPass.endDate ? new Date(monthlyPass.endDate).toLocaleDateString("vi-VN") : ""}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 text-xs flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5" /> Trạng thái vé</span>
+                <Badge className={monthlyPass.status === "ACTIVE" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}>
+                  {monthlyPass.status === "ACTIVE" ? "Đang hiệu lực" : monthlyPass.status}
+                </Badge>
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs text-gray-500 italic py-1">
+              Thẻ này chưa gán cho chủ xe vé tháng nào (dùng làm thẻ lượt vãng lai).
+            </div>
+          )}
+        </div>
+
+        {/* SECTION 2: Thông tin Xe đang gửi bãi (Phiên hiện tại) */}
+        {(selectedCard.status === CARD_STATUS.IN_USE || selectedCard.currentSessionId) && (
+          <div className="bg-blue-50/70 border border-blue-200 rounded-xl p-4 space-y-3">
+            <h5 className="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Car className="w-4 h-4 text-blue-600" /> Xe đang gửi (Phiên hiện tại)
+              </span>
+              <span className="text-[11px] font-mono text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">
+                #{selectedCard.currentSessionId || activeSession?.sessionId || "N/A"}
+              </span>
+            </h5>
+
+            {isActiveSessionLoading ? (
+              <div className="text-xs text-blue-600 py-2 text-center">Đang tải thông tin xe...</div>
+            ) : activeSession ? (
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 text-xs flex items-center gap-1.5"><Car className="w-3.5 h-3.5" /> Biển số xe gửi</span>
+                  <span className="font-mono font-extrabold text-blue-900 bg-white px-2.5 py-1 rounded-md border border-blue-300 text-base shadow-xs">
+                    {activeSession.plateNumber || "Không xác định"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 text-xs flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Thời gian vào bãi</span>
+                  <span className="font-medium text-gray-900 text-xs">
+                    {activeSession.entryTime ? new Date(activeSession.entryTime).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : "N/A"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 text-xs flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> Vị trí đỗ hiện tại</span>
+                  <span className="font-semibold text-blue-700 text-xs">
+                    {activeSession.slotCode ? `Ô ${activeSession.slotCode}` : ''} 
+                    {activeSession.areaCode ? ` (Khu ${activeSession.areaCode})` : (activeSession.areaId ? ` (Khu ${activeSession.areaId})` : 'Bãi chính')}
+                  </span>
+                </div>
+
+                {activeSession.entryPlateImageUrl && (
+                  <div className="pt-2">
+                    <p className="text-[11px] text-gray-500 font-medium mb-1 flex items-center gap-1">
+                      <Camera className="w-3 h-3 text-gray-400" /> Ảnh chụp biển số vào bãi:
+                    </p>
+                    <img 
+                      src={activeSession.entryPlateImageUrl} 
+                      alt="Biển số xe vào" 
+                      className="w-full h-28 object-cover rounded-lg border border-blue-200 bg-white shadow-xs"
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-xs text-gray-600">
+                Thẻ đang gắn với phiên gửi xe #{selectedCard.currentSessionId}.
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Details List */}
-        <div className="space-y-4 text-sm">
+        <div className="space-y-4 text-sm pt-2">
           <div className="flex justify-between">
-            <span className="text-gray-500 flex items-center gap-2"><Calendar className="w-4 h-4" /> Ngày tạo</span>
+            <span className="text-gray-500 flex items-center gap-2"><Calendar className="w-4 h-4" /> Ngày tạo thẻ</span>
             <span className="font-medium text-gray-900">{selectedCard.createdAt ? new Date(selectedCard.createdAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : "N/A"}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500 flex items-center gap-2"><RefreshCw className="w-4 h-4" /> Cập nhật lần cuối</span>
             <span className="font-medium text-gray-900">{selectedCard.updatedAt ? new Date(selectedCard.updatedAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : "N/A"}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500 flex items-center gap-2"><Tag className="w-4 h-4" /> Session hiện tại</span>
-            <span className="font-medium text-blue-600">{selectedCard.currentSessionId || "-"}</span>
-          </div>
           <div className="flex flex-col gap-1">
             <span className="text-gray-500 flex items-center gap-2"><Hash className="w-4 h-4" /> Ghi chú</span>
-            <span className="font-medium text-gray-900 bg-gray-50 p-2 rounded-lg border border-gray-100 min-h-[40px]">
+            <span className="font-medium text-gray-900 bg-gray-50 p-2.5 rounded-lg border border-gray-100 min-h-[40px] text-xs">
               {selectedCard.note || "Không có ghi chú"}
             </span>
-          </div>
-        </div>
-
-        {/* QR Dummy */}
-        <div className="border border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center bg-gray-50 relative overflow-hidden">
-          <p className="text-xs text-gray-500 font-medium mb-3">QR code (Xem trước)</p>
-          <div className="bg-white p-2 shadow-sm rounded-lg border border-gray-200">
-            <div className="w-24 h-24 bg-gray-800" style={{
-              backgroundImage: 'repeating-linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000), repeating-linear-gradient(45deg, #000 25%, #fff 25%, #fff 75%, #000 75%, #000)',
-              backgroundPosition: '0 0, 4px 4px',
-              backgroundSize: '8px 8px'
-            }}></div>
           </div>
         </div>
 
