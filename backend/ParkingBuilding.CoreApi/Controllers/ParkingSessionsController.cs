@@ -181,6 +181,14 @@ namespace ParkingBuilding.CoreApi.Controllers
             var entryVehicleImageUrl = entryImages
                 .FirstOrDefault(image => image.ImageType == "ENTRY_VEHICLE")?.ImageUrl;
 
+            Domain.Entities.User? claimedUser = null;
+            if (session.ClaimedByUserId.HasValue)
+            {
+                claimedUser = await _context.Users
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == session.ClaimedByUserId.Value);
+            }
+
             return Success(new
             {
                 sessionId = session.Id,
@@ -197,6 +205,12 @@ namespace ParkingBuilding.CoreApi.Controllers
                 slotId = session.SlotId,
                 monthlyPassId = session.MonthlyPassId,
                 reservationId = session.ReservationId,
+                claimedByUserId = session.ClaimedByUserId,
+                claimedUserFullName = claimedUser?.FullName,
+                claimedUserName = claimedUser?.Username,
+                claimedUserPhone = claimedUser?.Phone,
+                claimedUserEmail = claimedUser?.Email,
+                claimedAt = session.ClaimedAt,
                 isCardLost,
                 pendingOnlinePayment,
                 entryPlateImageUrl,
