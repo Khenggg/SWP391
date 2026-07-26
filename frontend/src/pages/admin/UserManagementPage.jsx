@@ -819,6 +819,24 @@ export default function UserManagementPage() {
                   </div>
                 </div>
               </div>
+
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <Button variant="default" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-9 shadow-sm text-xs" onClick={() => { setShowDetailModal(false); openEdit(selectedUser); }}>
+                  <Edit className="w-3.5 h-3.5 mr-2" /> Chỉnh sửa
+                </Button>
+                {selectedUser.role === "DRIVER" ? (
+                  <Button variant="outline" className="w-full border-purple-200 text-purple-700 font-bold hover:bg-purple-50 h-9 shadow-sm text-xs" onClick={() => { setShowDetailModal(false); openDriverType(selectedUser); }}>
+                    <Users className="w-3.5 h-3.5 mr-2 text-purple-600" /> Đổi loại Driver (Cư dân / Vắng lai)
+                  </Button>
+                ) : (
+                  <Button variant="outline" className="w-full border-slate-200 text-slate-700 font-bold hover:bg-slate-50 h-9 shadow-sm text-xs" onClick={() => { setShowDetailModal(false); openRole(selectedUser); }}>
+                    <UserCog className="w-3.5 h-3.5 mr-2 text-slate-400" /> Đổi vai trò
+                  </Button>
+                )}
+                <Button variant="outline" className="w-full border-slate-200 text-red-600 font-bold hover:bg-red-50 hover:border-red-200 h-9 shadow-sm text-xs" onClick={() => { setShowDetailModal(false); openStatus(selectedUser); }}>
+                  <Lock className="w-3.5 h-3.5 mr-2 text-red-500" /> Khóa tài khoản
+                </Button>
+              </div>
             </div>
           )}
           <DialogFooter>
