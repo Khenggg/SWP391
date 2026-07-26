@@ -533,6 +533,92 @@ public class UsersController : BaseApiController
         return result;
     }
 
+    [HttpPatch("{id}/driver-type")]
+    public async Task<IActionResult> ChangeDriverType(long id, [FromBody] ChangeDriverTypeDto? model)
+    {
+        if (model == null || string.IsNullOrWhiteSpace(model.DriverType))
+            return BusinessError(ErrorCodes.InvalidRequest, "Phân loại Driver không hợp lệ.");
+
+        var cleanDriverType = model.DriverType.Trim().ToUpperInvariant();
+        if (cleanDriverType != "RESIDENT" && cleanDriverType != "VISITOR")
+            return BusinessError(ErrorCodes.InvalidRequest, "Phân loại Driver chỉ có thể là RESIDENT hoặc VISITOR.");
+
+        if (string.IsNullOrWhiteSpace(model.Reason))
+            return Failure(
+                ErrorMessages.GetMessage(ErrorCodes.ReasonRequired),
+                ErrorCodes.ReasonRequired,
+                StatusCodes.Status400BadRequest,
+                new[] { ErrorCodes.ReasonRequired });
+
+        var reason = model.Reason.Trim();
+        if (reason.Length > 500)
+            return ValidationFailure(new[] { "reason: Reason must not exceed 500 characters." });
+
+        IActionResult result = null!;
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var user = await _context.Users.FirstOrDefaultAsync(item => item.Id == id && !item.DeletedAt.HasValue);
+            if (user == null)
+            {
+                await transaction.RollbackAsync();
+                result = UserNotFoundFailure();
+                return;
+            }
+
+            if (user.Role != UserRole.DRIVER)
+            {
+                await transaction.RollbackAsync();
+                result = BusinessError(ErrorCodes.InvalidRequest, "Chỉ tài khoản Driver mới có thể thay đổi phân loại Driver.");
+                return;
+            }
+
+            var driverProfile = await _context.DriverProfiles.FirstOrDefaultAsync(dp => dp.UserId == user.Id);
+            if (driverProfile == null)
+            {
+                driverProfile = new DriverProfile
+                {
+                    UserId = user.Id,
+                    FullName = user.FullName,
+                    Phone = user.Phone,
+                    Email = user.Email,
+                    Status = "ACTIVE",
+                    DriverType = cleanDriverType,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                };
+                _context.DriverProfiles.Add(driverProfile);
+            }
+
+            var oldDriverType = driverProfile.DriverType;
+            driverProfile.DriverType = cleanDriverType;
+            driverProfile.UpdatedAt = DateTimeOffset.UtcNow;
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            await WriteAuditAsync(
+                "DRIVER_TYPE_CHANGED",
+                user.Id.ToString(),
+                JsonSerializer.Serialize(new { driverType = oldDriverType }),
+                JsonSerializer.Serialize(new { driverType = cleanDriverType, reason }));
+
+            result = Success(new
+            {
+                id = user.Id,
+                fullName = user.FullName,
+                username = user.Username,
+                role = user.Role.ToString().ToUpper(),
+                oldDriverType,
+                newDriverType = cleanDriverType,
+                reason,
+                updatedAt = driverProfile.UpdatedAt
+            }, "Driver type changed successfully");
+        });
+
+        return result;
+    }
+
     // This remains a soft-delete operation; no hard delete is performed.
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(long id)
@@ -723,6 +809,12 @@ public class UsersController : BaseApiController
     public sealed class ChangeRoleDto
     {
         public string Role { get; set; } = string.Empty;
+        public string? Reason { get; set; }
+    }
+
+    public sealed class ChangeDriverTypeDto
+    {
+        public string DriverType { get; set; } = string.Empty;
         public string? Reason { get; set; }
     }
 

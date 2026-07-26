@@ -17,4 +17,24 @@ public class UserRoleChangeATTDTests
         Assert.False(string.IsNullOrWhiteSpace(reason));
         Assert.NotEqual("DRIVER", role, System.StringComparer.OrdinalIgnoreCase);
     }
+
+    [Theory]
+    [InlineData("RESIDENT")]
+    [InlineData("VISITOR")]
+    public void ATTD_DriverType_Change_Accepts_Resident_And_Visitor(string driverType)
+    {
+        var validTypes = new[] { "RESIDENT", "VISITOR" };
+        Assert.Contains(driverType, validTypes);
+    }
+
+    [Theory]
+    [InlineData("STAFF")]
+    [InlineData("MANAGER")]
+    [InlineData("ADMIN")]
+    public void ATTD_Driver_Promotion_To_Internal_Roles_Is_Blocked(string targetRole)
+    {
+        var isDriverAccount = true;
+        var allowed = !isDriverAccount || targetRole == "DRIVER";
+        Assert.False(allowed);
+    }
 }

@@ -54,5 +54,13 @@ export const userService = {
       return response.data;
     }
     throw new Error(response.message || "Không thể cập nhật trạng thái người dùng.");
+  },
+
+  updateDriverType: async (id, driverType, reason) => {
+    const response = await coreAxiosClient.patch(`/users/${id}/driver-type`, { driverType, reason });
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.message || "Không thể cập nhật loại Driver.");
   }
 };
