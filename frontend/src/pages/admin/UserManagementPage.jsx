@@ -126,6 +126,8 @@ export default function UserManagementPage() {
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showDriverTypeModal, setShowDriverTypeModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showActivityModal, setShowActivityModal] = useState(false);
   
   const [form, setForm] = useState(EMPTY_FORM);
   const [formErrors, setFormErrors] = useState({});
@@ -242,6 +244,8 @@ export default function UserManagementPage() {
   const openRole = (u) => { setForm({ ...u, reason: "" }); setFormErrors({}); setSelectedUser(u); setShowRoleModal(true); };
   const openStatus = (u) => { setForm({ ...u, reason: "" }); setFormErrors({}); setSelectedUser(u); setShowStatusModal(true); };
   const openDriverType = (u) => { setForm({ ...u, driverType: u.driverType || "VISITOR", reason: "" }); setFormErrors({}); setSelectedUser(u); setShowDriverTypeModal(true); };
+  const openDetail = (u) => { setSelectedUser(u); setShowDetailModal(true); };
+  const openActivity = (u) => { setSelectedUser(u); setShowActivityModal(true); };
 
   const handleCreate = async () => {
     if (isSubmitting) return;
@@ -440,10 +444,10 @@ export default function UserManagementPage() {
       </div>
 
       {/* Main Layout Grid */}
-      <div className="flex flex-col xl:flex-row gap-6 min-h-0">
+      <div className="flex flex-col gap-6 min-h-0">
         
         {/* Left Column (Table & Filters) */}
-        <div className="flex-1 flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="w-full flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           
           {/* Filters */}
           <div className="p-4 border-b border-slate-100 flex flex-wrap lg:flex-nowrap items-end gap-3 bg-slate-50/50">
@@ -485,59 +489,51 @@ export default function UserManagementPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
-                  {STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  <SelectItem value="ACTIVE">ACTIVE</SelectItem>
+                  <SelectItem value="LOCKED">LOCKED</SelectItem>
+                  <SelectItem value="INACTIVE">INACTIVE</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center gap-2 mt-auto">
-              <Button onClick={handleSearch} className="h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm font-bold">
-                <Search className="w-4 h-4 mr-2" />
-                Tìm kiếm
-              </Button>
-              <Button variant="outline" onClick={handleReset} className="h-9 px-3 border-slate-200 text-slate-600 hover:bg-slate-50 font-bold">
-                <RefreshCcw className="w-4 h-4" />
-              </Button>
-              <div className="w-px h-9 bg-slate-200 mx-1"></div>
-              <Button onClick={openCreate} className="h-9 px-4 bg-blue-600 hover:bg-blue-700 text-white shadow-sm font-bold">
-                <Plus className="w-4 h-4 mr-2" />
-                Tạo tài khoản
-              </Button>
+            <div className="flex items-center gap-2">
+               <Button onClick={handleSearch} className="h-9 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm px-4">
+                 Tìm kiếm
+               </Button>
+               <Button variant="outline" onClick={handleReset} className="h-9 border-slate-200 text-slate-600 font-semibold px-3">
+                 Xóa lọc
+               </Button>
+               <Button onClick={openCreate} className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm px-4 ml-auto">
+                 + Thêm tài khoản
+               </Button>
             </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto min-h-[400px]">
+          {/* User Table */}
+          <div className="flex-1 overflow-x-auto min-h-[400px]">
             {isLoading ? (
-              <div className="flex items-center justify-center h-48 text-slate-400 font-medium text-sm">
-                Đang tải dữ liệu...
-              </div>
+              <div className="p-12 text-center text-slate-400 font-medium">Đang tải danh sách tài khoản...</div>
+            ) : filtered.length === 0 ? (
+              <div className="p-12 text-center text-slate-400 font-medium">Không tìm thấy tài khoản nào phù hợp</div>
             ) : (
               <Table>
-                <TableHeader className="bg-slate-50/80 sticky top-0 z-10 backdrop-blur-sm">
-                  <TableRow className="border-b border-slate-100">
-                    <TableHead className="font-bold text-slate-500 text-xs uppercase tracking-wider py-4">Mã user</TableHead>
-                    <TableHead className="font-bold text-slate-500 text-xs uppercase tracking-wider py-4">Họ tên</TableHead>
-                    <TableHead className="font-bold text-slate-500 text-xs uppercase tracking-wider py-4">Username</TableHead>
-                    <TableHead className="font-bold text-slate-500 text-xs uppercase tracking-wider py-4">Email</TableHead>
-                    <TableHead className="font-bold text-slate-500 text-xs uppercase tracking-wider py-4">SĐT</TableHead>
-                    <TableHead className="font-bold text-slate-500 text-xs uppercase tracking-wider py-4 text-center">Vai trò</TableHead>
-                    <TableHead className="font-bold text-slate-500 text-xs uppercase tracking-wider py-4 text-center">Trạng thái</TableHead>
-                    <TableHead className="font-bold text-slate-500 text-xs uppercase tracking-wider py-4 text-center">Thao tác</TableHead>
+                <TableHeader className="bg-slate-50/80 sticky top-0">
+                  <TableRow>
+                    <TableHead className="w-16 text-xs font-bold uppercase text-slate-500">Mã ID</TableHead>
+                    <TableHead className="text-xs font-bold uppercase text-slate-500">Họ và Tên</TableHead>
+                    <TableHead className="text-xs font-bold uppercase text-slate-500">Tên đăng nhập</TableHead>
+                    <TableHead className="text-xs font-bold uppercase text-slate-500">Email</TableHead>
+                    <TableHead className="text-xs font-bold uppercase text-slate-500">Số Điện Thoại</TableHead>
+                    <TableHead className="text-xs font-bold uppercase text-slate-500 text-center">Vai Trò</TableHead>
+                    <TableHead className="text-xs font-bold uppercase text-slate-500 text-center">Trạng Thái</TableHead>
+                    <TableHead className="w-28 text-xs font-bold uppercase text-slate-500 text-center">Thao tác</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody className="divide-y divide-slate-50">
-                  {filtered.length === 0 ? (
-                     <TableRow>
-                       <TableCell colSpan={8} className="h-48 text-center text-slate-400 font-medium">
-                         Không tìm thấy tài khoản nào phù hợp
-                       </TableCell>
-                     </TableRow>
-                  ) : (
-                    filtered.map((user, idx) => (
+                <TableBody>
+                  {filtered.map((user, idx) => (
                       <TableRow 
                         key={user.id} 
                         className={`transition-colors cursor-pointer hover:bg-slate-50/80 ${selectedUser?.id === user.id ? 'bg-indigo-50/50' : ''}`}
-                        onClick={() => setSelectedUser(user)}
+                        onClick={() => openDetail(user)}
                       >
                         <TableCell className="py-3 font-mono text-xs font-bold text-slate-500">U{String(idx + 1).padStart(3, '0')}</TableCell>
                         <TableCell className="py-3">
@@ -575,29 +571,27 @@ export default function UserManagementPage() {
                         </TableCell>
                         <TableCell className="py-3 text-center">
                           <div className="flex justify-center gap-1" onClick={(e) => e.stopPropagation()}>
-                             <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50" onClick={() => setSelectedUser(user)}>
+                             <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50" title="Xem hoạt động gần đây" onClick={() => openActivity(user)}>
                                <Eye className="w-4 h-4" />
                              </Button>
-                             <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-blue-600 hover:bg-blue-50" onClick={() => openEdit(user)}>
+                             <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-blue-600 hover:bg-blue-50" title="Chỉnh sửa thông tin" onClick={() => openEdit(user)}>
                                <Edit className="w-4 h-4" />
                              </Button>
-                             <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-amber-600 hover:bg-amber-50" onClick={() => openRole(user)}>
+                             <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-amber-600 hover:bg-amber-50" title="Đổi vai trò / phân loại" onClick={() => user.role === 'DRIVER' ? openDriverType(user) : openRole(user)}>
                                <UserCog className="w-4 h-4" />
                              </Button>
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
+                    ))}
                 </TableBody>
               </Table>
             )}
           </div>
           
-          {/* Pagination Placeholder */}
-          <div className="p-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500 bg-slate-50/50 mt-auto">
+          {/* Pagination */}
+          <div className="p-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500 bg-slate-50/50">
              <span>Hiển thị {filtered.length > 0 ? 1 : 0} - {filtered.length} trong {filtered.length} kết quả</span>
-             {/* Simulating pagination UI from mockup */}
              <div className="flex items-center gap-1">
                 <span className="mr-2">{page} / {totalPages}</span>
                 <Button
@@ -617,160 +611,6 @@ export default function UserManagementPage() {
              </div>
           </div>
         </div>
-
-        {/* Right Column (Details & Activities) */}
-        <div className="w-full xl:w-[360px] 2xl:w-[400px] shrink-0 flex flex-col gap-6">
-          
-          {/* Account Details */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col relative overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-slate-800">Chi tiết tài khoản</h3>
-              <Maximize2 className="w-4 h-4 text-slate-400 cursor-pointer hover:text-slate-600" />
-            </div>
-
-            {!selectedUser ? (
-              <div className="p-10 flex flex-col items-center justify-center text-center">
-                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-3">
-                  <UserCheck className="w-8 h-8 text-slate-300" />
-                </div>
-                <p className="text-slate-500 text-sm font-medium">Chọn một tài khoản từ danh sách<br/>để xem thông tin chi tiết</p>
-              </div>
-            ) : (
-              <div className="flex-1 overflow-y-auto p-5 flex flex-col">
-                <div className="flex items-center gap-4 mb-6">
-                   <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-black text-xl shrink-0">
-                      {selectedUser.fullName.charAt(0).toUpperCase()}
-                   </div>
-                   <div>
-                     <div className="flex items-center gap-2 mb-1">
-                       <h2 className="text-lg font-black text-slate-800">{selectedUser.fullName}</h2>
-                       <Badge variant="outline" className={`px-1.5 py-0 text-[9px] font-black uppercase border ${ROLE_BADGE[selectedUser.role]}`}>
-                         {selectedUser.role}
-                       </Badge>
-                     </div>
-                     <div className="flex items-center gap-2">
-                       <span className="font-mono text-sm font-medium text-slate-500">{selectedUser.username}</span>
-                       <Badge variant="outline" className={`px-1.5 py-0 text-[9px] font-black uppercase border ${STATUS_BADGE[selectedUser.status]}`}>
-                         {selectedUser.status}
-                       </Badge>
-                     </div>
-                   </div>
-                </div>
-
-                <div className="space-y-4 mb-8 text-sm">
-                  <div className="grid grid-cols-[100px_1fr] items-center gap-2">
-                    <div className="flex items-center gap-1.5 text-slate-500 font-medium text-xs">
-                       <Mail className="w-3.5 h-3.5" /> Email
-                    </div>
-                    <div className="font-semibold text-slate-700 truncate">{selectedUser.email || "-"}</div>
-                  </div>
-                  <div className="grid grid-cols-[100px_1fr] items-center gap-2">
-                    <div className="flex items-center gap-1.5 text-slate-500 font-medium text-xs">
-                       <Phone className="w-3.5 h-3.5" /> SĐT
-                    </div>
-                    <div className="font-mono font-medium text-slate-700">{selectedUser.phone || "-"}</div>
-                  </div>
-                  {selectedUser.role === "DRIVER" && (
-                    <>
-                      <div className="grid grid-cols-[100px_1fr] items-center gap-2">
-                        <div className="flex items-center gap-1.5 text-slate-500 font-medium text-xs">
-                           <Users className="w-3.5 h-3.5" /> Phân loại
-                        </div>
-                        <div className="font-bold text-xs">
-                          {selectedUser.driverType === "RESIDENT" ? (
-                            <span className="text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded font-black">
-                              DRIVER CƯ DÂN
-                            </span>
-                          ) : (
-                            <span className="text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded font-bold">
-                              DRIVER VẮNG LAI
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      {selectedUser.driverType === "RESIDENT" && (
-                        <div className="grid grid-cols-[100px_1fr] items-center gap-2">
-                          <div className="flex items-center gap-1.5 text-slate-500 font-medium text-xs">
-                             <Briefcase className="w-3.5 h-3.5" /> Căn hộ
-                          </div>
-                          <div className="font-bold text-slate-800 text-sm">
-                            {selectedUser.apartmentNumber || "Chưa cập nhật"}
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                  <div className="grid grid-cols-[100px_1fr] items-start gap-2">
-                    <div className="flex items-center gap-1.5 text-slate-500 font-medium text-xs mt-0.5">
-                       <FileText className="w-3.5 h-3.5" /> Ghi chú
-                    </div>
-                    <div className="font-medium text-slate-700 text-xs leading-relaxed">
-                      Chưa có ghi chú hệ thống.
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-auto space-y-2">
-                  <Button variant="default" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-10 shadow-sm" onClick={() => openEdit(selectedUser)}>
-                    <Edit className="w-4 h-4 mr-2" /> Chỉnh sửa
-                  </Button>
-                  {selectedUser.role === "DRIVER" ? (
-                    <Button variant="outline" className="w-full border-purple-200 text-purple-700 font-bold hover:bg-purple-50 h-10 shadow-sm" onClick={() => openDriverType(selectedUser)}>
-                      <Users className="w-4 h-4 mr-2 text-purple-600" /> Đổi loại Driver (Cư dân / Vắng lai)
-                    </Button>
-                  ) : (
-                    <Button variant="outline" className="w-full border-slate-200 text-slate-700 font-bold hover:bg-slate-50 h-10 shadow-sm" onClick={() => openRole(selectedUser)}>
-                      <UserCog className="w-4 h-4 mr-2 text-slate-400" /> Đổi vai trò
-                    </Button>
-                  )}
-                  <Button variant="outline" className="w-full border-slate-200 text-red-600 font-bold hover:bg-red-50 hover:border-red-200 h-10 shadow-sm" onClick={() => openStatus(selectedUser)}>
-                    <Lock className="w-4 h-4 mr-2 text-red-500" /> Khóa tài khoản
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Recent Activities */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col flex-1 relative overflow-hidden min-h-[300px]">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-slate-800">Hoạt động gần đây (API F054)</h3>
-            </div>
-            
-            <div className="p-5 flex-1 overflow-y-auto">
-               {!selectedUser ? (
-                 <div className="h-full flex flex-col items-center justify-center text-center">
-                    <Activity className="w-8 h-8 text-slate-200 mb-2" />
-                    <p className="text-xs font-medium text-slate-400">Chọn tài khoản để xem</p>
-                 </div>
-               ) : isLoadingActivities ? (
-                 <div className="h-full flex flex-col items-center justify-center text-center">
-                    <RefreshCcw className="w-6 h-6 text-indigo-400 animate-spin mb-2" />
-                    <p className="text-xs font-medium text-slate-400">Đang tải...</p>
-                 </div>
-               ) : recentActivities.length === 0 ? (
-                 <div className="h-full flex flex-col items-center justify-center text-center">
-                    <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-2">
-                       <Activity className="w-5 h-5 text-slate-300" />
-                    </div>
-                    <p className="text-xs font-medium text-slate-400">Chưa có hoạt động nào được ghi nhận.</p>
-                 </div>
-               ) : (
-                 <div className="space-y-4">
-                   {recentActivities.map((act, i) => (
-                      <div key={i} className="flex gap-3 relative">
-                        <div className="w-2 h-full absolute left-[15px] top-6 bg-slate-100 -z-10"></div>
-                        <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0 z-10 text-slate-500">
-                          <Activity className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="flex-1 pb-2">
-                          <p className="text-sm text-slate-700 font-medium leading-snug">{act.action}</p>
-                          <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">{act.time}</p>
-                        </div>
-                      </div>
-                   ))}
-                 </div>
-               )}
             </div>
           </div>
         </div>
@@ -898,6 +738,135 @@ export default function UserManagementPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDriverTypeModal(false)}>Hủy</Button>
             <Button onClick={handleDriverType} className="bg-purple-600 hover:bg-purple-700 text-white font-bold">Cập nhật Loại Driver</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Account Details Modal */}
+      <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Chi tiết tài khoản</DialogTitle>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="py-2 space-y-4">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-black text-xl shrink-0">
+                  {selectedUser.fullName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h2 className="text-base font-black text-slate-800">{selectedUser.fullName}</h2>
+                    <Badge variant="outline" className={`px-1.5 py-0 text-[9px] font-black uppercase border ${ROLE_BADGE[selectedUser.role]}`}>
+                      {selectedUser.role}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-medium text-slate-500">{selectedUser.username}</span>
+                    <Badge variant="outline" className={`px-1.5 py-0 text-[9px] font-black uppercase border ${STATUS_BADGE[selectedUser.status]}`}>
+                      {selectedUser.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3 text-sm bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+                  <div className="flex items-center gap-1.5 text-slate-500 font-medium text-xs">
+                    <Mail className="w-3.5 h-3.5" /> Email
+                  </div>
+                  <div className="font-semibold text-slate-700 truncate">{selectedUser.email || "-"}</div>
+                </div>
+                <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+                  <div className="flex items-center gap-1.5 text-slate-500 font-medium text-xs">
+                    <Phone className="w-3.5 h-3.5" /> SĐT
+                  </div>
+                  <div className="font-mono font-medium text-slate-700">{selectedUser.phone || "-"}</div>
+                </div>
+                {selectedUser.role === "DRIVER" && (
+                  <>
+                    <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+                      <div className="flex items-center gap-1.5 text-slate-500 font-medium text-xs">
+                        <Users className="w-3.5 h-3.5" /> Phân loại
+                      </div>
+                      <div className="font-bold text-xs">
+                        {selectedUser.driverType === "RESIDENT" ? (
+                          <span className="text-purple-700 bg-purple-100 border border-purple-200 px-2 py-0.5 rounded font-black">
+                            DRIVER CƯ DÂN
+                          </span>
+                        ) : (
+                          <span className="text-slate-600 bg-slate-200 border border-slate-300 px-2 py-0.5 rounded font-bold">
+                            DRIVER VẮNG LAI
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {selectedUser.driverType === "RESIDENT" && (
+                      <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+                        <div className="flex items-center gap-1.5 text-slate-500 font-medium text-xs">
+                          <Briefcase className="w-3.5 h-3.5" /> Căn hộ
+                        </div>
+                        <div className="font-bold text-slate-800 text-sm">
+                          {selectedUser.apartmentNumber || "Chưa cập nhật"}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+                <div className="grid grid-cols-[100px_1fr] items-start gap-2">
+                  <div className="flex items-center gap-1.5 text-slate-500 font-medium text-xs mt-0.5">
+                    <FileText className="w-3.5 h-3.5" /> Ghi chú
+                  </div>
+                  <div className="font-medium text-slate-700 text-xs leading-relaxed">
+                    Chưa có ghi chú hệ thống.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDetailModal(false)}>Đóng</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Recent Activity Modal */}
+      <Dialog open={showActivityModal} onOpenChange={setShowActivityModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Hoạt động gần đây: {selectedUser?.username}</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 max-h-[350px] overflow-y-auto">
+            {isLoadingActivities ? (
+              <div className="py-8 flex flex-col items-center justify-center text-center">
+                <RefreshCcw className="w-6 h-6 text-indigo-400 animate-spin mb-2" />
+                <p className="text-xs font-medium text-slate-400">Đang tải...</p>
+              </div>
+            ) : recentActivities.length === 0 ? (
+              <div className="py-8 flex flex-col items-center justify-center text-center">
+                <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-2">
+                  <Activity className="w-5 h-5 text-slate-300" />
+                </div>
+                <p className="text-xs font-medium text-slate-400">Chưa có hoạt động nào được ghi nhận.</p>
+              </div>
+            ) : (
+              <div className="space-y-4 pr-2">
+                {recentActivities.map((act, i) => (
+                  <div key={i} className="flex gap-3 relative">
+                    <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0 z-10 text-slate-500">
+                      <Activity className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="flex-1 pb-2">
+                      <p className="text-sm text-slate-700 font-medium leading-snug">{act.action}</p>
+                      <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">{act.time}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowActivityModal(false)}>Đóng</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
