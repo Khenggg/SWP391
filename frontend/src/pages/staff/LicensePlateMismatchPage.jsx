@@ -255,6 +255,9 @@ export default function LicensePlateMismatchPage() {
   } = useMismatchStatus(parkingSessionId);
 
   const { mutate: submitMismatch, isPending: isSubmitting } = useSubmitLicensePlateMismatch();
+  // Guard chống double-submit: dùng ref để block ngay lập tức khi click lần 1
+  const isSubmittingRef = useRef(false);
+  const [isLocalSubmitting, setIsLocalSubmitting] = useState(false);
 
   const currentStatus  = statusData?.status   ?? "NONE";
   const managerReason  = statusData?.managerReason ?? null;
@@ -302,15 +305,22 @@ export default function LicensePlateMismatchPage() {
   }
 
   const onSubmit = (data) => {
-    // Validate images
+    // Guard chống double-submit
+    if (isSubmittingRef.current) return;
+
+    // Validate ảnh
     const newImageErrors = {};
-    if (!exitPlatePreview)    newImageErrors.exitPlate    = "Vui lòng tải ảnh biển số xe ra.";
-    if (!exitVehiclePreview)  newImageErrors.exitVehicle  = "Vui lòng tải ảnh toàn xe ra.";
+    if (!exitPlatePreview)   newImageErrors.exitPlate   = "Vui lòng tải ảnh biển số xe ra.";
+    if (!exitVehiclePreview) newImageErrors.exitVehicle = "Vui lòng tải ảnh toàn xe ra.";
     if (Object.keys(newImageErrors).length > 0) {
       setImageErrors(newImageErrors);
-      return;
+      return; // Dừng lại, không gửi
     }
     setImageErrors({});
+
+    // Lock ngay lập tức trước khi gọi API
+    isSubmittingRef.current = true;
+    setIsLocalSubmitting(true);
 
     submitMismatch(
       {
@@ -324,6 +334,15 @@ export default function LicensePlateMismatchPage() {
       {
         onSuccess: () => {
           navigate("/staff/exit");
+        },
+        onError: () => {
+          // Mở lại nút khi có lỗi để user thử lại
+          isSubmittingRef.current = false;
+          setIsLocalSubmitting(false);
+        },
+        onSettled: () => {
+          isSubmittingRef.current = false;
+          setIsLocalSubmitting(false);
         },
       }
     );
@@ -532,8 +551,8 @@ export default function LicensePlateMismatchPage() {
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors shadow-sm disabled:opacity-50"
+                disabled={isSubmitting || isLocalSubmitting}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 {isResubmit ? "Gửi Lại Báo Cáo" : "Gửi Báo Cáo"}

@@ -82,9 +82,16 @@ const parseUserApiErrors = (error) => {
   const fieldErrors = {};
   const errors = Array.isArray(error?.errors) ? error.errors : [];
   errors.forEach((item) => {
+    // Parse định dạng "fieldName: error message" từ backend
     const separator = item.indexOf(":");
     if (separator > 0) {
-      fieldErrors[item.slice(0, separator).trim()] = item.slice(separator + 1).trim();
+      const field = item.slice(0, separator).trim();
+      const message = item.slice(separator + 1).trim();
+      // Chỉ gán nếu trường này là field của form (không phải error code chung)
+      const knownFields = ["username", "fullName", "email", "phone", "password", "role", "reason", "request", "status"];
+      if (knownFields.includes(field)) {
+        fieldErrors[field] = message;
+      }
     }
   });
 
@@ -222,6 +229,7 @@ export default function UserManagementPage() {
     if (isCreate && !username) errs.username = "Bắt buộc";
     else if (isCreate && !usernamePattern.test(username)) errs.username = "Username phải dài 6-30 ký tự, bắt đầu bằng chữ cái và không có dấu phân cách liên tiếp.";
     if (isCreate && !data.password?.trim()) errs.password = "Bắt buộc";
+    else if (isCreate && !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,100}$/.test(data.password)) errs.password = "Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và chữ số.";
     if (!data.role) errs.role = "Bắt buộc";
     if (data.email && !/^\S+@\S+\.\S+$/.test(data.email)) errs.email = "Email không hợp lệ";
     return errs;
