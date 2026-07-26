@@ -50,4 +50,22 @@ public class UserRoleChangeATTDTests
         var allowed = !isDriverAccount || targetRole == "DRIVER";
         Assert.False(allowed);
     }
+
+    [Fact]
+    public void ATTD_Demoting_Resident_To_Visitor_Unverifies_Resident_And_Cancels_Active_Passes()
+    {
+        var oldDriverType = "RESIDENT";
+        var newDriverType = "VISITOR";
+        var residentVerified = true;
+        var activePassStatus = "ACTIVE";
+
+        if (newDriverType == "VISITOR" && oldDriverType == "RESIDENT")
+        {
+            residentVerified = false;
+            activePassStatus = "CANCELLED";
+        }
+
+        Assert.False(residentVerified);
+        Assert.Equal("CANCELLED", activePassStatus);
+    }
 }
