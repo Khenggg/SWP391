@@ -7,13 +7,15 @@ Tài liệu này dùng để phân công chi tiết cho đội 5 người trong 
 Đội hình:
 
 - 1 Leader
-- 1 Frontend
-- 3 Backend
+- 4 Executor
+
+Vì mỗi người đều có AI riêng, cách chia đúng không phải là chia cứng theo frontend/backend, mà là chia theo flow dọc của nghiệp vụ để đẩy nhanh tiến độ.
 
 Nguyên tắc làm việc:
 
 - Mỗi người dùng AI như một coding assistant, không giao toàn bộ quyền quyết định cho AI.
 - Mỗi output từ AI phải được người phụ trách review lại.
+- Mỗi người ôm trọn một lát nghiệp vụ, gồm UI + API + test + fixture nếu cần.
 - Chỉ cần báo cáo kết quả cuối mỗi block công việc, không cần thảo luận lại kiến trúc.
 
 ---
@@ -45,8 +47,8 @@ Nguyên tắc làm việc:
 
 ### Deliverable ngày 1
 
-- Chốt owner từng module
-- Chốt module nào là P1 blocking
+- Chốt owner từng flow
+- Chốt flow nào là P1 blocking
 - Chốt rule review output của AI
 
 ### Deliverable ngày 2
@@ -84,88 +86,73 @@ Chỉ trả về:
 
 ---
 
-## 2. FRONTEND
+## 2. EXECUTOR A - AUTH + PUBLIC
 
-### Vai trò
+### Phạm vi phụ trách
 
-Phụ trách toàn bộ:
+- Login
+- Route guard
+- Public Parking Info
+- Public Rules
+- Public Pricing
+- Available Slots
 
-- Playwright E2E
-- Vitest component test
-- frontend test utilities
-
-### File phải làm
-
-- [frontend/vitest.config.ts](</F:/Ky 5/SWP301/frontend/vitest.config.ts>)
-- [frontend/src/test/README.md](</F:/Ky 5/SWP301/frontend/src/test/README.md>)
-- [frontend/tests/e2e/playwright.config.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/playwright.config.ts>)
-- [frontend/tests/e2e/README.md](</F:/Ky 5/SWP301/frontend/tests/e2e/README.md>)
-
-### File E2E phải hoàn thiện trước
+### File chính cần làm
 
 - [frontend/tests/e2e/specs/smoke/app-shell.smoke.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/smoke/app-shell.smoke.spec.ts>)
 - [frontend/tests/e2e/specs/p1/login-role-routing.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p1/login-role-routing.spec.ts>)
 - [frontend/tests/e2e/specs/p1/public-pages.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p1/public-pages.spec.ts>)
-- [frontend/tests/e2e/specs/p1/user-management.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p1/user-management.spec.ts>)
-- [frontend/tests/e2e/specs/p1/pricing-management.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p1/pricing-management.spec.ts>)
-- [frontend/tests/e2e/specs/p1/structure-management.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p1/structure-management.spec.ts>)
-- [frontend/tests/e2e/specs/p1/card-management.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p1/card-management.spec.ts>)
-- [frontend/tests/e2e/specs/p1/dashboard-read.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p1/dashboard-read.spec.ts>)
-- [frontend/tests/e2e/specs/p1/audit-log-search.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p1/audit-log-search.spec.ts>)
 
 ### Deliverable ngày 1
 
-- Chạy được Playwright config
-- Có smoke test thật
+- Chạy được smoke app shell
 - Có login-role-routing thật
 - Có public-pages thật
-- Có user-management scaffold rõ ràng
 
 ### Deliverable ngày 2
 
-- Hoàn thiện P1 E2E còn lại
-- Có ít nhất 1-2 component test đầu tiên cho modal/filter quan trọng
+- Hoàn thiện Available Slots read path
+- Hoàn thiện auth/public contract direction nếu cần thêm ghi chú
+- Bàn giao helper login/public cho cả team
 
 ### Prompt AI đề xuất
 
 ```text
-Bạn đang làm frontend test cho SWP301.
+Bạn đang làm một flow test dọc cho SWP301.
+
+Flow phụ trách:
+- Auth + Public
 
 Nhiệm vụ:
-- Viết test Playwright cho file: {TARGET_FILE}
-- Module: {MODULE_NAME}
-- Priority: {P_LEVEL}
-
-Acceptance criteria:
-- {AC_1}
-- {AC_2}
-- {AC_3}
+- Viết hoặc hoàn thiện test cho file: {TARGET_FILE}
+- Bám theo acceptance criteria của login/public flow
 
 Yêu cầu:
-- Không dùng selector mong manh theo text ngẫu nhiên nếu có thể tránh
 - Ưu tiên flow người dùng thật
 - Assert hành vi nghiệp vụ, không assert DOM thừa
 - Nếu thiếu selector ổn định, ghi chú rõ đề xuất thêm test id
+- Nếu cần helper dùng chung, tạo helper theo kiến trúc test hiện tại
 
 Trả về code hoàn chỉnh cho file đó.
 ```
 
 ---
 
-## 3. BACKEND 1 - .NET CONTRACT + SMOKE
+## 3. EXECUTOR B - ADMIN CORE
 
-### Vai trò
+### Phạm vi phụ trách
 
-Phụ trách .NET Core:
+- User Management
+- Pricing Management
+- Structure Management
+- Card Management
 
-- smoke
-- contract
-- auth/users/pricing/structure/cards
+### File chính cần làm
 
-### File phải làm
-
-- [backend/ParkingBuilding.CoreApi.Tests/Smoke/HealthEndpointsTests.cs](</F:/Ky 5/SWP301/backend/ParkingBuilding.CoreApi.Tests/Smoke/HealthEndpointsTests.cs>)
-- [backend/ParkingBuilding.CoreApi.Tests/Contracts/AuthContractTests.cs](</F:/Ky 5/SWP301/backend/ParkingBuilding.CoreApi.Tests/Contracts/AuthContractTests.cs>)
+- [frontend/tests/e2e/specs/p1/user-management.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p1/user-management.spec.ts>)
+- [frontend/tests/e2e/specs/p1/pricing-management.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p1/pricing-management.spec.ts>)
+- [frontend/tests/e2e/specs/p1/structure-management.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p1/structure-management.spec.ts>)
+- [frontend/tests/e2e/specs/p1/card-management.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p1/card-management.spec.ts>)
 - [backend/ParkingBuilding.CoreApi.Tests/Contracts/UsersContractTests.cs](</F:/Ky 5/SWP301/backend/ParkingBuilding.CoreApi.Tests/Contracts/UsersContractTests.cs>)
 - [backend/ParkingBuilding.CoreApi.Tests/Contracts/PricingContractTests.cs](</F:/Ky 5/SWP301/backend/ParkingBuilding.CoreApi.Tests/Contracts/PricingContractTests.cs>)
 - [backend/ParkingBuilding.CoreApi.Tests/Contracts/StructureContractTests.cs](</F:/Ky 5/SWP301/backend/ParkingBuilding.CoreApi.Tests/Contracts/StructureContractTests.cs>)
@@ -173,74 +160,82 @@ Phụ trách .NET Core:
 
 ### Deliverable ngày 1
 
-- Health smoke chạy được
-- Auth contract có thật
-- Users contract có thật
+- User Management P1
+- Pricing Management P1
 
 ### Deliverable ngày 2
 
-- Pricing contract
-- Structure contract
-- Cards contract
+- Structure Management P1
+- Card Management P1
+- Contract test khung cho 4 module trên
 
 ### Prompt AI đề xuất
 
 ```text
-Bạn đang viết .NET contract test cho SWP301 Core API.
+Bạn đang làm một flow test dọc cho SWP301.
 
-File đích: {TARGET_FILE}
-Module: {MODULE_NAME}
+Flow phụ trách:
+- Admin Core
+
+Module hiện tại:
+- {MODULE_NAME}
+
+File đích:
+- {TARGET_FILE}
 
 Yêu cầu:
-- Dùng test như tiêu chí nghiệm thu
-- Assert status code, shape response, field bắt buộc, auth rule
-- Không chỉ test endpoint trả 200
-- Nếu là mutation thì kiểm tra error/validation path tối thiểu
+- Nếu là E2E, phải cover happy path quản trị quan trọng
+- Nếu là contract test, phải khóa status code, shape response, validation path
+- Không viết test nương theo implementation detail
 
-Output:
-- code hoàn chỉnh cho test file
-- ghi chú setup cần thiết nếu có
+Trả về code hoàn chỉnh cho file đó.
 ```
 
 ---
 
-## 4. BACKEND 2 - .NET FLOW / INTEGRATION
+## 4. EXECUTOR C - DRIVER + RESERVATION
 
-### Vai trò
+### Phạm vi phụ trách
 
-Phụ trách .NET Core flow:
+- Driver Profile
+- Driver Vehicles
+- Reservation suggest/create/cancel
+- Monthly Pass Management / Application
+- Session Administration phần liên quan driver/reservation
 
-- Reservation
-- Entry
-- Exit
-- Payment
+### File chính cần làm
 
-### File phải làm
-
+- [frontend/tests/e2e/specs/p2/driver-profile.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p2/driver-profile.spec.ts>)
+- [frontend/tests/e2e/specs/p2/driver-vehicles.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p2/driver-vehicles.spec.ts>)
+- [frontend/tests/e2e/specs/p2/reservation-happy-path.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p2/reservation-happy-path.spec.ts>)
+- [frontend/tests/e2e/specs/p2/reservation-cancel.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p2/reservation-cancel.spec.ts>)
+- [frontend/tests/e2e/specs/p2/monthly-pass-management.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p2/monthly-pass-management.spec.ts>)
+- [frontend/tests/e2e/specs/p2/session-administration.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p2/session-administration.spec.ts>)
 - [backend/ParkingBuilding.CoreApi.Tests/Flows/ReservationFlowTests.cs](</F:/Ky 5/SWP301/backend/ParkingBuilding.CoreApi.Tests/Flows/ReservationFlowTests.cs>)
-- [backend/ParkingBuilding.CoreApi.Tests/Flows/EntryFlowTests.cs](</F:/Ky 5/SWP301/backend/ParkingBuilding.CoreApi.Tests/Flows/EntryFlowTests.cs>)
-- [backend/ParkingBuilding.CoreApi.Tests/Flows/ExitFlowTests.cs](</F:/Ky 5/SWP301/backend/ParkingBuilding.CoreApi.Tests/Flows/ExitFlowTests.cs>)
-- [backend/ParkingBuilding.CoreApi.Tests/Flows/PaymentFlowTests.cs](</F:/Ky 5/SWP301/backend/ParkingBuilding.CoreApi.Tests/Flows/PaymentFlowTests.cs>)
 
 ### Deliverable ngày 1
 
-- Reservation flow scaffold rõ
-- Test data/fixture direction rõ
-- Ít nhất 1 flow integration đầu tiên có assert trạng thái
+- Driver profile scaffold rõ
+- Driver vehicles scaffold rõ
+- Reservation happy path scaffold rõ
 
 ### Deliverable ngày 2
 
-- Entry scaffold hoàn chỉnh
-- Exit scaffold hoàn chỉnh
-- Payment scaffold hoàn chỉnh
+- Reservation cancel
+- Monthly pass scaffold
+- Session administration scaffold
+- Reservation flow integration base
 
 ### Prompt AI đề xuất
 
 ```text
-Bạn đang viết integration test cho SWP301 .NET Core.
+Bạn đang làm một flow test dọc cho SWP301.
 
-File đích: {TARGET_FILE}
-Flow: {FLOW_NAME}
+Flow phụ trách:
+- Driver + Reservation
+
+File đích:
+- {TARGET_FILE}
 
 Acceptance criteria:
 - {AC_1}
@@ -248,62 +243,76 @@ Acceptance criteria:
 - {AC_3}
 
 Yêu cầu:
-- Assert trạng thái trước và sau transaction
-- Khóa đúng hậu quả nghiệp vụ: session, slot, card, payment, audit
-- Không viết test chỉ để pass giả tạo
-- Nếu thiếu fixture/reset data, ghi rõ helper cần tạo
+- Nếu là E2E, đi theo flow người dùng driver thật
+- Nếu là integration, assert trạng thái reservation trước/sau
+- Nếu flow đụng slot/area/payment thì ghi rõ dependency dữ liệu
 
-Trả về code test có cấu trúc rõ ràng.
+Trả về code hoàn chỉnh cho file đó.
 ```
 
 ---
 
-## 5. BACKEND 3 - SPRING BOOT SUPPORT API
+## 5. EXECUTOR D - PARKING CORE HARD FLOWS
 
-### Vai trò
+### Phạm vi phụ trách
 
-Phụ trách Spring Boot:
+- Entry
+- Exit
+- Payment
+- Lost Card
+- Plate Mismatch
+- Dashboard / Audit read-after-write
 
-- public API
-- dashboard
-- reports
-- audit log
-- driver read / reservation read
+### File chính cần làm
 
-### File phải làm
-
+- [frontend/tests/e2e/specs/p1/dashboard-read.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p1/dashboard-read.spec.ts>)
+- [frontend/tests/e2e/specs/p1/audit-log-search.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p1/audit-log-search.spec.ts>)
+- [frontend/tests/e2e/specs/p3/entry-casual.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p3/entry-casual.spec.ts>)
+- [frontend/tests/e2e/specs/p3/entry-monthly.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p3/entry-monthly.spec.ts>)
+- [frontend/tests/e2e/specs/p3/entry-reservation.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p3/entry-reservation.spec.ts>)
+- [frontend/tests/e2e/specs/p3/exit-cash.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p3/exit-cash.spec.ts>)
+- [frontend/tests/e2e/specs/p3/exit-online.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p3/exit-online.spec.ts>)
+- [frontend/tests/e2e/specs/p3/lost-card.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p3/lost-card.spec.ts>)
+- [frontend/tests/e2e/specs/p3/plate-mismatch.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p3/plate-mismatch.spec.ts>)
+- [frontend/tests/e2e/specs/p3/payment-callback.spec.ts](</F:/Ky 5/SWP301/frontend/tests/e2e/specs/p3/payment-callback.spec.ts>)
+- [backend/ParkingBuilding.CoreApi.Tests/Flows/EntryFlowTests.cs](</F:/Ky 5/SWP301/backend/ParkingBuilding.CoreApi.Tests/Flows/EntryFlowTests.cs>)
+- [backend/ParkingBuilding.CoreApi.Tests/Flows/ExitFlowTests.cs](</F:/Ky 5/SWP301/backend/ParkingBuilding.CoreApi.Tests/Flows/ExitFlowTests.cs>)
+- [backend/ParkingBuilding.CoreApi.Tests/Flows/PaymentFlowTests.cs](</F:/Ky 5/SWP301/backend/ParkingBuilding.CoreApi.Tests/Flows/PaymentFlowTests.cs>)
 - [backend/parking-building-support-api/src/test/java/com/parkingbuilding/support/smoke/SmokeScaffoldTest.java](</F:/Ky 5/SWP301/backend/parking-building-support-api/src/test/java/com/parkingbuilding/support/smoke/SmokeScaffoldTest.java>)
 - [backend/parking-building-support-api/src/test/java/com/parkingbuilding/support/contracts/ContractsScaffoldTest.java](</F:/Ky 5/SWP301/backend/parking-building-support-api/src/test/java/com/parkingbuilding/support/contracts/ContractsScaffoldTest.java>)
 - [backend/parking-building-support-api/src/test/java/com/parkingbuilding/support/flows/FlowsScaffoldTest.java](</F:/Ky 5/SWP301/backend/parking-building-support-api/src/test/java/com/parkingbuilding/support/flows/FlowsScaffoldTest.java>)
-- [backend/parking-building-support-api/src/test/resources/application-test.yml](</F:/Ky 5/SWP301/backend/parking-building-support-api/src/test/resources/application-test.yml>)
 
 ### Deliverable ngày 1
 
-- Spring smoke test base
-- Public API contract scaffold
-- Dashboard/audit/report direction rõ
+- Dashboard/Audit scaffold rõ
+- Entry/Exit/Payment skeleton rõ
+- Spring smoke/contracts/flows scaffold rõ
 
 ### Deliverable ngày 2
 
-- Contract test ban đầu cho public API
-- Contract hoặc flow test ban đầu cho dashboard/audit/report
-- Driver read/reservation read scaffold
+- Lost Card scaffold
+- Plate Mismatch scaffold
+- Payment callback scaffold
+- Entry/Exit integration direction rõ
 
 ### Prompt AI đề xuất
 
 ```text
-Bạn đang viết test cho Spring Boot Support API của SWP301.
+Bạn đang làm một flow test dọc cho SWP301.
 
-Module: {MODULE_NAME}
-File đích: {TARGET_FILE}
+Flow phụ trách:
+- Parking Core Hard Flows
+
+File đích:
+- {TARGET_FILE}
 
 Yêu cầu:
-- Khóa response shape và filter logic nghiệp vụ
-- Nếu là read/report flow thì assert dữ liệu đúng theo expectation
-- Không chỉ test startup framework
-- Nêu rõ dependency dữ liệu nếu cần seed trước
+- Nếu là E2E, bám critical business flow
+- Nếu là integration, assert session/slot/card/payment/audit state trước-sau
+- Nếu là support API test, khóa read-after-write expectation
+- Không đơn giản hóa flow chỉ để test pass
 
-Trả về code test hoàn chỉnh.
+Trả về code hoàn chỉnh cho file đó.
 ```
 
 ---
@@ -315,32 +324,33 @@ Trả về code test hoàn chỉnh.
 ### Buổi sáng
 
 - Leader: chốt rule review + owner
-- Frontend: chạy được Playwright/Vitest config
-- Backend 1: health + auth/users contract base
-- Backend 2: reservation integration base
-- Backend 3: spring smoke/public contract base
+- Executor A: auth/public base
+- Executor B: admin core base
+- Executor C: driver/reservation base
+- Executor D: hard flow + support base
 
 ### Buổi chiều
 
-- Frontend: smoke + login + public pages
-- Backend 1: auth/users contract thật
-- Backend 2: reservation flow thật bước đầu
-- Backend 3: public API scaffold thật
+- Executor A: smoke + login + public
+- Executor B: user + pricing
+- Executor C: driver profile + vehicles + reservation happy path
+- Executor D: dashboard/audit + entry/exit/payment skeleton
 
 ## Ngày 2
 
 ### Buổi sáng
 
-- Frontend: user/pricing/structure/card
-- Backend 1: pricing/structure/cards
-- Backend 2: entry/exit scaffold
-- Backend 3: dashboard/audit/report scaffold
+- Executor A: available slots + cleanup helper
+- Executor B: structure + card + contract khung
+- Executor C: reservation cancel + monthly pass + session admin
+- Executor D: lost card + mismatch + support read/report scaffold
 
 ### Buổi chiều
 
-- Frontend: dashboard + audit
-- Backend 2: payment scaffold
-- Backend 3: driver read/reservation read scaffold
+- Executor A: review và ổn định flow auth/public
+- Executor B: hoàn thiện contract test admin core
+- Executor C: reservation flow integration base
+- Executor D: payment callback + entry/exit integration direction
 - Leader: review và chốt báo cáo cuối
 
 ---
