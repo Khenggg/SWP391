@@ -459,11 +459,7 @@ public class UsersController : BaseApiController
         if (!Enum.TryParse<UserRole>(model.Role.Trim(), true, out var parsedRole)
             || parsedRole == UserRole.DRIVER)
         {
-            return Failure(
-                ErrorMessages.GetMessage(ErrorCodes.InvalidUserRole),
-                ErrorCodes.InvalidUserRole,
-                StatusCodes.Status400BadRequest,
-                new[] { ErrorCodes.InvalidUserRole });
+            return BusinessError(ErrorCodes.InvalidUserRole, "Vai trò người dùng được chọn không hợp lệ hoặc là DRIVER.");
         }
 
         var reason = model.Reason.Trim();
