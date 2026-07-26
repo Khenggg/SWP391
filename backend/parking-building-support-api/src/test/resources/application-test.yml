@@ -1,7 +1,27 @@
 spring:
   main:
     allow-bean-definition-overriding: true
+  datasource:
+    # H2 in-memory — avoids real DB requirement during isolated contract tests.
+    # JdbcTemplate beans will still be created but queries against H2 return
+    # safe defaults (empty results) which is sufficient for tests that
+    # @MockBean the JdbcTemplate or repository layer.
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
   jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: validate
+      ddl-auto: none   # skip schema validation — entities are mocked, not mapped
 
+# ─── JWT config: required by SecurityConfig @Value("${jwt.*}") fields ────────
+# Without these, NimbusJwtDecoder bean creation fails at context load time.
+jwt:
+  secret: DEVELOPMENT_SECRET_KEY_FOR_LOCAL_TESTING_ONLY_2026_SWP391
+  issuer: ParkingBuilding.CoreApi
+  audience: ParkingBuilding.Frontend
+
+# ─── CORS: required by SecurityConfig.corsConfigurationSource() bean ─────────
+cors:
+  allowed-origins: http://localhost:5173

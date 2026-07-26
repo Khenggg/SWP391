@@ -223,7 +223,7 @@ export default function UserManagementPage() {
     else if (isCreate && !usernamePattern.test(username)) errs.username = "Username phải dài 6-30 ký tự, bắt đầu bằng chữ cái và không có dấu phân cách liên tiếp.";
     if (isCreate && !data.password?.trim()) errs.password = "Bắt buộc";
     if (!data.role) errs.role = "Bắt buộc";
-    if (data.email && !/^\S+@\S+\\.\S+$/.test(data.email)) errs.email = "Email không hợp lệ";
+    if (data.email && !/^\S+@\S+\.\S+$/.test(data.email)) errs.email = "Email không hợp lệ";
     return errs;
   };
 
