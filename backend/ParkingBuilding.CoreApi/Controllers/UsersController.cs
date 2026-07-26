@@ -594,14 +594,39 @@ public class UsersController : BaseApiController
             var oldDriverType = driverProfile.DriverType;
             driverProfile.DriverType = cleanDriverType;
             driverProfile.UpdatedAt = DateTimeOffset.UtcNow;
+
+            // Nếu chuyển từ RESIDENT -> VISITOR: Tự động vô hiệu hóa ResidentVerified và Hủy vé tháng còn hiệu lực
+            if (cleanDriverType == "VISITOR" && oldDriverType == "RESIDENT")
+            {
+                driverProfile.ResidentVerified = false;
+
+                // Tự động chuyển các vé tháng còn hiệu lực (ACTIVE) sang CANCELLED
+                var activePasses = await _context.MonthlyPasses
+                    .Where(p => p.DriverId == driverProfile.Id && p.Status == "ACTIVE")
+                    .ToListAsync();
+
+                foreach (var pass in activePasses)
+                {
+                    pass.Status = "CANCELLED";
+                    pass.UpdatedAt = DateTime.UtcNow;
+
+                    // Giải phóng vị trí đỗ cố định nếu có
+                    if (pass.SlotId.HasValue)
+                    {
+                        var slot = await _context.Slots.FindAsync(pass.SlotId.Value);
+                        if (slot != null) slot.IsOccupied = false;
+                    }
+                }
+            }
+
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
             await WriteAuditAsync(
                 "DRIVER_TYPE_CHANGED",
                 user.Id.ToString(),
-                JsonSerializer.Serialize(new { driverType = oldDriverType }),
-                JsonSerializer.Serialize(new { driverType = cleanDriverType, reason }));
+                JsonSerializer.Serialize(new { driverType = oldDriverType, residentVerified = oldDriverType == "RESIDENT" }),
+                JsonSerializer.Serialize(new { driverType = cleanDriverType, residentVerified = driverProfile.ResidentVerified, reason }));
 
             result = Success(new
             {
