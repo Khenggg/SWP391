@@ -284,7 +284,7 @@ export default function UserManagementPage() {
   const handleRole = async () => {
     if (isSubmitting) return;
     if (!form.reason?.trim()) {
-      setFormErrors({ reason: "Báº¯t buá»™c nháº­p lÃ½ do." });
+      setFormErrors({ reason: "Bắt buộc nhập lý do." });
       return;
     }
     try {
