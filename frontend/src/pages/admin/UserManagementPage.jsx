@@ -125,6 +125,7 @@ export default function UserManagementPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showDriverTypeModal, setShowDriverTypeModal] = useState(false);
   
   const [form, setForm] = useState(EMPTY_FORM);
   const [formErrors, setFormErrors] = useState({});
@@ -240,6 +241,7 @@ export default function UserManagementPage() {
   const openEdit = (u) => { setForm({ ...u }); setFormErrors({}); setSelectedUser(u); setShowEditModal(true); };
   const openRole = (u) => { setForm({ ...u, reason: "" }); setFormErrors({}); setSelectedUser(u); setShowRoleModal(true); };
   const openStatus = (u) => { setForm({ ...u, reason: "" }); setFormErrors({}); setSelectedUser(u); setShowStatusModal(true); };
+  const openDriverType = (u) => { setForm({ ...u, driverType: u.driverType || "VISITOR", reason: "" }); setFormErrors({}); setSelectedUser(u); setShowDriverTypeModal(true); };
 
   const handleCreate = async () => {
     if (isSubmitting) return;
@@ -307,7 +309,7 @@ export default function UserManagementPage() {
   const handleStatus = async () => {
     if (isSubmitting) return;
     if (!form.reason?.trim()) {
-      setFormErrors({ reason: "Báº¯t buá»™c nháº­p lÃ½ do." });
+      setFormErrors({ reason: "Bắt buộc nhập lý do." });
       return;
     }
     try {
@@ -319,6 +321,29 @@ export default function UserManagementPage() {
       setIsSubmitting(false);
       setShowStatusModal(false);
       toast.success(`Đã cập nhật trạng thái thành ${form.status}`);
+    } catch (err) {
+      setIsSubmitting(false);
+      const apiErrors = parseUserApiErrors(err);
+      if (Object.keys(apiErrors).length > 0) setFormErrors(apiErrors);
+      toast.error(err.message);
+    }
+  };
+
+  const handleDriverType = async () => {
+    if (isSubmitting) return;
+    if (!form.reason?.trim()) {
+      setFormErrors({ reason: "Bắt buộc nhập lý do." });
+      return;
+    }
+    try {
+      setIsSubmitting(true);
+      const updated = await userService.updateDriverType(selectedUser.id, form.driverType, form.reason.trim());
+      const merged = { ...selectedUser, ...updated, driverType: updated.newDriverType || form.driverType };
+      setUsers((prev) => prev.map((u) => u.id === selectedUser.id ? merged : u));
+      if (selectedUser?.id === updated.id) setSelectedUser(merged);
+      setIsSubmitting(false);
+      setShowDriverTypeModal(false);
+      toast.success(`Đã đổi loại Driver thành ${form.driverType === "RESIDENT" ? "CƯ DÂN" : "VẮNG LAI"}`);
     } catch (err) {
       setIsSubmitting(false);
       const apiErrors = parseUserApiErrors(err);
@@ -689,9 +714,15 @@ export default function UserManagementPage() {
                   <Button variant="default" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-10 shadow-sm" onClick={() => openEdit(selectedUser)}>
                     <Edit className="w-4 h-4 mr-2" /> Chỉnh sửa
                   </Button>
-                  <Button variant="outline" className="w-full border-slate-200 text-slate-700 font-bold hover:bg-slate-50 h-10 shadow-sm" onClick={() => openRole(selectedUser)}>
-                    <UserCog className="w-4 h-4 mr-2 text-slate-400" /> Đổi vai trò
-                  </Button>
+                  {selectedUser.role === "DRIVER" ? (
+                    <Button variant="outline" className="w-full border-purple-200 text-purple-700 font-bold hover:bg-purple-50 h-10 shadow-sm" onClick={() => openDriverType(selectedUser)}>
+                      <Users className="w-4 h-4 mr-2 text-purple-600" /> Đổi loại Driver (Cư dân / Vắng lai)
+                    </Button>
+                  ) : (
+                    <Button variant="outline" className="w-full border-slate-200 text-slate-700 font-bold hover:bg-slate-50 h-10 shadow-sm" onClick={() => openRole(selectedUser)}>
+                      <UserCog className="w-4 h-4 mr-2 text-slate-400" /> Đổi vai trò
+                    </Button>
+                  )}
                   <Button variant="outline" className="w-full border-slate-200 text-red-600 font-bold hover:bg-red-50 hover:border-red-200 h-10 shadow-sm" onClick={() => openStatus(selectedUser)}>
                     <Lock className="w-4 h-4 mr-2 text-red-500" /> Khóa tài khoản
                   </Button>
@@ -840,6 +871,33 @@ export default function UserManagementPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowStatusModal(false)}>Hủy</Button>
             <Button onClick={handleStatus} className="bg-amber-600 hover:bg-amber-700 text-white">Cập nhật</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Driver Type Modal */}
+      <Dialog open={showDriverTypeModal} onOpenChange={setShowDriverTypeModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Đổi Loại Driver: {selectedUser?.username}</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <label className="block text-xs font-bold text-slate-600 uppercase mb-3">Phân loại Driver Mới</label>
+            <div className="space-y-2">
+              <label className="flex items-center gap-3 p-3 rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 border border-slate-200 transition">
+                <input disabled={isSubmitting} type="radio" name="driverType" value="RESIDENT" checked={form.driverType === "RESIDENT"} onChange={() => setField("driverType", "RESIDENT")} className="accent-purple-600 w-4 h-4"/>
+                <Badge variant="outline" className="px-2.5 py-0.5 rounded text-[10px] font-black uppercase border border-purple-300 text-purple-700 bg-purple-50">CƯ DÂN (RESIDENT)</Badge>
+              </label>
+              <label className="flex items-center gap-3 p-3 rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 border border-slate-200 transition">
+                <input disabled={isSubmitting} type="radio" name="driverType" value="VISITOR" checked={form.driverType === "VISITOR"} onChange={() => setField("driverType", "VISITOR")} className="accent-purple-600 w-4 h-4"/>
+                <Badge variant="outline" className="px-2.5 py-0.5 rounded text-[10px] font-black uppercase border border-slate-300 text-slate-700 bg-slate-100">VẮNG LAI (VISITOR)</Badge>
+              </label>
+            </div>
+          </div>
+          <Field label="Lý do" name="reason" placeholder="Lý do chuyển đổi loại Driver" required disabled={isSubmitting} value={form.reason || ""} onChange={setField} error={formErrors.reason} />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDriverTypeModal(false)}>Hủy</Button>
+            <Button onClick={handleDriverType} className="bg-purple-600 hover:bg-purple-700 text-white font-bold">Cập nhật Loại Driver</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
