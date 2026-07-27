@@ -102,7 +102,12 @@ export default function StaffExitPage() {
       if (lookupSequenceRef.current !== lookupId) return;
       setSession(foundSession);
       setCardCode(foundSession.cardCode || normalizedCardCode);
-      setPlate(foundSession.plateNumber || "");
+      setPlate(foundSession.mismatchExitPlateNumber || foundSession.plateNumber || "");
+
+      if (!preserveExitImages) {
+        setExitPlateImageUrl(foundSession.exitPlateImageUrl || "");
+        setExitVehicleImageUrl(foundSession.exitVehicleImageUrl || "");
+      }
       if (foundSession?.pendingOnlinePayment?.checkoutUrl || foundSession?.pendingOnlinePayment?.paymentUrl) {
         setPayosPaymentUrl(foundSession.pendingOnlinePayment.checkoutUrl || foundSession.pendingOnlinePayment.paymentUrl);
       }

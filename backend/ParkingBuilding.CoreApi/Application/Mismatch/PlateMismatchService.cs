@@ -73,41 +73,68 @@ public class PlateMismatchService : IPlateMismatchService
 
                 _context.PlateMismatchCases.Add(mismatch);
 
+                var existingPlateImage = await _context.ParkingSessionImages
+                    .FirstOrDefaultAsync(i => i.SessionId == session.Id && i.ImageType == "EXIT_PLATE");
+
                 if (!string.IsNullOrWhiteSpace(request.ExitPlateImageUrl))
                 {
                     var processedPlateUrl = await _imageStorageService.StoreAsync(request.ExitPlateImageUrl, session.Id, "exit", "plate");
-                    _context.ParkingSessionImages.Add(new ParkingSessionImage
+                    if (existingPlateImage != null)
                     {
-                        SessionId = session.Id,
-                        ImageType = "EXIT_PLATE",
-                        ImageUrl = processedPlateUrl,
-                        DetectedPlateNumber = request.ExitPlateNumber.Trim(),
-                        DetectedNormalizedPlateNumber = normalizedExit,
-                        Confidence = request.OcrConfidence.HasValue ? (decimal)request.OcrConfidence.Value : null,
-                        IsPrimary = true,
-                        CapturedAt = DateTimeOffset.UtcNow,
-                        CreatedAt = DateTimeOffset.UtcNow,
-                        UpdatedAt = DateTimeOffset.UtcNow
-                    });
+                        existingPlateImage.ImageUrl = processedPlateUrl;
+                        existingPlateImage.DetectedPlateNumber = request.ExitPlateNumber.Trim();
+                        existingPlateImage.DetectedNormalizedPlateNumber = normalizedExit;
+                        existingPlateImage.Confidence = request.OcrConfidence.HasValue ? (decimal)request.OcrConfidence.Value : null;
+                        existingPlateImage.IsPrimary = true;
+                        existingPlateImage.CapturedAt = DateTimeOffset.UtcNow;
+                        existingPlateImage.UpdatedAt = DateTimeOffset.UtcNow;
+                    }
+                    else
+                    {
+                        _context.ParkingSessionImages.Add(new ParkingSessionImage
+                        {
+                            SessionId = session.Id,
+                            ImageType = "EXIT_PLATE",
+                            ImageUrl = processedPlateUrl,
+                            DetectedPlateNumber = request.ExitPlateNumber.Trim(),
+                            DetectedNormalizedPlateNumber = normalizedExit,
+                            Confidence = request.OcrConfidence.HasValue ? (decimal)request.OcrConfidence.Value : null,
+                            IsPrimary = true,
+                            CapturedAt = DateTimeOffset.UtcNow,
+                            CreatedAt = DateTimeOffset.UtcNow,
+                            UpdatedAt = DateTimeOffset.UtcNow
+                        });
+                    }
                 }
+
+                var existingVehicleImage = await _context.ParkingSessionImages
+                    .FirstOrDefaultAsync(i => i.SessionId == session.Id && i.ImageType == "EXIT_VEHICLE");
 
                 if (!string.IsNullOrWhiteSpace(request.ExitVehicleImageUrl))
                 {
                     var processedVehicleUrl = await _imageStorageService.StoreAsync(request.ExitVehicleImageUrl, session.Id, "exit", "vehicle");
-                    _context.ParkingSessionImages.Add(new ParkingSessionImage
+                    if (existingVehicleImage != null)
                     {
-                        SessionId = session.Id,
-                        ImageType = "EXIT_VEHICLE",
-                        ImageUrl = processedVehicleUrl,
-                        IsPrimary = false,
-                        CapturedAt = DateTimeOffset.UtcNow,
-                        CreatedAt = DateTimeOffset.UtcNow,
-                        UpdatedAt = DateTimeOffset.UtcNow
-                    });
+                        existingVehicleImage.ImageUrl = processedVehicleUrl;
+                        existingVehicleImage.CapturedAt = DateTimeOffset.UtcNow;
+                        existingVehicleImage.UpdatedAt = DateTimeOffset.UtcNow;
+                    }
+                    else
+                    {
+                        _context.ParkingSessionImages.Add(new ParkingSessionImage
+                        {
+                            SessionId = session.Id,
+                            ImageType = "EXIT_VEHICLE",
+                            ImageUrl = processedVehicleUrl,
+                            IsPrimary = false,
+                            CapturedAt = DateTimeOffset.UtcNow,
+                            CreatedAt = DateTimeOffset.UtcNow,
+                            UpdatedAt = DateTimeOffset.UtcNow
+                        });
+                    }
                 }
 
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                var jsonOptions = new JsonSerializerOptions { ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles };
 
                 await _auditWriter.WriteAuditLogAsync(new AuditWriteDto
                 {
@@ -115,9 +142,12 @@ public class PlateMismatchService : IPlateMismatchService
                     TargetType = "PlateMismatchCase",
                     TargetId = mismatch.Id.ToString(),
                     ActorUserId = staffId,
-                    NewValue = JsonSerializer.Serialize(mismatch),
+                    NewValue = JsonSerializer.Serialize(mismatch, jsonOptions),
                     Reason = $"Plate mismatch detected on session {request.SessionId}."
                 });
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
 
                 return (await GetByIdAsync(mismatch.Id))!;
             }
@@ -147,7 +177,8 @@ public class PlateMismatchService : IPlateMismatchService
                     throw new BusinessException(ErrorCodes.MismatchCaseAlreadyProcessed, StatusCodes.Status409Conflict);
 
                 var status = request.Status?.ToUpperInvariant();
-                var oldVal = JsonSerializer.Serialize(mismatch);
+                var jsonOptions = new JsonSerializerOptions { ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles };
+                var oldVal = JsonSerializer.Serialize(mismatch, jsonOptions);
 
                 if (status == "CONFIRMED")
                 {
@@ -172,10 +203,6 @@ public class PlateMismatchService : IPlateMismatchService
                     throw new BusinessException(ErrorCodes.InvalidStatus, StatusCodes.Status400BadRequest);
                 }
 
-                mismatch.UpdatedAt = DateTimeOffset.UtcNow;
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
                 await _auditWriter.WriteAuditLogAsync(new AuditWriteDto
                 {
                     Action = $"PLATE_MISMATCH_{status}",
@@ -183,9 +210,13 @@ public class PlateMismatchService : IPlateMismatchService
                     TargetId = mismatch.Id.ToString(),
                     ActorUserId = userId,
                     OldValue = oldVal,
-                    NewValue = JsonSerializer.Serialize(mismatch),
+                    NewValue = JsonSerializer.Serialize(mismatch, jsonOptions),
                     Reason = $"Plate mismatch case {caseId} {status} by user {userId}."
                 });
+
+                mismatch.UpdatedAt = DateTimeOffset.UtcNow;
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
 
                 return (await GetByIdAsync(mismatch.Id))!;
             }
