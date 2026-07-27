@@ -49,7 +49,7 @@ export default function SlotModal({ isOpen, onClose, form, setField, handleSave,
               <SelectContent>
                 {floors.map(f => (
                   <SelectItem key={f.id} value={f.id.toString()}>
-                    {f.code || f.floorCode}
+                    {f.floorCode}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -66,7 +66,7 @@ export default function SlotModal({ isOpen, onClose, form, setField, handleSave,
               <SelectContent>
                 {filteredAreas.map(a => (
                   <SelectItem key={a.id} value={a.id.toString()}>
-                    {a.code || a.areaCode}
+                    {a.areaCode}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -84,27 +84,21 @@ export default function StructureManagementPage() {
       ]);
       setFloors(floorsData || []);
       
-      // Map floorCode and code locally on the frontend since backend AreaResponse has contract gaps
-      const mappedAreas = (areasData || []).map(area => {
-        const floor = (floorsData || []).find(f => f.id === area.floorId);
-        return {
-          ...area,
-          floorCode: floor ? (floor.code || floor.floorCode) : "—"
-        };
-      });
-      setAreas(mappedAreas);
+      // BE AreaResponse now returns floorCode, priorityOrder, vehicleTypeIds, vehicleTypeNames directly
+      setAreas(areasData || []);
       
-      // Map floor, area, and vehicle type info to slots locally on the frontend since SlotResponse has contract gaps
+      // Map floor, area, and vehicle type info to slots from enriched areas (SlotResponse still has contract gaps)
+      const enrichedAreas = areasData || [];
       const mappedSlots = (slotsData || []).map(slot => {
-        const area = mappedAreas.find(a => a.id === slot.areaId);
+        const area = enrichedAreas.find(a => a.id === slot.areaId);
         if (area) {
           return {
             ...slot,
-            areaCode: area.code || area.areaCode,
+            areaCode: area.areaCode,
             floorId: area.floorId,
             floorCode: area.floorCode,
-            allowedVehicleTypeId: slot.allowedVehicleTypeId || area.vehicleTypeIds?.[0] || null,
-            vehicleTypeName: slot.vehicleTypeName || area.vehicleTypeName || null
+            vehicleTypeIds: area.vehicleTypeIds || [],
+            vehicleTypeNames: area.vehicleTypeNames || []
           };
         }
         return slot;
@@ -170,7 +164,7 @@ export default function StructureManagementPage() {
   };
 
   const openCreateArea = () => { setEditingItem(null); setForm({ floorId: "", areaCode: "", areaName: "", priorityOrder: 1, totalCapacity: 10, vehicleTypeIds: [] }); setShowAreaModal(true); };
-  const openEditArea = (area) => { setEditingItem(area); setForm({ floorId: area.floorId || "", areaCode: area.code || area.areaCode, areaName: area.name || area.areaName, priorityOrder: area.priorityOrder || 1, totalCapacity: area.totalSlots || 10, vehicleTypeIds: area.vehicleTypeIds || [] }); setShowAreaModal(true); };
+  const openEditArea = (area) => { setEditingItem(area); setForm({ floorId: area.floorId || "", areaCode: area.areaCode, areaName: area.areaName, priorityOrder: area.priorityOrder || 1, totalCapacity: area.totalCapacity || 10, vehicleTypeIds: area.vehicleTypeIds || [] }); setShowAreaModal(true); };
   const handleAreaSave = async () => {
     if (!form.areaCode || !form.areaName || !form.floorId) return toast.error("Vui lòng điền đủ Mã khu, Tên khu và chọn Tầng");
     try {
@@ -204,11 +198,11 @@ export default function StructureManagementPage() {
   };
 
   // Filtered Data
-  const filteredAreas = filterFloor === "ALL" ? areas : areas.filter((a) => a.floorCode === filterFloor || a.floorId === parseInt(filterFloor));
+  const filteredAreas = filterFloor === "ALL" ? areas : areas.filter((a) => a.floorCode === filterFloor);
   const filteredSlots = slots.filter((s) => {
-    const matchFloor = filterFloor === "ALL" || s.floorCode === filterFloor || s.floorId === parseInt(filterFloor);
-    const matchArea = filterArea === "ALL" || s.areaCode === filterArea || s.areaId === parseInt(filterArea);
-    const matchType = filterVType === "ALL" || s.vehicleTypeName === filterVType || s.allowedVehicleTypeId === parseInt(filterVType);
+    const matchFloor = filterFloor === "ALL" || s.floorCode === filterFloor;
+    const matchArea = filterArea === "ALL" || s.areaCode === filterArea;
+    const matchType = filterVType === "ALL" || (s.vehicleTypeIds || []).includes(Number(filterVType));
     const matchStatus = filterSlotStatus === "ALL" || s.status === filterSlotStatus;
     return matchFloor && matchArea && matchType && matchStatus;
   });
@@ -315,7 +309,7 @@ export default function StructureManagementPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ALL">Tất cả tầng</SelectItem>
-                      {floors.map((f) => <SelectItem key={f.id} value={f.code || f.id.toString()}>{f.code || f.floorCode}</SelectItem>)}
+                      {floors.map((f) => <SelectItem key={f.id} value={f.floorCode}>{f.floorCode}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -338,14 +332,22 @@ export default function StructureManagementPage() {
                   <TableBody>
                     {filteredAreas.map((area) => (
                       <TableRow key={area.id}>
-                        <TableCell className="font-semibold text-slate-800">{area.code || area.areaCode}</TableCell>
-                        <TableCell className="text-slate-600">{area.name || area.areaName}</TableCell>
+                        <TableCell className="font-semibold text-slate-800">{area.areaCode}</TableCell>
+                        <TableCell className="text-slate-600">{area.areaName}</TableCell>
                         <TableCell className="text-slate-600 font-medium">{area.floorCode}</TableCell>
                         <TableCell className="text-center text-slate-500">{area.priorityOrder ?? "—"}</TableCell>
                         <TableCell>
-                          <Badge className="px-2.5 py-1 font-semibold rounded-md bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100">
-                            {area.vehicleTypeName || "Không rõ"}
-                          </Badge>
+                          {(area.vehicleTypeNames || []).length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {area.vehicleTypeNames.map((name, idx) => (
+                                <Badge key={idx} className="px-2.5 py-1 font-semibold rounded-md bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100">
+                                  {name}
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">Không rõ</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" onClick={() => openEditArea(area)} className="text-slate-400 hover:text-blue-600">
@@ -375,7 +377,7 @@ export default function StructureManagementPage() {
                           <SelectTrigger className="w-[110px] h-8 text-xs border-slate-200 bg-white"><SelectValue placeholder="Tất cả" /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="ALL">Tất cả</SelectItem>
-                            {floors.map((f) => <SelectItem key={f.id} value={f.code || f.id.toString()}>{f.code || f.floorCode}</SelectItem>)}
+                            {floors.map((f) => <SelectItem key={f.id} value={f.floorCode}>{f.floorCode}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
@@ -385,7 +387,7 @@ export default function StructureManagementPage() {
                           <SelectTrigger className="w-[110px] h-8 text-xs border-slate-200 bg-white"><SelectValue placeholder="Tất cả" /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="ALL">Tất cả</SelectItem>
-                            {areas.filter(a => filterFloor === "ALL" || a.floorCode === filterFloor || a.floorId === parseInt(filterFloor)).map((a) => <SelectItem key={a.id} value={a.code || a.id.toString()}>{a.code || a.areaCode}</SelectItem>)}
+                            {areas.filter(a => filterFloor === "ALL" || a.floorCode === filterFloor).map((a) => <SelectItem key={a.id} value={a.areaCode}>{a.areaCode}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
