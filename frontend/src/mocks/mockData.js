@@ -85,16 +85,16 @@ export const MOCK_FLOORS = [
 // ===========================================================================
 export const MOCK_AREAS = [
   // Tầng B1 (Xe Máy) - Quản lý bằng độ phủ
-  { id: 1, floorId: 1, floorCode: "B1", code: "B1-A", name: "Khu A - Xe Máy Thường", vehicleTypeName: "Xe Máy", priority: 1, status: "ACTIVE", maxCapacity: 100, currentCount: 65, isDensityManaged: true },
-  { id: 2, floorId: 1, floorCode: "B1", code: "B1-B", name: "Khu B - Xe Máy Điện", vehicleTypeName: "Xe Máy", priority: 2, status: "ACTIVE", maxCapacity: 50, currentCount: 31, isDensityManaged: true },
+  { id: 1, floorId: 1, floorCode: "B1", areaCode: "A", code: "B1-A", areaName: "Khu A - Xe Máy Thường", name: "Khu A - Xe Máy Thường", vehicleTypeName: "Xe Máy", vehicleTypeIds: [1], vehicleTypeNames: ["Xe Máy"], priorityOrder: 1, priority: 1, status: "ACTIVE", totalCapacity: 100, maxCapacity: 100, currentCount: 65, isDensityManaged: true },
+  { id: 2, floorId: 1, floorCode: "B1", areaCode: "B", code: "B1-B", areaName: "Khu B - Xe Máy Điện", name: "Khu B - Xe Máy Điện", vehicleTypeName: "Xe Máy", vehicleTypeIds: [1], vehicleTypeNames: ["Xe Máy"], priorityOrder: 2, priority: 2, status: "ACTIVE", totalCapacity: 50, maxCapacity: 50, currentCount: 31, isDensityManaged: true },
   
   // Tầng B2 (Xe Ô Tô) - Quản lý bằng Slot
-  { id: 3, floorId: 2, floorCode: "B2", code: "B2-A", name: "Khu A - Ô Tô", vehicleTypeName: "Ô Tô", priority: 1, status: "ACTIVE", totalSlots: 20, availableSlots: 13, isDensityManaged: false },
-  { id: 4, floorId: 2, floorCode: "B2", code: "B2-B", name: "Khu B - Ô Tô", vehicleTypeName: "Ô Tô", priority: 2, status: "ACTIVE", totalSlots: 20, availableSlots: 7, isDensityManaged: false },
+  { id: 3, floorId: 2, floorCode: "B2", areaCode: "A", code: "B2-A", areaName: "Khu A - Ô Tô", name: "Khu A - Ô Tô", vehicleTypeName: "Ô Tô", vehicleTypeIds: [2], vehicleTypeNames: ["Ô Tô"], priorityOrder: 1, priority: 1, status: "ACTIVE", totalCapacity: 20, totalSlots: 20, availableSlots: 13, isDensityManaged: false },
+  { id: 4, floorId: 2, floorCode: "B2", areaCode: "B", code: "B2-B", areaName: "Khu B - Ô Tô", name: "Khu B - Ô Tô", vehicleTypeName: "Ô Tô", vehicleTypeIds: [2], vehicleTypeNames: ["Ô Tô"], priorityOrder: 2, priority: 2, status: "ACTIVE", totalCapacity: 20, totalSlots: 20, availableSlots: 7, isDensityManaged: false },
   
   // Tầng B3 (Xe Vận Chuyển) - Quản lý bằng độ phủ
-  { id: 5, floorId: 3, floorCode: "B3", code: "B3-A", name: "Khu A - Xe Tải Nhẹ", vehicleTypeName: "Xe Vận Chuyển", priority: 1, status: "ACTIVE", maxCapacity: 30, currentCount: 12, isDensityManaged: true },
-  { id: 6, floorId: 3, floorCode: "B3", code: "B3-B", name: "Khu B - Xe Tải Nặng", vehicleTypeName: "Xe Vận Chuyển", priority: 2, status: "ACTIVE", maxCapacity: 20, currentCount: 12, isDensityManaged: true }
+  { id: 5, floorId: 3, floorCode: "B3", areaCode: "A", code: "B3-A", areaName: "Khu A - Xe Tải Nhẹ", name: "Khu A - Xe Tải Nhẹ", vehicleTypeName: "Xe Vận Chuyển", vehicleTypeIds: [3], vehicleTypeNames: ["Xe Vận Chuyển"], priorityOrder: 1, priority: 1, status: "ACTIVE", totalCapacity: 30, maxCapacity: 30, currentCount: 12, isDensityManaged: true },
+  { id: 6, floorId: 3, floorCode: "B3", areaCode: "B", code: "B3-B", areaName: "Khu B - Xe Tải Nặng", name: "Khu B - Xe Tải Nặng", vehicleTypeName: "Xe Vận Chuyển", vehicleTypeIds: [3], vehicleTypeNames: ["Xe Vận Chuyển"], priorityOrder: 2, priority: 2, status: "ACTIVE", totalCapacity: 20, maxCapacity: 20, currentCount: 12, isDensityManaged: true }
 ];
 
 // ===========================================================================

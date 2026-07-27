@@ -93,15 +93,7 @@ public class AreaService
         await _context.SaveChangesAsync();
 
         // ===== 9. RETURN =====
-        return new AreaResponse
-        {
-            Id = entity.Id,
-            FloorId = entity.FloorId,
-            AreaCode = entity.AreaCode,
-            AreaName = entity.AreaName,
-            TotalCapacity = entity.TotalCapacity,
-            Status = entity.Status
-        };
+        return await GetAreaResponseByIdAsync(entity.Id);
     }
 
     // ================= UPDATE =================
@@ -180,29 +172,52 @@ public class AreaService
         await _context.SaveChangesAsync();
 
         // ===== 8. RETURN =====
-        return new AreaResponse
-        {
-            Id = entity.Id,
-            FloorId = entity.FloorId,
-            AreaCode = entity.AreaCode,
-            AreaName = entity.AreaName,
-            TotalCapacity = entity.TotalCapacity,
-            Status = entity.Status
-        };
+        return await GetAreaResponseByIdAsync(entity.Id);
     }
 
     public async Task<List<AreaResponse>> GetAllAsync()
     {
         return await _context.Areas
+            .AsNoTracking()
             .Select(x => new AreaResponse
             {
                 Id = x.Id,
                 FloorId = x.FloorId,
+                FloorCode = x.Floor.FloorCode,
                 AreaCode = x.AreaCode,
                 AreaName = x.AreaName,
+                PriorityOrder = x.PriorityOrder,
                 TotalCapacity = x.TotalCapacity,
-                Status = x.Status
+                Status = x.Status,
+                VehicleTypeIds = x.AreaVehicleTypes.Select(vt => vt.VehicleTypeId).ToList(),
+                VehicleTypeNames = x.AreaVehicleTypes.Select(vt => vt.VehicleType.Name).ToList()
             })
             .ToListAsync();
+    }
+
+    private async Task<AreaResponse> GetAreaResponseByIdAsync(long id)
+    {
+        var area = await _context.Areas
+            .AsNoTracking()
+            .Where(x => x.Id == id)
+            .Select(x => new AreaResponse
+            {
+                Id = x.Id,
+                FloorId = x.FloorId,
+                FloorCode = x.Floor.FloorCode,
+                AreaCode = x.AreaCode,
+                AreaName = x.AreaName,
+                PriorityOrder = x.PriorityOrder,
+                TotalCapacity = x.TotalCapacity,
+                Status = x.Status,
+                VehicleTypeIds = x.AreaVehicleTypes.Select(vt => vt.VehicleTypeId).ToList(),
+                VehicleTypeNames = x.AreaVehicleTypes.Select(vt => vt.VehicleType.Name).ToList()
+            })
+            .FirstOrDefaultAsync();
+
+        if (area == null)
+            throw new BusinessException(ErrorCodes.AreaNotFound, StatusCodes.Status404NotFound);
+
+        return area;
     }
 }

@@ -136,22 +136,20 @@ function ImageViewerDialog({ open, onClose, entryUrl, exitUrl, plate }) {
             <button
               onClick={() => setActive("entry")}
               disabled={!entryUrl}
-              className={`flex-1 text-xs font-bold py-1.5 rounded-lg border transition ${
-                active === "entry"
+              className={`flex-1 text-xs font-bold py-1.5 rounded-lg border transition ${active === "entry"
                   ? "bg-indigo-600 text-white border-indigo-600"
                   : "border-slate-200 text-slate-500 hover:border-indigo-300 disabled:opacity-40 disabled:cursor-not-allowed"
-              }`}
+                }`}
             >
               📥 Lúc vào
             </button>
             <button
               onClick={() => setActive("exit")}
               disabled={!exitUrl}
-              className={`flex-1 text-xs font-bold py-1.5 rounded-lg border transition ${
-                active === "exit"
+              className={`flex-1 text-xs font-bold py-1.5 rounded-lg border transition ${active === "exit"
                   ? "bg-emerald-600 text-white border-emerald-600"
                   : "border-slate-200 text-slate-500 hover:border-emerald-300 disabled:opacity-40 disabled:cursor-not-allowed"
-              }`}
+                }`}
             >
               📤 Lúc ra
             </button>
@@ -675,22 +673,20 @@ export default function DriverHistoryPage() {
       <div className="flex gap-1 bg-slate-100 rounded-xl p-1 w-fit">
         <button
           onClick={() => setActiveTab("sessions")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition ${
-            activeTab === "sessions"
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === "sessions"
               ? "bg-white text-indigo-700 shadow-sm"
               : "text-slate-500 hover:text-slate-700"
-          }`}
+            }`}
         >
           <History className="w-4 h-4" />
           Vào/Ra bãi
         </button>
         <button
           onClick={() => setActiveTab("bookings")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition ${
-            activeTab === "bookings"
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === "bookings"
               ? "bg-white text-indigo-700 shadow-sm"
               : "text-slate-500 hover:text-slate-700"
-          }`}
+            }`}
         >
           <CalendarClock className="w-4 h-4" />
           Đặt chỗ (Booking)
