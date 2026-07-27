@@ -474,7 +474,7 @@ function BookingDetailModal({ open, onClose, booking }) {
             <Button
               onClick={() => {
                 onClose();
-                navigate(`/driver/bookings/${booking.id}`);
+                navigate(`/driver/booking/detail/${booking.id}`);
               }}
               className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold py-2.5 flex items-center justify-center gap-1.5"
             >

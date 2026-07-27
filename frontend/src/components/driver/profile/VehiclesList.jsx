@@ -59,18 +59,6 @@ export default function VehiclesList({ vehicles }) {
             ))
           )}
         </div>
-        {vehicles.length > 5 && (
-          <div className="p-3 bg-slate-50 border-t border-slate-100 text-center">
-            <Button 
-              variant="link" 
-              size="sm" 
-              className="text-blue-600 h-auto p-0 text-xs font-semibold" 
-              onClick={() => navigate("/driver/vehicles")}
-            >
-              Xem tất cả phương tiện
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );

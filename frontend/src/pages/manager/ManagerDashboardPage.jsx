@@ -74,7 +74,8 @@ export default function ManagerDashboardPage() {
   // Computed Values
   const occupancyRate = useMemo(() => {
     if (!dashboardData?.slot) return 0;
-    const { occupied, total } = dashboardData.slot;
+    const occupied = Number(dashboardData.slot.occupied || 0);
+    const total = Number(dashboardData.slot.total || 0);
     if (total === 0) return 0;
     return Math.round((occupied / total) * 100);
   }, [dashboardData]);
@@ -124,7 +125,10 @@ export default function ManagerDashboardPage() {
           <Button variant="outline" className="bg-white border-slate-200 text-slate-700 font-semibold shadow-sm" onClick={handleRefresh} disabled={isLoading}>
             <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} /> Làm mới
           </Button>
-          <Button className="bg-slate-800 hover:bg-slate-900 text-white font-semibold shadow-sm">
+          <Button 
+            className="bg-slate-800 hover:bg-slate-900 text-white font-semibold shadow-sm"
+            onClick={() => navigate("/manager/reports")}
+          >
             <Download className="w-4 h-4 mr-2" /> Xuất báo cáo
           </Button>
         </div>
@@ -137,11 +141,11 @@ export default function ManagerDashboardPage() {
           icon={<CarFront className="w-5 h-5" />} colorClass={{ bg: "bg-blue-500", text: "text-blue-600" }} isLoading={isLoading}
         />
         <StatCard 
-          label="Slot trống" value={dashboardData?.slot?.available || 0} subText="Slot"
+          label="Slot trống (Slot ô tô)" value={dashboardData?.slot?.available || 0} subText="Slot"
           icon={<CheckCircle2 className="w-5 h-5" />} colorClass={{ bg: "bg-emerald-500", text: "text-emerald-600" }} isLoading={isLoading}
         />
         <StatCard 
-          label="Tỷ lệ lấp đầy" value={`${occupancyRate}%`} subText="%"
+          label="Tỷ lệ lấp đầy (bãi xe)" value={`${occupancyRate}%`} subText="%"
           icon={<PieChart className="w-5 h-5" />} colorClass={{ bg: "bg-purple-500", text: "text-purple-600" }} isLoading={isLoading}
         />
         <StatCard 

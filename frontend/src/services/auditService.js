@@ -10,7 +10,7 @@ export const auditService = {
   },
   
   exportAuditLogs: async (params) => {
-    const response = await supportAxiosClient.get("/audit-logs/export-excel", { params, responseType: 'blob' });
+    const response = await supportAxiosClient.get("/audit-logs/export", { params, responseType: 'blob' });
     return response; 
   }
 };

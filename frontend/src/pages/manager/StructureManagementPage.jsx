@@ -83,8 +83,34 @@ export default function StructureManagementPage() {
         parkingService.getVehicleTypes(),
       ]);
       setFloors(floorsData || []);
-      setAreas(areasData || []);
-      setSlots(slotsData || []);
+      
+      // Map floorCode and code locally on the frontend since backend AreaResponse has contract gaps
+      const mappedAreas = (areasData || []).map(area => {
+        const floor = (floorsData || []).find(f => f.id === area.floorId);
+        return {
+          ...area,
+          floorCode: floor ? (floor.code || floor.floorCode) : "—"
+        };
+      });
+      setAreas(mappedAreas);
+      
+      // Map floor, area, and vehicle type info to slots locally on the frontend since SlotResponse has contract gaps
+      const mappedSlots = (slotsData || []).map(slot => {
+        const area = mappedAreas.find(a => a.id === slot.areaId);
+        if (area) {
+          return {
+            ...slot,
+            areaCode: area.code || area.areaCode,
+            floorId: area.floorId,
+            floorCode: area.floorCode,
+            allowedVehicleTypeId: slot.allowedVehicleTypeId || area.vehicleTypeIds?.[0] || null,
+            vehicleTypeName: slot.vehicleTypeName || area.vehicleTypeName || null
+          };
+        }
+        return slot;
+      });
+      setSlots(mappedSlots);
+      
       setVehicleTypes(vTypes || []);
     } catch (e) {
       console.error("Lỗi tải thông tin cấu trúc bãi xe:", e);
@@ -315,7 +341,7 @@ export default function StructureManagementPage() {
                         <TableCell className="font-semibold text-slate-800">{area.code || area.areaCode}</TableCell>
                         <TableCell className="text-slate-600">{area.name || area.areaName}</TableCell>
                         <TableCell className="text-slate-600 font-medium">{area.floorCode}</TableCell>
-                        <TableCell className="text-center text-slate-500">{area.priorityOrder || 1}</TableCell>
+                        <TableCell className="text-center text-slate-500">{area.priorityOrder ?? "—"}</TableCell>
                         <TableCell>
                           <Badge className="px-2.5 py-1 font-semibold rounded-md bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100">
                             {area.vehicleTypeName || "Không rõ"}
@@ -467,6 +493,7 @@ export default function StructureManagementPage() {
         handleSave={handleSlotSave}
         areas={areas}
         vehicleTypes={vehicleTypes}
+        floors={floors}
       />
     </div>
   );
