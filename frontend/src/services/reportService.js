@@ -29,7 +29,7 @@ export const reportService = {
   },
 
   exportExcel: async (params) => {
-    const response = await supportAxiosClient.get("/reports/export-excel", {
+    const response = await supportAxiosClient.get("/reports/export", {
       params,
       responseType: "blob",
     });

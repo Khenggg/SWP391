@@ -283,7 +283,7 @@ export const adminHandlers = [
 
   ...enabled(
     MOCK_FLAGS.ADMIN_AUDIT,
-    http.get(`${API_BASE_URLS.support}/audit-logs/export-excel`, async () => {
+    http.get(`${API_BASE_URLS.support}/audit-logs/export`, async () => {
       await delay(300);
       // Return a dummy blob for the Excel file
       const blob = new Blob(["dummy excel content"], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
@@ -538,7 +538,7 @@ export const adminHandlers = [
     ]);
   }),
 
-  http.get(`${API_BASE_URLS.support}/reports/export-excel`, async () => {
+  http.get(`${API_BASE_URLS.support}/reports/export`, async () => {
     await delay(150);
     // Mock blob return
     return new HttpResponse(new Blob(["mock-excel-data"], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
