@@ -163,10 +163,10 @@ namespace ParkingBuilding.CoreApi.Controllers
             var isCardLost = session.ParkingCard?.Status == Domain.Entities.CardStatus.LOST
                 || await _context.LostCardCases.AnyAsync(lc => lc.SessionId == session.Id && lc.Status == "APPROVED");
 
-            var entryImages = await _context.ParkingSessionImages
+            var sessionImages = await _context.ParkingSessionImages
                 .AsNoTracking()
                 .Where(image => image.SessionId == session.Id
-                    && (image.ImageType == "ENTRY_PLATE" || image.ImageType == "ENTRY_VEHICLE")
+                    && (image.ImageType == "ENTRY_PLATE" || image.ImageType == "ENTRY_VEHICLE" || image.ImageType == "EXIT_PLATE" || image.ImageType == "EXIT_VEHICLE")
                     && !string.IsNullOrWhiteSpace(image.ImageUrl))
                 .OrderByDescending(image => image.CapturedAt)
                 .Select(image => new
@@ -176,10 +176,14 @@ namespace ParkingBuilding.CoreApi.Controllers
                 })
                 .ToListAsync();
 
-            var entryPlateImageUrl = entryImages
+            var entryPlateImageUrl = sessionImages
                 .FirstOrDefault(image => image.ImageType == "ENTRY_PLATE")?.ImageUrl;
-            var entryVehicleImageUrl = entryImages
+            var entryVehicleImageUrl = sessionImages
                 .FirstOrDefault(image => image.ImageType == "ENTRY_VEHICLE")?.ImageUrl;
+            var exitPlateImageUrl = sessionImages
+                .FirstOrDefault(image => image.ImageType == "EXIT_PLATE")?.ImageUrl;
+            var exitVehicleImageUrl = sessionImages
+                .FirstOrDefault(image => image.ImageType == "EXIT_VEHICLE")?.ImageUrl;
 
             Domain.Entities.User? claimedUser = null;
             if (session.ClaimedByUserId.HasValue)
@@ -188,6 +192,12 @@ namespace ParkingBuilding.CoreApi.Controllers
                     .AsNoTracking()
                     .FirstOrDefaultAsync(u => u.Id == session.ClaimedByUserId.Value);
             }
+
+            var latestMismatch = await _context.PlateMismatchCases
+                .AsNoTracking()
+                .Where(m => m.SessionId == session.Id)
+                .OrderByDescending(m => m.CreatedAt)
+                .FirstOrDefaultAsync();
 
             return Success(new
             {
@@ -214,7 +224,10 @@ namespace ParkingBuilding.CoreApi.Controllers
                 isCardLost,
                 pendingOnlinePayment,
                 entryPlateImageUrl,
-                entryVehicleImageUrl
+                entryVehicleImageUrl,
+                exitPlateImageUrl,
+                exitVehicleImageUrl,
+                mismatchExitPlateNumber = latestMismatch?.ExitPlateNumber
             }, "Tim kiem phien gui xe theo the thanh cong.");
         }
 

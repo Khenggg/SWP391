@@ -241,6 +241,8 @@ export default function LicensePlateMismatchPage() {
   const isResubmit       = location.state?.isResubmit ?? false;
   const prefillPlate     = location.state?.prefillPlate ?? "";
   const prefillReason    = location.state?.prefillReason ?? "";
+  const prefillExitPlateImageUrl = location.state?.prefillExitPlateImageUrl ?? location.state?.exitPlateImageUrl ?? null;
+  const prefillExitVehicleImageUrl = location.state?.prefillExitVehicleImageUrl ?? location.state?.exitVehicleImageUrl ?? null;
 
   // Exit image state
   const [exitPlatePreview, setExitPlatePreview]     = useState(null);
@@ -279,11 +281,11 @@ export default function LicensePlateMismatchPage() {
   // Prefill values when navigated with prefill data
   useEffect(() => {
     reset({ actualPlate: prefillPlate, reason: prefillReason });
-    // Also reset images on resubmit navigation
-    setExitPlatePreview(null);
-    setExitVehiclePreview(null);
+    // Set images to prefilled values or null
+    setExitPlatePreview(prefillExitPlateImageUrl);
+    setExitVehiclePreview(prefillExitVehicleImageUrl);
     setImageErrors({});
-  }, [prefillPlate, prefillReason, reset]);
+  }, [prefillPlate, prefillReason, prefillExitPlateImageUrl, prefillExitVehicleImageUrl, reset]);
 
   if (!parkingSessionId) {
     return (
@@ -404,6 +406,8 @@ export default function LicensePlateMismatchPage() {
                     sessionData,
                     prefillPlate:  statusData?.exitPlateNumber ?? "",
                     prefillReason: "",
+                    prefillExitPlateImageUrl: statusData?.exitPlateImageUrl ?? null,
+                    prefillExitVehicleImageUrl: statusData?.exitVehicleImageUrl ?? null,
                     isResubmit:    true,
                   },
                 })

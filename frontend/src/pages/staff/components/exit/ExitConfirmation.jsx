@@ -170,6 +170,8 @@ function MismatchStatusBlock({
                   // Prefill: let mismatch page know this is a "submit again"
                   prefillPlate: plate || "",
                   prefillReason: "",
+                  prefillExitPlateImageUrl: exitPlateImageUrl || null,
+                  prefillExitVehicleImageUrl: exitVehicleImageUrl || null,
                   isResubmit: true,
                 },
               })
