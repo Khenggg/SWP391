@@ -33,21 +33,21 @@ export default function StructureManagementPage() {
   const fetchStructure = async () => {
     setIsLoading(true);
     try {
-      const [floorsData, areasData, slotsData, vTypes] = await Promise.all([
+      const [floorsData, areasData, slotsData, vTypes, activeSessionsData] = await Promise.all([
         parkingService.getFloors(),
         parkingService.getAreas(),
         parkingService.getSlots(),
         parkingService.getVehicleTypes(),
+        parkingService.getActiveSessions(),
       ]);
       setFloors(floorsData || []);
-      
-      // BE AreaResponse now returns floorCode, priorityOrder, vehicleTypeIds, vehicleTypeNames directly
       setAreas(areasData || []);
       
-      // Map floor, area, and vehicle type info to slots from enriched areas (SlotResponse still has contract gaps)
+      // Map floor, area, vehicle type, and active session info to slots
       const enrichedAreas = areasData || [];
       const mappedSlots = (slotsData || []).map(slot => {
         const area = enrichedAreas.find(a => a.id === slot.areaId);
+        const activeSession = (activeSessionsData || []).find(s => s.slotCode === slot.slotCode);
         if (area) {
           return {
             ...slot,
@@ -55,10 +55,24 @@ export default function StructureManagementPage() {
             floorId: area.floorId,
             floorCode: area.floorCode,
             vehicleTypeIds: area.vehicleTypeIds || [],
-            vehicleTypeNames: area.vehicleTypeNames || []
+            vehicleTypeNames: area.vehicleTypeNames || [],
+            activeSession: activeSession ? {
+              plateNumber: activeSession.plateNumber,
+              cardCode: activeSession.cardCode,
+              entryTime: activeSession.entryTime,
+              sessionCode: activeSession.sessionCode
+            } : null
           };
         }
-        return slot;
+        return {
+          ...slot,
+          activeSession: activeSession ? {
+            plateNumber: activeSession.plateNumber,
+            cardCode: activeSession.cardCode,
+            entryTime: activeSession.entryTime,
+            sessionCode: activeSession.sessionCode
+          } : null
+        };
       });
       setSlots(mappedSlots);
       

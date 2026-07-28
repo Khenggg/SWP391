@@ -52,6 +52,27 @@ export default function SlotDetailDialog({
                 {selectedSlot.status}
               </span>
             </div>
+            
+            {selectedSlot.status === SLOT_STATUS.OCCUPIED && selectedSlot.activeSession && (
+              <div className="p-3.5 bg-blue-50 border border-blue-100 rounded-xl space-y-2">
+                <h4 className="text-xs font-bold text-blue-800 uppercase tracking-wider">Thông tin phương tiện đỗ</h4>
+                <div className="grid grid-cols-2 gap-y-1.5 text-xs">
+                  <span className="text-slate-500 font-semibold">Biển số xe</span>
+                  <span className="font-bold text-blue-700 text-right">{selectedSlot.activeSession.plateNumber}</span>
+                  <span className="text-slate-500 font-semibold">Mã thẻ từ</span>
+                  <span className="font-semibold text-slate-700 text-right">{selectedSlot.activeSession.cardCode}</span>
+                  <span className="text-slate-500 font-semibold">Thời gian vào</span>
+                  <span className="text-slate-600 text-right">
+                    {new Date(selectedSlot.activeSession.entryTime).toLocaleString("vi-VN", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      day: "2-digit",
+                      month: "2-digit",
+                    })}
+                  </span>
+                </div>
+              </div>
+            )}
 
             {selectedSlot.status === SLOT_STATUS.OCCUPIED && (
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex gap-2 text-xs text-amber-800">

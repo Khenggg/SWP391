@@ -81,6 +81,11 @@ export const parkingService = {
     return res.success ? res.data : [];
   },
 
+  getActiveSessions: async () => {
+    const res = await coreAxiosClient.get("/staff/sessions/active");
+    return res.success ? res.data : [];
+  },
+
   // Add / Edit structures (Manager actions)
   addFloor: async (floorData) => {
     const res = await coreAxiosClient.post("/floors", floorData);
