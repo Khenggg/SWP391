@@ -187,6 +187,4 @@ export default function SlotGridPanel({
       </div>
     </div>
   );
-    </div>
-  );
 }
