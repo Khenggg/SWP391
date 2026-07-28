@@ -173,7 +173,7 @@ export default function StructureManagementPage() {
     try {
       // Auto-set capacity for car areas based on slot count
       const selectedType = vehicleTypes.find(v => v.id.toString() === form.vehicleTypeIds?.[0]?.toString());
-      const isCar = selectedType?.name.toLowerCase().includes("ô tô") || selectedType?.name.toLowerCase().includes("o to");
+      const isCar = selectedType?.requiresSlot ?? false;
       
       const payload = {
         ...form,
@@ -228,14 +228,32 @@ export default function StructureManagementPage() {
   };
 
   const isCarArea = (area) => {
+    if (area.vehicleTypeIds && area.vehicleTypeIds.length > 0) {
+      return area.vehicleTypeIds.some(vtId => {
+        const vt = vehicleTypes.find(v => v.id === vtId);
+        return vt?.requiresSlot ?? false;
+      });
+    }
     return (area.vehicleTypeNames || []).some(name => name.toLowerCase().includes("ô tô") || name.toLowerCase().includes("o to"));
   };
 
   // Filtered Data
   const filteredAreas = filterFloor === "ALL" ? areas : areas.filter((a) => a.floorCode === filterFloor);
   
-  // Filter slots for Ô tô only
-  const carSlots = slots.filter(s => (s.vehicleTypeNames || []).some(name => name.toLowerCase().includes("ô tô") || name.toLowerCase().includes("o to")));
+  // Filter slots for Ô tô only using requiresSlot property
+  const carSlots = slots.filter(s => {
+    if (s.allowedVehicleTypeId) {
+      const vt = vehicleTypes.find(v => v.id === s.allowedVehicleTypeId);
+      return vt?.requiresSlot ?? false;
+    }
+    if (s.vehicleTypeIds && s.vehicleTypeIds.length > 0) {
+      return s.vehicleTypeIds.some(vtId => {
+        const vt = vehicleTypes.find(v => v.id === vtId);
+        return vt?.requiresSlot ?? false;
+      });
+    }
+    return (s.vehicleTypeNames || []).some(name => name.toLowerCase().includes("ô tô") || name.toLowerCase().includes("o to"));
+  });
   const filteredSlots = carSlots.filter((s) => {
     const matchFloor = filterFloor === "ALL" || s.floorCode === filterFloor;
     const matchArea = filterArea === "ALL" || s.areaCode === filterArea;

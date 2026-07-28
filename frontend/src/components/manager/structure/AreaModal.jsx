@@ -15,10 +15,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 export default function AreaModal({ isOpen, onClose, editingItem, form, setField, handleSave, floors, vehicleTypes }) {
   const selectedType = vehicleTypes.find(v => v.id.toString() === form.vehicleTypeIds?.[0]?.toString());
-  const isCar = selectedType?.name.toLowerCase().includes("ô tô") || selectedType?.name.toLowerCase().includes("o to");
+  const isCar = selectedType?.requiresSlot ?? false;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
