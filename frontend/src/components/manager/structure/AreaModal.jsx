@@ -17,6 +17,9 @@ import {
 } from "@/components/ui/select";
 
 export default function AreaModal({ isOpen, onClose, editingItem, form, setField, handleSave, floors, vehicleTypes }) {
+  const selectedType = vehicleTypes.find(v => v.id.toString() === form.vehicleTypeIds?.[0]?.toString());
+  const isCar = selectedType?.name.toLowerCase().includes("ô tô") || selectedType?.name.toLowerCase().includes("o to");
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[400px]">
@@ -72,16 +75,18 @@ export default function AreaModal({ isOpen, onClose, editingItem, form, setField
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-bold">Sức chứa *</label>
-            <Input 
-              type="number"
-              min={0}
-              value={form.totalCapacity === undefined || form.totalCapacity === null ? "" : form.totalCapacity} 
-              onChange={(e) => setField("totalCapacity", e.target.value === "" ? "" : Number(e.target.value))} 
-              placeholder="VD: 50" 
-            />
-          </div>
+          {!isCar && (
+            <div className="space-y-2">
+              <label className="text-sm font-bold">Sức chứa *</label>
+              <Input 
+                type="number"
+                min={0}
+                value={form.totalCapacity === undefined || form.totalCapacity === null ? "" : form.totalCapacity} 
+                onChange={(e) => setField("totalCapacity", e.target.value === "" ? "" : Number(e.target.value))} 
+                placeholder="VD: 50" 
+              />
+            </div>
+          )}
           <div className="space-y-2">
             <label className="text-sm font-bold">Độ ưu tiên *</label>
             <Input 
