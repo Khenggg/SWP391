@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowRightFromLine,
@@ -77,7 +77,6 @@ function isActivePath(currentPath, itemPath) {
 
 export default function AppShell({ currentUser, onLogout }) {
   const location = useLocation();
-  const navigate = useNavigate();
   const mainRef = useRef(null);
 
   useEffect(() => {
@@ -99,10 +98,10 @@ export default function AppShell({ currentUser, onLogout }) {
   );
   const roleMeta = ROLE_META[role] || ROLE_META[USER_ROLES.STAFF];
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (window.confirm("Xác nhận đăng xuất khỏi hệ thống?")) {
-      onLogout();
-      navigate("/login");
+      await onLogout();
+      // App.jsx will update isAuthenticated to false, which will trigger RequireAuth to redirect to /login
     }
   };
 
