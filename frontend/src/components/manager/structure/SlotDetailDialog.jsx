@@ -113,6 +113,7 @@ export default function SlotDetailDialog({
             Cập nhật
           </Button>
         </DialogFooter>
-      </Dialog>
+      </DialogContent>
+    </Dialog>
   );
 }
