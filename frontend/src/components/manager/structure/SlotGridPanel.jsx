@@ -40,6 +40,26 @@ export default function SlotGridPanel({
   setStatusReason,
   isCarArea
 }) {
+  // Group slots by floorCode and areaCode
+  const slotsGrouped = React.useMemo(() => {
+    const groups = {};
+    filteredSlots.forEach(slot => {
+      const floorKey = slot.floorCode || "Chưa phân tầng";
+      const areaKey = slot.areaCode || "Chưa phân khu";
+      const key = `${floorKey}-${areaKey}`;
+      if (!groups[key]) {
+        groups[key] = {
+          floorCode: floorKey,
+          areaCode: areaKey,
+          slots: []
+        };
+      }
+      groups[key].slots.push(slot);
+    });
+    // Sort groups by floor code then area code
+    return Object.values(groups).sort((a, b) => a.floorCode.localeCompare(b.floorCode) || a.areaCode.localeCompare(b.areaCode));
+  }, [filteredSlots]);
+
   return (
     <div className="flex flex-col border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
       <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-4">
@@ -123,36 +143,50 @@ export default function SlotGridPanel({
         </div>
       </div>
 
-      <div className="p-6 overflow-y-auto flex-1 bg-slate-50/50 min-h-[400px]">
-        {filteredSlots.length === 0 ? (
+      <div className="p-6 overflow-y-auto flex-1 bg-slate-50/50 min-h-[400px] space-y-6">
+        {slotsGrouped.length === 0 ? (
           <EmptyState
             icon={<Grid />}
             title="Không tìm thấy slot nào"
             description="Thử thay đổi bộ lọc hoặc thêm slot mới."
           />
         ) : (
-          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
-            {filteredSlots.map((slot) => (
-              <div
-                key={slot.id}
-                onClick={() => {
-                  setSelectedSlot(slot);
-                  setTargetStatus(slot.status);
-                  setStatusReason("");
-                }}
-                className={`
-                  aspect-square flex items-center justify-center rounded-md border-2 font-bold text-xs cursor-pointer 
-                  transition-all hover:scale-105 hover:shadow-md
-                  ${selectedSlot?.id === slot.id ? "ring-2 ring-slate-400 ring-offset-2" : ""}
-                  ${SLOT_STATUS_COLORS[slot.status] || "border-slate-200 bg-white text-slate-500"}
-                `}
-              >
-                {slot.slotCode?.split("-").pop() || slot.slotCode}
+          slotsGrouped.map((group) => (
+            <div key={`${group.floorCode}-${group.areaCode}`} className="space-y-3 bg-white p-4 rounded-xl border border-slate-100 shadow-sm animate-in fade-in duration-200">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md">
+                  Tầng {group.floorCode} — Khu vực {group.areaCode}
+                </span>
+                <span className="text-[11px] text-slate-500 font-semibold">
+                  {group.slots.length} Slots
+                </span>
               </div>
-            ))}
-          </div>
+              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
+                {group.slots.map((slot) => (
+                  <div
+                    key={slot.id}
+                    onClick={() => {
+                      setSelectedSlot(slot);
+                      setTargetStatus(slot.status);
+                      setStatusReason("");
+                    }}
+                    className={`
+                      aspect-square flex items-center justify-center rounded-md border-2 font-bold text-xs cursor-pointer 
+                      transition-all hover:scale-105 hover:shadow-md
+                      ${selectedSlot?.id === slot.id ? "ring-2 ring-slate-400 ring-offset-2" : ""}
+                      ${SLOT_STATUS_COLORS[slot.status] || "border-slate-200 bg-white text-slate-500"}
+                    `}
+                  >
+                    {slot.slotCode?.split("-").pop() || slot.slotCode}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))
         )}
       </div>
+    </div>
+  );
     </div>
   );
 }

@@ -157,14 +157,18 @@ export default function StructureManagementPage() {
     } catch (e) { toast.error(e.message || "Lỗi lưu tầng"); }
   };
 
-  const openCreateArea = () => { setEditingItem(null); setForm({ floorId: "", areaCode: "", areaName: "", priorityOrder: 1, totalCapacity: 10, vehicleTypeIds: [] }); setShowAreaModal(true); };
-  const openEditArea = (area) => { setEditingItem(area); setForm({ floorId: area.floorId || "", areaCode: area.areaCode, areaName: area.areaName, priorityOrder: area.priorityOrder || 1, totalCapacity: area.totalCapacity || 10, vehicleTypeIds: area.vehicleTypeIds || [] }); setShowAreaModal(true); };
+  const openCreateArea = () => { setEditingItem(null); setForm({ floorId: "", areaCode: "", areaName: "", priorityOrder: 1, totalCapacity: 10, vehicleTypeIds: [], status: "ACTIVE" }); setShowAreaModal(true); };
+  const openEditArea = (area) => { setEditingItem(area); setForm({ floorId: area.floorId || "", areaCode: area.areaCode, areaName: area.areaName, priorityOrder: area.priorityOrder || 1, totalCapacity: area.totalCapacity || 10, vehicleTypeIds: area.vehicleTypeIds || [], status: area.status || "ACTIVE" }); setShowAreaModal(true); };
   const handleAreaSave = async () => {
     if (!form.areaCode || !form.areaName || !form.floorId) return toast.error("Vui lòng điền đủ Mã khu, Tên khu và chọn Tầng");
     try {
       // Auto-set capacity for car areas based on slot count
-      const selectedType = vehicleTypes.find(v => v.id.toString() === form.vehicleTypeIds?.[0]?.toString());
-      const isCar = selectedType?.requiresSlot ?? false;
+      const isCar = form.vehicleTypeIds && form.vehicleTypeIds.length > 0
+        ? form.vehicleTypeIds.some(id => {
+            const vt = vehicleTypes.find(v => v.id === id);
+            return vt?.requiresSlot ?? false;
+          })
+        : false;
       
       const payload = {
         ...form,
