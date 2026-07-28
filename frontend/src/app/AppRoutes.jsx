@@ -57,7 +57,7 @@ export default function AppRoutes({ isAuthenticated, userRole, currentUser, onLo
     <Routes>
       <Route element={<PublicLayout />}>
         <Route path="/" element={<ParkingInfoPage />} />
-        <Route path="/parking-info" element={<ParkingInfoPage />} />
+        <Route path="/parking-info" element={<Navigate to="/" replace />} />
         <Route path="/rules" element={<RulesPage />} />
         <Route path="/pricing" element={<PublicPricingPage />} />
         <Route path="/available-slots" element={<AvailableSlotsPage />} />

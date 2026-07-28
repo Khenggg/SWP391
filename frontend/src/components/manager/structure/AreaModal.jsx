@@ -72,6 +72,26 @@ export default function AreaModal({ isOpen, onClose, editingItem, form, setField
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-2">
+            <label className="text-sm font-bold">Sức chứa *</label>
+            <Input 
+              type="number"
+              min={0}
+              value={form.totalCapacity === undefined || form.totalCapacity === null ? "" : form.totalCapacity} 
+              onChange={(e) => setField("totalCapacity", e.target.value === "" ? "" : Number(e.target.value))} 
+              placeholder="VD: 50" 
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-bold">Độ ưu tiên *</label>
+            <Input 
+              type="number"
+              min={1}
+              value={form.priorityOrder === undefined || form.priorityOrder === null ? "" : form.priorityOrder} 
+              onChange={(e) => setField("priorityOrder", e.target.value === "" ? "" : Number(e.target.value))} 
+              placeholder="VD: 1" 
+            />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onClose(false)}>Hủy</Button>

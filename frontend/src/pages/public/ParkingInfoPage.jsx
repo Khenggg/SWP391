@@ -13,7 +13,6 @@ const STATUS_CONFIG = {
 };
 
 const SERVICES = [
-  { icon: <Info size={22} className="text-blue-600" />, label: "Thông tin bãi xe",  desc: "Tìm hiểu về vị trí, tiện ích và hướng dẫn di chuyển", to: "/parking-info" },
   { icon: <DollarSign size={22} className="text-blue-600" />, label: "Bảng giá",    desc: "Xem bảng giá gửi xe theo giờ và theo tháng",          to: "/pricing" },
   { icon: <CarFront size={22} className="text-blue-600" />,   label: "Chỗ trống",   desc: "Xem số lượng chỗ trống theo tầng thời gian thực",     to: "/available-slots" },
   { icon: <List size={22} className="text-blue-600" />,       label: "Quy định",    desc: "Xem quy định gửi xe và các lưu ý quan trọng",         to: "/rules" },
@@ -164,7 +163,7 @@ export default function ParkingInfoPage() {
       {/* ===== SERVICES SECTION ===== */}
       <div className="max-w-7xl mx-auto px-6 py-12">
         <h2 className="text-xl font-black text-gray-800 mb-6">Khám phá dịch vụ</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {SERVICES.map((svc) => (
             <Link
               key={svc.label}
