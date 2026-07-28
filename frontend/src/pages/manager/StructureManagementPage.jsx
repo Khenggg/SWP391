@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { parkingService } from "../../services/parkingService";
 import { COMMON_STATUS, SLOT_STATUS, STATUS_LABELS } from "@/constants";
 import { toast } from "sonner";
@@ -113,7 +113,7 @@ export default function StructureManagementPage() {
   const [form, setForm] = useState({});
 
   // Slot Detail Sidebar State
-  const setField = (name, value) => setForm((p) => ({ ...p, [name]: value }));
+  const setField = useCallback((name, value) => setForm((p) => ({ ...p, [name]: value })), []);
 
   // Capacity Modal State
   const [showCapacityModal, setShowCapacityModal] = useState(false);

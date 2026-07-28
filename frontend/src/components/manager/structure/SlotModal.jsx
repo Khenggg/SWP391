@@ -32,16 +32,21 @@ export default function SlotModal({ isOpen, onClose, form, setField, handleSave,
 
   React.useEffect(() => {
     if (allowedVehicleTypesForArea.length === 1) {
-      setField("allowedVehicleTypeId", allowedVehicleTypesForArea[0].id);
+      const targetId = allowedVehicleTypesForArea[0].id;
+      if (form.allowedVehicleTypeId !== targetId) {
+        setField("allowedVehicleTypeId", targetId);
+      }
     } else if (allowedVehicleTypesForArea.length > 1) {
       // If the current value is not one of the allowed types, reset it
-      if (!allowedVehicleTypesForArea.some(v => v.id === form.allowedVehicleTypeId)) {
+      if (form.allowedVehicleTypeId && !allowedVehicleTypesForArea.some(v => v.id === form.allowedVehicleTypeId)) {
         setField("allowedVehicleTypeId", "");
       }
     } else {
-      setField("allowedVehicleTypeId", "");
+      if (form.allowedVehicleTypeId !== "") {
+        setField("allowedVehicleTypeId", "");
+      }
     }
-  }, [form.areaId, allowedVehicleTypesForArea.length, setField]);
+  }, [form.areaId, allowedVehicleTypesForArea.length, form.allowedVehicleTypeId, setField]);
 
   const filteredAreas = selectedFloorId
     ? areas.filter(a => Number(a.floorId) === Number(selectedFloorId))
