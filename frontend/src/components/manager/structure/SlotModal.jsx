@@ -25,6 +25,17 @@ export default function SlotModal({ isOpen, onClose, form, setField, handleSave,
     }
   }, [isOpen]);
 
+  React.useEffect(() => {
+    if (form.areaId) {
+      const selectedArea = areas.find(a => Number(a.id) === Number(form.areaId));
+      if (selectedArea && selectedArea.vehicleTypeIds?.length > 0) {
+        setField("allowedVehicleTypeId", selectedArea.vehicleTypeIds[0]);
+      }
+    } else {
+      setField("allowedVehicleTypeId", "");
+    }
+  }, [form.areaId, areas, setField]);
+
   const filteredAreas = selectedFloorId
     ? areas.filter(a => Number(a.floorId) === Number(selectedFloorId))
     : areas;
@@ -81,20 +92,13 @@ export default function SlotModal({ isOpen, onClose, form, setField, handleSave,
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-bold">Loại xe *</label>
-            <Select 
-              value={form.allowedVehicleTypeId?.toString() || ""} 
-              onValueChange={(val) => setField("allowedVehicleTypeId", Number(val))}
-            >
-              <SelectTrigger><SelectValue placeholder="Chọn..." /></SelectTrigger>
-              <SelectContent>
-                {vehicleTypes.map(v => (
-                  <SelectItem key={v.id} value={v.id.toString()}>
-                    {v.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <label className="text-sm font-bold text-slate-700">Loại xe được phép</label>
+            <div className="p-2 border border-slate-200 rounded-lg bg-slate-50 text-xs font-semibold text-slate-700 h-9 flex items-center">
+              {form.allowedVehicleTypeId 
+                ? vehicleTypes.find(v => v.id === form.allowedVehicleTypeId)?.name || "Không rõ"
+                : "Vui lòng chọn Khu vực trước"
+              }
+            </div>
           </div>
         </div>
         <DialogFooter>
