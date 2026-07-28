@@ -127,5 +127,11 @@ export const parkingService = {
     const res = await coreAxiosClient.post("/vehicle-types", typeData);
     if (res.success) return res.data;
     throw new Error(res.message || "Thêm loại xe thất bại");
+  },
+
+  deleteVehicleType: async (id) => {
+    const res = await coreAxiosClient.delete(`/vehicle-types/${id}`);
+    if (res.success) return res.data;
+    throw new Error(res.message || "Xóa loại xe thất bại");
   }
 };
