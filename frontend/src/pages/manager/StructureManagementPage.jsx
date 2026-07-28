@@ -33,7 +33,10 @@ import StructureStatCards from "../../components/manager/structure/StructureStat
 import FloorModal from "../../components/manager/structure/FloorModal";
 import AreaModal from "../../components/manager/structure/AreaModal";
 import SlotModal from "../../components/manager/structure/SlotModal";
-import SlotDetailSidebar from "../../components/manager/structure/SlotDetailSidebar";
+import SlotGridPanel from "../../components/manager/structure/SlotGridPanel";
+import CapacityPanel from "../../components/manager/structure/CapacityPanel";
+import SlotDetailDialog from "../../components/manager/structure/SlotDetailDialog";
+import CapacityDialog from "../../components/manager/structure/CapacityDialog";
 
 
 // Constants & Mappings
@@ -429,144 +432,28 @@ export default function StructureManagementPage() {
           {/* SLOT TAB */}
           {activeTab === "Slot" && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0">
-              {/* Left Panel: Slot Grid (Khu vực Ô tô) */}
-              <div className="flex flex-col border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
-                <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <h3 className="text-base font-bold text-slate-800">Quản lý Slot Ô tô</h3>
-                    <div className="flex gap-2 flex-wrap">
-                      <div className="space-y-1">
-                        <span className="text-xs font-semibold text-slate-500">Tầng</span>
-                        <Select value={filterFloor} onValueChange={setFilterFloor}>
-                          <SelectTrigger className="w-[110px] h-8 text-xs border-slate-200 bg-white"><SelectValue placeholder="Tất cả" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="ALL">Tất cả</SelectItem>
-                            {floors.map((f) => <SelectItem key={f.id} value={f.floorCode}>{f.floorCode}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-xs font-semibold text-slate-500">Khu vực</span>
-                        <Select value={filterArea} onValueChange={setFilterArea}>
-                          <SelectTrigger className="w-[110px] h-8 text-xs border-slate-200 bg-white"><SelectValue placeholder="Tất cả" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="ALL">Tất cả</SelectItem>
-                            {areas.filter(a => isCarArea(a) && (filterFloor === "ALL" || a.floorCode === filterFloor)).map((a) => <SelectItem key={a.id} value={a.areaCode}>{a.areaCode}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-xs font-semibold text-slate-500">Trạng thái</span>
-                        <Select value={filterSlotStatus} onValueChange={setFilterSlotStatus}>
-                          <SelectTrigger className="w-[120px] h-8 text-xs border-slate-200 bg-white"><SelectValue placeholder="Tất cả" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="ALL">Tất cả</SelectItem>
-                            {Object.values(SLOT_STATUS).map(s => <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-                  <Button onClick={openCreateSlot} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg self-end mb-1">
-                    <Plus className="w-4 h-4 mr-1" /> Thêm Slot
-                  </Button>
-                </div>
+              <SlotGridPanel
+                filterFloor={filterFloor}
+                setFilterFloor={setFilterFloor}
+                filterArea={filterArea}
+                setFilterArea={setFilterArea}
+                filterSlotStatus={filterSlotStatus}
+                setFilterSlotStatus={setFilterSlotStatus}
+                floors={floors}
+                areas={areas}
+                filteredSlots={filteredSlots}
+                openCreateSlot={openCreateSlot}
+                selectedSlot={selectedSlot}
+                setSelectedSlot={setSelectedSlot}
+                setTargetStatus={setTargetStatus}
+                setStatusReason={setStatusReason}
+                isCarArea={isCarArea}
+              />
 
-                {/* Legend */}
-                <div className="flex gap-4 p-3 border-b border-slate-100 bg-white items-center justify-center text-[11px] font-bold tracking-wider text-slate-600">
-                  <div className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-emerald-300 rounded-sm bg-emerald-50"></div> AVAILABLE</div>
-                  <div className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-blue-400 rounded-sm bg-blue-50"></div> OCCUPIED</div>
-                  <div className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-red-300 rounded-sm bg-red-50"></div> LOCKED</div>
-                  <div className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-amber-300 rounded-sm bg-amber-50"></div> MAINTENANCE</div>
-                </div>
-
-                <div className="p-6 overflow-y-auto flex-1 bg-slate-50/50 min-h-[400px]">
-                  {filteredSlots.length === 0 ? (
-                    <EmptyState icon={<Grid />} title="Không tìm thấy slot nào" description="Thử thay đổi bộ lọc hoặc thêm slot mới." />
-                  ) : (
-                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
-                      {filteredSlots.map(slot => (
-                        <div
-                          key={slot.id}
-                          onClick={() => { setSelectedSlot(slot); setTargetStatus(slot.status); setStatusReason(""); }}
-                          className={`
-                            aspect-square flex items-center justify-center rounded-md border-2 font-bold text-xs cursor-pointer 
-                            transition-all hover:scale-105 hover:shadow-md
-                            ${selectedSlot?.id === slot.id ? "ring-2 ring-slate-400 ring-offset-2" : ""}
-                            ${SLOT_STATUS_COLORS[slot.status] || "border-slate-200 bg-white text-slate-500"}
-                          `}
-                        >
-                          {slot.slotCode?.split("-").pop() || slot.slotCode}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Right Panel: Quản lý Sức chứa (Xe máy & loại xe khác) */}
-              <div className="flex flex-col border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
-                <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-base font-bold text-slate-800">Quản lý Sức chứa xe máy & xe khác</h3>
-                    <p className="text-xs text-slate-500">Đặt tổng sức chứa chỗ đỗ cho các khu vực tự do không chia slot.</p>
-                  </div>
-                </div>
-
-                <div className="p-6 overflow-y-auto flex-1 bg-slate-50/50 min-h-[400px]">
-                  {filteredNonCarAreas.length === 0 ? (
-                    <EmptyState icon={<Layers />} title="Không tìm thấy khu vực nào" description="Hãy thêm khu vực xe máy mới ở tab Khu vực." />
-                  ) : (
-                    <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
-                      <Table>
-                        <TableHeader className="bg-slate-50 border-b border-slate-200">
-                          <TableRow>
-                            <TableHead className="font-bold text-slate-600 text-xs py-3">Tầng</TableHead>
-                            <TableHead className="font-bold text-slate-600 text-xs">Khu vực</TableHead>
-                            <TableHead className="font-bold text-slate-600 text-xs">Loại xe</TableHead>
-                            <TableHead className="font-bold text-slate-600 text-xs text-center">Đang đỗ / Sức chứa</TableHead>
-                            <TableHead className="font-bold text-slate-600 text-xs text-right">Thao tác</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredNonCarAreas.map((area) => (
-                            <TableRow key={area.id} className="text-xs">
-                              <TableCell className="font-medium text-slate-700">{area.floorCode}</TableCell>
-                              <TableCell className="font-semibold text-slate-800">{area.areaCode}</TableCell>
-                              <TableCell>
-                                <div className="flex flex-wrap gap-1">
-                                  {(area.vehicleTypeNames || []).map((name, idx) => (
-                                    <Badge key={idx} variant="outline" className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-50 text-blue-600 border-blue-100">
-                                      {name}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-center font-bold text-slate-700">
-                                <span className={area.currentRealOccupancy >= area.totalCapacity ? "text-red-600 font-black" : "text-slate-800"}>
-                                  {area.currentRealOccupancy || 0}
-                                </span>
-                                <span className="text-slate-400 font-normal"> / </span>
-                                <span>{area.totalCapacity || 0}</span>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  onClick={() => openEditCapacity(area)}
-                                  className="text-blue-600 hover:text-blue-700 font-bold text-[11px] p-1.5 h-auto"
-                                >
-                                  Sửa sức chứa
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <CapacityPanel
+                filteredNonCarAreas={filteredNonCarAreas}
+                openEditCapacity={openEditCapacity}
+              />
             </div>
           )}
 
@@ -605,113 +492,24 @@ export default function StructureManagementPage() {
         floors={floors}
       />
 
-      {/* --- SLOT DETAIL DIALOG --- */}
-      <Dialog open={!!selectedSlot} onOpenChange={(open) => { if (!open) setSelectedSlot(null); }}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle>Chi tiết Slot {selectedSlot?.slotCode}</DialogTitle>
-          </DialogHeader>
-          {selectedSlot && (
-            <div className="space-y-4 py-3 text-sm">
-              <div className="grid grid-cols-2 gap-y-2.5 border-b border-slate-100 pb-3">
-                <span className="text-slate-500 font-semibold">Tầng</span>
-                <span className="font-bold text-slate-800 text-right">{selectedSlot.floorCode}</span>
-                <span className="text-slate-500 font-semibold">Khu vực</span>
-                <span className="font-bold text-slate-800 text-right">{selectedSlot.areaCode}</span>
-                <span className="text-slate-500 font-semibold">Loại xe</span>
-                <span className="font-bold text-slate-800 text-right">
-                  {selectedSlot.vehicleTypeNames?.join(", ") || "Không rõ"}
-                </span>
-                <span className="text-slate-500 font-semibold">Trạng thái</span>
-                <span className="font-bold text-slate-800 text-right flex items-center justify-end gap-1.5">
-                  <span className={`w-2 h-2 rounded-full ${SLOT_STATUS_COLORS[selectedSlot.status]?.includes("bg-emerald") ? "bg-emerald-500" : SLOT_STATUS_COLORS[selectedSlot.status]?.includes("bg-blue") ? "bg-blue-600" : SLOT_STATUS_COLORS[selectedSlot.status]?.includes("bg-red") ? "bg-red-500" : "bg-amber-500"}`} />
-                  {selectedSlot.status}
-                </span>
-              </div>
-              
-              {selectedSlot.status === SLOT_STATUS.OCCUPIED && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex gap-2 text-xs text-amber-800">
-                  <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
-                  <span>Slot đang đỗ xe. Không thể đổi sang AVAILABLE thủ công.</span>
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 block">Đổi trạng thái thành</label>
-                <div className="flex flex-col gap-2">
-                  {[SLOT_STATUS.AVAILABLE, SLOT_STATUS.LOCKED, SLOT_STATUS.MAINTENANCE].map((status) => {
-                    const disabled = selectedSlot.status === SLOT_STATUS.OCCUPIED && status === SLOT_STATUS.AVAILABLE;
-                    return (
-                      <label key={status} className={`flex items-center gap-2 cursor-pointer ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}>
-                        <input
-                          type="radio"
-                          name="targetStatus"
-                          value={status}
-                          checked={targetStatus === status}
-                          onChange={() => setTargetStatus(status)}
-                          disabled={disabled}
-                          className="w-3.5 h-3.5"
-                        />
-                        <span className="text-xs font-semibold">{STATUS_LABELS[status] || status}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-              
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 block">Lý do / Ghi chú (bắt buộc nếu khóa/bảo trì)</label>
-                <textarea
-                  value={statusReason}
-                  onChange={(e) => setStatusReason(e.target.value)}
-                  className="w-full border border-slate-200 rounded-lg p-2.5 text-xs h-16 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all resize-none"
-                  placeholder="Nhập lý do..."
-                />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSelectedSlot(null)}>Hủy</Button>
-            <Button
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold"
-              onClick={handleUpdateSlotStatus}
-              disabled={!selectedSlot || targetStatus === selectedSlot.status || (selectedSlot.status === SLOT_STATUS.OCCUPIED && targetStatus === SLOT_STATUS.AVAILABLE)}
-            >
-              Cập nhật
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <SlotDetailDialog
+        selectedSlot={selectedSlot}
+        setSelectedSlot={setSelectedSlot}
+        targetStatus={targetStatus}
+        setTargetStatus={setTargetStatus}
+        statusReason={statusReason}
+        setStatusReason={setStatusReason}
+        handleUpdateSlotStatus={handleUpdateSlotStatus}
+      />
 
-      {/* --- CAPACITY MODAL --- */}
-      <Dialog open={showCapacityModal} onOpenChange={(open) => { if (!open) setShowCapacityModal(false); }}>
-        <DialogContent className="sm:max-w-[350px]">
-          <DialogHeader>
-            <DialogTitle>Cập nhật Sức chứa</DialogTitle>
-          </DialogHeader>
-          {selectedAreaForCapacity && (
-            <div className="space-y-4 py-2">
-              <p className="text-xs text-slate-500">
-                Khu vực: <span className="font-bold text-slate-700">{selectedAreaForCapacity.floorCode} - {selectedAreaForCapacity.areaCode}</span> ({selectedAreaForCapacity.areaName})
-              </p>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-600 block">Sức chứa tối đa *</label>
-                <Input 
-                  type="number" 
-                  min={0} 
-                  value={capacityForm.totalCapacity} 
-                  onChange={(e) => setCapacityForm({ totalCapacity: e.target.value === "" ? "" : Number(e.target.value) })}
-                  placeholder="Nhập số lượng chỗ đỗ..."
-                />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCapacityModal(false)}>Hủy</Button>
-            <Button onClick={handleCapacitySave} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold">Lưu</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CapacityDialog
+        isOpen={showCapacityModal}
+        onClose={setShowCapacityModal}
+        selectedAreaForCapacity={selectedAreaForCapacity}
+        capacityForm={capacityForm}
+        setCapacityForm={setCapacityForm}
+        handleCapacitySave={handleCapacitySave}
+      />
     </div>
   );
 }
