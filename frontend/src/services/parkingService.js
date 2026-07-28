@@ -121,5 +121,11 @@ export const parkingService = {
     const res = await coreAxiosClient.patch(`/slots/${id}/status`, { status });
     if (res.success) return res.data;
     throw new Error(res.message || "Cập nhật trạng thái slot thất bại");
+  },
+
+  createVehicleType: async (typeData) => {
+    const res = await coreAxiosClient.post("/vehicle-types", typeData);
+    if (res.success) return res.data;
+    throw new Error(res.message || "Thêm loại xe thất bại");
   }
 };

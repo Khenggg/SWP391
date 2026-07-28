@@ -183,6 +183,16 @@ export default function PricingManagementPage() {
     }
   };
 
+  const handleVehicleTypeCreated = async (newTypeId) => {
+    try {
+      const types = await parkingService.getVehicleTypes();
+      setVehicleTypes(types);
+      setForm((p) => ({ ...p, vehicleTypeId: String(newTypeId) }));
+    } catch (e) {
+      toast.error("Lỗi đồng bộ danh sách loại xe: " + e.message);
+    }
+  };
+
   return (
     <div className="flex h-full gap-4">
       {/* Main Content Area */}
@@ -324,6 +334,7 @@ export default function PricingManagementPage() {
         formErrors={formErrors}
         handleSave={handleSave}
         vehicleTypes={vehicleTypes}
+        onVehicleTypeCreated={handleVehicleTypeCreated}
       />
     </div>
   );
