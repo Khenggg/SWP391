@@ -16,8 +16,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 export default function AreaModal({ isOpen, onClose, editingItem, form, setField, handleSave, floors, vehicleTypes }) {
-  const selectedType = vehicleTypes.find(v => v.id.toString() === form.vehicleTypeIds?.[0]?.toString());
-  const isCar = selectedType?.requiresSlot ?? false;
+  const isCar = form.vehicleTypeIds && form.vehicleTypeIds.length > 0
+    ? form.vehicleTypeIds.some(id => {
+        const vt = vehicleTypes.find(v => v.id === id);
+        return vt?.requiresSlot ?? false;
+      })
+    : false;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -59,20 +63,31 @@ export default function AreaModal({ isOpen, onClose, editingItem, form, setField
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-bold">Loại xe *</label>
-            <Select 
-              value={form.vehicleTypeIds?.[0]?.toString() || ""} 
-              onValueChange={(val) => setField("vehicleTypeIds", [Number(val)])}
-            >
-              <SelectTrigger><SelectValue placeholder="Chọn..." /></SelectTrigger>
-              <SelectContent>
-                {vehicleTypes.map(v => (
-                  <SelectItem key={v.id} value={v.id.toString()}>
-                    {v.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <label className="text-sm font-bold block mb-1">Loại xe áp dụng *</label>
+            <div className="grid grid-cols-2 gap-2 border border-slate-200 rounded-lg p-3 max-h-[160px] overflow-y-auto bg-white">
+              {vehicleTypes.map(v => {
+                const checked = form.vehicleTypeIds?.includes(v.id) || false;
+                return (
+                  <label key={v.id} className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer hover:bg-slate-50 p-1 rounded transition-all">
+                    <input 
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        let newIds = form.vehicleTypeIds ? [...form.vehicleTypeIds] : [];
+                        if (e.target.checked) {
+                          newIds.push(v.id);
+                        } else {
+                          newIds = newIds.filter(id => id !== v.id);
+                        }
+                        setField("vehicleTypeIds", newIds);
+                      }}
+                      className="w-3.5 h-3.5 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                    />
+                    <span>{v.name}</span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
           {!isCar && (
             <div className="space-y-2">
