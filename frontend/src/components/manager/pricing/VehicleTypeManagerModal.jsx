@@ -33,6 +33,7 @@ export default function VehicleTypeManagerModal({
   const [requiresSlot, setRequiresSlot] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeletingId, setIsDeletingId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -66,14 +67,11 @@ export default function VehicleTypeManagerModal({
   };
 
   const handleDelete = async (id, typeName) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa loại xe "${typeName}"?`)) {
-      return;
-    }
-
     try {
       setIsDeletingId(id);
       await parkingService.deleteVehicleType(id);
       toast.success(`Đã xóa loại xe "${typeName}" thành công!`);
+      setConfirmDeleteId(null);
       if (onRefresh) onRefresh();
     } catch (error) {
       // Handle foreign key constraint failure or other errors gracefully
@@ -95,7 +93,10 @@ export default function VehicleTypeManagerModal({
             <Button
               size="sm"
               variant={showAddForm ? "ghost" : "outline"}
-              onClick={() => setShowAddForm(!showAddForm)}
+              onClick={() => {
+                setShowAddForm(!showAddForm);
+                setConfirmDeleteId(null); // Reset confirm status
+              }}
               className="text-xs font-bold gap-1 cursor-pointer"
             >
               {showAddForm ? "Quay lại danh sách" : "+ Thêm loại xe"}
@@ -160,7 +161,7 @@ export default function VehicleTypeManagerModal({
                     <TableHead className="font-semibold text-slate-600 text-xs">Tên loại xe</TableHead>
                     <TableHead className="font-semibold text-slate-600 text-xs">Mô tả</TableHead>
                     <TableHead className="font-semibold text-slate-600 text-xs text-center">Phân slot</TableHead>
-                    <TableHead className="font-semibold text-slate-600 text-xs text-center w-16">Hành động</TableHead>
+                    <TableHead className="font-semibold text-slate-600 text-xs text-center w-[150px]">Hành động</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="text-slate-600 font-medium text-xs">
@@ -181,15 +182,37 @@ export default function VehicleTypeManagerModal({
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center py-3">
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            disabled={isDeletingId === type.id}
-                            onClick={() => handleDelete(type.id, type.name)}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50 cursor-pointer rounded-lg mx-auto"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </Button>
+                          {confirmDeleteId === type.id ? (
+                            <div className="flex items-center justify-center gap-1.5">
+                              <Button
+                                size="xs"
+                                variant="destructive"
+                                disabled={isDeletingId === type.id}
+                                onClick={() => handleDelete(type.id, type.name)}
+                                className="px-2.5 py-1 font-bold text-[10px] cursor-pointer"
+                              >
+                                {isDeletingId === type.id ? "Đang xóa..." : "Xóa"}
+                              </Button>
+                              <Button
+                                size="xs"
+                                variant="outline"
+                                onClick={() => setConfirmDeleteId(null)}
+                                className="px-2.5 py-1 font-bold text-[10px] cursor-pointer"
+                              >
+                                Hủy
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              disabled={isDeletingId === type.id}
+                              onClick={() => setConfirmDeleteId(type.id)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50 cursor-pointer rounded-lg mx-auto"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))
