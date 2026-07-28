@@ -38,7 +38,7 @@ export default function AreaTablePanel({
             <SelectContent>
               <SelectItem value="ALL">Tất cả tầng</SelectItem>
               {floors.map((f) => (
-                <SelectItem key={f.id} value={f.floorCode}>
+                <SelectItem key={f.id} value={f.id.toString()}>
                   {f.floorCode}
                 </SelectItem>
               ))}

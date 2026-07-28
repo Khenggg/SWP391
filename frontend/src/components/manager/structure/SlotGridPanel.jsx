@@ -55,7 +55,7 @@ export default function SlotGridPanel({
                 <SelectContent>
                   <SelectItem value="ALL">Tất cả</SelectItem>
                   {floors.map((f) => (
-                    <SelectItem key={f.id} value={f.floorCode}>
+                    <SelectItem key={f.id} value={f.id.toString()}>
                       {f.floorCode}
                     </SelectItem>
                   ))}
@@ -71,10 +71,10 @@ export default function SlotGridPanel({
                 <SelectContent>
                   <SelectItem value="ALL">Tất cả</SelectItem>
                   {areas
-                    .filter((a) => isCarArea(a) && (filterFloor === "ALL" || a.floorCode === filterFloor))
+                    .filter((a) => isCarArea(a) && (filterFloor === "ALL" || a.floorId?.toString() === filterFloor))
                     .map((a) => (
-                      <SelectItem key={a.id} value={a.areaCode}>
-                        {a.areaCode}
+                      <SelectItem key={a.id} value={a.id.toString()}>
+                        {a.areaCode} {filterFloor === "ALL" ? `(${a.floorCode})` : ""}
                       </SelectItem>
                     ))}
                 </SelectContent>

@@ -215,7 +215,7 @@ export default function StructureManagementPage() {
   };
 
   // Filtered Data
-  const filteredAreas = filterFloor === "ALL" ? areas : areas.filter((a) => a.floorCode === filterFloor);
+  const filteredAreas = filterFloor === "ALL" ? areas : areas.filter((a) => a.floorId?.toString() === filterFloor);
   
   // Filter slots for Ô tô only using requiresSlot property
   const carSlots = slots.filter(s => {
@@ -232,8 +232,8 @@ export default function StructureManagementPage() {
     return (s.vehicleTypeNames || []).some(name => name.toLowerCase().includes("ô tô") || name.toLowerCase().includes("o to"));
   });
   const filteredSlots = carSlots.filter((s) => {
-    const matchFloor = filterFloor === "ALL" || s.floorCode === filterFloor;
-    const matchArea = filterArea === "ALL" || s.areaCode === filterArea;
+    const matchFloor = filterFloor === "ALL" || s.floorId?.toString() === filterFloor;
+    const matchArea = filterArea === "ALL" || s.areaId?.toString() === filterArea;
     const matchStatus = filterSlotStatus === "ALL" || s.status === filterSlotStatus;
     return matchFloor && matchArea && matchStatus;
   });
@@ -241,7 +241,7 @@ export default function StructureManagementPage() {
   // Areas for non-car vehicles (Xe máy, xe điện, xe đạp...)
   const nonCarAreas = areas.filter(a => !isCarArea(a));
   const filteredNonCarAreas = nonCarAreas.filter((a) => {
-    const matchFloor = filterFloor === "ALL" || a.floorCode === filterFloor;
+    const matchFloor = filterFloor === "ALL" || a.floorId?.toString() === filterFloor;
     return matchFloor;
   });
 
