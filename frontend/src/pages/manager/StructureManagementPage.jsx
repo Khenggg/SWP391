@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { parkingService } from "../../services/parkingService";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { COMMON_STATUS, SLOT_STATUS } from "@/constants";
+import { COMMON_STATUS, SLOT_STATUS, STATUS_LABELS } from "@/constants";
 import {
   Dialog,
   DialogContent,
@@ -27,8 +27,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Layers, Map, Grid, Plus, Edit2, AlertTriangle, CheckCircle, Car, Wrench, X, AlertCircle } from "lucide-react";
-import EmptyState from "@/components/ui/empty-state";
+import { Layers, Map, Grid, Plus, Edit2 } from "lucide-react";
 import StructureStatCards from "../../components/manager/structure/StructureStatCards";
 import FloorModal from "../../components/manager/structure/FloorModal";
 import AreaModal from "../../components/manager/structure/AreaModal";
@@ -44,28 +43,6 @@ const AREA_STATUS_BADGE = {
   [COMMON_STATUS.ACTIVE]: "text-emerald-600 bg-emerald-50",
   [SLOT_STATUS.LOCKED]: "text-red-600 bg-red-50",
   [SLOT_STATUS.MAINTENANCE]: "text-amber-600 bg-amber-50",
-};
-
-const SLOT_STATUS_COLORS = {
-  [SLOT_STATUS.AVAILABLE]: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  [SLOT_STATUS.OCCUPIED]: "border-blue-300 bg-blue-50 text-blue-700",
-  [SLOT_STATUS.LOCKED]: "border-red-200 bg-red-50 text-red-700",
-  [SLOT_STATUS.MAINTENANCE]: "border-amber-200 bg-amber-50 text-amber-700",
-};
-
-const SLOT_STATUS_DOT = {
-  [SLOT_STATUS.AVAILABLE]: "bg-emerald-500",
-  [SLOT_STATUS.OCCUPIED]: "bg-blue-600",
-  [SLOT_STATUS.LOCKED]: "bg-red-500",
-  [SLOT_STATUS.MAINTENANCE]: "bg-amber-500",
-};
-
-const STATUS_LABELS = {
-  [COMMON_STATUS.ACTIVE]: "ACTIVE",
-  [SLOT_STATUS.LOCKED]: "LOCKED",
-  [SLOT_STATUS.MAINTENANCE]: "MAINTENANCE",
-  [SLOT_STATUS.AVAILABLE]: "AVAILABLE",
-  [SLOT_STATUS.OCCUPIED]: "OCCUPIED",
 };
 
 export default function StructureManagementPage() {
@@ -134,7 +111,6 @@ export default function StructureManagementPage() {
   // Filters
   const [filterFloor, setFilterFloor] = useState("ALL");
   const [filterArea, setFilterArea] = useState("ALL");
-  const [filterVType, setFilterVType] = useState("ALL");
   const [filterSlotStatus, setFilterSlotStatus] = useState("ALL");
 
   // Modals state
