@@ -88,7 +88,7 @@ export default function VehicleTypeManagerModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>Quản lý danh sách loại xe</span>
@@ -153,7 +153,7 @@ export default function VehicleTypeManagerModal({
               <p>Lưu ý: Không thể xóa những loại xe đang được sử dụng (có xe đang đăng ký hoặc đang áp dụng cấu hình giá).</p>
             </div>
             
-            <div className="border border-slate-150 rounded-xl overflow-hidden bg-white max-h-[40vh] overflow-y-auto">
+            <div className="border border-slate-150 rounded-xl overflow-hidden bg-white">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50 border-b">
