@@ -144,6 +144,40 @@ export const MOCK_SLOTS = [
   { id: 38, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-018", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
   { id: 39, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-019", vehicleTypeName: "Ô Tô", status: "LOCKED" },
   { id: 40, areaId: 3, areaCode: "B2-B", floorCode: "B2", code: "B2-B-020", vehicleTypeName: "Ô Tô", status: "AVAILABLE" },
+
+  // Khu B1-A (Motorbike slots - 15 slots)
+  { id: 41, areaId: 1, areaCode: "B1-A", floorCode: "B1", code: "B1-A-001", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 42, areaId: 1, areaCode: "B1-A", floorCode: "B1", code: "B1-A-002", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 43, areaId: 1, areaCode: "B1-A", floorCode: "B1", code: "B1-A-003", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 44, areaId: 1, areaCode: "B1-A", floorCode: "B1", code: "B1-A-004", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 45, areaId: 1, areaCode: "B1-A", floorCode: "B1", code: "B1-A-005", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 46, areaId: 1, areaCode: "B1-A", floorCode: "B1", code: "B1-A-006", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 47, areaId: 1, areaCode: "B1-A", floorCode: "B1", code: "B1-A-007", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 48, areaId: 1, areaCode: "B1-A", floorCode: "B1", code: "B1-A-008", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 49, areaId: 1, areaCode: "B1-A", floorCode: "B1", code: "B1-A-009", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 50, areaId: 1, areaCode: "B1-A", floorCode: "B1", code: "B1-A-010", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 51, areaId: 1, areaCode: "B1-A", floorCode: "B1", code: "B1-A-011", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 52, areaId: 1, areaCode: "B1-A", floorCode: "B1", code: "B1-A-012", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 53, areaId: 1, areaCode: "B1-A", floorCode: "B1", code: "B1-A-013", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 54, areaId: 1, areaCode: "B1-A", floorCode: "B1", code: "B1-A-014", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 55, areaId: 1, areaCode: "B1-A", floorCode: "B1", code: "B1-A-015", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+
+  // Khu B2-C (Motorbike slots - 15 slots)
+  { id: 56, areaId: 3, areaCode: "B2-C", floorCode: "B2", code: "B2-C-001", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 57, areaId: 3, areaCode: "B2-C", floorCode: "B2", code: "B2-C-002", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 58, areaId: 3, areaCode: "B2-C", floorCode: "B2", code: "B2-C-003", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 59, areaId: 3, areaCode: "B2-C", floorCode: "B2", code: "B2-C-004", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 60, areaId: 3, areaCode: "B2-C", floorCode: "B2", code: "B2-C-005", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 61, areaId: 3, areaCode: "B2-C", floorCode: "B2", code: "B2-C-006", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 62, areaId: 3, areaCode: "B2-C", floorCode: "B2", code: "B2-C-007", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 63, areaId: 3, areaCode: "B2-C", floorCode: "B2", code: "B2-C-008", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 64, areaId: 3, areaCode: "B2-C", floorCode: "B2", code: "B2-C-009", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 65, areaId: 3, areaCode: "B2-C", floorCode: "B2", code: "B2-C-010", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 66, areaId: 3, areaCode: "B2-C", floorCode: "B2", code: "B2-C-011", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 67, areaId: 3, areaCode: "B2-C", floorCode: "B2", code: "B2-C-012", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 68, areaId: 3, areaCode: "B2-C", floorCode: "B2", code: "B2-C-013", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 69, areaId: 3, areaCode: "B2-C", floorCode: "B2", code: "B2-C-014", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
+  { id: 70, areaId: 3, areaCode: "B2-C", floorCode: "B2", code: "B2-C-015", vehicleTypeName: "Xe Máy", status: "AVAILABLE" },
 ];
 
 // ===========================================================================
