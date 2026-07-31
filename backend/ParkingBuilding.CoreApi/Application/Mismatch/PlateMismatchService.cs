@@ -11,6 +11,8 @@ using ParkingBuilding.CoreApi.Domain.Entities;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
 using ParkingBuilding.CoreApi.Application.Storage;
 
+using ParkingBuilding.CoreApi.Application.Notifications;
+
 namespace ParkingBuilding.CoreApi.Application.Mismatch;
 
 public class PlateMismatchService : IPlateMismatchService
@@ -18,15 +20,18 @@ public class PlateMismatchService : IPlateMismatchService
     private readonly ParkingDbContext _context;
     private readonly IAuditWriterService _auditWriter;
     private readonly IParkingSessionImageStorageService _imageStorageService;
+    private readonly INotificationWriterService _notificationWriter;
 
     public PlateMismatchService(
         ParkingDbContext context, 
         IAuditWriterService auditWriter,
-        IParkingSessionImageStorageService imageStorageService)
+        IParkingSessionImageStorageService imageStorageService,
+        INotificationWriterService notificationWriter)
     {
         _context = context;
         _auditWriter = auditWriter;
         _imageStorageService = imageStorageService;
+        _notificationWriter = notificationWriter;
     }
 
     public async Task<PlateMismatchResponse> CreateMismatchAsync(CreatePlateMismatchRequest request, long staffId)
@@ -217,6 +222,33 @@ public class PlateMismatchService : IPlateMismatchService
                 mismatch.UpdatedAt = DateTimeOffset.UtcNow;
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+
+                // Create notification for driver if session is linked to driver/user
+                var session = await _context.ParkingSessions.FirstOrDefaultAsync(s => s.Id == mismatch.SessionId);
+                if (session != null)
+                {
+                    long? targetUserId = session.ClaimedByUserId;
+                    if (!targetUserId.HasValue && session.DriverId.HasValue)
+                    {
+                        var driver = await _context.DriverProfiles.FindAsync(session.DriverId.Value);
+                        targetUserId = driver?.UserId;
+                    }
+                    if (targetUserId.HasValue)
+                    {
+                        var title = status == "CONFIRMED" ? "Hồ sơ sai lệch biển số đã được duyệt" : "Hồ sơ sai lệch biển số bị từ chối";
+                        var content = status == "CONFIRMED"
+                            ? $"Hồ sơ sai lệch biển số cho phiên đỗ {session.SessionCode} đã được phê duyệt."
+                            : $"Hồ sơ sai lệch biển số cho phiên đỗ {session.SessionCode} đã bị từ chối.";
+
+                        await _notificationWriter.CreateNotificationAsync(
+                            userId: targetUserId.Value,
+                            title: title,
+                            content: content,
+                            type: "SYSTEM",
+                            priority: "HIGH",
+                            parkingSessionId: session.Id);
+                    }
+                }
 
                 return (await GetByIdAsync(mismatch.Id))!;
             }

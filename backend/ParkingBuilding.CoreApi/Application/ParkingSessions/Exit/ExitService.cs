@@ -11,6 +11,8 @@ using ParkingBuilding.CoreApi.Application.Audit;
 using ParkingBuilding.CoreApi.Application.Audit.Dtos;
 using ParkingBuilding.CoreApi.Application.Storage;
 
+using ParkingBuilding.CoreApi.Application.Notifications;
+
 namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
 {
     public class ExitService : IExitService
@@ -19,17 +21,20 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
         private readonly IFeeCalculationService _feeCalculationService;
         private readonly IAuditWriterService _auditWriter;
         private readonly IParkingSessionImageStorageService _imageStorageService;
+        private readonly INotificationWriterService _notificationWriter;
 
         public ExitService(
             ParkingDbContext context,
             IFeeCalculationService feeCalculationService,
             IAuditWriterService auditWriter,
-            IParkingSessionImageStorageService imageStorageService)
+            IParkingSessionImageStorageService imageStorageService,
+            INotificationWriterService notificationWriter)
         {
             _context = context;
             _feeCalculationService = feeCalculationService;
             _auditWriter = auditWriter;
             _imageStorageService = imageStorageService;
+            _notificationWriter = notificationWriter;
         }
 
         public async Task<ParkingSession> FindActiveSessionByCardCodeAsync(string query)
@@ -271,6 +276,24 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
 
                     await transaction.CommitAsync();
 
+                    // Create notification for driver
+                    long? targetUserId = session.ClaimedByUserId;
+                    if (!targetUserId.HasValue && session.DriverId.HasValue)
+                    {
+                        var driver = await _context.DriverProfiles.FindAsync(session.DriverId.Value);
+                        targetUserId = driver?.UserId;
+                    }
+                    if (targetUserId.HasValue)
+                    {
+                        await _notificationWriter.CreateNotificationAsync(
+                            userId: targetUserId.Value,
+                            title: "Xe đã ra khỏi bãi thành công",
+                            content: $"Xe biển số {session.PlateNumber} đã ra khỏi bãi đỗ lúc {exitTime:HH:mm dd/MM/yyyy}.",
+                            type: "SYSTEM",
+                            priority: "NORMAL",
+                            parkingSessionId: session.Id);
+                    }
+
                     return new ExitResponse
                     {
                         SessionId = session.Id,
@@ -455,6 +478,24 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                     });
 
                     await transaction.CommitAsync();
+
+                    // Create notification for driver
+                    long? mpTargetUserId = session.ClaimedByUserId;
+                    if (!mpTargetUserId.HasValue && session.DriverId.HasValue)
+                    {
+                        var driver = await _context.DriverProfiles.FindAsync(session.DriverId.Value);
+                        mpTargetUserId = driver?.UserId;
+                    }
+                    if (mpTargetUserId.HasValue)
+                    {
+                        await _notificationWriter.CreateNotificationAsync(
+                            userId: mpTargetUserId.Value,
+                            title: "Xe vé tháng đã ra khỏi bãi thành công",
+                            content: $"Xe biển số {session.PlateNumber} đã ra khỏi bãi đỗ lúc {exitTime:HH:mm dd/MM/yyyy}.",
+                            type: "SYSTEM",
+                            priority: "NORMAL",
+                            parkingSessionId: session.Id);
+                    }
 
                     return new ExitResponse
                     {

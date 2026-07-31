@@ -986,6 +986,19 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
 
                     count++;
 
+                    // Create Notification for Driver
+                    var expDriverUserId = reservation.Driver?.UserId ?? reservation.CreatedBy;
+                    if (expDriverUserId.HasValue)
+                    {
+                        await _notificationWriter.CreateNotificationAsync(
+                            userId: expDriverUserId.Value,
+                            title: "Đơn đặt chỗ đã hết hạn",
+                            content: $"Mã đặt chỗ {reservation.ReservationCode} cho xe biển số {reservation.PlateNumber ?? "N/A"} đã bị hủy tự động do quá thời gian check-in.",
+                            type: "RESERVATION",
+                            priority: "HIGH",
+                            reservationId: reservation.Id);
+                    }
+
                     // Audit Log
                     await _auditWriter.WriteAuditLogAsync(
                         action: "RESERVATION_EXPIRED_BEFORE_CHECKIN",
