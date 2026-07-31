@@ -9,7 +9,12 @@ export const getMockData = (key, defaultData) => {
       localStorage.setItem(`mock_db_${key}`, JSON.stringify(defaultData));
       return defaultData;
     }
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    if (key === "slots" && Array.isArray(parsed) && parsed.length < 50) {
+      localStorage.setItem(`mock_db_${key}`, JSON.stringify(defaultData));
+      return defaultData;
+    }
+    return parsed;
   } catch (error) {
     console.error(`Error reading mock data for key "${key}":`, error);
     return defaultData;
