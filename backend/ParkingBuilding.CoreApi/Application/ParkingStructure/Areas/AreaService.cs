@@ -3,16 +3,23 @@ using Microsoft.AspNetCore.Http;
 using ParkingBuilding.CoreApi.Contracts.Common;
 using ParkingBuilding.CoreApi.Domain.Entities;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
+using ParkingBuilding.CoreApi.Application.Notifications;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace ParkingBuilding.CoreApi.Application.ParkingStructure.Areas;
 
 public class AreaService
 {
     private readonly ParkingDbContext _context;
+    private readonly INotificationWriterService _notificationWriter;
 
-    public AreaService(ParkingDbContext context)
+    public AreaService(ParkingDbContext context, INotificationWriterService notificationWriter)
     {
         _context = context;
+        _notificationWriter = notificationWriter;
     }
 
     // ================= CREATE =================
@@ -139,6 +146,7 @@ public class AreaService
         }
 
         // ===== 5. UPDATE BASIC =====
+        var oldStatus = entity.Status;
         entity.AreaName = request.AreaName.Trim();
         entity.PriorityOrder = request.PriorityOrder;
         entity.TotalCapacity = request.TotalCapacity;
@@ -170,6 +178,30 @@ public class AreaService
 
         // ===== 7. SAVE =====
         await _context.SaveChangesAsync();
+
+        if (oldStatus != entity.Status)
+        {
+            var statusText = entity.Status == "ACTIVE" ? "hoạt động trở lại" : (entity.Status == "LOCKED" ? "tạm khóa" : "bảo trì");
+            try
+            {
+                var drivers = await _context.Users
+                    .Where(u => u.Role == Domain.Enums.UserRole.DRIVER && u.Status == Domain.Enums.UserStatus.ACTIVE)
+                    .Select(u => u.Id)
+                    .ToListAsync();
+
+                var title = $"Thay đổi trạng thái Khu vực {entity.AreaCode}";
+                var content = $"Khu vực đỗ xe {entity.AreaName} ({entity.AreaCode}) đã chuyển sang trạng thái {statusText}. Vui lòng lưu ý khi đặt chỗ hoặc đỗ xe.";
+
+                foreach (var driverId in drivers)
+                {
+                    await _notificationWriter.CreateNotificationAsync(driverId, title, content, "SYSTEM", "NORMAL");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending area status notifications: {ex.Message}");
+            }
+        }
 
         // ===== 8. RETURN =====
         return await GetAreaResponseByIdAsync(entity.Id);

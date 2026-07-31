@@ -196,8 +196,8 @@ export default function StructureManagementPage() {
     }
   };
 
-  const openCreateArea = () => { setEditingItem(null); setForm({ floorId: "", areaCode: "", areaName: "", priorityOrder: 1, totalCapacity: 10, vehicleTypeIds: [] }); setShowAreaModal(true); };
-  const openEditArea = (area) => { setEditingItem(area); setForm({ floorId: area.floorId || "", areaCode: area.areaCode, areaName: area.areaName, priorityOrder: area.priorityOrder || 1, totalCapacity: area.totalCapacity || 10, vehicleTypeIds: area.vehicleTypeIds || [] }); setShowAreaModal(true); };
+  const openCreateArea = () => { setEditingItem(null); setForm({ floorId: "", areaCode: "", areaName: "", priorityOrder: 1, totalCapacity: 10, vehicleTypeIds: [], status: COMMON_STATUS.ACTIVE }); setShowAreaModal(true); };
+  const openEditArea = (area) => { setEditingItem(area); setForm({ floorId: area.floorId || "", areaCode: area.areaCode, areaName: area.areaName, priorityOrder: area.priorityOrder || 1, totalCapacity: area.totalCapacity || 10, vehicleTypeIds: area.vehicleTypeIds || [], status: area.status }); setShowAreaModal(true); };
   const handleAreaSave = async () => {
     if (!form.areaCode || !form.areaName || !form.floorId) return toast.error("Vui lòng điền đủ Mã khu, Tên khu và chọn Tầng");
     try {
@@ -373,6 +373,7 @@ export default function StructureManagementPage() {
                       <TableHead className="font-bold text-slate-600">Tầng</TableHead>
                       <TableHead className="font-bold text-slate-600 text-center">Ưu tiên</TableHead>
                       <TableHead className="font-bold text-slate-600">Loại xe áp dụng</TableHead>
+                      <TableHead className="font-bold text-slate-600">Trạng thái</TableHead>
                       <TableHead className="font-bold text-slate-600 text-right">Thao tác</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -395,6 +396,11 @@ export default function StructureManagementPage() {
                           ) : (
                             <span className="text-slate-400">Không rõ</span>
                           )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={`font-bold rounded-md px-2.5 py-1 ${AREA_STATUS_BADGE[area.status] || "text-slate-600 bg-slate-100 hover:bg-slate-200"}`}>
+                            {STATUS_LABELS[area.status] || area.status || "ACTIVE"}
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" onClick={() => openEditArea(area)} className="text-slate-400 hover:text-blue-600">

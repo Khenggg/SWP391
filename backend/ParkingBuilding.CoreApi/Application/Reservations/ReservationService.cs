@@ -72,7 +72,7 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                 var slots = await _context.Slots
                     .Include(s => s.Area)
                     .ThenInclude(a => a.Floor)
-                    .Where(s => s.AllowedVehicleTypeId == vehicleTypeId && s.Status == "AVAILABLE" && !activeReservationSlotIds.Contains(s.Id))
+                    .Where(s => s.AllowedVehicleTypeId == vehicleTypeId && s.Status == "AVAILABLE" && !activeReservationSlotIds.Contains(s.Id) && s.Area.Floor.Status == "ACTIVE")
                     .ToListAsync();
 
                 response.AvailableSlots = slots.Select(s => new AvailableSlotDto
@@ -93,7 +93,7 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                 var areas = await _context.Areas
                     .Include(a => a.Floor)
                     .Include(a => a.AreaVehicleTypes)
-                    .Where(a => a.Status == "ACTIVE" && a.AreaVehicleTypes.Any(av => av.VehicleTypeId == vehicleTypeId))
+                    .Where(a => a.Status == "ACTIVE" && a.AreaVehicleTypes.Any(av => av.VehicleTypeId == vehicleTypeId) && a.Floor.Status == "ACTIVE")
                     .ToListAsync();
 
                 response.AvailableAreas = areas
@@ -262,6 +262,9 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                     var floor = await _context.Floors.FindAsync(request.FloorId);
                     if (floor == null)
                         throw new BusinessException(ErrorCodes.FloorNotFound, StatusCodes.Status404NotFound);
+
+                    if (floor.Status != "ACTIVE")
+                        throw new BusinessException(ErrorCodes.FloorNotActive);
 
                     // Concurrency lock: Select Area FOR UPDATE
                     var area = await _context.Areas
