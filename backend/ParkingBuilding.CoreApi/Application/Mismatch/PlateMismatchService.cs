@@ -154,6 +154,23 @@ public class PlateMismatchService : IPlateMismatchService
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
+                // Create Notification for Managers
+                var managerUserIds = await _context.Users
+                    .Where(u => u.Role == Domain.Enums.UserRole.MANAGER || u.Role == Domain.Enums.UserRole.ADMIN)
+                    .Select(u => u.Id)
+                    .ToListAsync();
+
+                foreach (var mgrId in managerUserIds)
+                {
+                    await _notificationWriter.CreateNotificationAsync(
+                        userId: mgrId,
+                        title: "Yêu cầu duyệt sai lệch biển số mới",
+                        content: $"Có hồ sơ sai lệch biển số mới cho phiên đỗ {session.SessionCode} (biển số ra {request.ExitPlateNumber}) cần Quản lý phê duyệt.",
+                        type: "SYSTEM",
+                        priority: "HIGH",
+                        parkingSessionId: session.Id);
+                }
+
                 return (await GetByIdAsync(mismatch.Id))!;
             }
             catch

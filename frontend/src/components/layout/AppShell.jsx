@@ -30,6 +30,7 @@ import { USER_ROLES } from "@/constants";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import NotificationBell from "./NotificationBell";
+import { approvalService } from "@/services/approvalService";
 
 const MENUS = {
   [USER_ROLES.STAFF]: [
@@ -98,6 +99,35 @@ export default function AppShell({ currentUser, onLogout }) {
     [activeMenu, location.pathname]
   );
   const roleMeta = ROLE_META[role] || ROLE_META[USER_ROLES.STAFF];
+  const [pendingCounts, setPendingCounts] = useState({ lostCards: 0, mismatches: 0 });
+
+  useEffect(() => {
+    if (role !== USER_ROLES.MANAGER) return;
+
+    const fetchPendingCounts = async () => {
+      try {
+        const [lostCards, mismatches] = await Promise.all([
+          approvalService.getLostCardCases(),
+          approvalService.getMismatchCases(),
+        ]);
+
+        const pendingLostCards = Array.isArray(lostCards)
+          ? lostCards.filter((item) => item.status === "PENDING").length
+          : 0;
+        const pendingMismatches = Array.isArray(mismatches)
+          ? mismatches.filter((item) => item.status === "PENDING").length
+          : 0;
+
+        setPendingCounts({ lostCards: pendingLostCards, mismatches: pendingMismatches });
+      } catch (err) {
+        console.error("Failed to fetch manager pending counts", err);
+      }
+    };
+
+    void fetchPendingCounts();
+    const interval = setInterval(fetchPendingCounts, 15000);
+    return () => clearInterval(interval);
+  }, [role, location.pathname]);
 
   const handleLogout = () => {
     if (window.confirm("Xác nhận đăng xuất khỏi hệ thống?")) {
@@ -167,6 +197,7 @@ export default function AppShell({ currentUser, onLogout }) {
               isActive={isActivePath(location.pathname, item.path)}
               onNavigate={() => setIsSidebarOpen(false)}
               isCollapsed={isCollapsed}
+              pendingCounts={pendingCounts}
             />
           ))}
         </nav>
@@ -278,8 +309,14 @@ export default function AppShell({ currentUser, onLogout }) {
   );
 }
 
-function NavItem({ item, isActive, onNavigate, isCollapsed }) {
+function NavItem({ item, isActive, onNavigate, isCollapsed, pendingCounts }) {
   const Icon = item.icon;
+  let badgeCount = 0;
+  if (item.path === "/manager/lost-card-approvals") {
+    badgeCount = pendingCounts?.lostCards || 0;
+  } else if (item.path === "/manager/mismatch-approvals") {
+    badgeCount = pendingCounts?.mismatches || 0;
+  }
 
   return (
     <Link
@@ -298,13 +335,21 @@ function NavItem({ item, isActive, onNavigate, isCollapsed }) {
       {isActive && <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-[color:var(--nav-active-strong)]" />}
       <span
         className={cn(
-          "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
+          "relative flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
           isActive ? "bg-[color:var(--nav-active-strong)] text-white" : "bg-[color:var(--nav-hover)] text-[color:var(--nav-muted)] group-hover:text-[color:var(--nav-foreground)]"
         )}
       >
         <Icon aria-hidden="true" />
+        {isCollapsed && badgeCount > 0 && (
+          <span className="absolute -right-1 -top-1 size-2.5 rounded-full bg-rose-500 ring-2 ring-white" />
+        )}
       </span>
       {!isCollapsed && <span className="truncate">{item.label}</span>}
+      {!isCollapsed && badgeCount > 0 && (
+        <span className="ml-auto flex size-5 shrink-0 items-center justify-center rounded-full bg-rose-500 text-[11px] font-black text-white shadow-sm animate-in zoom-in duration-200">
+          {badgeCount}
+        </span>
+      )}
     </Link>
   );
 }
