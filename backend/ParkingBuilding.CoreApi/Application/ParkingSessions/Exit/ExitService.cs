@@ -64,12 +64,6 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                 throw new BusinessException(ErrorCodes.SessionNotFound, StatusCodes.Status404NotFound);
             }
 
-            // Ensure the card is in a valid state if card exists
-            if (session.ParkingCard != null && session.ParkingCard.Status != CardStatus.IN_USE && session.ParkingCard.Status != CardStatus.LOST)
-            {
-                throw new BusinessException(ErrorCodes.CardHasNoActiveSession);
-            }
-
             return session;
         }
 
