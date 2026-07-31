@@ -34,6 +34,15 @@ export const parkingService = {
       }
 
       const areaName = s.areaName || `Khu ${areaCode}`;
+      let derivedVehicleType = s.vehicleTypeName;
+      if (!derivedVehicleType) {
+        const codeUpper = String(s.slotCode || areaCode || "").toUpperCase();
+        if (codeUpper.includes("BIKE") || codeUpper.startsWith("B1")) {
+          derivedVehicleType = "Xe Máy";
+        } else {
+          derivedVehicleType = "Xe Ô tô";
+        }
+      }
 
       if (!floorMap[floorCode]) {
         floorMap[floorCode] = { code: floorCode, name: `Tầng ${floorCode}` };
@@ -45,7 +54,7 @@ export const parkingService = {
           code:            areaCode,
           floorCode,
           name:            areaName,
-          vehicleTypeName: s.vehicleTypeName || null,
+          vehicleTypeName: derivedVehicleType,
           availableSlots:  0,
         };
       }
@@ -55,6 +64,7 @@ export const parkingService = {
         ...s,
         floorCode,
         areaCode,
+        vehicleTypeName: derivedVehicleType,
       };
     });
 

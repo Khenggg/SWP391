@@ -62,7 +62,7 @@ function AreaSection({ areaCode, areaName, vehicleTypeName, slots }) {
           <span className="text-sm font-bold text-slate-800">{displayName}</span>
           {vehicleTypeName && (
             <Badge variant="outline" className="px-2.5 py-0.5 text-xs font-semibold bg-blue-50 text-blue-700 border-blue-200">
-              {String(vehicleTypeName).includes("Mô tô") || String(vehicleTypeName).includes("Xe máy") ? (
+              {String(vehicleTypeName).includes("Mô tô") || String(vehicleTypeName).includes("Xe máy") || String(vehicleTypeName).includes("Máy") ? (
                 <Bike className="mr-1 h-3 w-3 inline text-blue-600" />
               ) : (
                 <Car className="mr-1 h-3 w-3 inline text-blue-600" />
@@ -166,6 +166,21 @@ export default function AvailableSlotsPage() {
     return () => clearInterval(timer);
   }, [load]);
 
+  // Calculate vehicle breakdown counts
+  const carAvailableCount = useMemo(() => {
+    return (slots || []).filter((s) => {
+      const vt = String(s?.vehicleTypeName || "").toLowerCase();
+      return vt.includes("ô tô") || vt.includes("car") || (!vt.includes("máy") && !vt.includes("bike"));
+    }).length;
+  }, [slots]);
+
+  const bikeAvailableCount = useMemo(() => {
+    return (slots || []).filter((s) => {
+      const vt = String(s?.vehicleTypeName || "").toLowerCase();
+      return vt.includes("máy") || vt.includes("bike") || vt.includes("mô tô");
+    }).length;
+  }, [slots]);
+
   // Safe Filter areas by floor & vehicle type & search query
   const filteredAreas = useMemo(() => {
     const q = (searchQuery || "").trim().toLowerCase();
@@ -174,12 +189,17 @@ export default function AvailableSlotsPage() {
       if (!a) return false;
       const areaCodeStr = a.code ? String(a.code) : "";
       const areaNameStr = a.name ? String(a.name) : "";
-      const vehicleTypeNameStr = a.vehicleTypeName ? String(a.vehicleTypeName) : "";
+      const vt = a.vehicleTypeName ? String(a.vehicleTypeName).toLowerCase() : "";
 
-      const matchFloor = filterFloor === "ALL" || a.floorCode === filterFloor;
+      const matchFloor =
+        filterFloor === "ALL" ||
+        a.floorCode === filterFloor ||
+        areaCodeStr.startsWith(filterFloor);
+
       const matchVehicle =
         filterVehicleType === "ALL" ||
-        vehicleTypeNameStr.toLowerCase().includes(filterVehicleType.toLowerCase());
+        (filterVehicleType === "Ô tô" && (vt.includes("ô tô") || vt.includes("car") || (!vt.includes("máy") && !vt.includes("bike")))) ||
+        (filterVehicleType === "Máy" && (vt.includes("máy") || vt.includes("bike") || vt.includes("mô tô")));
 
       const matchSearch =
         !q ||
@@ -201,7 +221,7 @@ export default function AvailableSlotsPage() {
   const floorCounts = useMemo(() => {
     return (floors || []).reduce((acc, f) => {
       if (f && f.code) {
-        acc[f.code] = (slots || []).filter((s) => s && s.floorCode === f.code).length;
+        acc[f.code] = (slots || []).filter((s) => s && (s.floorCode === f.code || String(s.areaCode || s.slotCode || "").startsWith(f.code))).length;
       }
       return acc;
     }, {});
@@ -229,6 +249,22 @@ export default function AvailableSlotsPage() {
               <p className="text-slate-300 text-sm mt-1 max-w-xl">
                 Tra cứu vị trí đỗ xe còn trống theo tầng, khu vực và loại xe. Dữ liệu được làm mới tự động mỗi 30 giây.
               </p>
+
+              {/* Vehicle Type Breakdown Strip */}
+              {!isLoading && !error && (
+                <div className="flex flex-wrap items-center gap-3 mt-4">
+                  <div className="inline-flex items-center gap-2 bg-blue-900/60 border border-blue-700/50 rounded-xl px-3.5 py-1.5 text-xs font-semibold text-blue-200">
+                    <Car className="h-4 w-4 text-blue-400" />
+                    <span>Xe Ô tô:</span>
+                    <strong className="text-white font-mono text-sm">{carAvailableCount} chỗ</strong>
+                  </div>
+                  <div className="inline-flex items-center gap-2 bg-indigo-900/60 border border-indigo-700/50 rounded-xl px-3.5 py-1.5 text-xs font-semibold text-indigo-200">
+                    <Bike className="h-4 w-4 text-indigo-400" />
+                    <span>Xe Máy:</span>
+                    <strong className="text-white font-mono text-sm">{bikeAvailableCount} chỗ</strong>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Overall Capacity Status Card */}
@@ -319,7 +355,7 @@ export default function AvailableSlotsPage() {
                 variant={filterVehicleType === "ALL" ? "default" : "outline"}
                 onClick={() => setFilterVehicleType("ALL")}
                 className={`rounded-xl text-xs font-semibold h-8 ${
-                  filterVehicleType === "ALL" ? "bg-blue-600 hover:bg-blue-700" : "border-slate-200 text-slate-700"
+                  filterVehicleType === "ALL" ? "bg-blue-600 hover:bg-blue-700 text-white" : "border-slate-200 text-slate-700"
                 }`}
               >
                 Tất cả
@@ -329,22 +365,22 @@ export default function AvailableSlotsPage() {
                 variant={filterVehicleType === "Ô tô" ? "default" : "outline"}
                 onClick={() => setFilterVehicleType("Ô tô")}
                 className={`rounded-xl text-xs font-semibold h-8 ${
-                  filterVehicleType === "Ô tô" ? "bg-blue-600 hover:bg-blue-700" : "border-slate-200 text-slate-700"
+                  filterVehicleType === "Ô tô" ? "bg-blue-600 hover:bg-blue-700 text-white" : "border-slate-200 text-slate-700"
                 }`}
               >
                 <Car className="mr-1 h-3.5 w-3.5" />
-                Xe Ô tô
+                Xe Ô tô ({carAvailableCount})
               </Button>
               <Button
                 size="sm"
                 variant={filterVehicleType === "Máy" ? "default" : "outline"}
                 onClick={() => setFilterVehicleType("Máy")}
                 className={`rounded-xl text-xs font-semibold h-8 ${
-                  filterVehicleType === "Máy" ? "bg-blue-600 hover:bg-blue-700" : "border-slate-200 text-slate-700"
+                  filterVehicleType === "Máy" ? "bg-blue-600 hover:bg-blue-700 text-white" : "border-slate-200 text-slate-700"
                 }`}
               >
                 <Bike className="mr-1 h-3.5 w-3.5" />
-                Xe Máy
+                Xe Máy ({bikeAvailableCount})
               </Button>
 
               {/* Refresh Button & Auto-refresh Timer */}
