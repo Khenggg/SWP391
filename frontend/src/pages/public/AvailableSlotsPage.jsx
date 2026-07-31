@@ -14,13 +14,14 @@ import {
   Sparkles,
   ShieldCheck,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 // ─── Interactive Slot Chip ──────────────────────────────────────────────────
 function SlotChip({ code, isEV }) {
+  const displayCode = code || "N/A";
   return (
     <div
       className={`group relative flex items-center gap-2 border rounded-xl px-3 py-2 text-xs font-mono font-bold transition-all duration-200 cursor-pointer shadow-sm hover:-translate-y-0.5 hover:shadow-md ${
@@ -34,7 +35,7 @@ function SlotChip({ code, isEV }) {
       ) : (
         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" />
       )}
-      <span>{code}</span>
+      <span>{displayCode}</span>
       {isEV && (
         <Badge className="ml-1 px-1 py-0 text-[9px] font-sans font-extrabold bg-amber-500 text-white border-none">
           EV Sạc
@@ -46,18 +47,22 @@ function SlotChip({ code, isEV }) {
 
 // ─── Area Section ─────────────────────────────────────────────────────────────
 function AreaSection({ areaCode, areaName, vehicleTypeName, slots }) {
+  const displayCode = areaCode || "KHU";
+  const displayName = areaName || `Khu ${displayCode}`;
+  const validSlots = Array.isArray(slots) ? slots : [];
+
   return (
     <Card className="overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-md transition-all duration-200 bg-white">
       {/* Area Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3.5 border-b border-slate-100 bg-slate-50/60">
         <div className="flex items-center gap-2.5">
           <span className="text-xs font-black font-mono text-slate-500 bg-slate-200/70 rounded px-2 py-0.5 uppercase tracking-wider">
-            {areaCode}
+            {displayCode}
           </span>
-          <span className="text-sm font-bold text-slate-800">{areaName}</span>
+          <span className="text-sm font-bold text-slate-800">{displayName}</span>
           {vehicleTypeName && (
             <Badge variant="outline" className="px-2.5 py-0.5 text-xs font-semibold bg-blue-50 text-blue-700 border-blue-200">
-              {vehicleTypeName.includes("Mô tô") || vehicleTypeName.includes("Xe máy") ? (
+              {String(vehicleTypeName).includes("Mô tô") || String(vehicleTypeName).includes("Xe máy") ? (
                 <Bike className="mr-1 h-3 w-3 inline text-blue-600" />
               ) : (
                 <Car className="mr-1 h-3 w-3 inline text-blue-600" />
@@ -68,19 +73,21 @@ function AreaSection({ areaCode, areaName, vehicleTypeName, slots }) {
         </div>
         <Badge variant="outline" className="font-bold text-emerald-700 bg-emerald-50 border-emerald-200 px-3 py-1">
           <CheckCircle2 className="mr-1 h-3.5 w-3.5 text-emerald-600 inline" />
-          {slots.length} chỗ khả dụng
+          {validSlots.length} chỗ khả dụng
         </Badge>
       </div>
 
       {/* Slot Grid */}
       <CardContent className="p-5">
-        {slots.length === 0 ? (
+        {validSlots.length === 0 ? (
           <p className="text-xs text-slate-400 text-center py-4 italic">Không còn vị trí khả dụng tại khu vực này</p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
-            {slots.map((s) => {
-              const isEV = (s.slotCode || "").toUpperCase().includes("ECO") || (s.slotCode || "").toUpperCase().includes("EV");
-              return <SlotChip key={s.id || s.slotCode} code={s.slotCode} isEV={isEV} />;
+            {validSlots.map((s, idx) => {
+              const code = s?.slotCode || `SLOT-${idx}`;
+              const codeStr = String(code).toUpperCase();
+              const isEV = codeStr.includes("ECO") || codeStr.includes("EV");
+              return <SlotChip key={s?.id || code || idx} code={code} isEV={isEV} />;
             })}
           </div>
         )}
@@ -105,9 +112,9 @@ function FloorCard({ floorCode, floorName, count, isSelected, onClick }) {
       </div>
       <p className={`text-2xl font-black ${isSelected ? "text-white" : "text-slate-900"}`}>{count}</p>
       <p className={`text-xs font-bold uppercase tracking-wider mt-0.5 ${isSelected ? "text-blue-100" : "text-slate-500"}`}>
-        {floorName}
+        {floorName || `Tầng ${floorCode}`}
       </p>
-      <span className={`text-[10px] block mt-0.5 ${isSelected ? "text-blue-200" : "text-slate-400"}`}>chỗ trống</span>
+      <span className={`text-[10px] block mt-0.5 ${isSelected ? "text-blue-200" : "text-slate-400"}`}>khả dụng</span>
     </Card>
   );
 }
@@ -129,9 +136,9 @@ export default function AvailableSlotsPage() {
     setError(null);
     try {
       const data = await parkingService.getAvailableSlots();
-      setSlots(data.slots || []);
-      setAreas(data.areas || []);
-      setFloors(data.floors || []);
+      setSlots(Array.isArray(data?.slots) ? data.slots : []);
+      setAreas(Array.isArray(data?.areas) ? data.areas : []);
+      setFloors(Array.isArray(data?.floors) ? data.floors : []);
       setCountdown(30);
     } catch {
       setError("Không thể tải dữ liệu vị trí bãi xe. Vui lòng thử lại.");
@@ -159,54 +166,49 @@ export default function AvailableSlotsPage() {
     return () => clearInterval(timer);
   }, [load]);
 
-  // Filter areas by floor & vehicle type & search query
+  // Safe Filter areas by floor & vehicle type & search query
   const filteredAreas = useMemo(() => {
-    return areas.filter((a) => {
+    const q = (searchQuery || "").trim().toLowerCase();
+
+    return (areas || []).filter((a) => {
+      if (!a) return false;
+      const areaCodeStr = a.code ? String(a.code) : "";
+      const areaNameStr = a.name ? String(a.name) : "";
+      const vehicleTypeNameStr = a.vehicleTypeName ? String(a.vehicleTypeName) : "";
+
       const matchFloor = filterFloor === "ALL" || a.floorCode === filterFloor;
       const matchVehicle =
         filterVehicleType === "ALL" ||
-        (a.vehicleTypeName && a.vehicleTypeName.toLowerCase().includes(filterVehicleType.toLowerCase()));
+        vehicleTypeNameStr.toLowerCase().includes(filterVehicleType.toLowerCase());
 
-      const q = searchQuery.trim().toLowerCase();
       const matchSearch =
         !q ||
-        a.code.toLowerCase().includes(q) ||
-        a.name.toLowerCase().includes(q) ||
-        slots.some((s) => s.areaCode === a.code && s.slotCode.toLowerCase().includes(q));
+        areaCodeStr.toLowerCase().includes(q) ||
+        areaNameStr.toLowerCase().includes(q) ||
+        (slots || []).some(
+          (s) =>
+            s &&
+            s.areaCode === a.code &&
+            s.slotCode &&
+            String(s.slotCode).toLowerCase().includes(q)
+        );
 
       return matchFloor && matchVehicle && matchSearch;
     });
   }, [areas, filterFloor, filterVehicleType, searchQuery, slots]);
 
-  // Count slots per vehicle type
-  const vehicleTypeCounts = useMemo(() => {
-    let car = 0;
-    let bike = 0;
-    let other = 0;
-
-    areas.forEach((area) => {
-      const areaSlots = slots.filter((s) => s.areaCode === area.code);
-      const count = areaSlots.length;
-      const vt = (area.vehicleTypeName || "").toLowerCase();
-
-      if (vt.includes("mô tô") || vt.includes("máy") || vt.includes("bike")) {
-        bike += count;
-      } else if (vt.includes("tô") || vt.includes("car") || vt.includes("ô tô")) {
-        car += count;
-      } else {
-        other += count;
+  // Count slots per floor for summary
+  const floorCounts = useMemo(() => {
+    return (floors || []).reduce((acc, f) => {
+      if (f && f.code) {
+        acc[f.code] = (slots || []).filter((s) => s && s.floorCode === f.code).length;
       }
-    });
+      return acc;
+    }, {});
+  }, [floors, slots]);
 
-    if (car + bike + other === 0 && slots.length > 0) {
-      car = slots.length;
-    }
-
-    return { car, bike, other };
-  }, [areas, slots]);
-
-  const totalAvailable = slots.length;
-  const estimatedCapacity = 40; // Total baseline capacity for percentage bar
+  const totalAvailable = (slots || []).length;
+  const estimatedCapacity = 40;
   const availabilityPercentage = Math.min(100, Math.round((totalAvailable / estimatedCapacity) * 100));
 
   return (
@@ -227,29 +229,6 @@ export default function AvailableSlotsPage() {
               <p className="text-slate-300 text-sm mt-1 max-w-xl">
                 Tra cứu vị trí đỗ xe còn trống theo tầng, khu vực và loại xe. Dữ liệu được làm mới tự động mỗi 30 giây.
               </p>
-
-              {/* Vehicle Type Mini Badge Summary */}
-              {!isLoading && !error && (
-                <div className="flex flex-wrap gap-2.5 mt-4 pt-1">
-                  <div className="bg-blue-900/50 border border-blue-500/30 rounded-xl px-3 py-1.5 flex items-center gap-2 text-xs">
-                    <Car className="h-4 w-4 text-blue-400" />
-                    <span className="text-slate-300 font-medium">Xe Ô tô:</span>
-                    <span className="font-bold text-white font-mono text-sm">{vehicleTypeCounts.car} chỗ</span>
-                  </div>
-                  <div className="bg-emerald-900/50 border border-emerald-500/30 rounded-xl px-3 py-1.5 flex items-center gap-2 text-xs">
-                    <Bike className="h-4 w-4 text-emerald-400" />
-                    <span className="text-slate-300 font-medium">Xe Máy:</span>
-                    <span className="font-bold text-white font-mono text-sm">{vehicleTypeCounts.bike} chỗ</span>
-                  </div>
-                  {vehicleTypeCounts.other > 0 && (
-                    <div className="bg-amber-900/50 border border-amber-500/30 rounded-xl px-3 py-1.5 flex items-center gap-2 text-xs">
-                      <CarFront className="h-4 w-4 text-amber-400" />
-                      <span className="text-slate-300 font-medium">Khác:</span>
-                      <span className="font-bold text-white font-mono text-sm">{vehicleTypeCounts.other} chỗ</span>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Overall Capacity Status Card */}
@@ -282,7 +261,7 @@ export default function AvailableSlotsPage() {
       {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
         {/* Floor Summary Grid */}
-        {!isLoading && !error && floors.length > 0 && (
+        {!isLoading && !error && (floors || []).length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <Card
               onClick={() => setFilterFloor("ALL")}
@@ -431,10 +410,16 @@ export default function AvailableSlotsPage() {
         ) : (
           <div className="space-y-4">
             {filteredAreas.map((area) => {
-              const q = searchQuery.trim().toLowerCase();
-              const areaSlots = slots.filter((s) => {
+              const q = (searchQuery || "").trim().toLowerCase();
+              const areaSlots = (slots || []).filter((s) => {
+                if (!s) return false;
+                const slotCodeStr = s.slotCode ? String(s.slotCode) : "";
+                const areaCodeStr = area && area.code ? String(area.code) : "";
                 const matchArea = s.areaCode === area.code;
-                const matchQuery = !q || s.slotCode.toLowerCase().includes(q) || area.code.toLowerCase().includes(q);
+                const matchQuery =
+                  !q ||
+                  slotCodeStr.toLowerCase().includes(q) ||
+                  areaCodeStr.toLowerCase().includes(q);
                 return matchArea && matchQuery;
               });
 
