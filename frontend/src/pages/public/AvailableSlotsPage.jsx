@@ -300,7 +300,10 @@ export default function AvailableSlotsPage() {
         {!isLoading && !error && (floors || []).length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <Card
-              onClick={() => setFilterFloor("ALL")}
+              onClick={() => {
+                setFilterFloor("ALL");
+                setFilterVehicleType("ALL");
+              }}
               className={`p-4 text-center cursor-pointer transition-all duration-200 border ${
                 filterFloor === "ALL"
                   ? "bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-300"
@@ -324,7 +327,10 @@ export default function AvailableSlotsPage() {
                 floorName={f.name}
                 count={floorCounts[f.code] ?? 0}
                 isSelected={filterFloor === f.code}
-                onClick={() => setFilterFloor(f.code)}
+                onClick={() => {
+                  setFilterFloor(f.code);
+                  setFilterVehicleType("ALL");
+                }}
               />
             ))}
           </div>
