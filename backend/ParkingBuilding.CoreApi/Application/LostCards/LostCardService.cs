@@ -92,6 +92,23 @@ public class LostCardService : ILostCardService
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
+                // Create Notification for Managers
+                var managerUserIds = await _context.Users
+                    .Where(u => u.Role == Domain.Enums.UserRole.MANAGER || u.Role == Domain.Enums.UserRole.ADMIN)
+                    .Select(u => u.Id)
+                    .ToListAsync();
+
+                foreach (var mgrId in managerUserIds)
+                {
+                    await _notificationWriter.CreateNotificationAsync(
+                        userId: mgrId,
+                        title: "Yêu cầu duyệt báo mất thẻ mới",
+                        content: $"Có hồ sơ báo mất thẻ mới cho phiên đỗ {session.SessionCode} (thẻ {session.ParkingCard?.CardNumber}) cần Quản lý phê duyệt.",
+                        type: "SYSTEM",
+                        priority: "HIGH",
+                        parkingSessionId: session.Id);
+                }
+
                 await _auditWriter.WriteAuditLogAsync(new AuditWriteDto
                 {
                     Action = "LOST_CARD_CREATED",
