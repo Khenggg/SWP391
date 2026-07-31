@@ -224,9 +224,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                 }
             }
 
-            var pricing = await _dbContext.PricingRules
-                .FirstOrDefaultAsync(p => p.VehicleTypeId == request.VehicleTypeId && p.Status == "ACTIVE" && p.EffectiveFrom <= DateTimeOffset.UtcNow);
-            if (pricing == null) throw new BusinessException(ErrorCodes.PricingRuleNotFound);
+            var pricing = await GetActivePricingRuleAsync(request.VehicleTypeId);
 
             long resolvedAreaId = vehicleType.RequiresSlot
                 ? monthlyPass.Slot!.AreaId
@@ -323,9 +321,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
             var vehicleType = await _dbContext.VehicleTypes.FindAsync(request.VehicleTypeId);
             if (vehicleType == null) throw new BusinessException(ErrorCodes.VehicleTypeNotFound);
 
-            var pricing = await _dbContext.PricingRules
-                .FirstOrDefaultAsync(p => p.VehicleTypeId == request.VehicleTypeId && p.Status == "ACTIVE" && p.EffectiveFrom <= DateTimeOffset.UtcNow);
-            if (pricing == null) throw new BusinessException(ErrorCodes.PricingRuleNotFound);
+            var pricing = await GetActivePricingRuleAsync(request.VehicleTypeId);
 
             var normalizedPlate = NormalizePlate(request.LicensePlate);
 
@@ -611,9 +607,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
             var vehicleType = await _dbContext.VehicleTypes.FindAsync(request.VehicleTypeId);
             if (vehicleType == null) throw new BusinessException(ErrorCodes.VehicleTypeNotFound);
 
-            var pricing = await _dbContext.PricingRules
-                .FirstOrDefaultAsync(p => p.VehicleTypeId == request.VehicleTypeId && p.Status == "ACTIVE" && p.EffectiveFrom <= DateTimeOffset.UtcNow);
-            if (pricing == null) throw new BusinessException(ErrorCodes.PricingRuleNotFound);
+            var pricing = await GetActivePricingRuleAsync(request.VehicleTypeId);
 
             var activeReservation = await _dbContext.Reservations
                 .Include(r => r.Floor)
@@ -1130,6 +1124,31 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                 .Replace(".", "")
                 .Replace(" ", "")
                 .ToUpperInvariant() ?? "";
+        }
+
+        private async Task<PricingRule> GetActivePricingRuleAsync(long vehicleTypeId)
+        {
+            var pricing = await _dbContext.PricingRules
+                .Where(p => p.VehicleTypeId == vehicleTypeId && p.Status == "ACTIVE" && p.EffectiveFrom <= DateTimeOffset.UtcNow)
+                .OrderByDescending(p => p.EffectiveFrom)
+                .FirstOrDefaultAsync();
+
+            pricing ??= await _dbContext.PricingRules
+                .Where(p => p.VehicleTypeId == vehicleTypeId && p.Status == "ACTIVE")
+                .OrderByDescending(p => p.EffectiveFrom)
+                .FirstOrDefaultAsync();
+
+            pricing ??= await _dbContext.PricingRules
+                .Where(p => p.VehicleTypeId == vehicleTypeId)
+                .OrderByDescending(p => p.Id)
+                .FirstOrDefaultAsync();
+
+            if (pricing == null)
+            {
+                throw new BusinessException(ErrorCodes.PricingRuleNotFound);
+            }
+
+            return pricing;
         }
     }
 }

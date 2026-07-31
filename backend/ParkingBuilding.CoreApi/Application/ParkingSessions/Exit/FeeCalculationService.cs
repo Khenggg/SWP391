@@ -159,6 +159,16 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                 .OrderByDescending(p => p.EffectiveFrom)
                 .FirstOrDefaultAsync();
 
+            activeRule ??= await _context.PricingRules
+                .Where(p => p.VehicleTypeId == session.VehicleTypeId && p.Status == "ACTIVE")
+                .OrderByDescending(p => p.EffectiveFrom)
+                .FirstOrDefaultAsync();
+
+            activeRule ??= await _context.PricingRules
+                .Where(p => p.VehicleTypeId == session.VehicleTypeId)
+                .OrderByDescending(p => p.Id)
+                .FirstOrDefaultAsync();
+
             if (activeRule == null)
             {
                 throw new BusinessException(ErrorCodes.PricingRuleNotFound);
