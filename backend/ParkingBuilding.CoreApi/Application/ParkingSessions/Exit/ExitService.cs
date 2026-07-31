@@ -44,9 +44,11 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                 throw new BusinessException(ErrorCodes.CardCodeRequired); // Maintain error code for compatibility
             }
 
-            var queryLower = query.Trim().ToLower();
+            var queryClean = query.Trim();
+            var queryLower = queryClean.ToLower();
+            var queryNormalizedPlate = NormalizePlate(queryClean);
 
-            // Search for an active session matching EITHER the Card Number OR the License Plate
+            // Search for an active session matching EITHER the Card Number OR the License Plate OR Normalized Plate
             var session = await _context.ParkingSessions
                 .Include(s => s.ParkingCard)
                 .Include(s => s.PricingRule)
@@ -54,15 +56,16 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                 .FirstOrDefaultAsync(s =>
                     (s.Status == "ACTIVE" || s.Status == "LOST_CARD_PENDING") &&
                     ((s.ParkingCard != null && s.ParkingCard.CardNumber != null && s.ParkingCard.CardNumber.ToLower() == queryLower)
-                     || (s.PlateNumber != null && s.PlateNumber.ToLower() == queryLower)));
+                     || (s.PlateNumber != null && s.PlateNumber.ToLower() == queryLower)
+                     || (!string.IsNullOrEmpty(queryNormalizedPlate) && s.NormalizedPlateNumber != null && s.NormalizedPlateNumber == queryNormalizedPlate)));
 
             if (session == null)
             {
                 throw new BusinessException(ErrorCodes.SessionNotFound, StatusCodes.Status404NotFound);
             }
 
-            // Ensure the card is in a valid state (IN_USE or LOST)
-            if (session.ParkingCard.Status != CardStatus.IN_USE && session.ParkingCard.Status != CardStatus.LOST)
+            // Ensure the card is in a valid state if card exists
+            if (session.ParkingCard != null && session.ParkingCard.Status != CardStatus.IN_USE && session.ParkingCard.Status != CardStatus.LOST)
             {
                 throw new BusinessException(ErrorCodes.CardHasNoActiveSession);
             }
