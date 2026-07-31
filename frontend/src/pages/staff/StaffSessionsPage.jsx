@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { RefreshCw, Search } from "lucide-react";
+import { RefreshCw, Search, LogOut, FileWarning, CheckCircle2, Clock, Car, CreditCard } from "lucide-react";
 import { staffSessionService } from "@/services/staffSessionService";
 import { formatDateTime } from "@/lib/format";
 import { PageHeader, PageShell } from "@/components/layout/PageScaffold";
@@ -53,7 +53,7 @@ export default function StaffSessionsPage() {
         icon={Search}
         actions={
           <Button variant="outline" onClick={loadSessions} disabled={isLoading}>
-            <RefreshCw data-icon="inline-start" />
+            <RefreshCw data-icon="inline-start" className={isLoading ? "animate-spin" : ""} />
             Tải lại
           </Button>
         }
@@ -68,13 +68,13 @@ export default function StaffSessionsPage() {
           <label className="flex flex-col gap-1.5">
             <span className="app-field-label">Từ khóa</span>
             <div className="flex items-center gap-2">
-              <Search aria-hidden="true" className="text-muted-foreground" />
+              <Search aria-hidden="true" className="text-muted-foreground h-4 w-4" />
               <Input
                 name="staff-session-search"
                 autoComplete="off"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Nhập từ khóa..."
+                placeholder="Nhập biển số, mã thẻ hoặc mã phiên..."
               />
             </div>
           </label>
@@ -84,7 +84,7 @@ export default function StaffSessionsPage() {
       <Card className="app-table-card">
         <CardContent className="pt-4">
           {isLoading ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">Đang tải phiên...</div>
+            <div className="p-8 text-center text-sm text-muted-foreground">Đang tải danh sách phiên...</div>
           ) : error ? (
             <div className="p-8 text-center text-sm font-medium text-destructive">{error}</div>
           ) : filtered.length === 0 ? (
@@ -92,37 +92,80 @@ export default function StaffSessionsPage() {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Phiên</TableHead>
-                  <TableHead>Xe</TableHead>
-                  <TableHead>Vị trí</TableHead>
-                  <TableHead>Vào lúc</TableHead>
-                  <TableHead>Thanh toán</TableHead>
-                  <TableHead className="text-right">Thao tác</TableHead>
+                <TableRow className="bg-slate-50/70 hover:bg-slate-50/70">
+                  <TableHead className="font-semibold">Phiên & Thẻ</TableHead>
+                  <TableHead className="font-semibold">Phương tiện</TableHead>
+                  <TableHead className="font-semibold">Vị trí đỗ</TableHead>
+                  <TableHead className="font-semibold">Thời gian vào</TableHead>
+                  <TableHead className="font-semibold">Thanh toán</TableHead>
+                  <TableHead className="text-right font-semibold pr-4">Thao tác xử lý</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((session) => (
-                  <TableRow key={session.id}>
-                    <TableCell>
-                      <div className="font-mono font-bold">{session.sessionCode}</div>
-                      <div className="text-xs text-muted-foreground">{session.cardCode}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-mono font-bold">{session.plateNumber}</div>
-                      <div className="text-xs text-muted-foreground">{session.vehicleTypeName}</div>
-                    </TableCell>
-                    <TableCell>{session.slotCode || session.areaCode}</TableCell>
-                    <TableCell>{formatDateTime(session.entryTime)}</TableCell>
-                    <TableCell><Badge variant="secondary">{session.paymentStatus}</Badge></TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button asChild size="sm" variant="outline"><Link to="/staff/exit">Ra bãi</Link></Button>
-                        <Button asChild size="sm" variant="ghost"><Link to="/staff/lost-card">Mất thẻ</Link></Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {filtered.map((session) => {
+                  const targetQuery = encodeURIComponent(session.plateNumber || session.cardCode || "");
+                  const isPaid = session.paymentStatus === "PAID";
+
+                  return (
+                    <TableRow key={session.id} className="hover:bg-slate-50 transition-colors">
+                      <TableCell>
+                        <div className="font-mono font-bold text-slate-800">{session.sessionCode}</div>
+                        <div className="text-xs font-mono text-emerald-700 bg-emerald-50 border border-emerald-100 rounded px-1.5 py-0.5 inline-block mt-0.5">
+                          {session.cardCode || "Chưa gán thẻ"}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-mono font-bold text-slate-900">{session.plateNumber || "---"}</div>
+                        <div className="text-xs text-slate-500 font-medium">{session.vehicleTypeName}</div>
+                      </TableCell>
+                      <TableCell className="font-medium text-slate-700">
+                        {session.slotCode || session.areaCode || "Chưa xếp vị trí"}
+                      </TableCell>
+                      <TableCell className="text-xs text-slate-600 whitespace-nowrap">
+                        {formatDateTime(session.entryTime)}
+                      </TableCell>
+                      <TableCell>
+                        {isPaid ? (
+                          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold inline-flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                            Đã thanh toán
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 font-semibold inline-flex items-center gap-1">
+                            <Clock className="h-3 w-3 text-amber-600" />
+                            Chưa thanh toán
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right whitespace-nowrap pr-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            asChild
+                            size="sm"
+                            className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs h-8 px-3 rounded-lg shadow-sm transition-all"
+                          >
+                            <Link to={`/staff/exit?query=${targetQuery}`}>
+                              <LogOut className="mr-1.5 h-3.5 w-3.5" />
+                              Cho xe ra
+                            </Link>
+                          </Button>
+
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="outline"
+                            className="bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200 hover:border-rose-300 font-semibold text-xs h-8 px-3 rounded-lg transition-all"
+                          >
+                            <Link to={`/staff/lost-card?query=${targetQuery}`}>
+                              <FileWarning className="mr-1.5 h-3.5 w-3.5 text-rose-600" />
+                              Báo mất thẻ
+                            </Link>
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
