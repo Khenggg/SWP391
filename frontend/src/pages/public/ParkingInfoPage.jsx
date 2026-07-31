@@ -48,8 +48,19 @@ export default function ParkingInfoPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await parkingService.getParkingInfo();
-      setInfo(data);
+      const [data, slotsData] = await Promise.all([
+        parkingService.getParkingInfo(),
+        parkingService.getAvailableSlots().catch(() => null),
+      ]);
+
+      const activeSlotsCount = Array.isArray(slotsData?.slots)
+        ? slotsData.slots.length
+        : (data?.availableSlots ?? null);
+
+      setInfo({
+        ...data,
+        availableSlots: activeSlotsCount ?? data?.availableSlots ?? 0,
+      });
     } catch {
       setError("Không tải được thông tin bãi xe.");
     } finally {

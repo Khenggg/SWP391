@@ -196,11 +196,7 @@ export default function AvailableSlotsPage() {
         ) : (
           <div className="space-y-4">
             {filteredAreas.map((area) => {
-              const areaSlots = slots.filter((s) => {
-                const parts   = (s.slotCode || "").split("-");
-                const ac      = s.areaCode || (parts.length >= 2 ? `${parts[0]}-${parts[1]}` : "");
-                return ac === area.code;
-              });
+              const areaSlots = slots.filter((s) => s.areaCode === area.code);
               return (
                 <AreaSection
                   key={area.code}

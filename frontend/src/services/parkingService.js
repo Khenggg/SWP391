@@ -14,41 +14,55 @@ export const parkingService = {
     const res = await publicAxiosClient.get("/available-slots");
     if (!res.success) return { areas: [], slots: [], floors: [], vehicleTypes: [] };
 
-    /** Backend trả về: Array<{ id, slotCode, areaId, allowedVehicleTypeId }>
-     *  Mock trả về thêm: areaCode, floorCode, vehicleTypeName (để tiện hiển thị)
-     *  Frontend parse slotCode để tách floor/area nếu cần
-     */
-    const slots = Array.isArray(res.data) ? res.data : [];
+    const rawSlots = Array.isArray(res.data) ? res.data : [];
 
-    // Derive floors & areas from slotCode pattern "FLOOR-AREA-NUM"  e.g. "B2-A-001"
     const floorMap = {};
     const areaMap  = {};
 
-    slots.forEach((s) => {
-      // Use bonus fields from mock if available, otherwise parse from slotCode
-      const parts     = (s.slotCode || "").split("-");
-      const floorCode = s.floorCode  || parts[0] || "–";
-      const areaCode  = s.areaCode   || (parts.length >= 2 ? `${parts[0]}-${parts[1]}` : floorCode);
+    const slots = rawSlots.map((s) => {
+      const parts = (s.slotCode || "").split("-");
+      const floorCode = s.floorCode || parts[0] || "B";
+      let areaCode = s.areaCode;
+      if (!areaCode) {
+        if (parts.length >= 3) {
+          areaCode = `${parts[0]}-${parts[1]}`;
+        } else if (parts.length === 2) {
+          areaCode = parts[0];
+        } else {
+          areaCode = floorCode;
+        }
+      }
 
-      if (!floorMap[floorCode]) floorMap[floorCode] = { code: floorCode, name: `Tầng ${floorCode}` };
+      const areaName = s.areaName || `Khu ${areaCode}`;
+
+      if (!floorMap[floorCode]) {
+        floorMap[floorCode] = { code: floorCode, name: `Tầng ${floorCode}` };
+      }
+
       if (!areaMap[areaCode]) {
         areaMap[areaCode] = {
-          id:              s.areaId,
+          id:              s.areaId || areaCode,
           code:            areaCode,
           floorCode,
-          name:            s.areaName || `Khu ${areaCode}`,
+          name:            areaName,
           vehicleTypeName: s.vehicleTypeName || null,
           availableSlots:  0,
         };
       }
       areaMap[areaCode].availableSlots += 1;
+
+      return {
+        ...s,
+        floorCode,
+        areaCode,
+      };
     });
 
     return {
       slots,
       floors:       Object.values(floorMap),
       areas:        Object.values(areaMap),
-      vehicleTypes: [], // fetched separately via getVehicleTypes()
+      vehicleTypes: [],
     };
   },
 
