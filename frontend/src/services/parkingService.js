@@ -118,6 +118,12 @@ export const parkingService = {
     throw new Error(res.message || "Cập nhật tầng thất bại");
   },
 
+  deleteFloor: async (id) => {
+    const res = await coreAxiosClient.delete(`/floors/${id}`);
+    if (res.success) return true;
+    throw new Error(res.message || "Xóa tầng thất bại");
+  },
+
   addArea: async (areaData) => {
     const res = await coreAxiosClient.post("/areas", areaData);
     if (res.success) return res.data;

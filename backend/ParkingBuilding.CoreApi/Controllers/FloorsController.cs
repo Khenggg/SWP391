@@ -42,4 +42,13 @@ public class FloorsController : BaseApiController
         var result = await _service.UpdateAsync(id, request);
         return Success(result, "Update floor successfully.");
     }
+
+    // DELETE
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "MANAGER,ADMIN")]
+    public async Task<IActionResult> Delete(long id)
+    {
+        await _service.DeleteAsync(id);
+        return Success("Delete floor successfully.");
+    }
 }

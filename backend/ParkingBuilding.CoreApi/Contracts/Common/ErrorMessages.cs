@@ -68,6 +68,7 @@ public static class ErrorMessages
         [ErrorCodes.FloorNameRequired] = "Ten tang la bat buoc.",
         [ErrorCodes.FloorCodeExists] = "Ma tang da ton tai.",
         [ErrorCodes.SelectedFloorNotActive] = "Tang duoc chon hien khong hoat dong.",
+        [ErrorCodes.FloorHasAreas] = "Không thể xóa tầng này vì đang có khu vực hoạt động.",
         [ErrorCodes.GateNotFound] = "Khong tim thay cong vao/ra.",
         [ErrorCodes.GateNotActive] = "Cong khong hoat dong.",
         [ErrorCodes.EntryGateRequired] = "Cong vao la bat buoc.",
