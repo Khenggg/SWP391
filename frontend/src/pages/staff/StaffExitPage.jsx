@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { CheckCircle2, Car, CreditCard, Receipt, Clock } from "lucide-react";
 import { staffSessionService } from "@/services/staffSessionService";
@@ -129,6 +129,17 @@ export default function StaffExitPage() {
       if (!silentPolling && lookupSequenceRef.current === lookupId) setIsLoading(false);
     }
   }, [loadFee]);
+
+  const [searchParams] = useSearchParams();
+  const queryParam = searchParams.get("query") || searchParams.get("cardCode") || searchParams.get("plate");
+
+  useEffect(() => {
+    if (queryParam) {
+      const cleanParam = queryParam.trim();
+      setCardCode(cleanParam);
+      void loadSessionByCard(cleanParam);
+    }
+  }, [queryParam, loadSessionByCard]);
 
   const runSearch = useCallback(() => loadSessionByCard(cardCode), [cardCode, loadSessionByCard]);
 
