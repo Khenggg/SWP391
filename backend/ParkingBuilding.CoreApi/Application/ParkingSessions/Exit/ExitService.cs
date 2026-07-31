@@ -523,24 +523,30 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
             string? exitPlateImageUrl,
             string? exitVehicleImageUrl)
         {
-            var hasEntryPlateImage = await _context.ParkingSessionImages
-                .AnyAsync(image => image.SessionId == sessionId
-                    && image.ImageType == "ENTRY_PLATE"
-                    && !string.IsNullOrWhiteSpace(image.ImageUrl));
+            var hasAnyImages = await _context.ParkingSessionImages
+                .AnyAsync(image => image.SessionId == sessionId);
 
-            if (!hasEntryPlateImage)
+            if (hasAnyImages)
             {
-                throw new BusinessException(ErrorCodes.EntryPlateImageMissing);
-            }
+                var hasEntryPlateImage = await _context.ParkingSessionImages
+                    .AnyAsync(image => image.SessionId == sessionId
+                        && image.ImageType == "ENTRY_PLATE"
+                        && !string.IsNullOrWhiteSpace(image.ImageUrl));
 
-            var hasEntryVehicleImage = await _context.ParkingSessionImages
-                .AnyAsync(image => image.SessionId == sessionId
-                    && image.ImageType == "ENTRY_VEHICLE"
-                    && !string.IsNullOrWhiteSpace(image.ImageUrl));
+                if (!hasEntryPlateImage)
+                {
+                    throw new BusinessException(ErrorCodes.EntryPlateImageMissing);
+                }
 
-            if (!hasEntryVehicleImage)
-            {
-                throw new BusinessException(ErrorCodes.EntryVehicleImageMissing);
+                var hasEntryVehicleImage = await _context.ParkingSessionImages
+                    .AnyAsync(image => image.SessionId == sessionId
+                        && image.ImageType == "ENTRY_VEHICLE"
+                        && !string.IsNullOrWhiteSpace(image.ImageUrl));
+
+                if (!hasEntryVehicleImage)
+                {
+                    throw new BusinessException(ErrorCodes.EntryVehicleImageMissing);
+                }
             }
 
             var hasExitPlateImage = !string.IsNullOrWhiteSpace(exitPlateImageUrl)
