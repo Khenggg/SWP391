@@ -143,6 +143,9 @@ export default function StaffLostCardTrackingTable({
 
                   const managerNote = item.decisionReason || item.rejectionReason || item.decisionNote || item.note || item.approvalNote;
 
+                  const sessionStatus = item.sessionStatus || item.parkingSession?.status || "";
+                  const isSessionCompleted = sessionStatus === "COMPLETED";
+
                   return (
                     <TableRow key={item.id} className="hover:bg-slate-50">
                       <TableCell className="font-mono text-sm font-bold text-blue-600 whitespace-nowrap">
@@ -187,16 +190,28 @@ export default function StaffLostCardTrackingTable({
                       </TableCell>
                       <TableCell className="text-right whitespace-nowrap">
                         {item.status === "APPROVED" ? (
-                          <Button
-                            size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs h-8 px-3"
-                            onClick={() =>
-                              navigate(`/staff/exit?query=${encodeURIComponent(plate || card || "")}`)
-                            }
-                          >
-                            Cho xe ra
-                            <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-                          </Button>
+                          isSessionCompleted ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled
+                              className="h-8 px-3 text-xs font-semibold text-emerald-700 bg-emerald-50 border-emerald-200 cursor-default opacity-90"
+                            >
+                              <ShieldCheck className="mr-1.5 h-3.5 w-3.5 text-emerald-600" />
+                              Đã cho xe ra
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs h-8 px-3"
+                              onClick={() =>
+                                navigate(`/staff/exit?query=${encodeURIComponent(plate || card || "")}`)
+                              }
+                            >
+                              Cho xe ra
+                              <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                            </Button>
+                          )
                         ) : (
                           <Button
                             variant="ghost"
