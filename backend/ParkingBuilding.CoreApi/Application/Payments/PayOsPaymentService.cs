@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,6 +15,8 @@ using PayOS.Models;
 using PayOS.Models.V2.PaymentRequests;
 using PayOS.Models.Webhooks;
 
+using ParkingBuilding.CoreApi.Application.Notifications;
+
 namespace ParkingBuilding.CoreApi.Application.Payments;
 
 public class PayOsPaymentService : IPayOsPaymentService
@@ -25,6 +27,7 @@ public class PayOsPaymentService : IPayOsPaymentService
     private static long _lastGeneratedOrderCode;
     private readonly ParkingDbContext _context;
     private readonly IAuditWriterService _auditWriter;
+    private readonly INotificationWriterService _notificationWriter;
     private readonly PayOsOptions _options;
     private readonly PayOSClient? _client;
     private readonly ILogger<PayOsPaymentService> _logger;
@@ -32,11 +35,13 @@ public class PayOsPaymentService : IPayOsPaymentService
     public PayOsPaymentService(
         ParkingDbContext context,
         IAuditWriterService auditWriter,
+        INotificationWriterService notificationWriter,
         IOptions<PayOsOptions> options,
         ILogger<PayOsPaymentService> logger)
     {
         _context = context;
         _auditWriter = auditWriter;
+        _notificationWriter = notificationWriter;
         _options = options.Value;
         _logger = logger;
 
@@ -618,6 +623,20 @@ public class PayOsPaymentService : IPayOsPaymentService
 
             await _context.SaveChangesAsync(cancellationToken);
 
+            // Create notification for driver
+            var resDriverUserId = payment.Reservation.Driver?.UserId ?? payment.Reservation.CreatedBy;
+            if (resDriverUserId.HasValue)
+            {
+                await _notificationWriter.CreateNotificationAsync(
+                    userId: resDriverUserId.Value,
+                    title: "Thanh toán đặt chỗ qua PayOS thành công",
+                    content: $"Thanh toán VietQR PayOS thành công {data.Amount:N0} VNĐ cho mã đặt chỗ {payment.Reservation.ReservationCode}.",
+                    type: "PAYMENT",
+                    priority: "NORMAL",
+                    paymentId: payment.Id,
+                    reservationId: payment.ReservationId);
+            }
+
             await _auditWriter.WriteAuditLogAsync(
                 action: "PAYOS_PAYMENT_CONFIRMED",
                 targetType: "Payment",
@@ -677,6 +696,20 @@ public class PayOsPaymentService : IPayOsPaymentService
             mpApp.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync(cancellationToken);
+
+            // Create notification for driver
+            var mpDriverUserId = mpApp.Driver?.UserId;
+            if (mpDriverUserId.HasValue)
+            {
+                await _notificationWriter.CreateNotificationAsync(
+                    userId: mpDriverUserId.Value,
+                    title: "Thanh toán vé tháng qua PayOS thành công",
+                    content: $"Thanh toán VietQR PayOS thành công {data.Amount:N0} VNĐ cho đơn đăng ký vé tháng.",
+                    type: "PAYMENT",
+                    priority: "NORMAL",
+                    paymentId: payment.Id,
+                    monthlyPassId: mpApp.Id);
+            }
 
             await _auditWriter.WriteAuditLogAsync(
                 action: "PAYOS_MONTHLY_PASS_PAYMENT_CONFIRMED",
@@ -757,6 +790,25 @@ public class PayOsPaymentService : IPayOsPaymentService
             payment.ParkingSession.PaymentStatus = "PAID";
             payment.ParkingSession.UpdatedAt = now;
             payment.PaymentValidUntil = now.AddMinutes(bufferMinutes);
+
+            // Create notification for driver
+            var exitTargetUserId = payment.ParkingSession.ClaimedByUserId;
+            if (!exitTargetUserId.HasValue && payment.ParkingSession.DriverId.HasValue)
+            {
+                var driver = await _context.DriverProfiles.FindAsync(payment.ParkingSession.DriverId.Value);
+                exitTargetUserId = driver?.UserId;
+            }
+            if (exitTargetUserId.HasValue)
+            {
+                await _notificationWriter.CreateNotificationAsync(
+                    userId: exitTargetUserId.Value,
+                    title: "Thanh toán phí đỗ xe qua PayOS thành công",
+                    content: $"Thanh toán VietQR PayOS thành công {data.Amount:N0} VNĐ cho phiên đỗ {payment.ParkingSession.SessionCode}.",
+                    type: "PAYMENT",
+                    priority: "NORMAL",
+                    paymentId: payment.Id,
+                    parkingSessionId: payment.ParkingSession.Id);
+            }
 
             await _context.SaveChangesAsync(cancellationToken);
 

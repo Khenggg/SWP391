@@ -15,6 +15,8 @@ using ParkingBuilding.CoreApi.Application.Reservations;
 using ParkingBuilding.CoreApi.Application.MonthlyPasses;
 using ParkingBuilding.CoreApi.Application.Storage;
 
+using ParkingBuilding.CoreApi.Application.Notifications;
+
 namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
 {
     public class EntryService : IEntryService
@@ -28,6 +30,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
         private readonly IMonthlyEntryTokenService _monthlyTokenService;
         private readonly IParkingSessionImageStorageService _imageStorageService;
         private readonly IFeeCalculationService _feeCalculationService;
+        private readonly INotificationWriterService _notificationWriter;
 
         public EntryService(
             ParkingDbContext dbContext,
@@ -38,7 +41,8 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
             IMonthlyPassService monthlyPassService,
             IMonthlyEntryTokenService monthlyTokenService,
             IParkingSessionImageStorageService imageStorageService,
-            IFeeCalculationService feeCalculationService)
+            IFeeCalculationService feeCalculationService,
+            INotificationWriterService notificationWriter)
         {
             _dbContext = dbContext;
             _auditWriter = auditWriter;
@@ -49,6 +53,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
             _monthlyTokenService = monthlyTokenService;
             _imageStorageService = imageStorageService;
             _feeCalculationService = feeCalculationService;
+            _notificationWriter = notificationWriter;
         }
 
         public async Task<CreateEntryResponse> CreateEntryAsync(CreateEntryRequest request, long staffId, string role)

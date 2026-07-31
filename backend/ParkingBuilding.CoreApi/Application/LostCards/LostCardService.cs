@@ -10,17 +10,24 @@ using ParkingBuilding.CoreApi.Contracts.Common;
 using ParkingBuilding.CoreApi.Domain.Entities;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
 
+using ParkingBuilding.CoreApi.Application.Notifications;
+
 namespace ParkingBuilding.CoreApi.Application.LostCards;
 
 public class LostCardService : ILostCardService
 {
     private readonly ParkingDbContext _context;
     private readonly IAuditWriterService _auditWriter;
+    private readonly INotificationWriterService _notificationWriter;
 
-    public LostCardService(ParkingDbContext context, IAuditWriterService auditWriter)
+    public LostCardService(
+        ParkingDbContext context,
+        IAuditWriterService auditWriter,
+        INotificationWriterService notificationWriter)
     {
         _context = context;
         _auditWriter = auditWriter;
+        _notificationWriter = notificationWriter;
     }
 
     public async Task<LostCardCase> CreateLostCardCaseAsync(CreateLostCardRequest request, long staffId)
@@ -174,6 +181,29 @@ public class LostCardService : ILostCardService
                 lostCardCase.UpdatedAt = DateTimeOffset.UtcNow;
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+
+                // Create notification for driver
+                long? targetUserId = lostCardCase.ParkingSession?.ClaimedByUserId;
+                if (!targetUserId.HasValue && lostCardCase.ParkingSession?.DriverId.HasValue == true)
+                {
+                    var driver = await _context.DriverProfiles.FindAsync(lostCardCase.ParkingSession.DriverId.Value);
+                    targetUserId = driver?.UserId;
+                }
+                if (targetUserId.HasValue)
+                {
+                    var title = status == "APPROVED" ? "Hồ sơ báo mất thẻ đã được duyệt" : "Hồ sơ báo mất thẻ bị từ chối";
+                    var content = status == "APPROVED"
+                        ? $"Hồ sơ báo mất thẻ cho phiên đỗ {lostCardCase.ParkingSession?.SessionCode} đã được Quản lý duyệt."
+                        : $"Hồ sơ báo mất thẻ cho phiên đỗ {lostCardCase.ParkingSession?.SessionCode} đã bị từ chối. Lý do: {request.RejectionReason}.";
+
+                    await _notificationWriter.CreateNotificationAsync(
+                        userId: targetUserId.Value,
+                        title: title,
+                        content: content,
+                        type: "SYSTEM",
+                        priority: "HIGH",
+                        parkingSessionId: lostCardCase.SessionId);
+                }
 
                 await _auditWriter.WriteAuditLogAsync(new AuditWriteDto
                 {
