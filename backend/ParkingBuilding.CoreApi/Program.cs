@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -28,6 +28,7 @@ using ParkingBuilding.CoreApi.Application.ParkingSessions.Admin;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.Entry;
 using ParkingBuilding.CoreApi.Application.Reservations;
 using ParkingBuilding.CoreApi.Application.MonthlyPasses;
+using ParkingBuilding.CoreApi.Application.Notifications;
 using ParkingBuilding.CoreApi.Application.Payments;
 using ParkingBuilding.CoreApi.Application.Storage;
 using ParkingBuilding.CoreApi.Application.LostCards;
@@ -155,6 +156,7 @@ builder.Services.AddScoped<IFeeCalculationService, FeeCalculationService>();
 builder.Services.AddScoped<IExitService, ExitService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<ISessionAdminService, SessionAdminService>();
+builder.Services.AddScoped<INotificationWriterService, NotificationWriterService>();
 
 // Cau hinh JWT Authentication
 var jwtSecret = builder.Configuration["JWT_SECRET"] ?? builder.Configuration["Jwt:Secret"];

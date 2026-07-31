@@ -12,5 +12,6 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
         Task<MonthlyPass> ChangeStatusAsync(long id, string status, long userId);
         Task<MonthlyPass?> FindValidPassAsync(string plateNumber, long vehicleTypeId, DateTimeOffset time);
         bool IsValid(MonthlyPass pass, DateTimeOffset time);
+        Task<int> SendExpiringMonthlyPassNotificationsAsync();
     }
 }

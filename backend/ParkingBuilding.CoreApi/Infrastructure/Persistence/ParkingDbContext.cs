@@ -36,6 +36,7 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence
         public DbSet<LostCardCase> LostCardCases { get; set; }
         public DbSet<PlateMismatchCase> PlateMismatchCases { get; set; }
         public DbSet<Receipt> Receipts { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

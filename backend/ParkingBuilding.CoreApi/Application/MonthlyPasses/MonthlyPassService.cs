@@ -348,6 +348,57 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
             return pass.Status == "ACTIVE";
         }
 
+        public async Task<int> SendExpiringMonthlyPassNotificationsAsync()
+        {
+            var today = DateTime.UtcNow.Date;
+            var warningDate = today.AddDays(3);
+
+            var expiringPasses = await _context.MonthlyPasses
+                .Where(m => m.Status == "ACTIVE" && m.EndDate >= today && m.EndDate <= warningDate)
+                .ToListAsync();
+
+            int count = 0;
+            foreach (var pass in expiringPasses)
+            {
+                long? targetUserId = null;
+                if (pass.DriverId.HasValue)
+                {
+                    var driver = await _context.DriverProfiles.FindAsync(pass.DriverId.Value);
+                    targetUserId = driver?.UserId;
+                }
+                targetUserId ??= pass.CreatedBy;
+
+                if (!targetUserId.HasValue || targetUserId.Value == 0) continue;
+
+                var alreadyNotified = await _context.Notifications
+                    .AnyAsync(n => n.MonthlyPassId == pass.Id && n.Type == "MONTHLY_PASS" && n.CreatedAt >= DateTimeOffset.UtcNow.AddDays(-3));
+
+                if (!alreadyNotified)
+                {
+                    var notification = new Notification
+                    {
+                        UserId = targetUserId.Value,
+                        MonthlyPassId = pass.Id,
+                        Title = "Cảnh báo vé tháng sắp hết hạn",
+                        Content = $"Vé tháng cho biển số {pass.PlateNumber} sẽ hết hạn vào ngày {pass.EndDate:dd/MM/yyyy}. Vui lòng nộp đơn gia hạn để tránh gián đoạn dịch vụ.",
+                        Type = "MONTHLY_PASS",
+                        Priority = "NORMAL",
+                        IsRead = false,
+                        CreatedAt = DateTimeOffset.UtcNow
+                    };
+                    _context.Notifications.Add(notification);
+                    count++;
+                }
+            }
+
+            if (count > 0)
+            {
+                await _context.SaveChangesAsync();
+            }
+
+            return count;
+        }
+
         private string NormalizePlate(string plate)
         {
             if (string.IsNullOrWhiteSpace(plate)) return string.Empty;
