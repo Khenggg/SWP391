@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import StaffLostCardTrackingTable from "@/components/staff/lost-card/StaffLostCardTrackingTable";
 
 export default function StaffLostCardPage() {
-  const [query, setQuery] = useState("51C-77888");
+  const [query, setQuery] = useState("");
   const [session, setSession] = useState(null);
   const [form, setForm] = useState({
     reporterName: "",
@@ -177,14 +177,14 @@ export default function StaffLostCardPage() {
       <Card>
         <CardHeader>
           <CardTitle>Tìm phiên cần xử lý</CardTitle>
-          <CardDescription>Nhập mã thẻ hoặc biển số xe khách khai báo.</CardDescription>
+          <CardDescription>Nhập biển số xe (hoặc mã thẻ nếu còn nhớ) để tìm phiên đỗ xe khách báo mất.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-[1fr_auto]">
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="CARD-0099 hoặc 51C-77888"
+              placeholder="Nhập biển số xe (VD: 30F-123.45) hoặc mã thẻ C016..."
             />
             <Button onClick={handleSearch} disabled={isSubmitting}>
               <Search className="mr-1.5 h-4 w-4" />
