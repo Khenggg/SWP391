@@ -58,11 +58,11 @@ const SLOT_STATUS_DOT = {
 };
 
 const STATUS_LABELS = {
-  [COMMON_STATUS.ACTIVE]: "ACTIVE",
-  [SLOT_STATUS.LOCKED]: "LOCKED",
-  [SLOT_STATUS.MAINTENANCE]: "MAINTENANCE",
-  [SLOT_STATUS.AVAILABLE]: "AVAILABLE",
-  [SLOT_STATUS.OCCUPIED]: "OCCUPIED",
+  [COMMON_STATUS.ACTIVE]: "Hoạt động",
+  [SLOT_STATUS.LOCKED]: "Khóa / Tạm ngưng",
+  [SLOT_STATUS.MAINTENANCE]: "Bảo trì",
+  [SLOT_STATUS.AVAILABLE]: "Còn trống",
+  [SLOT_STATUS.OCCUPIED]: "Đã đỗ",
 };
 
 export default function StructureManagementPage() {
