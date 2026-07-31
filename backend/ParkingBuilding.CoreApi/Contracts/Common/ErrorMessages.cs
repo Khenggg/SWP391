@@ -216,7 +216,23 @@ public static class ErrorMessages
         [ErrorCodes.ReservationSlotAlreadyReserved] = "Vi tri do xe da duoc dat truoc.",
         [ErrorCodes.ReservationAreaFull] = "Khu vuc do xe da day.",
         [ErrorCodes.ExitVehicleImageRequired] = "Vui long cung cap anh tong the xe khi xe ra cong.",
-        [ErrorCodes.ExitPlateImageRequired] = "Vui long cung cap anh bien so khi xe ra cong."
+        [ErrorCodes.ExitPlateImageRequired] = "Vui long cung cap anh bien so khi xe ra cong.",
+        [ErrorCodes.ExitGateInvalid] = "Cong xuat bai khong hop le hoac dang khong hoat dong.",
+        [ErrorCodes.PlateMismatchRequiresApproval] = "Truong hop sai lech bien so chua duoc Quan ly phe duyet. Vui long gui ho so xu ly su co.",
+        [ErrorCodes.PaymentRequiredBeforeExit] = "Xe chua hoan tat thanh toan phi gui xe, khong the xac nhan xe ra.",
+        [ErrorCodes.NoPaymentRequired] = "Phien gui xe nay khong yeu cau thanh toan.",
+        [ErrorCodes.PaymentAlreadyPending] = "Phien gui xe nay dang co giao dich thanh toan cho xu ly.",
+        [ErrorCodes.WaiveReasonTooShort] = "Ly do mien phi phai tu 5 ky tu tro len.",
+        [ErrorCodes.WaiveReasonTooLong] = "Ly do mien phi khong duoc vuot qua 255 ky tu.",
+        [ErrorCodes.WaiveReasonNotAllowed] = "Khong duoc phep mien phi cho phien gui xe nay.",
+        [ErrorCodes.LostCardPending] = "The nay dang co ho so bao mat the cho Quan ly phe duyet.",
+        [ErrorCodes.LostCardCaseAlreadyProcessed] = "Ho so bao mat the nay da duoc xu ly.",
+        [ErrorCodes.MismatchCaseNotFound] = "Khong tim thay ho so xu ly sai lech bien so.",
+        [ErrorCodes.MismatchCaseAlreadyProcessed] = "Ho so sai lech bien so nay da duoc xu ly truoc do.",
+        [ErrorCodes.MismatchRejectionReasonRequired] = "Vui long nhap ly do tu choi ho so lech bien so.",
+        [ErrorCodes.ApplicationAlreadyReviewed] = "Don dang ky nay da duoc duyey hoac tu choi truoc do.",
+        [ErrorCodes.StartDateTooFar] = "Ngay bat dau dang ky khong duoc vuot qua 30 ngay so voi hien tai.",
+        [ErrorCodes.StartDateInPast] = "Ngay bat dau dang ky khong duoc o trong qua khu."
     };
 
     public static string GetMessage(string errorCode)
