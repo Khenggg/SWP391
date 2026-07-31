@@ -160,7 +160,17 @@ export default function StructureManagementPage() {
       await fetchStructure();
       setShowFloorModal(false);
       toast.success("Lưu tầng thành công!");
-    } catch (e) { toast.error(e.message || "Lỗi lưu tầng"); }
+    } catch (e) {
+      let userFriendlyMsg = "Đã xảy ra lỗi khi lưu thông tin tầng.";
+      if (e.message) {
+        if (e.message.includes("Da co loi he thong xay ra") || e.message.includes("Internal server error")) {
+          userFriendlyMsg = "Lỗi: Không thể lưu tầng. Vui lòng đảm bảo Mã tầng không trùng lặp và trạng thái được chọn hợp lệ.";
+        } else {
+          userFriendlyMsg = e.message;
+        }
+      }
+      toast.error(userFriendlyMsg);
+    }
   };
 
   const handleFloorDelete = async (id, floorCode) => {
@@ -174,7 +184,15 @@ export default function StructureManagementPage() {
       await fetchStructure();
       toast.success("Xóa tầng thành công!");
     } catch (e) {
-      toast.error(e.message || "Lỗi xóa tầng");
+      let userFriendlyMsg = "Không thể xóa tầng này.";
+      if (e.message) {
+        if (e.message.includes("FLOOR_HAS_AREAS") || e.message.includes("Không thể xóa tầng này vì đang có khu vực hoạt động")) {
+          userFriendlyMsg = "Lỗi: Không thể xóa tầng vì tầng này đang chứa các khu vực đỗ xe hoạt động.";
+        } else {
+          userFriendlyMsg = e.message;
+        }
+      }
+      toast.error(userFriendlyMsg);
     }
   };
 
