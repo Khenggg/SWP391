@@ -10,6 +10,8 @@ using ParkingBuilding.CoreApi.Application.Audit;
 using ParkingBuilding.CoreApi.Application.Audit.Dtos;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.Exit;
 
+using ParkingBuilding.CoreApi.Application.Notifications;
+
 namespace ParkingBuilding.CoreApi.Application.Payments
 {
     public class PaymentService : IPaymentService
@@ -17,15 +19,18 @@ namespace ParkingBuilding.CoreApi.Application.Payments
         private readonly ParkingDbContext _context;
         private readonly IAuditWriterService _auditWriter;
         private readonly IFeeCalculationService _feeCalculationService;
+        private readonly INotificationWriterService _notificationWriter;
 
         public PaymentService(
             ParkingDbContext context,
             IAuditWriterService auditWriter,
-            IFeeCalculationService feeCalculationService)
+            IFeeCalculationService feeCalculationService,
+            INotificationWriterService notificationWriter)
         {
             _context = context;
             _auditWriter = auditWriter;
             _feeCalculationService = feeCalculationService;
+            _notificationWriter = notificationWriter;
         }
 
         public async Task<Payment> CreateCashPaymentAsync(CashPaymentRequest request, long staffId)
@@ -97,6 +102,25 @@ namespace ParkingBuilding.CoreApi.Application.Payments
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
+
+                    // Create Notification for Driver if driver/claimed_by user exists
+                    long? targetUserId = session.ClaimedByUserId;
+                    if (!targetUserId.HasValue && session.DriverId.HasValue)
+                    {
+                        var driver = await _context.DriverProfiles.FindAsync(session.DriverId.Value);
+                        targetUserId = driver?.UserId;
+                    }
+                    if (targetUserId.HasValue)
+                    {
+                        await _notificationWriter.CreateNotificationAsync(
+                            userId: targetUserId.Value,
+                            title: "Thanh toán thành công",
+                            content: $"Thanh toán tiền mặt thành công {payment.TotalAmount:N0} VNĐ cho phiên đỗ {session.SessionCode}.",
+                            type: "PAYMENT",
+                            priority: "NORMAL",
+                            paymentId: payment.Id,
+                            parkingSessionId: session.Id);
+                    }
 
                     await _auditWriter.WriteAuditLogAsync(new AuditWriteDto
                     {
