@@ -3,16 +3,23 @@ using Microsoft.AspNetCore.Http;
 using ParkingBuilding.CoreApi.Contracts.Common;
 using ParkingBuilding.CoreApi.Domain.Entities;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
+using ParkingBuilding.CoreApi.Application.Notifications;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace ParkingBuilding.CoreApi.Application.ParkingStructure.Slots;
 
 public class SlotService
 {
     private readonly ParkingDbContext _context;
+    private readonly INotificationWriterService _notificationWriter;
 
-    public SlotService(ParkingDbContext context)
+    public SlotService(ParkingDbContext context, INotificationWriterService notificationWriter)
     {
         _context = context;
+        _notificationWriter = notificationWriter;
     }
 
     // ================= CREATE =================
@@ -125,6 +132,30 @@ public class SlotService
         slot.UpdatedAt = DateTimeOffset.UtcNow;
 
         await _context.SaveChangesAsync();
+
+        if (oldStatus != slot.Status)
+        {
+            var statusText = slot.Status == "AVAILABLE" ? "hoạt động trở lại (sẵn sàng)" : (slot.Status == "LOCKED" ? "tạm khóa" : (slot.Status == "MAINTENANCE" ? "bảo trì" : slot.Status.ToLower()));
+            try
+            {
+                var drivers = await _context.Users
+                    .Where(u => u.Role == Domain.Enums.UserRole.DRIVER && u.Status == Domain.Enums.UserStatus.ACTIVE)
+                    .Select(u => u.Id)
+                    .ToListAsync();
+
+                var title = $"Thay đổi trạng thái vị trí đỗ {slot.SlotCode}";
+                var content = $"Vị trí đỗ xe {slot.SlotCode} tại khu {slot.Area.AreaName} đã chuyển sang trạng thái {statusText}. Vui lòng lưu ý khi đặt chỗ hoặc đỗ xe.";
+
+                foreach (var driverId in drivers)
+                {
+                    await _notificationWriter.CreateNotificationAsync(driverId, title, content, "SYSTEM", "NORMAL");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending slot status notifications: {ex.Message}");
+            }
+        }
 
         return new SlotResponse
         {
