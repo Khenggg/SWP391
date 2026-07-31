@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { toast } from "sonner";
+import { CheckCircle2, Car, CreditCard, Receipt, Clock } from "lucide-react";
 import { staffSessionService } from "@/services/staffSessionService";
 import { parkingService } from "@/services/parkingService";
 import { formatDateTime, formatVND } from "@/lib/format";
@@ -36,6 +37,7 @@ export default function StaffExitPage() {
   const [vehicleTypes, setVehicleTypes] = useState([]);
   const [exitGateId, setExitGateId] = useState("");
   const [isCashConfirmOpen, setIsCashConfirmOpen] = useState(false);
+  const [completedExitSummary, setCompletedExitSummary] = useState(null);
   const lookupSequenceRef = useRef(0);
 
   const { data: mismatchStatusData } = useMismatchStatus(session?.sessionId ?? null);
@@ -220,8 +222,15 @@ export default function StaffExitPage() {
         exitPlateImageUrl,
         exitVehicleImageUrl,
       });
+      setCompletedExitSummary({
+        sessionCode: session.sessionCode,
+        plateNumber: plate || session.plateNumber,
+        cardCode: session.cardCode,
+        customerType: session.customerType,
+        totalAmount: fee?.totalAmount || 0,
+        isZeroCharge,
+      });
       toast.success(isZeroCharge ? "Đã hoàn tất xe ra bãi, booking chưa phát sinh phí." : "Đã hoàn tất xe ra bãi.");
-      resetPage();
     } catch (error) {
       toast.error(error.message || "Xác nhận xe ra thất bại.");
     } finally {
@@ -280,13 +289,25 @@ export default function StaffExitPage() {
         exitPlateImageUrl,
         exitVehicleImageUrl,
       });
+      setCompletedExitSummary({
+        sessionCode: session.sessionCode,
+        plateNumber: plate || session.plateNumber,
+        cardCode: session.cardCode,
+        customerType: "MONTHLY",
+        totalAmount: 0,
+        isZeroCharge: true,
+      });
       toast.success("Đã xác nhận xe vé tháng ra bãi.");
-      resetPage();
     } catch (error) {
       toast.error(error.message || "Xác nhận xe vé tháng ra bãi thất bại.");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCloseExitSuccessModal = () => {
+    setCompletedExitSummary(null);
+    resetPage();
   };
 
   return (
@@ -313,6 +334,83 @@ export default function StaffExitPage() {
         payosPaymentUrl={payosPaymentUrl || session?.pendingOnlinePayment?.checkoutUrl || session?.pendingOnlinePayment?.paymentUrl}
         qrCodeData={payosQrString}
       />
+
+      {/* Exit Success Confirmation Modal */}
+      <Dialog open={Boolean(completedExitSummary)} onOpenChange={() => handleCloseExitSuccessModal()}>
+        <DialogContent className="sm:max-w-md border-0 bg-white p-0 overflow-hidden shadow-2xl rounded-2xl">
+          <div className="bg-sky-600 px-6 py-6 text-white text-center relative overflow-hidden">
+            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-white/20 backdrop-blur mb-3 shadow-inner">
+              <CheckCircle2 className="size-8 text-white" />
+            </div>
+            <DialogTitle className="text-xl font-black text-white tracking-wide">
+              XÁC NHẬN XE RA BÃI THÀNH CÔNG
+            </DialogTitle>
+            <DialogDescription className="text-sky-100 text-xs font-semibold mt-1">
+              Hồ sơ xuất bãi đã hoàn tất. Thẻ đỗ đã được thu hồi về hệ thống.
+            </DialogDescription>
+          </div>
+
+          <div className="p-6 space-y-4">
+            <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-200/60 pb-2.5">
+                <span className="text-xs font-semibold text-slate-500">Mã phiên xe ra:</span>
+                <span className="font-mono font-black text-slate-900 text-sm bg-sky-100 text-sky-800 px-2.5 py-1 rounded-md">
+                  {completedExitSummary?.sessionCode || "PB-2026-EXIT"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-slate-500 flex items-center gap-1.5">
+                  <Car className="size-4 text-slate-400" /> Biển số xe:
+                </span>
+                <span className="font-black text-slate-800 text-sm">
+                  {completedExitSummary?.plateNumber || "N/A"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-slate-500 flex items-center gap-1.5">
+                  <CreditCard className="size-4 text-slate-400" /> Trạng thái thẻ:
+                </span>
+                <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  Đã thu hồi thẻ {completedExitSummary?.cardCode}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-slate-500 flex items-center gap-1.5">
+                  <Receipt className="size-4 text-slate-400" /> Phí thanh toán:
+                </span>
+                <span className="font-black text-sky-700 text-base">
+                  {completedExitSummary?.customerType === "MONTHLY"
+                    ? "Vé tháng (0 VNĐ)"
+                    : completedExitSummary?.isZeroCharge
+                    ? "Miễn phí (0 VNĐ)"
+                    : formatVND(completedExitSummary?.totalAmount || 0)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs border-t border-slate-200/60 pt-2.5">
+                <span className="font-semibold text-slate-500 flex items-center gap-1.5">
+                  <Clock className="size-4 text-slate-400" /> Thời gian xuất bãi:
+                </span>
+                <span className="font-medium text-slate-700">
+                  {formatDateTime(new Date())}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="px-6 pb-6 pt-0">
+            <Button
+              className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold h-11 rounded-xl shadow-lg shadow-sky-600/20"
+              onClick={handleCloseExitSuccessModal}
+            >
+              Hoàn tất & Cho xe tiếp theo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

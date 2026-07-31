@@ -1,5 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { CheckCircle2, MapPin, CreditCard, Car, Clock } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { formatDateTime } from "@/lib/format";
 import EntryActionPanel from "@/components/staff/entry/EntryActionPanel";
 import EntryImageSection from "@/components/staff/entry/EntryImageSection";
 import EntryFormPanel from "@/components/staff/entry/EntryFormPanel";
@@ -60,6 +64,7 @@ export default function StaffEntryPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [gates, setGates] = useState([]);
   const [vehicleTypes, setVehicleTypes] = useState([]);
+  const [createdEntryResult, setCreatedEntryResult] = useState(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -317,13 +322,18 @@ export default function StaffEntryPage() {
     setIsSubmitting(true);
     try {
       const result = await entryService.createEntry(buildCreatePayload());
+      setCreatedEntryResult(result || { sessionCode: "PB-SUCCESS" });
       toast.success(`Đã tạo phiên ${result.sessionCode}.`);
-      resetFlow();
     } catch (error) {
       toast.error(error.message || "Tạo phiên vào bãi thất bại.");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleCloseSuccessModal = () => {
+    setCreatedEntryResult(null);
+    resetFlow();
   };
 
   const handleSelectBookingMode = useCallback((mode) => {
@@ -378,6 +388,79 @@ export default function StaffEntryPage() {
           </div>
         </div>
       </div>
+
+      {/* Entry Success Confirmation Modal */}
+      <Dialog open={Boolean(createdEntryResult)} onOpenChange={() => handleCloseSuccessModal()}>
+        <DialogContent className="sm:max-w-md border-0 bg-white p-0 overflow-hidden shadow-2xl rounded-2xl">
+          <div className="bg-emerald-600 px-6 py-6 text-white text-center relative overflow-hidden">
+            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-white/20 backdrop-blur mb-3 shadow-inner">
+              <CheckCircle2 className="size-8 text-white" />
+            </div>
+            <DialogTitle className="text-xl font-black text-white tracking-wide">
+              TẠO PHIÊN ĐỖ XE THÀNH CÔNG
+            </DialogTitle>
+            <DialogDescription className="text-emerald-100 text-xs font-semibold mt-1">
+              Xe đã đủ điều kiện vào bãi. Vui lòng cho xe di chuyển qua cổng.
+            </DialogDescription>
+          </div>
+
+          <div className="p-6 space-y-4">
+            <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-200/60 pb-2.5">
+                <span className="text-xs font-semibold text-slate-500">Mã phiên đỗ:</span>
+                <span className="font-mono font-black text-slate-900 text-sm bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-md">
+                  {createdEntryResult?.sessionCode || createdEntryResult?.id || "PB-2026-ENTRY"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-slate-500 flex items-center gap-1.5">
+                  <Car className="size-4 text-slate-400" /> Biển số xe:
+                </span>
+                <span className="font-black text-slate-800 text-sm">
+                  {createdEntryResult?.licensePlate || form.licensePlate || "Xe không biển số"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-slate-500 flex items-center gap-1.5">
+                  <CreditCard className="size-4 text-slate-400" /> Mã thẻ gửi:
+                </span>
+                <span className="font-black text-slate-800">
+                  {createdEntryResult?.cardCode || form.cardCode || "C016"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-slate-500 flex items-center gap-1.5">
+                  <MapPin className="size-4 text-emerald-600" /> Vị trí gợi ý đỗ:
+                </span>
+                <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  {suggestion?.areaCode ? `Khu ${suggestion.areaCode} - ${suggestion.floorName || "Tầng B1"}` : (createdEntryResult?.areaName || "Bãi tự do")}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-slate-500 flex items-center gap-1.5">
+                  <Clock className="size-4 text-slate-400" /> Thời gian vào:
+                </span>
+                <span className="font-medium text-slate-700">
+                  {formatDateTime(new Date())}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="px-6 pb-6 pt-0">
+            <Button
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 rounded-xl shadow-lg shadow-emerald-600/20"
+              onClick={handleCloseSuccessModal}
+            >
+              Hoàn tất & Cho xe tiếp theo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
