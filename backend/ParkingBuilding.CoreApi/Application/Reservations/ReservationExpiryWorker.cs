@@ -52,6 +52,24 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                     {
                         _logger.LogError(ex, "Error scanning for expiring reservation notifications.");
                     }
+
+                    // Check for expiring monthly passes (3-day warning)
+                    try
+                    {
+                        var monthlyPassService = scope.ServiceProvider.GetService<MonthlyPasses.IMonthlyPassService>();
+                        if (monthlyPassService != null)
+                        {
+                            var passWarningCount = await monthlyPassService.SendExpiringMonthlyPassNotificationsAsync();
+                            if (passWarningCount > 0)
+                            {
+                                _logger.LogInformation("Sent expiring warnings for {Count} monthly passes.", passWarningCount);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error scanning for expiring monthly pass notifications.");
+                    }
                 }
                 catch (OperationCanceledException)
                 {

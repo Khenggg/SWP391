@@ -1069,13 +1069,32 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
             int count = 0;
             foreach (var r in reservations)
             {
-                // Check if already warned
-                var alreadyWarned = await _context.AuditLogs
-                    .AnyAsync(l => l.TargetType == "Reservation" && l.TargetId == r.Id.ToString() && l.Action == "RESERVATION_EXPIRING_WARNING");
+                var targetUserId = r.Driver?.UserId ?? r.CreatedBy;
+                if (!targetUserId.HasValue) continue;
+
+                // Check if notification already created for this reservation
+                var alreadyWarned = await _context.Notifications
+                    .AnyAsync(n => n.ReservationId == r.Id && n.Type == "RESERVATION")
+                    || await _context.AuditLogs
+                        .AnyAsync(l => l.TargetType == "Reservation" && l.TargetId == r.Id.ToString() && l.Action == "RESERVATION_EXPIRING_WARNING");
 
                 if (!alreadyWarned)
                 {
-                    // Write warning to audit log as simulated notification
+                    // 1. Create real notification entity in DB
+                    var notification = new Notification
+                    {
+                        UserId = targetUserId.Value,
+                        ReservationId = r.Id,
+                        Title = "Cảnh báo sắp hết hạn đặt chỗ",
+                        Content = $"Mã đặt chỗ {r.ReservationCode} cho biển số {r.PlateNumber ?? "N/A"} sẽ hết hạn vào lúc {r.ExpiresAt.ToLocalTime():HH:mm:ss}. Vui lòng kiểm tra và hoàn thành lượt đỗ xe.",
+                        Type = "RESERVATION",
+                        Priority = "HIGH",
+                        IsRead = false,
+                        CreatedAt = DateTimeOffset.UtcNow
+                    };
+                    _context.Notifications.Add(notification);
+
+                    // 2. Write warning to audit log for system audit
                     await _auditWriter.WriteAuditLogAsync(
                         action: "RESERVATION_EXPIRING_WARNING",
                         targetType: "Reservation",
@@ -1085,6 +1104,11 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                     );
                     count++;
                 }
+            }
+
+            if (count > 0)
+            {
+                await _context.SaveChangesAsync();
             }
 
             return count;
