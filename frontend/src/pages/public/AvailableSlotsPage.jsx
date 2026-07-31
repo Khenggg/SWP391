@@ -178,13 +178,32 @@ export default function AvailableSlotsPage() {
     });
   }, [areas, filterFloor, filterVehicleType, searchQuery, slots]);
 
-  // Count slots per floor for summary
-  const floorCounts = useMemo(() => {
-    return floors.reduce((acc, f) => {
-      acc[f.code] = slots.filter((s) => s.floorCode === f.code).length;
-      return acc;
-    }, {});
-  }, [floors, slots]);
+  // Count slots per vehicle type
+  const vehicleTypeCounts = useMemo(() => {
+    let car = 0;
+    let bike = 0;
+    let other = 0;
+
+    areas.forEach((area) => {
+      const areaSlots = slots.filter((s) => s.areaCode === area.code);
+      const count = areaSlots.length;
+      const vt = (area.vehicleTypeName || "").toLowerCase();
+
+      if (vt.includes("mô tô") || vt.includes("máy") || vt.includes("bike")) {
+        bike += count;
+      } else if (vt.includes("tô") || vt.includes("car") || vt.includes("ô tô")) {
+        car += count;
+      } else {
+        other += count;
+      }
+    });
+
+    if (car + bike + other === 0 && slots.length > 0) {
+      car = slots.length;
+    }
+
+    return { car, bike, other };
+  }, [areas, slots]);
 
   const totalAvailable = slots.length;
   const estimatedCapacity = 40; // Total baseline capacity for percentage bar
@@ -208,6 +227,29 @@ export default function AvailableSlotsPage() {
               <p className="text-slate-300 text-sm mt-1 max-w-xl">
                 Tra cứu vị trí đỗ xe còn trống theo tầng, khu vực và loại xe. Dữ liệu được làm mới tự động mỗi 30 giây.
               </p>
+
+              {/* Vehicle Type Mini Badge Summary */}
+              {!isLoading && !error && (
+                <div className="flex flex-wrap gap-2.5 mt-4 pt-1">
+                  <div className="bg-blue-900/50 border border-blue-500/30 rounded-xl px-3 py-1.5 flex items-center gap-2 text-xs">
+                    <Car className="h-4 w-4 text-blue-400" />
+                    <span className="text-slate-300 font-medium">Xe Ô tô:</span>
+                    <span className="font-bold text-white font-mono text-sm">{vehicleTypeCounts.car} chỗ</span>
+                  </div>
+                  <div className="bg-emerald-900/50 border border-emerald-500/30 rounded-xl px-3 py-1.5 flex items-center gap-2 text-xs">
+                    <Bike className="h-4 w-4 text-emerald-400" />
+                    <span className="text-slate-300 font-medium">Xe Máy:</span>
+                    <span className="font-bold text-white font-mono text-sm">{vehicleTypeCounts.bike} chỗ</span>
+                  </div>
+                  {vehicleTypeCounts.other > 0 && (
+                    <div className="bg-amber-900/50 border border-amber-500/30 rounded-xl px-3 py-1.5 flex items-center gap-2 text-xs">
+                      <CarFront className="h-4 w-4 text-amber-400" />
+                      <span className="text-slate-300 font-medium">Khác:</span>
+                      <span className="font-bold text-white font-mono text-sm">{vehicleTypeCounts.other} chỗ</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Overall Capacity Status Card */}
