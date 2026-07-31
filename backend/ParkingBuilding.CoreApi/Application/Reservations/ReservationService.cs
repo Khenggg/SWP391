@@ -11,6 +11,8 @@ using ParkingBuilding.CoreApi.Application.Audit;
 using ParkingBuilding.CoreApi.Application.Payments;
 using Microsoft.Extensions.Options;
 
+using ParkingBuilding.CoreApi.Application.Notifications;
+
 namespace ParkingBuilding.CoreApi.Application.Reservations
 {
     public class ReservationService
@@ -19,6 +21,7 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
         private readonly IAuditWriterService _auditWriter;
         private readonly IReservationEntryTokenService _tokenService;
         private readonly IPayOsPaymentService _payOsPaymentService;
+        private readonly INotificationWriterService _notificationWriter;
         private readonly ReservationBookingOptions _bookingOptions;
 
         public ReservationService(
@@ -26,12 +29,14 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
             IAuditWriterService auditWriter,
             IReservationEntryTokenService tokenService,
             IPayOsPaymentService payOsPaymentService,
+            INotificationWriterService notificationWriter,
             IOptions<ReservationBookingOptions> bookingOptions)
         {
             _context = context;
             _auditWriter = auditWriter;
             _tokenService = tokenService;
             _payOsPaymentService = payOsPaymentService;
+            _notificationWriter = notificationWriter;
             _bookingOptions = bookingOptions.Value;
         }
 
@@ -378,6 +383,19 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                     await _context.SaveChangesAsync();
 
                     await transaction.CommitAsync();
+
+                    // Create Notification for Driver
+                    var driverProfile = await _context.DriverProfiles.FindAsync(resolvedDriverId);
+                    if (driverProfile?.UserId != null)
+                    {
+                        await _notificationWriter.CreateNotificationAsync(
+                            userId: driverProfile.UserId.Value,
+                            title: "Đặt chỗ thành công",
+                            content: $"Đặt chỗ thành công! Mã đặt chỗ {reservationCode} cho xe biển số {plateNumber ?? "N/A"}.",
+                            type: "RESERVATION",
+                            priority: "NORMAL",
+                            reservationId: reservation.Id);
+                    }
 
                     // Audit Log
                     await _auditWriter.WriteAuditLogAsync(
@@ -729,6 +747,19 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                     {
                         // Best effort
                     }
+                }
+
+                // Create Notification for Driver
+                var driverProfile = await _context.DriverProfiles.FindAsync(reservation.DriverId);
+                if (driverProfile?.UserId != null)
+                {
+                    await _notificationWriter.CreateNotificationAsync(
+                        userId: driverProfile.UserId.Value,
+                        title: "Đã hủy đơn đặt chỗ",
+                        content: $"Mã đặt chỗ {reservation.ReservationCode} cho xe biển số {reservation.PlateNumber ?? "N/A"} đã bị hủy.",
+                        type: "RESERVATION",
+                        priority: "NORMAL",
+                        reservationId: reservation.Id);
                 }
 
                 // Audit Log

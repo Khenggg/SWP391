@@ -11,17 +11,24 @@ using ParkingBuilding.CoreApi.Contracts.Common;
 using ParkingBuilding.CoreApi.Domain.Entities;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
 
+using ParkingBuilding.CoreApi.Application.Notifications;
+
 namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
 {
     public class MonthlyPassApplicationService
     {
         private readonly ParkingDbContext _context;
         private readonly IAuditWriterService _auditWriter;
+        private readonly INotificationWriterService _notificationWriter;
 
-        public MonthlyPassApplicationService(ParkingDbContext context, IAuditWriterService auditWriter)
+        public MonthlyPassApplicationService(
+            ParkingDbContext context,
+            IAuditWriterService auditWriter,
+            INotificationWriterService notificationWriter)
         {
             _context = context;
             _auditWriter = auditWriter;
+            _notificationWriter = notificationWriter;
         }
 
         public async Task<MonthlyPassApplication> SubmitApplicationAsync(SubmitApplicationRequest request, long userId)
@@ -349,6 +356,24 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
 
             application.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+
+            // Create notification for driver
+            if (application.Driver?.UserId != null)
+            {
+                var title = application.Status == "APPROVED_AWAITING_PAYMENT"
+                    ? "Đơn đăng ký vé tháng được duyệt"
+                    : "Đơn đăng ký vé tháng bị từ chối";
+                var content = application.Status == "APPROVED_AWAITING_PAYMENT"
+                    ? $"Đơn đăng ký vé tháng cho xe biển số {application.Vehicle?.PlateNumber ?? "N/A"} đã được duyệt. Vui lòng hoàn tất thanh toán."
+                    : $"Đơn đăng ký vé tháng cho xe biển số {application.Vehicle?.PlateNumber ?? "N/A"} đã bị từ chối. Lý do: {request.Reason}.";
+
+                await _notificationWriter.CreateNotificationAsync(
+                    userId: application.Driver.UserId.Value,
+                    title: title,
+                    content: content,
+                    type: "MONTHLY_PASS",
+                    priority: "HIGH");
+            }
 
             await _auditWriter.WriteAuditLogAsync(new AuditWriteDto
             {
