@@ -143,8 +143,18 @@ export default function StaffLostCardTrackingTable({
 
                   const managerNote = item.decisionReason || item.rejectionReason || item.decisionNote || item.note || item.approvalNote;
 
-                  const sessionStatus = item.sessionStatus || item.parkingSession?.status || "";
-                  const isSessionCompleted = sessionStatus === "COMPLETED";
+                  const sessionStatus =
+                    item.sessionStatus ||
+                    item.parkingSession?.status ||
+                    item.parkingSession?.Status ||
+                    item.session?.status ||
+                    item.session?.Status ||
+                    item.parkingSessionStatus ||
+                    "";
+                  const isSessionCompleted =
+                    sessionStatus === "COMPLETED" ||
+                    item.isCompleted === true ||
+                    item.completed === true;
 
                   return (
                     <TableRow key={item.id} className="hover:bg-slate-50">
