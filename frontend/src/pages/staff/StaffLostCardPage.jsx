@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { FileWarning, Search, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { staffSessionService } from "@/services/staffSessionService";
@@ -74,14 +75,13 @@ export default function StaffLostCardPage() {
     return () => clearInterval(interval);
   }, [fetchCases]);
 
-  const handleSearch = async () => {
-    if (!query.trim()) {
-      toast.error("Vui lòng nhập mã thẻ hoặc biển số xe.");
-      return;
-    }
+  const [searchParams] = useSearchParams();
+  const queryParam = searchParams.get("query") || searchParams.get("plate") || searchParams.get("cardCode");
 
+  const executeSearch = useCallback(async (searchKey) => {
+    if (!searchKey?.trim()) return;
     try {
-      const found = await staffSessionService.searchActiveSession(query);
+      const found = await staffSessionService.searchActiveSession(searchKey.trim());
       setSession(found);
       if (found.status === "LOST_CARD_PENDING") {
         toast.warning(`Phiên ${found.sessionCode} đã có hồ sơ báo mất thẻ đang chờ Manager phê duyệt.`);
@@ -92,6 +92,22 @@ export default function StaffLostCardPage() {
       setSession(null);
       toast.error(error.message || "Không tìm thấy phiên.");
     }
+  }, []);
+
+  useEffect(() => {
+    if (queryParam) {
+      const clean = queryParam.trim();
+      setQuery(clean);
+      void executeSearch(clean);
+    }
+  }, [queryParam, executeSearch]);
+
+  const handleSearch = () => {
+    if (!query.trim()) {
+      toast.error("Vui lòng nhập mã thẻ hoặc biển số xe.");
+      return;
+    }
+    void executeSearch(query);
   };
 
   const handleFileChange = (e) => {
