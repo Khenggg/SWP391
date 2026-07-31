@@ -27,7 +27,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Layers, Map, Grid, Plus, Edit2, AlertTriangle, CheckCircle, Car, Wrench, X, AlertCircle } from "lucide-react";
+import { Layers, Map, Grid, Plus, Edit2, Trash2, AlertTriangle, CheckCircle, Car, Wrench, X, AlertCircle } from "lucide-react";
 import EmptyState from "@/components/ui/empty-state";
 import StructureStatCards from "../../components/manager/structure/StructureStatCards";
 import FloorModal from "../../components/manager/structure/FloorModal";
@@ -163,6 +163,21 @@ export default function StructureManagementPage() {
     } catch (e) { toast.error(e.message || "Lỗi lưu tầng"); }
   };
 
+  const handleFloorDelete = async (id, floorCode) => {
+    const floorAreasCount = areas.filter(a => a.floorCode === floorCode).length;
+    if (floorAreasCount > 0) {
+      return toast.error("Không thể xóa tầng vì đang có khu vực hoạt động trong tầng này.");
+    }
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa tầng ${floorCode}?`)) return;
+    try {
+      await parkingService.deleteFloor(id);
+      await fetchStructure();
+      toast.success("Xóa tầng thành công!");
+    } catch (e) {
+      toast.error(e.message || "Lỗi xóa tầng");
+    }
+  };
+
   const openCreateArea = () => { setEditingItem(null); setForm({ floorId: "", areaCode: "", areaName: "", priorityOrder: 1, totalCapacity: 10, vehicleTypeIds: [] }); setShowAreaModal(true); };
   const openEditArea = (area) => { setEditingItem(area); setForm({ floorId: area.floorId || "", areaCode: area.areaCode, areaName: area.areaName, priorityOrder: area.priorityOrder || 1, totalCapacity: area.totalCapacity || 10, vehicleTypeIds: area.vehicleTypeIds || [] }); setShowAreaModal(true); };
   const handleAreaSave = async () => {
@@ -270,27 +285,41 @@ export default function StructureManagementPage() {
                     <TableRow>
                       <TableHead className="font-bold text-slate-600 py-4">Mã tầng</TableHead>
                       <TableHead className="font-bold text-slate-600">Tên tầng</TableHead>
+                      <TableHead className="font-bold text-slate-600">Số khu vực</TableHead>
+                      <TableHead className="font-bold text-slate-600">Số slot đỗ</TableHead>
                       <TableHead className="font-bold text-slate-600">Trạng thái</TableHead>
                       <TableHead className="font-bold text-slate-600 text-right">Thao tác</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {floors.map((floor) => (
-                      <TableRow key={floor.id}>
-                        <TableCell className="font-semibold text-slate-800">{floor.code || floor.floorCode}</TableCell>
-                        <TableCell className="text-slate-600">{floor.name || floor.floorName}</TableCell>
-                        <TableCell>
-                          <Badge className={`font-bold rounded-md px-2.5 py-1 ${AREA_STATUS_BADGE[floor.status] || "text-slate-600 bg-slate-100 hover:bg-slate-200"}`}>
-                            {STATUS_LABELS[floor.status] || floor.status || "ACTIVE"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" onClick={() => openEditFloor(floor)} className="text-slate-400 hover:text-blue-600">
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {floors.map((floor) => {
+                      const floorCode = floor.code || floor.floorCode;
+                      const floorAreasCount = areas.filter(a => a.floorCode === floorCode).length;
+                      const floorSlotsCount = slots.filter(s => s.floorCode === floorCode).length;
+                      return (
+                        <TableRow key={floor.id}>
+                          <TableCell className="font-semibold text-slate-800">{floorCode}</TableCell>
+                          <TableCell className="text-slate-600">{floor.name || floor.floorName}</TableCell>
+                          <TableCell className="text-slate-600 font-medium">{floorAreasCount} khu</TableCell>
+                          <TableCell className="text-slate-600 font-medium">{floorSlotsCount} ô đỗ</TableCell>
+                          <TableCell>
+                            <Badge className={`font-bold rounded-md px-2.5 py-1 ${AREA_STATUS_BADGE[floor.status] || "text-slate-600 bg-slate-100 hover:bg-slate-200"}`}>
+                              {STATUS_LABELS[floor.status] || floor.status || "ACTIVE"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button variant="ghost" size="sm" onClick={() => openEditFloor(floor)} className="text-slate-400 hover:text-blue-600" title="Sửa">
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => handleFloorDelete(floor.id, floorCode)} className="text-slate-400 hover:text-red-600" title="Xóa">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>

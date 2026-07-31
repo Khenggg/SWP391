@@ -86,4 +86,18 @@ public class FloorService
             Status = entity.Status
         };
     }
+
+    public async Task DeleteAsync(long id)
+    {
+        var entity = await _context.Floors.FindAsync(id);
+        if (entity == null)
+            throw new BusinessException(ErrorCodes.FloorNotFound, StatusCodes.Status404NotFound);
+
+        var hasAreas = await _context.Areas.AnyAsync(x => x.FloorId == id);
+        if (hasAreas)
+            throw new BusinessException(ErrorCodes.FloorHasAreas, StatusCodes.Status400BadRequest);
+
+        _context.Floors.Remove(entity);
+        await _context.SaveChangesAsync();
+    }
 }

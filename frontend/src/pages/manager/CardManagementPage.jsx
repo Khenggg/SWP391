@@ -59,10 +59,28 @@ export default function CardManagementPage() {
 
   useEffect(() => {
     fetchCards();
+
+    // 1. Cross-tab sync for Mock storage (localStorage update event)
+    const handleStorageChange = (event) => {
+      if (event.key && (event.key.includes("mock_db_cards") || event.key.includes("mock_db_slots") || event.key.includes("mock_db_sessions"))) {
+        fetchCards(true);
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+
+    // 2. Auto-polling interval (10 seconds) for database/API updates
+    const pollingInterval = setInterval(() => {
+      fetchCards(true);
+    }, 10000);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(pollingInterval);
+    };
   }, []);
 
-  const fetchCards = async () => {
-    setIsLoading(true);
+  const fetchCards = async (isBackground = false) => {
+    if (!isBackground) setIsLoading(true);
     try {
       const data = await cardService.getCards();
       setCards(data);
@@ -71,9 +89,9 @@ export default function CardManagementPage() {
         if (updated) setSelectedCard(updated);
       }
     } catch (e) {
-      toast.error("Lỗi lấy danh sách thẻ: " + e.message);
+      if (!isBackground) toast.error("Lỗi lấy danh sách thẻ: " + e.message);
     } finally {
-      setIsLoading(false);
+      if (!isBackground) setIsLoading(false);
     }
   };
 

@@ -1,4 +1,4 @@
-﻿namespace ParkingBuilding.CoreApi.Contracts.Common;
+namespace ParkingBuilding.CoreApi.Contracts.Common;
 
 public static class ErrorCodes
 {
@@ -71,6 +71,7 @@ public static class ErrorCodes
     public const string FloorNameRequired = "FLOOR_NAME_REQUIRED";
     public const string FloorCodeExists = "FLOOR_CODE_EXISTS";
     public const string SelectedFloorNotActive = "SELECTED_FLOOR_NOT_ACTIVE";
+    public const string FloorHasAreas = "FLOOR_HAS_AREAS";
 
     public const string GateNotFound = "GATE_NOT_FOUND";
     public const string GateNotActive = "GATE_NOT_ACTIVE";
