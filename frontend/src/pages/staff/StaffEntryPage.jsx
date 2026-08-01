@@ -431,7 +431,20 @@ export default function StaffEntryPage() {
 
           <div className="flex min-h-0 flex-col gap-4 md:col-span-5">
             <div className="min-h-0 flex-1">
-              <EntryFormPanel form={form} derivedVehicleTypeId={derivedVehicleTypeId} onFieldChange={setField} onEntryModeChange={setEntryMode} onLoadSuggestion={handleLoadSuggestion} canLoadSuggestion={canLoadSuggestion} isLoadingSuggestion={isLoadingSuggestion} noPlateAllowed={noPlateAllowed} gates={gates} vehicleTypes={vehicleTypes} />
+              <EntryFormPanel 
+                form={form} 
+                derivedVehicleTypeId={derivedVehicleTypeId} 
+                onFieldChange={setField} 
+                onEntryModeChange={setEntryMode} 
+                onLoadSuggestion={handleLoadSuggestion} 
+                canLoadSuggestion={canLoadSuggestion} 
+                isLoadingSuggestion={isLoadingSuggestion} 
+                noPlateAllowed={noPlateAllowed} 
+                gates={gates} 
+                vehicleTypes={vehicleTypes} 
+                onCheckCard={handleCheckCard}
+                onCheckReservation={handleCheckReservation}
+              />
             </div>
             <div className="h-[35%] shrink-0"><EntrySuggestionPanel suggestion={suggestion} /></div>
           </div>

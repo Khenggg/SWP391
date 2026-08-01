@@ -290,6 +290,11 @@ export default function LostCardApprovalsPage() {
               placeholder={decisionType === "APPROVE" ? "Ghi chú phê duyệt" : "Lý do từ chối"}
               value={reasonText}
               onChange={(event) => setReasonText(event.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  confirmDecision();
+                }
+              }}
             />
           </div>
           <DialogFooter>

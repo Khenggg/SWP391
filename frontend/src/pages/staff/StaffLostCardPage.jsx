@@ -201,6 +201,11 @@ export default function StaffLostCardPage() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Nhập biển số xe (VD: 30F-123.45) hoặc mã thẻ C016..."
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSearch();
+                }
+              }}
             />
             <Button onClick={handleSearch} disabled={isSubmitting}>
               <Search className="mr-1.5 h-4 w-4" />
@@ -237,7 +242,13 @@ export default function StaffLostCardPage() {
               <CardDescription>Thông tin này sẽ được đưa vào hàng đợi phê duyệt của Manager.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-3 md:grid-cols-2">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSubmit();
+                }}
+                className="grid gap-3 md:grid-cols-2"
+              >
                 <Input
                   placeholder="Người báo mất *"
                   value={form.reporterName}
@@ -281,6 +292,7 @@ export default function StaffLostCardPage() {
                         <Badge key={index} variant="secondary" className="flex items-center gap-1 pl-3 pr-1 py-1">
                           <span className="max-w-[120px] truncate">{file.name}</span>
                           <Button
+                            type="button"
                             variant="ghost"
                             size="icon"
                             className="ml-1 h-4 w-4 rounded-full"
@@ -295,11 +307,11 @@ export default function StaffLostCardPage() {
                   )}
                 </div>
 
-                <Button className="mt-2 md:col-span-2" onClick={handleSubmit} disabled={isSubmitting}>
+                <Button type="submit" className="mt-2 md:col-span-2" disabled={isSubmitting}>
                   <FileWarning className="mr-1.5 h-4 w-4" />
                   {isSubmitting ? "Đang xử lý..." : "Tạo hồ sơ chờ duyệt"}
                 </Button>
-              </div>
+              </form>
             </CardContent>
           </Card>
         </div>

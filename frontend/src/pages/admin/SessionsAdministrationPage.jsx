@@ -158,6 +158,11 @@ export default function SessionsAdministrationPage() {
               className="pl-9 bg-slate-50"
               value={filterSearch}
               onChange={e => setFilterSearch(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  loadData();
+                }
+              }}
             />
           </div>
           

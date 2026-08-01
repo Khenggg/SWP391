@@ -34,6 +34,11 @@ export default function MonthlyPassFilters({
               className="pl-9 bg-slate-50 border-slate-200"
               value={filterKeyword}
               onChange={e => setFilterKeyword(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  onSearch();
+                }
+              }}
             />
           </div>
         </div>
@@ -77,6 +82,11 @@ export default function MonthlyPassFilters({
             className="bg-slate-50 border-slate-200"
             value={filterDateRange}
             onChange={e => setFilterDateRange(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter") {
+                onSearch();
+              }
+            }}
           />
         </div>
 
