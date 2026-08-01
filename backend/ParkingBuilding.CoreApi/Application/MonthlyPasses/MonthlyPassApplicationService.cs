@@ -661,6 +661,8 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
                 VehicleId = application.VehicleId,
                 VehiclePlateNumber = application.Vehicle?.PlateNumber ?? "—",
                 VehicleTypeName = application.Vehicle?.VehicleType?.Name ?? "Unknown",
+                Brand = application.Vehicle?.Brand,
+                Color = application.Vehicle?.Color,
                 StartDate = application.StartDate,
                 Price = application.Price,
                 Status = application.Status,
