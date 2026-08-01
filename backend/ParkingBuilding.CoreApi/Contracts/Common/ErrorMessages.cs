@@ -168,7 +168,7 @@ public static class ErrorMessages
         [ErrorCodes.SuggestionOverrideNotAllowed] = "Nhan vien khong co quyen ghi de vi tri do goi y.",
         [ErrorCodes.OverrideReasonRequired] = "Vui long nhap ly do ghi de vi tri do goi y.",
         [ErrorCodes.NoAvailableLocation] = "Khong con vi tri trong phu hop.",
-        [ErrorCodes.PricingRuleNotFound] = "Khong tim thay bang gia phu hop.",
+        [ErrorCodes.PricingRuleNotFound] = "Không tìm thấy bảng giá phù hợp.",
         [ErrorCodes.PricingModelRequired] = "Thong tin bang gia la bat buoc.",
         [ErrorCodes.PricingVehicleTypeMissing] = "Loai xe cua bang gia khong ton tai.",
         [ErrorCodes.PricingValueInvalid] = "Gia va phi phai khong am.",
