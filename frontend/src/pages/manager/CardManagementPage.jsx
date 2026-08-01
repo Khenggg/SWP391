@@ -60,21 +60,12 @@ export default function CardManagementPage() {
   useEffect(() => {
     fetchCards();
 
-    // 1. Cross-tab sync for Mock storage (localStorage update event)
-    const handleStorageChange = (event) => {
-      if (event.key && (event.key.includes("mock_db_cards") || event.key.includes("mock_db_slots") || event.key.includes("mock_db_sessions"))) {
-        fetchCards(true);
-      }
-    };
-    window.addEventListener("storage", handleStorageChange);
-
-    // 2. Auto-polling interval (10 seconds) for database/API updates
+    // Auto-polling interval (10 seconds) for database/API updates
     const pollingInterval = setInterval(() => {
       fetchCards(true);
     }, 10000);
 
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
       clearInterval(pollingInterval);
     };
   }, []);

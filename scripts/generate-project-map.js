@@ -136,6 +136,7 @@ for (const file of filesToInclude) {
 
   try {
     let content = readFileSync(file.fullPath, 'utf8');
+    content = content.replace(/[\t ]+$/gm, '');
     if (SECRET_FILE_PATTERN.test(file.relPath) && (SECRET_KEY_PATTERN.test(content) || SECRET_KEY_PATTERN.test(file.relPath))) {
       content = maskSecrets(content);
     }

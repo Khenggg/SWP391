@@ -42,14 +42,9 @@ export default function MismatchTable({
           ) : (
             cases.map((item) => {
               const isSelected = selectedCaseId === item.id;
-              
-              // Mocking priority for demo purposes if not present
-              const priority = item.priority || "MEDIUM";
-              const priorityLabel = priority === "HIGH" ? "Cao" : priority === "MEDIUM" ? "Trung bình" : "Thấp";
-
-              // Mock creator role
-              const creatorRole = item.creatorRole || "STAFF";
-              const caseCode = item.caseCode || `MM-${new Date(item.createdAt || new Date()).getFullYear()}-${(item.id || 0).toString().padStart(5, '0')}`;
+              const priority = item.priority?.toUpperCase();
+              const priorityLabel = priority === "HIGH" ? "Cao" : priority === "MEDIUM" ? "Trung bình" : priority === "LOW" ? "Thấp" : "Không xác định";
+              const caseCode = item.caseCode || "—";
 
               return (
                 <TableRow 
@@ -80,7 +75,7 @@ export default function MismatchTable({
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge variant="outline" className={`px-2 py-0.5 text-[10px] font-bold border ${PRIORITY_BADGE[priority]}`}>
+                    <Badge variant="outline" className={`px-2 py-0.5 text-[10px] font-bold border ${PRIORITY_BADGE[priority] || "border-slate-200 bg-slate-50 text-slate-500"}`}>
                       {priorityLabel}
                     </Badge>
                   </TableCell>
@@ -95,9 +90,11 @@ export default function MismatchTable({
                       </div>
                       <div className="flex flex-col">
                         <span className="text-sm font-semibold text-slate-700">{item.reporterName || item.createdBy || "Staff"}</span>
-                        <Badge variant="outline" className={`px-1.5 py-0 text-[9px] w-fit font-bold ${creatorRole === 'MANAGER' ? 'text-blue-600 border-blue-200 bg-blue-50' : 'text-emerald-600 border-emerald-200 bg-emerald-50'}`}>
-                          {creatorRole}
-                        </Badge>
+                        {item.creatorRole && (
+                          <Badge variant="outline" className={`px-1.5 py-0 text-[9px] w-fit font-bold ${item.creatorRole === 'MANAGER' ? 'text-blue-600 border-blue-200 bg-blue-50' : 'text-emerald-600 border-emerald-200 bg-emerald-50'}`}>
+                            {item.creatorRole}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </TableCell>

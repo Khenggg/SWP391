@@ -6,12 +6,17 @@ build/
 .ai/
 .vscode/
 .agents/
+.playwright-cli/
+.vercel/
 .vs/
 .idea/
 bin/
 obj/
 packages/
 target/
+output/
+frontend/test-results/
+frontend/tests/e2e/reports/
 postman/
 .postman/
 docs/references/
