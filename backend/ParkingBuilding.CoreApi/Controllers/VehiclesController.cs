@@ -120,6 +120,12 @@ namespace ParkingBuilding.CoreApi.Controllers
                     color = v.Color,
                     approvalStatus = v.ApprovalStatus,
                     status = v.Status,
+                    hasMonthlyPass = _context.MonthlyPasses.Any(mp => mp.NormalizedPlateNumber == v.NormalizedPlateNumber && mp.Status == "ACTIVE" && mp.EndDate >= DateTime.UtcNow.Date),
+                    monthlyPassEndDate = _context.MonthlyPasses
+                        .Where(mp => mp.NormalizedPlateNumber == v.NormalizedPlateNumber && mp.Status == "ACTIVE" && mp.EndDate >= DateTime.UtcNow.Date)
+                        .OrderByDescending(mp => mp.EndDate)
+                        .Select(mp => (DateTime?)mp.EndDate)
+                        .FirstOrDefault(),
                     activeSession = _context.ParkingSessions
                         .Where(s =>
                             (s.VehicleId == v.Id ||
@@ -187,6 +193,11 @@ namespace ParkingBuilding.CoreApi.Controllers
                 }
             }
 
+            var pass = await _context.MonthlyPasses
+                 .Where(mp => mp.NormalizedPlateNumber == vehicle.NormalizedPlateNumber && mp.Status == "ACTIVE" && mp.EndDate >= DateTime.UtcNow.Date)
+                 .OrderByDescending(mp => mp.EndDate)
+                 .FirstOrDefaultAsync();
+
             return Success(new
             {
                 id = vehicle.Id,
@@ -196,6 +207,8 @@ namespace ParkingBuilding.CoreApi.Controllers
                 brand = vehicle.Brand,
                 color = vehicle.Color,
                 approvalStatus = vehicle.ApprovalStatus,
+                hasMonthlyPass = pass != null,
+                monthlyPassEndDate = pass?.EndDate,
                 createdAt = vehicle.CreatedAt,
                 updatedAt = vehicle.UpdatedAt
             }, "Get vehicle successfully");

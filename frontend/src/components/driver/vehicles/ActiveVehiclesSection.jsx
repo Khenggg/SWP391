@@ -52,7 +52,7 @@ export default function ActiveVehiclesSection({ vehicles = [], loading, getStatu
                   )}
                 </div>
               </div>
-              {getStatusBadge(v.status)}
+              {(v.hasMonthlyPass || v.monthlyPassId || v.isMonthlyPass) ? getStatusBadge("ACTIVE") : null}
             </div>
             <div className="text-xs text-slate-500 font-medium space-y-1">
               <div className="flex justify-between">
