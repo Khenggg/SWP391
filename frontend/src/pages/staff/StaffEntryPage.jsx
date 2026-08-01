@@ -41,8 +41,9 @@ function normalizeText(value) {
   return String(value || "").trim();
 }
 
-function requiresSlotFromVehicleTypeId(vehicleTypeId) {
-  return Number(vehicleTypeId) === 2;
+function requiresSlotFromVehicleTypeId(vehicleTypeId, vehicleTypes = []) {
+  const vt = vehicleTypes.find((v) => String(v.id) === String(vehicleTypeId));
+  return vt ? vt.requiresSlot : false;
 }
 
 function canReservationProceed(status) {
@@ -72,15 +73,32 @@ export default function StaffEntryPage() {
   const [vehicleTypes, setVehicleTypes] = useState([]);
   const [createdEntryResult, setCreatedEntryResult] = useState(null);
 
+  const [floors, setFloors] = useState([]);
+  const [areas, setAreas] = useState([]);
+  const [slots, setSlots] = useState([]);
+
+  // Override States
+  const [overrideEnabled, setOverrideEnabled] = useState(false);
+  const [overrideFloorId, setOverrideFloorId] = useState("");
+  const [overrideAreaId, setOverrideAreaId] = useState("");
+  const [overrideSlotId, setOverrideSlotId] = useState("");
+  const [overrideReason, setOverrideReason] = useState("");
+
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [gateResponse, vehicleTypeResponse] = await Promise.all([
+        const [gateResponse, vehicleTypeResponse, floorResponse, areaResponse, slotResponse] = await Promise.all([
           parkingService.getGates("ENTRY"),
           parkingService.getVehicleTypes(),
+          parkingService.getFloors(),
+          parkingService.getAreas(),
+          parkingService.getSlots(),
         ]);
         setGates(gateResponse);
         setVehicleTypes(vehicleTypeResponse);
+        setFloors(floorResponse);
+        setAreas(areaResponse);
+        setSlots(slotResponse);
         setForm((current) => ({
           ...current,
           entryGateId: current.entryGateId || (gateResponse[0] ? String(gateResponse[0].id) : ""),
@@ -88,7 +106,7 @@ export default function StaffEntryPage() {
         }));
       } catch (error) {
         console.error("Failed to load entry metadata", error);
-        toast.error("Không thể tải cổng vào hoặc loại xe.");
+        toast.error("Không thể tải cổng vào, loại xe hoặc cấu trúc bãi.");
       }
     };
     void loadData();
@@ -164,6 +182,11 @@ export default function StaffEntryPage() {
     setCardCheck(null);
     setReservationCheck(null);
     setSuggestion(null);
+    setOverrideEnabled(false);
+    setOverrideFloorId("");
+    setOverrideAreaId("");
+    setOverrideSlotId("");
+    setOverrideReason("");
   }, []);
 
   const entryGateId = parseNumber(form.entryGateId);
@@ -250,22 +273,24 @@ export default function StaffEntryPage() {
   }, [cardCheck, form.entryMode, form.vehicleTypeId, reservationCheck]);
 
   const selectedAreaId = useMemo(() => {
+    if (overrideEnabled && overrideAreaId) return parseNumber(overrideAreaId);
     if (form.entryMode === "MONTHLY") return cardCheck?.fixedAreaId ?? null;
     if (form.entryMode === "RESERVATION") return reservationCheck?.reservedAreaId ?? null;
     return suggestion?.suggestedAreaId ?? null;
-  }, [cardCheck, form.entryMode, reservationCheck, suggestion]);
+  }, [overrideEnabled, overrideAreaId, cardCheck, form.entryMode, reservationCheck, suggestion]);
 
   const selectedSlotId = useMemo(() => {
+    if (overrideEnabled && overrideSlotId) return parseNumber(overrideSlotId);
     if (form.entryMode === "MONTHLY") return cardCheck?.fixedSlotId ?? null;
     if (form.entryMode === "RESERVATION") return reservationCheck?.reservedSlotId ?? null;
     return suggestion?.suggestedSlotId ?? null;
-  }, [cardCheck, form.entryMode, reservationCheck, suggestion]);
+  }, [overrideEnabled, overrideSlotId, cardCheck, form.entryMode, reservationCheck, suggestion]);
 
   const noPlateAllowed = useMemo(() => {
     if (form.entryMode === "MONTHLY") return false;
     if (form.entryMode === "RESERVATION" && reservationCheck?.plateRequiredAtEntry) return false;
-    return !requiresSlotFromVehicleTypeId(derivedVehicleTypeId);
-  }, [derivedVehicleTypeId, form.entryMode, reservationCheck]);
+    return !requiresSlotFromVehicleTypeId(derivedVehicleTypeId, vehicleTypes);
+  }, [derivedVehicleTypeId, form.entryMode, reservationCheck, vehicleTypes]);
 
   useEffect(() => {
     if (!noPlateAllowed && form.noPlate) {
@@ -299,7 +324,13 @@ export default function StaffEntryPage() {
     if (!normalizeText(form.cardCode) || !entryGateId || !hasEntryImages) return false;
     if (form.noPlate ? !normalizeText(form.vehicleDescription) || !noPlateAllowed : !normalizeText(form.licensePlate)) return false;
 
-    if (form.entryMode === "CASUAL") return Boolean(isNormalCardVerified && derivedVehicleTypeId && suggestion?.suggestionToken);
+    if (overrideEnabled) {
+      if (!overrideReason.trim()) return false;
+      const requiresSlot = requiresSlotFromVehicleTypeId(derivedVehicleTypeId, vehicleTypes);
+      if (requiresSlot ? !overrideSlotId : !overrideAreaId) return false;
+    }
+
+    if (form.entryMode === "CASUAL") return Boolean(isNormalCardVerified && derivedVehicleTypeId && (overrideEnabled || suggestion?.suggestionToken));
     if (form.entryMode === "MONTHLY") return Boolean(cardCheck?.monthlyPassId && cardCheck?.monthlyEntryToken && !isMonthlyPlateMismatch);
     return Boolean(
       isNormalCardVerified &&
@@ -307,19 +338,27 @@ export default function StaffEntryPage() {
       reservationCheck?.reservationEntryToken &&
       canReservationProceed(reservationCheck?.status)
     );
-  }, [cardCheck, derivedVehicleTypeId, entryGateId, form, hasEntryImages, isMonthlyPlateMismatch, isNormalCardVerified, noPlateAllowed, reservationCheck, suggestion]);
+  }, [cardCheck, derivedVehicleTypeId, entryGateId, form, hasEntryImages, isMonthlyPlateMismatch, isNormalCardVerified, noPlateAllowed, reservationCheck, suggestion, overrideEnabled, overrideReason, overrideAreaId, overrideSlotId, vehicleTypes]);
 
-  const workflowChecks = useMemo(() => [
-    { label: "Thẻ hợp lệ", passed: form.entryMode === "MONTHLY" ? Boolean(cardCheck?.monthlyEntryToken) : isNormalCardVerified },
-    { label: "Cổng vào hợp lệ", passed: Boolean(entryGateId && entryGateId > 0) },
-    { label: form.noPlate ? "Mô tả xe" : "Biển số", passed: form.noPlate ? Boolean(normalizeText(form.vehicleDescription)) : Boolean(normalizeText(form.licensePlate)) },
-    { label: "Ảnh biển số xe vào", passed: Boolean(normalizeText(form.entryPlateImageUrl)) },
-    { label: "Ảnh toàn xe vào", passed: Boolean(normalizeText(form.entryVehicleImageUrl)) },
-    {
-      label: form.entryMode === "CASUAL" ? "Gợi ý vị trí" : form.entryMode === "MONTHLY" ? "Xác minh vé tháng" : "Xác minh booking",
-      passed: form.entryMode === "CASUAL" ? Boolean(suggestion?.suggestionToken) : form.entryMode === "MONTHLY" ? Boolean(cardCheck?.monthlyEntryToken) && !isMonthlyPlateMismatch : Boolean(reservationCheck?.reservationEntryToken) && canReservationProceed(reservationCheck?.status),
-    },
-  ], [cardCheck, entryGateId, form, isMonthlyPlateMismatch, isNormalCardVerified, reservationCheck, suggestion]);
+  const workflowChecks = useMemo(() => {
+    const requiresSlot = requiresSlotFromVehicleTypeId(derivedVehicleTypeId, vehicleTypes);
+    const isOverrideValid = overrideEnabled && (requiresSlot ? Boolean(overrideSlotId) : Boolean(overrideAreaId)) && Boolean(overrideReason.trim());
+    return [
+      { label: "Thẻ hợp lệ", passed: form.entryMode === "MONTHLY" ? Boolean(cardCheck?.monthlyEntryToken) : isNormalCardVerified },
+      { label: "Cổng vào hợp lệ", passed: Boolean(entryGateId && entryGateId > 0) },
+      { label: form.noPlate ? "Mô tả xe" : "Biển số", passed: form.noPlate ? Boolean(normalizeText(form.vehicleDescription)) : Boolean(normalizeText(form.licensePlate)) },
+      { label: "Ảnh biển số xe vào", passed: Boolean(normalizeText(form.entryPlateImageUrl)) },
+      { label: "Ảnh toàn xe vào", passed: Boolean(normalizeText(form.entryVehicleImageUrl)) },
+      {
+        label: form.entryMode === "CASUAL" ? (overrideEnabled ? "Vị trí can thiệp" : "Gợi ý vị trí") : form.entryMode === "MONTHLY" ? "Xác minh vé tháng" : "Xác minh booking",
+        passed: form.entryMode === "CASUAL" 
+          ? (overrideEnabled ? isOverrideValid : Boolean(suggestion?.suggestionToken)) 
+          : form.entryMode === "MONTHLY" 
+            ? Boolean(cardCheck?.monthlyEntryToken) && !isMonthlyPlateMismatch 
+            : Boolean(reservationCheck?.reservationEntryToken) && canReservationProceed(reservationCheck?.status),
+      },
+    ];
+  }, [cardCheck, entryGateId, form, isMonthlyPlateMismatch, isNormalCardVerified, reservationCheck, suggestion, overrideEnabled, overrideAreaId, overrideSlotId, overrideReason, derivedVehicleTypeId, vehicleTypes]);
 
   const handleLoadSuggestion = useCallback(async () => {
     const vehicleTypeId = parseNumber(derivedVehicleTypeId);
@@ -361,6 +400,7 @@ export default function StaffEntryPage() {
       detectedPlateNumber: form.noPlate ? null : form.detectedPlateNumber,
       detectedNormalizedPlateNumber: form.noPlate ? null : form.detectedNormalizedPlateNumber,
       ocrConfidence: form.ocrConfidence,
+      overrideReason: overrideEnabled ? overrideReason : null,
     };
 
     if (form.entryMode === "CASUAL") return { ...basePayload, suggestionToken: suggestion?.suggestionToken || null };
@@ -444,9 +484,33 @@ export default function StaffEntryPage() {
                 vehicleTypes={vehicleTypes}
                 onCheckCard={handleCheckCard}
                 onCheckReservation={handleCheckReservation}
+                overrideEnabled={overrideEnabled}
+                setOverrideEnabled={setOverrideEnabled}
+                overrideFloorId={overrideFloorId}
+                setOverrideFloorId={setOverrideFloorId}
+                overrideAreaId={overrideAreaId}
+                setOverrideAreaId={setOverrideAreaId}
+                overrideSlotId={overrideSlotId}
+                setOverrideSlotId={setOverrideSlotId}
+                overrideReason={overrideReason}
+                setOverrideReason={setOverrideReason}
+                floors={floors}
+                areas={areas}
+                slots={slots}
               />
             </div>
-            <div className="h-[35%] shrink-0"><EntrySuggestionPanel suggestion={suggestion} /></div>
+            <div className="h-[35%] shrink-0">
+              <EntrySuggestionPanel
+                suggestion={suggestion}
+                overrideEnabled={overrideEnabled}
+                overrideFloorId={overrideFloorId}
+                overrideAreaId={overrideAreaId}
+                overrideSlotId={overrideSlotId}
+                floors={floors}
+                areas={areas}
+                slots={slots}
+              />
+            </div>
           </div>
 
           <div className="flex min-h-0 flex-col gap-4 md:col-span-3">

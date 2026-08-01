@@ -38,9 +38,64 @@ export default function EntryFormPanel({
   vehicleTypes = [],
   onCheckCard,
   onCheckReservation,
+  // Override Props
+  overrideEnabled,
+  setOverrideEnabled,
+  overrideFloorId,
+  setOverrideFloorId,
+  overrideAreaId,
+  setOverrideAreaId,
+  overrideSlotId,
+  setOverrideSlotId,
+  overrideReason,
+  setOverrideReason,
+  floors = [],
+  areas = [],
+  slots = [],
 }) {
   const confidence = form?.ocrConfidence != null ? Number(form.ocrConfidence) : null;
   const isLowConfidence = confidence != null && confidence < 70;
+
+  const requiresSlot = React.useMemo(() => {
+    const vt = vehicleTypes.find((v) => String(v.id) === String(derivedVehicleTypeId));
+    return vt ? vt.requiresSlot : false;
+  }, [derivedVehicleTypeId, vehicleTypes]);
+
+  // Filter areas by selected floor & vehicle type
+  const filteredAreas = React.useMemo(() => {
+    if (!overrideFloorId) return [];
+    return areas.filter(a => {
+      const isFloorMatch = String(a.floorId) === String(overrideFloorId);
+      const isActive = a.status === "ACTIVE" || a.status === "AVAILABLE" || !a.status;
+      
+      let isVehicleTypeMatch = false;
+      if (a.vehicleTypeIds && a.vehicleTypeIds.length > 0) {
+        isVehicleTypeMatch = a.vehicleTypeIds.some(id => String(id) === String(derivedVehicleTypeId));
+      } else if (a.vehicleTypeNames && a.vehicleTypeNames.length > 0) {
+        const selectedVt = vehicleTypes.find(v => String(v.id) === String(derivedVehicleTypeId));
+        if (selectedVt) {
+          isVehicleTypeMatch = a.vehicleTypeNames.some(name => 
+            name.toLowerCase().includes(selectedVt.name?.toLowerCase()) ||
+            selectedVt.name?.toLowerCase().includes(name.toLowerCase())
+          );
+        }
+      } else {
+        // Fallback: If no vehicle types configured for the area, allow check
+        isVehicleTypeMatch = true;
+      }
+      
+      return isFloorMatch && isActive && isVehicleTypeMatch;
+    });
+  }, [overrideFloorId, areas, derivedVehicleTypeId, vehicleTypes]);
+
+  // Filter slots by selected area and status AVAILABLE
+  const filteredSlots = React.useMemo(() => {
+    if (!overrideAreaId) return [];
+    return slots.filter(s => 
+      String(s.areaId) === String(overrideAreaId) && 
+      s.status === "AVAILABLE"
+    );
+  }, [overrideAreaId, slots]);
 
   const ocrBadge = confidence != null ? (
     <span
@@ -72,7 +127,7 @@ export default function EntryFormPanel({
         </div>
       </CardHeader>
 
-      <CardContent className="flex flex-1 flex-col gap-3 overflow-hidden p-3">
+      <CardContent className="flex flex-1 flex-col gap-3 overflow-y-auto p-3">
         <div className="grid grid-cols-2 gap-3">
           <Field label="Chế độ xe vào" required colSpan={2}>
             <Select value={form.entryMode} onValueChange={onEntryModeChange}>
@@ -166,6 +221,114 @@ export default function EntryFormPanel({
             </Select>
           </Field>
         </div>
+
+        {/* Can thiệp vị trí đỗ */}
+        {(form.entryMode === "CASUAL" || form.entryMode === "RESERVATION") && (
+          <div className="mt-2 border-t border-slate-100 pt-3 shrink-0">
+            <div className="flex items-center justify-between mb-2">
+              <label className="flex cursor-pointer items-center gap-1.5 text-xs font-bold text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={overrideEnabled}
+                  onChange={(e) => {
+                    setOverrideEnabled(e.target.checked);
+                    if (!e.target.checked) {
+                      setOverrideFloorId("");
+                      setOverrideAreaId("");
+                      setOverrideSlotId("");
+                      setOverrideReason("");
+                    }
+                  }}
+                  className="size-3.5 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                />
+                Can thiệp vị trí đỗ (Override AI)
+              </label>
+              {overrideEnabled && (
+                <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
+                  Chế độ can thiệp
+                </span>
+              )}
+            </div>
+
+            {overrideEnabled && (
+              <div className="grid grid-cols-2 gap-3 bg-amber-50/50 p-3 rounded-lg border border-amber-100/80 animate-in slide-in-from-top-2 duration-200">
+                <Field label="Chọn Tầng *" required>
+                  <Select
+                    value={overrideFloorId}
+                    onValueChange={(val) => {
+                      setOverrideFloorId(val);
+                      setOverrideAreaId("");
+                      setOverrideSlotId("");
+                    }}
+                  >
+                    <SelectTrigger className="h-8 border-slate-200 bg-white text-sm focus:ring-amber-500">
+                      <SelectValue placeholder="Chọn Tầng" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {floors.map((f) => (
+                        <SelectItem key={f.id} value={String(f.id)}>
+                          {f.floorCode} - {f.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+
+                <Field label="Chọn Khu vực *" required>
+                  <Select
+                    value={overrideAreaId}
+                    disabled={!overrideFloorId}
+                    onValueChange={(val) => {
+                      setOverrideAreaId(val);
+                      setOverrideSlotId("");
+                    }}
+                  >
+                    <SelectTrigger className="h-8 border-slate-200 bg-white text-sm focus:ring-amber-500">
+                      <SelectValue placeholder="Chọn Khu vực" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredAreas.map((a) => (
+                        <SelectItem key={a.id} value={String(a.id)}>
+                          {a.areaCode} ({a.vehicleTypeNames?.join(", ")})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+
+                {requiresSlot ? (
+                  <Field label="Chọn Vị trí (Slot) *" required colSpan={2}>
+                    <Select
+                      value={overrideSlotId}
+                      disabled={!overrideAreaId}
+                      onValueChange={setOverrideSlotId}
+                    >
+                      <SelectTrigger className="h-8 border-slate-200 bg-white text-sm focus:ring-amber-500">
+                        <SelectValue placeholder="Chọn Slot trống" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredSlots.map((s) => (
+                          <SelectItem key={s.id} value={String(s.id)}>
+                            {s.slotCode} - Trống
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                ) : null}
+
+                <Field label="Lý do can thiệp *" required colSpan={2}>
+                  <Input
+                    value={overrideReason}
+                    onChange={(e) => setOverrideReason(e.target.value)}
+                    placeholder="Nhập lý do đổi vị trí đỗ..."
+                    className="h-8 border-slate-200 bg-white text-sm focus-visible:ring-amber-500 font-medium"
+                  />
+                </Field>
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

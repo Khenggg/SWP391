@@ -403,11 +403,6 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
 
                 if (isOverride)
                 {
-                    if (role == "STAFF")
-                    {
-                        throw new BusinessException(ErrorCodes.SuggestionOverrideNotAllowed);
-                    }
-
                     if (string.IsNullOrWhiteSpace(request.OverrideReason))
                     {
                         throw new BusinessException(ErrorCodes.OverrideReasonRequired);
@@ -494,11 +489,6 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
 
                 if (isOverride)
                 {
-                    if (role == "STAFF")
-                    {
-                        throw new BusinessException(ErrorCodes.SuggestionOverrideNotAllowed);
-                    }
-
                     if (string.IsNullOrWhiteSpace(request.OverrideReason))
                     {
                         throw new BusinessException(ErrorCodes.OverrideReasonRequired);
