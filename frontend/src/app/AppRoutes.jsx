@@ -108,9 +108,12 @@ export default function AppRoutes({ isAuthenticated, userRole, currentUser, onLo
             <Route path="/admin/sessions-administration" element={<SessionsAdministrationPage />} />
           </Route>
 
-          <Route element={<RequireRole userRole={userRole} allowedRoles={[USER_ROLES.STAFF, USER_ROLES.MANAGER]} />}>
+          <Route element={<RequireRole userRole={userRole} allowedRoles={[USER_ROLES.STAFF]} />}>
             <Route path="/staff/entry" element={<StaffEntryPage />} />
             <Route path="/staff/exit" element={<StaffExitPage />} />
+          </Route>
+
+          <Route element={<RequireRole userRole={userRole} allowedRoles={[USER_ROLES.STAFF, USER_ROLES.MANAGER]} />}>
             <Route path="/staff/lost-card" element={<StaffLostCardPage />} />
             <Route path="/staff/sessions" element={<StaffSessionsPage />} />
             <Route path="/staff/license-plate-mismatch" element={<LicensePlateMismatchPage />} />
