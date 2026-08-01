@@ -105,10 +105,27 @@ export default function NotificationBell({ userId }) {
     if (!effectiveUserId) return;
     try {
       setLoading(true);
-      // BE trả về List<NotificationResponse> trực tiếp (không có wrapper {success, data})
       const data = await notificationService.getNotifications(effectiveUserId);
-      setNotifications(data);
-      setUnreadCount(data.filter((n) => !n.isRead).length);
+      
+      // Load read notifications from localStorage
+      const readStorageKey = `read_notifications_${effectiveUserId}`;
+      let readIds = [];
+      try {
+        readIds = JSON.parse(localStorage.getItem(readStorageKey) || "[]");
+      } catch (e) {
+        console.warn("[NotificationBell] Error reading from localStorage:", e);
+      }
+
+      // Merge API isRead and localStorage read status
+      const mapped = data.map(n => {
+        const isLocallyRead = readIds.includes(n.id);
+        return {
+          ...n,
+          isRead: n.isRead || isLocallyRead
+        };
+      });
+      setNotifications(mapped);
+      setUnreadCount(mapped.filter((n) => !n.isRead).length);
     } catch (err) {
       console.warn("[NotificationBell] Lấy thông báo thất bại:", err?.message || err);
     } finally {
@@ -138,16 +155,54 @@ export default function NotificationBell({ userId }) {
   // Optimistic mark-as-read; nếu BE chưa có PATCH endpoint thì chỉ cập nhật UI
   const handleMarkAsRead = useCallback(async (id, isRead) => {
     if (isRead) return;
+    
+    // Save to localStorage
+    const readStorageKey = `read_notifications_${effectiveUserId}`;
+    try {
+      const readIds = JSON.parse(localStorage.getItem(readStorageKey) || "[]");
+      if (!readIds.includes(id)) {
+        readIds.push(id);
+        localStorage.setItem(readStorageKey, JSON.stringify(readIds));
+      }
+    } catch (e) {
+      console.warn("[NotificationBell] Error saving to localStorage:", e);
+    }
+
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
     );
     setUnreadCount((prev) => Math.max(0, prev - 1));
     await notificationService.markAsRead(id); // graceful fail trong service
-  }, []);
+  }, [effectiveUserId]);
 
-  const handleMarkAllRead = useCallback(() => {
-    notifications.filter((n) => !n.isRead).forEach((n) => handleMarkAsRead(n.id, false));
-  }, [notifications, handleMarkAsRead]);
+  const handleMarkAllRead = useCallback(async () => {
+    const unreadIds = notifications.filter((n) => !n.isRead).map((n) => n.id);
+    if (unreadIds.length === 0) return;
+
+    // Save to localStorage
+    const readStorageKey = `read_notifications_${effectiveUserId}`;
+    try {
+      const readIds = JSON.parse(localStorage.getItem(readStorageKey) || "[]");
+      unreadIds.forEach(id => {
+        if (!readIds.includes(id)) {
+          readIds.push(id);
+        }
+      });
+      localStorage.setItem(readStorageKey, JSON.stringify(readIds));
+    } catch (e) {
+      console.warn("[NotificationBell] Error saving all to localStorage:", e);
+    }
+
+    setNotifications((prev) =>
+      prev.map((n) => unreadIds.includes(n.id) ? { ...n, isRead: true } : n)
+    );
+    setUnreadCount(0);
+
+    // Call API for each in parallel (silently, without awaiting each sequentially)
+    unreadIds.forEach(id => {
+      notificationService.markAsRead(id).catch(() => {});
+    });
+  }, [notifications, effectiveUserId]);
 
   return (
     <div className="relative" ref={dropdownRef}>

@@ -272,7 +272,7 @@ export default function AppShell({ currentUser, onLogout }) {
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
-            <NotificationBell userId={currentUser?.id} />
+            {role !== USER_ROLES.ADMIN && <NotificationBell userId={currentUser?.id} />}
             <div className="hidden min-w-0 items-center gap-2 rounded-lg border bg-card px-3 py-2 shadow-sm sm:flex">
               <span className="max-w-44 truncate text-sm font-bold">
                 {currentUser?.fullName || currentUser?.username || "Nhân viên"}
