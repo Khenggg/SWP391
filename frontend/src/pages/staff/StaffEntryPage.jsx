@@ -196,8 +196,11 @@ export default function StaffEntryPage() {
         }));
         toast.success("Đã xác minh thẻ tháng cư dân.");
       } else {
-        setForm((current) => ({ ...current, entryMode: current.reservationCode ? "RESERVATION" : "CASUAL" }));
-        toast.success(form.reservationCode ? "Đã xác minh thẻ lượt cho booking." : "Thẻ hợp lệ cho khách vãng lai.");
+        setForm((current) => ({
+          ...current,
+          entryMode: current.entryMode === "RESERVATION" ? "RESERVATION" : (current.reservationCode ? "RESERVATION" : "CASUAL")
+        }));
+        toast.success(form.entryMode === "RESERVATION" || form.reservationCode ? "Đã xác minh thẻ lượt cho booking." : "Thẻ hợp lệ cho khách vãng lai.");
       }
     } catch (error) {
       setCardCheck(null);
@@ -206,7 +209,7 @@ export default function StaffEntryPage() {
     } finally {
       setIsCheckingCard(false);
     }
-  }, [entryGateId, form.cardCode, form.reservationCode, setField]);
+  }, [entryGateId, form.cardCode, form.reservationCode, form.entryMode, setField]);
 
   const handleCheckReservation = useCallback(async () => {
     const reservationCode = normalizeText(form.reservationCode);

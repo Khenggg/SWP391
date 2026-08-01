@@ -44,7 +44,27 @@ export default function ExitSessionInfo({ session, vehicleTypes = [], embedded =
                 </div>
               </div>
             </div>
-            
+
+            {session.isCardLost && (
+              <div className="flex flex-col gap-1.5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                <div className="flex items-center gap-1.5 font-bold">
+                  <AlertTriangle className="size-4 shrink-0 text-amber-600 animate-pulse" />
+                  <span>⚠️ Cảnh báo: Thẻ báo mất đã được phê duyệt</span>
+                </div>
+                <div className="pl-5.5 space-y-1 text-amber-700">
+                  <p>Thẻ này đã từng được báo mất trước đó.</p>
+                  {session.lostCardReportedPlate && (
+                    <p>
+                      Biển số khách khai báo mất:{" "}
+                      <span className="font-bold text-amber-900 bg-amber-100 px-1 rounded">
+                        {session.lostCardReportedPlate}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
               <div className="space-y-3">
                 <div>

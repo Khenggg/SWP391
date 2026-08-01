@@ -55,11 +55,6 @@ namespace ParkingBuilding.CoreApi.Application.Payments
                     if (!session.PaymentRequired && !hasApprovedLostCard)
                         throw new BusinessException(ErrorCodes.NoPaymentRequired);
 
-                    bool hasFinal = await _context.Payments
-                        .AnyAsync(p => p.SessionId == session.Id && (p.Status == "PAID" || p.Status == "WAIVED"));
-                    if (hasFinal || session.PaymentStatus == "PAID" || session.PaymentStatus == "WAIVED")
-                        throw new BusinessException(ErrorCodes.PaymentAlreadyFinal);
-
                     var activeOnlinePayments = await _context.Payments
                         .Where(p => p.SessionId == session.Id
                                  && p.Method == "BANK_TRANSFER"
@@ -76,22 +71,28 @@ namespace ParkingBuilding.CoreApi.Application.Payments
                     var feeResult = await _feeCalculationService.CalculateFeeAsync(
                         session.Id, DateTimeOffset.UtcNow, hasApprovedLostCard);
 
-                    if (feeResult.TotalAmount <= 0m)
-                        throw new BusinessException(ErrorCodes.NoPaymentRequired);
+                    var totalPaid = await _context.Payments
+                        .Where(p => p.SessionId == session.Id && p.Status == "PAID")
+                        .SumAsync(p => p.TotalAmount);
+
+                    var remainingAmount = feeResult.TotalAmount - totalPaid;
+
+                    if (remainingAmount <= 0m)
+                        throw new BusinessException(ErrorCodes.PaymentAlreadyFinal);
 
                     var payment = new Payment
                     {
                         SessionId = session.Id,
-                        Amount = feeResult.Amount,
-                        LostCardFee = feeResult.LostCardFee,
-                        TotalAmount = feeResult.TotalAmount,
+                        Amount = remainingAmount - (hasApprovedLostCard && totalPaid == 0 ? feeResult.LostCardFee : 0m),
+                        LostCardFee = hasApprovedLostCard && totalPaid == 0 ? feeResult.LostCardFee : 0m,
+                        TotalAmount = remainingAmount,
                         Purpose = feeResult.LostCardFee > 0 ? "LOST_CARD_FEE" : "PARKING_FEE",
                         Method = "CASH",
                         Status = "PAID",
                         PaidAt = DateTimeOffset.UtcNow,
                         CollectedBy = staffId,
                         PaidByUserId = session.ClaimedByUserId,
-                        ReceivedAmount = feeResult.TotalAmount,
+                        ReceivedAmount = remainingAmount,
                         CreatedAt = DateTimeOffset.UtcNow,
                         UpdatedAt = DateTimeOffset.UtcNow
                     };

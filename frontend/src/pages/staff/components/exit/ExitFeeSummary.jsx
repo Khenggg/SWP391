@@ -73,14 +73,14 @@ export default function ExitFeeSummary({ fee, session }) {
                     }`}>
                       <div className="flex items-center gap-1.5 font-bold">
                         <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                        {isBufferExpired ? "Quá hạn đệm ra xe" : "Còn trong hạn đệm ra xe"}
+                        {isBufferExpired ? "Quá thời hạn ra xe" : "Còn trong thời hạn ra xe"}
                       </div>
                       <div className="mt-0.5 opacity-90">
-                        Hạn đệm: {formatDateTime(lastPaid.paymentValidUntil)}
+                        Hạn ra xe: {formatDateTime(lastPaid.paymentValidUntil)}
                       </div>
                       {isBufferExpired && (
                         <div className="mt-1 font-semibold text-[11px] text-rose-800 bg-rose-100/60 px-1.5 py-0.5 rounded inline-block">
-                          Cần thu thêm phần chênh lệch
+                          Cần thu thêm phí phát sinh
                         </div>
                       )}
                     </div>

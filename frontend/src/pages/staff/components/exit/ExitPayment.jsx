@@ -58,8 +58,8 @@ export default function ExitPayment({ session, fee, canExit, isZeroCharge, hasPe
 
           {isBufferExpired && !isZeroCharge && (
             <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
-              <p className="font-bold">Cảnh báo: Hạn đệm ra xe đã hết hạn!</p>
-              <p className="mt-0.5">Khách đã trả phí trực tuyến trước đó nhưng quá giờ đệm. Vui lòng thu thêm phần chênh lệch phát sinh.</p>
+              <p className="font-bold">Cảnh báo: Quá thời hạn ra xe sau khi thanh toán!</p>
+              <p className="mt-0.5">Khách đã thanh toán trước đó nhưng đã quá thời gian quy định để ra xe. Vui lòng thu thêm phí chênh lệch phát sinh.</p>
             </div>
           )}
 
@@ -100,10 +100,10 @@ export default function ExitPayment({ session, fee, canExit, isZeroCharge, hasPe
                     {isBufferExpired ? "Thu thêm tiền chênh lệch" : "Chọn hình thức thanh toán"}
                   </p>
                   <div className="grid grid-cols-2 gap-3">
-                    <Button variant="outline" onClick={handleRequestCash} disabled={isLoading || !fee} className="h-12 border-2 border-indigo-600 bg-indigo-50 font-bold text-indigo-700 hover:bg-indigo-100">
+                    <Button variant="outline" onClick={handleRequestCash} disabled={isLoading || !fee || !hasExitImages} className="h-12 border-2 border-indigo-600 bg-indigo-50 font-bold text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50">
                       <Check className="mr-2 size-5" />Tiền mặt
                     </Button>
-                    <Button variant="outline" onClick={handlePayOS} disabled={isLoading || !fee} className="h-12 border-2 border-emerald-600 bg-emerald-50 font-bold text-emerald-700 hover:bg-emerald-100">
+                    <Button variant="outline" onClick={handlePayOS} disabled={isLoading || !fee || !hasExitImages} className="h-12 border-2 border-emerald-600 bg-emerald-50 font-bold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50">
                       <QrCode className="mr-2 size-5" />Chuyển khoản (QR)
                     </Button>
                   </div>

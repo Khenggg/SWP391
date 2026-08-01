@@ -138,8 +138,12 @@ export default function StaffLostCardTrackingTable({
               ) : (
                 filteredCases.map((item) => {
                   const cfg = STATUS_CONFIG[item.status] || STATUS_CONFIG.PENDING;
-                  const plate = item.plateNumber || item.parkingSession?.plateNumber || "";
+                  const reportedPlate = item.plateNumber || "";
+                  const sessionPlate = item.parkingSession?.plateNumber || "";
+                  const hasPlateMismatch = sessionPlate && reportedPlate && normalizePlate(sessionPlate) !== normalizePlate(reportedPlate);
+                  const displayPlate = sessionPlate || reportedPlate;
                   const card = item.cardCode || item.parkingCard?.cardNumber || "";
+                  const cardStatus = item.parkingCard?.status || item.parkingCard?.Status || "";
 
                   const managerNote = item.decisionReason || item.rejectionReason || item.decisionNote || item.note || item.approvalNote;
 
@@ -153,6 +157,7 @@ export default function StaffLostCardTrackingTable({
                     "";
                   const isSessionCompleted =
                     sessionStatus === "COMPLETED" ||
+                    cardStatus === "AVAILABLE" ||
                     item.isCompleted === true ||
                     item.completed === true;
 
@@ -163,8 +168,13 @@ export default function StaffLostCardTrackingTable({
                       </TableCell>
                       <TableCell>
                         <div className="font-mono font-bold text-slate-800 text-sm">
-                          {plate || "---"}
+                          {displayPlate || "---"}
                         </div>
+                        {hasPlateMismatch && (
+                          <div className="text-[10px] text-amber-600 font-medium">
+                            Khai báo: {reportedPlate}
+                          </div>
+                        )}
                         <div className="text-xs text-slate-500">
                           Thẻ: {card || "N/A"}
                         </div>
@@ -215,7 +225,7 @@ export default function StaffLostCardTrackingTable({
                               size="sm"
                               className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs h-8 px-3"
                               onClick={() =>
-                                navigate(`/staff/exit?query=${encodeURIComponent(plate || card || "")}`)
+                                navigate(`/staff/exit?query=${encodeURIComponent(card || plate || "")}`)
                               }
                             >
                               Cho xe ra

@@ -92,7 +92,9 @@ namespace ParkingBuilding.CoreApi.Controllers
                 .ToListAsync();
 
             var cardIds = cards.Select(card => card.Id).ToList();
+            
             var allocations = await _context.MonthlyPasses
+                .Include(m => m.Floor)
                 .Where(monthlyPass => cardIds.Contains(monthlyPass.CardId)
                     && (monthlyPass.Status == "ACTIVE" || monthlyPass.Status == "LOCKED"))
                 .OrderByDescending(monthlyPass => monthlyPass.EndDate)
@@ -104,7 +106,8 @@ namespace ParkingBuilding.CoreApi.Controllers
                     PlateNumber = monthlyPass.PlateNumber,
                     OwnerName = monthlyPass.OwnerName,
                     StartDate = monthlyPass.StartDate,
-                    EndDate = monthlyPass.EndDate
+                    EndDate = monthlyPass.EndDate,
+                    FloorName = monthlyPass.Floor != null ? monthlyPass.Floor.FloorName : null
                 })
                 .ToListAsync();
 
@@ -112,9 +115,24 @@ namespace ParkingBuilding.CoreApi.Controllers
                 .GroupBy(allocation => allocation.CardId)
                 .ToDictionary(group => group.Key, group => group.First());
 
+            var activeSessionIds = cards.Where(c => c.CurrentSessionId != null).Select(c => c.CurrentSessionId.Value).ToList();
+            var activeSessions = await _context.ParkingSessions
+                .Include(s => s.Area)
+                .ThenInclude(a => a.Floor)
+                .Where(s => activeSessionIds.Contains(s.Id))
+                .ToListAsync();
+            var sessionById = activeSessions.ToDictionary(s => s.Id);
+
             return cards.Select(card =>
             {
                 allocationByCardId.TryGetValue(card.Id, out var monthlyPass);
+                
+                ParkingSession? session = null;
+                if (card.CurrentSessionId.HasValue)
+                {
+                    sessionById.TryGetValue(card.CurrentSessionId.Value, out session);
+                }
+
                 return new CardResponseDto
                 {
                     Id = card.Id,
@@ -122,6 +140,8 @@ namespace ParkingBuilding.CoreApi.Controllers
                     QrToken = card.QrToken,
                     Status = card.Status.ToString(),
                     CurrentSessionId = card.CurrentSessionId,
+                    CurrentCustomerType = session?.CustomerType,
+                    CurrentFloorName = session?.Area?.Floor?.FloorName,
                     Note = card.Note,
                     CreatedAt = card.CreatedAt,
                     UpdatedAt = card.UpdatedAt,
@@ -358,6 +378,8 @@ namespace ParkingBuilding.CoreApi.Controllers
             public string QrToken { get; set; } = string.Empty;
             public string Status { get; set; } = string.Empty;
             public long? CurrentSessionId { get; set; }
+            public string? CurrentCustomerType { get; set; }
+            public string? CurrentFloorName { get; set; }
             public string? Note { get; set; }
             public DateTime CreatedAt { get; set; }
             public DateTime UpdatedAt { get; set; }
@@ -375,6 +397,7 @@ namespace ParkingBuilding.CoreApi.Controllers
             public string OwnerName { get; set; } = string.Empty;
             public DateTime StartDate { get; set; }
             public DateTime EndDate { get; set; }
+            public string? FloorName { get; set; }
         }
     }
 }
