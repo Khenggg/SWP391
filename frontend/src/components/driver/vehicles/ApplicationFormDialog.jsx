@@ -140,8 +140,7 @@ export default function ApplicationFormDialog({ open, onClose, onSubmit, vehicle
       onClose();
     } catch (err) {
       console.error("Submit Application Error:", err);
-      const detail = err.errorCode ? ` (${err.errorCode})` : "";
-      const msg = (err.message || "Gửi yêu cầu thất bại.") + detail;
+      const msg = err.message || "Gửi yêu cầu thất bại.";
       setErrors({ _global: msg });
       toast.error(msg);
     } finally {
