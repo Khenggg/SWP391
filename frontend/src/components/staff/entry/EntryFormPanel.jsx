@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { ShieldAlert, CheckCircle2 } from "lucide-react";
 
 const ENTRY_MODES = [
   { value: "CASUAL", label: "Khách vãng lai" },
@@ -10,12 +11,15 @@ const ENTRY_MODES = [
   { value: "RESERVATION", label: "Khách Booking" },
 ];
 
-function Field({ label, required, children, colSpan = 1 }) {
+function Field({ label, required, children, colSpan = 1, extraLabel }) {
   return (
     <div className={`flex flex-col gap-1 ${colSpan === 2 ? "col-span-2" : "col-span-1"}`}>
-      <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
+      <div className="flex items-center justify-between">
+        <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+        {extraLabel}
+      </div>
       {children}
     </div>
   );
@@ -33,6 +37,23 @@ export default function EntryFormPanel({
   gates = [],
   vehicleTypes = [],
 }) {
+  const confidence = form?.ocrConfidence != null ? Number(form.ocrConfidence) : null;
+  const isLowConfidence = confidence != null && confidence < 70;
+
+  const ocrBadge = confidence != null ? (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold transition-all ${
+        isLowConfidence
+          ? "border-red-300 bg-red-50 text-red-700 animate-pulse shadow-sm"
+          : "border-emerald-200 bg-emerald-50 text-emerald-700"
+      }`}
+      title={isLowConfidence ? "Độ chính xác AI nhận diện dưới 70%. Nhân viên nên kiểm tra kỹ biển số!" : "Độ chính xác AI nhận diện cao"}
+    >
+      {isLowConfidence ? <ShieldAlert className="size-3 text-red-600" /> : <CheckCircle2 className="size-3 text-emerald-600" />}
+      OCR: {confidence.toFixed(1)}% {isLowConfidence ? "(Cảnh báo < 70%)" : "(Tin cậy)"}
+    </span>
+  ) : null;
+
   return (
     <Card className="flex h-full flex-col overflow-hidden border-slate-200 bg-white shadow-sm">
       <CardHeader className="shrink-0 border-b border-slate-100 px-3 py-2.5">
@@ -60,9 +81,17 @@ export default function EntryFormPanel({
             </Select>
           </Field>
 
-          <Field label="Biển số" required={!form.noPlate} colSpan={2}>
+          <Field label="Biển số" required={!form.noPlate} colSpan={2} extraLabel={ocrBadge}>
             <div className="flex items-center gap-2">
-              <Input value={form.licensePlate} onChange={(event) => onFieldChange("licensePlate", event.target.value.toUpperCase())} placeholder="Ví dụ: 30F-123.45" disabled={form.noPlate} className="h-8 border-slate-200 bg-slate-50 text-sm font-bold uppercase focus-visible:ring-blue-500" />
+              <Input
+                value={form.licensePlate}
+                onChange={(event) => onFieldChange("licensePlate", event.target.value.toUpperCase())}
+                placeholder="Ví dụ: 30F-123.45"
+                disabled={form.noPlate}
+                className={`h-8 border-slate-200 bg-slate-50 text-sm font-bold uppercase focus-visible:ring-blue-500 ${
+                  isLowConfidence ? "border-red-300 ring-2 ring-red-100" : ""
+                }`}
+              />
               <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs font-medium text-slate-600">
                 <input type="checkbox" checked={form.noPlate} onChange={(event) => onFieldChange("noPlate", event.target.checked)} disabled={!noPlateAllowed} className="size-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
                 Không biển số
