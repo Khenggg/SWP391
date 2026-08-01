@@ -76,6 +76,11 @@ namespace ParkingBuilding.CoreApi.Controllers
                     slotCode = s.Slot != null ? s.Slot.SlotCode : null,
                     entryTime = s.EntryTime,
                     paymentStatus = s.PaymentStatus,
+                    paymentValidUntil = _context.Payments
+                        .Where(p => p.SessionId == s.Id && p.Status == "PAID")
+                        .OrderByDescending(p => p.PaidAt)
+                        .Select(p => (DateTimeOffset?)p.PaymentValidUntil)
+                        .FirstOrDefault(),
                     status = s.Status
                 })
                 .ToListAsync();
@@ -160,6 +165,22 @@ namespace ParkingBuilding.CoreApi.Controllers
                 })
                 .FirstOrDefaultAsync();
 
+            var lastPaidPayment = await _context.Payments
+                .AsNoTracking()
+                .Where(p => p.SessionId == session.Id && p.Status == "PAID")
+                .OrderByDescending(p => p.PaidAt)
+                .Select(p => new
+                {
+                    paymentId = p.Id,
+                    amount = p.Amount,
+                    lostCardFee = p.LostCardFee,
+                    totalAmount = p.TotalAmount,
+                    method = p.Method,
+                    paidAt = p.PaidAt,
+                    paymentValidUntil = p.PaymentValidUntil
+                })
+                .FirstOrDefaultAsync();
+
             var isCardLost = session.ParkingCard?.Status == Domain.Entities.CardStatus.LOST
                 || await _context.LostCardCases.AnyAsync(lc => lc.SessionId == session.Id && lc.Status == "APPROVED");
 
@@ -223,6 +244,7 @@ namespace ParkingBuilding.CoreApi.Controllers
                 claimedAt = session.ClaimedAt,
                 isCardLost,
                 pendingOnlinePayment,
+                lastPaidPayment,
                 entryPlateImageUrl,
                 entryVehicleImageUrl,
                 exitPlateImageUrl,

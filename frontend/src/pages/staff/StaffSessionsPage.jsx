@@ -105,6 +105,7 @@ export default function StaffSessionsPage() {
                 {filtered.map((session) => {
                   const targetQuery = encodeURIComponent(session.plateNumber || session.cardCode || "");
                   const isPaid = session.paymentStatus === "PAID";
+                  const isExpired = isPaid && session.paymentValidUntil && new Date() > new Date(session.paymentValidUntil);
 
                   return (
                     <TableRow key={session.id} className="hover:bg-slate-50 transition-colors">
@@ -126,10 +127,22 @@ export default function StaffSessionsPage() {
                       </TableCell>
                       <TableCell>
                         {isPaid ? (
-                          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold inline-flex items-center gap-1">
-                            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-                            Đã thanh toán
-                          </Badge>
+                          isExpired ? (
+                            <>
+                              <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 font-semibold inline-flex items-center gap-1">
+                                <Clock className="h-3 w-3 text-rose-600" />
+                                Quá hạn đệm ra
+                              </Badge>
+                              <div className="text-[10px] text-rose-600 font-medium mt-0.5 whitespace-nowrap">
+                                Hết hạn: {formatDateTime(session.paymentValidUntil)}
+                              </div>
+                            </>
+                          ) : (
+                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold inline-flex items-center gap-1">
+                              <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                              Đã thanh toán
+                            </Badge>
+                          )
                         ) : (
                           <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 font-semibold inline-flex items-center gap-1">
                             <Clock className="h-3 w-3 text-amber-600" />
