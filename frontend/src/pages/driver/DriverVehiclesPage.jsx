@@ -50,6 +50,16 @@ const getStatusBadge = (status) => {
       icon: null,
       cls: "bg-rose-50 text-rose-700 border-rose-100",
     },
+    LOCKED: {
+      label: "Đã khóa",
+      icon: null,
+      cls: "bg-rose-50 text-rose-700 border-rose-100",
+    },
+    EXPIRED: {
+      label: "Hết hạn",
+      icon: null,
+      cls: "bg-slate-100 text-slate-700 border-slate-200",
+    },
   };
   const cfg = map[status] || { label: status, icon: null, cls: "bg-slate-100 text-slate-600" };
   return (

@@ -60,6 +60,7 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
         public DateTime StartDate { get; set; }
         public decimal Price { get; set; }
         public string Status { get; set; } = null!;
+        public string? MonthlyPassStatus { get; set; }
         public string? RejectionReason { get; set; }
         public string? PaymentMethod { get; set; }
         public string? PaymentReferenceNo { get; set; }

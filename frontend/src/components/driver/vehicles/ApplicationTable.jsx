@@ -90,7 +90,7 @@ export default function ApplicationTable({
                 {Number(app.price).toLocaleString()} VND
               </TableCell>
               <TableCell className="py-4 px-6 text-center">
-                {getStatusBadge(app.status)}
+                {getStatusBadge((app.status === "ACTIVE" && app.monthlyPassStatus) ? app.monthlyPassStatus : app.status)}
               </TableCell>
               <TableCell className="py-4 px-6 text-right">
                 <div className="flex justify-end items-center gap-2">
