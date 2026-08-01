@@ -48,8 +48,7 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                 throw new BusinessException(ErrorCodes.VehicleTypeNotFound, StatusCodes.Status404NotFound);
 
             // Get active pricing rule for the vehicle type
-            var pricingRule = await _context.PricingRules
-                .FirstOrDefaultAsync(pr => pr.VehicleTypeId == vehicleTypeId && pr.Status == "ACTIVE" && pr.EffectiveFrom <= DateTimeOffset.UtcNow);
+            var pricingRule = await GetActivePricingRuleAsync(vehicleTypeId);
 
             var hourlyPrice = pricingRule?.ReservationHourlyPrice ?? 0m;
 
@@ -161,8 +160,7 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                 throw new BusinessException(ErrorCodes.VehicleTypeNotFound, StatusCodes.Status404NotFound);
 
             // Find active pricing rule
-            var pricingRule = await _context.PricingRules
-                .FirstOrDefaultAsync(pr => pr.VehicleTypeId == request.VehicleTypeId && pr.Status == "ACTIVE" && pr.EffectiveFrom <= DateTimeOffset.UtcNow);
+            var pricingRule = await GetActivePricingRuleAsync(request.VehicleTypeId);
             if (pricingRule == null)
                 throw new BusinessException(ErrorCodes.PricingRuleNotFound, StatusCodes.Status404NotFound);
 
@@ -527,8 +525,7 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                         throw new BusinessException(ErrorCodes.ReservationNotExtendable);
 
                     // Find active pricing rule to check extension price
-                    var pricingRule = await _context.PricingRules
-                        .FirstOrDefaultAsync(pr => pr.VehicleTypeId == reservation.VehicleTypeId && pr.Status == "ACTIVE" && pr.EffectiveFrom <= DateTimeOffset.UtcNow);
+                    var pricingRule = await GetActivePricingRuleAsync(reservation.VehicleTypeId);
                     
                     var hourlyPrice = pricingRule?.ReservationHourlyPrice ?? reservation.SnapshotReservationHourlyPrice;
                     var extensionAmount = hourlyPrice * ((decimal)request.AddedMinutes / 60m);
@@ -1360,6 +1357,29 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
             response.Status = "VALID";
 
             return response;
+        }
+
+        private async Task<PricingRule?> GetActivePricingRuleAsync(long vehicleTypeId)
+        {
+            var pricingRule = await _context.PricingRules
+                .Where(pr => pr.VehicleTypeId == vehicleTypeId && pr.Status == "ACTIVE" && pr.EffectiveFrom <= DateTimeOffset.UtcNow)
+                .OrderByDescending(pr => pr.EffectiveFrom)
+                .ThenByDescending(pr => pr.Id)
+                .FirstOrDefaultAsync();
+
+            pricingRule ??= await _context.PricingRules
+                .Where(pr => pr.VehicleTypeId == vehicleTypeId && pr.Status == "ACTIVE")
+                .OrderByDescending(pr => pr.EffectiveFrom)
+                .ThenByDescending(pr => pr.Id)
+                .FirstOrDefaultAsync();
+
+            pricingRule ??= await _context.PricingRules
+                .Where(pr => pr.VehicleTypeId == vehicleTypeId)
+                .OrderByDescending(pr => pr.EffectiveFrom)
+                .ThenByDescending(pr => pr.Id)
+                .FirstOrDefaultAsync();
+
+            return pricingRule;
         }
     }
 
