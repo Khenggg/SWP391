@@ -143,6 +143,7 @@ export default function StaffLostCardTrackingTable({
                   const hasPlateMismatch = sessionPlate && reportedPlate && normalizePlate(sessionPlate) !== normalizePlate(reportedPlate);
                   const displayPlate = sessionPlate || reportedPlate;
                   const card = item.cardCode || item.parkingCard?.cardNumber || "";
+                  const cardStatus = item.parkingCard?.status || item.parkingCard?.Status || "";
 
                   const managerNote = item.decisionReason || item.rejectionReason || item.decisionNote || item.note || item.approvalNote;
 
@@ -156,6 +157,7 @@ export default function StaffLostCardTrackingTable({
                     "";
                   const isSessionCompleted =
                     sessionStatus === "COMPLETED" ||
+                    cardStatus === "AVAILABLE" ||
                     item.isCompleted === true ||
                     item.completed === true;
 
