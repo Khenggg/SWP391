@@ -248,18 +248,19 @@ export default function CardManagementPage() {
                   <TableHead className="w-[120px]">Mã thẻ</TableHead>
                   <TableHead className="w-[140px]">QR Token</TableHead>
                   <TableHead className="w-[140px]">Trạng thái</TableHead>
-                  <TableHead className="w-[140px]">Session hiện tại</TableHead>
+                  <TableHead className="w-[130px]">Loại khách</TableHead>
+                  <TableHead className="w-[130px]">Tầng gửi</TableHead>
                   <TableHead className="text-right w-[100px]">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-32 text-center text-gray-500">Đang tải dữ liệu...</TableCell>
+                    <TableCell colSpan={6} className="h-32 text-center text-gray-500">Đang tải dữ liệu...</TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-64">
+                    <TableCell colSpan={6} className="h-64">
                       <EmptyState icon={<EyeOff className="w-12 h-12" />} title="Không tìm thấy thẻ xe" description="Thử thay đổi bộ lọc hoặc tìm kiếm khác." />
                     </TableCell>
                   </TableRow>
@@ -282,7 +283,24 @@ export default function CardManagementPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm font-medium text-gray-600">{c.currentSessionId || "-"}</span>
+                        {c.currentCustomerType === "CASUAL" ? (
+                          <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">Vãng lai</Badge>
+                        ) : c.currentCustomerType === "MONTHLY" || c.allocationType === "MONTHLY_PASS" ? (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Cư dân</Badge>
+                        ) : c.currentCustomerType === "RESERVATION" ? (
+                          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">Khách booking</Badge>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {c.currentFloorName ? (
+                          <span className="font-medium text-gray-700">{c.currentFloorName}</span>
+                        ) : c.monthlyPass?.floorName ? (
+                          <span className="font-medium text-gray-500">{c.monthlyPass.floorName}</span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
