@@ -11,6 +11,7 @@ using ParkingBuilding.CoreApi.Contracts.Common;
 using ParkingBuilding.CoreApi.Domain.Entities;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
 
+using ParkingBuilding.CoreApi.Domain.Enums;
 using ParkingBuilding.CoreApi.Application.Notifications;
 
 namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
@@ -141,6 +142,22 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
 
             _context.MonthlyPassApplications.Add(application);
             await _context.SaveChangesAsync();
+
+            // Create notification for Managers & Admins
+            var managerUserIds = await _context.Users
+                .Where(u => !u.DeletedAt.HasValue && u.Status == UserStatus.ACTIVE && (u.Role == UserRole.MANAGER || u.Role == UserRole.ADMIN))
+                .Select(u => u.Id)
+                .ToListAsync();
+
+            foreach (var mgrId in managerUserIds)
+            {
+                await _notificationWriter.CreateNotificationAsync(
+                    userId: mgrId,
+                    title: "Đơn đăng ký vé tháng mới",
+                    content: $"Cư dân {driverProfile.FullName} đã gửi đơn đăng ký vé tháng mới cho xe biển số {vehicle.PlateNumber}. Vui lòng kiểm tra và xét duyệt.",
+                    type: "MONTHLY_PASS",
+                    priority: "HIGH");
+            }
 
             await _auditWriter.WriteAuditLogAsync(new AuditWriteDto
             {
