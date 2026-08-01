@@ -187,42 +187,53 @@ export default function ApplicationFormDialog({ open, onClose, onSubmit, vehicle
             </div>
 
             {/* Select Vehicle from DB Dropdown */}
-            <div className="bg-indigo-50/50 p-3.5 rounded-xl border border-indigo-100/80 space-y-1.5">
-              <label className="block text-xs font-extrabold text-indigo-950 flex items-center gap-1.5">
-                <Car className="w-4 h-4 text-indigo-600" />
-                Chọn xe có sẵn trong tài khoản (từ CSDL)
-              </label>
-              <Select value={selectedVehicleId} onValueChange={handleSelectVehicle}>
-                <SelectTrigger className="w-full text-xs font-semibold bg-white border-indigo-200 focus:ring-indigo-500">
-                  <SelectValue
-                    placeholder={
-                      loadingVehicles
-                        ? "Đang tải danh sách xe..."
-                        : userVehicles.length > 0
-                        ? "-- Chọn phương tiện đã đăng ký trong hệ thống --"
-                        : "Chưa có xe nào trong CSDL (Vui lòng tự nhập ở dưới)"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="CUSTOM">-- Tự nhập thông tin xe mới --</SelectItem>
-                  {userVehicles.map((v) => {
-                    const plate = v.licensePlate || v.plateNumber || "Xe chưa có biển";
-                    const brandColor = [v.brand, v.color].filter(Boolean).join(" - ");
-                    const typeLabel = v.vehicleTypeName || v.vehicleType || "Phương tiện";
-                    return (
-                      <SelectItem key={v.id} value={String(v.id)}>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-bold text-indigo-600">{plate}</span>
-                          <span className="text-slate-600 text-xs">
-                            {brandColor ? `(${brandColor})` : ""} [{typeLabel}]
-                          </span>
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+            <div className="bg-indigo-50/60 p-3.5 rounded-xl border border-indigo-100 space-y-2">
+              <div>
+                <label className="block text-xs font-extrabold text-indigo-950 flex items-center gap-1.5">
+                  <Car className="w-4 h-4 text-indigo-600" />
+                  Chọn xe có sẵn để đăng ký lại (Tuỳ chọn)
+                </label>
+                <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                  Chọn xe đã có sẵn nếu đăng ký lại cho xe hết hạn, hoặc tự nhập thông tin xe mới ở bên dưới.
+                </p>
+              </div>
+
+              {userVehicles.length > 0 ? (
+                <Select value={selectedVehicleId} onValueChange={handleSelectVehicle}>
+                  <SelectTrigger className="w-full text-xs font-semibold bg-white border-indigo-200 focus:ring-indigo-500">
+                    <SelectValue
+                      placeholder={
+                        loadingVehicles
+                          ? "Đang tải danh sách xe..."
+                          : "-- Chọn phương tiện đã có sẵn trong hệ thống --"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CUSTOM">✨ -- Tự nhập thông tin xe mới --</SelectItem>
+                    {userVehicles.map((v) => {
+                      const plate = v.licensePlate || v.plateNumber || "Xe chưa có biển";
+                      const brandColor = [v.brand, v.color].filter(Boolean).join(" - ");
+                      const typeLabel = v.vehicleTypeName || v.vehicleType || "Phương tiện";
+                      return (
+                        <SelectItem key={v.id} value={String(v.id)}>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-bold text-indigo-600">{plate}</span>
+                            <span className="text-slate-600 text-xs">
+                              {brandColor ? `(${brandColor})` : ""} [{typeLabel}]
+                            </span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="text-[11px] font-medium text-indigo-700 bg-white/80 p-2.5 rounded-lg border border-indigo-100 flex items-center gap-2">
+                  <Info className="w-3.5 h-3.5 shrink-0 text-indigo-500" />
+                  <span>Tài khoản chưa có xe khả dụng. Vui lòng tự nhập thông tin xe ở các ô bên dưới.</span>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
