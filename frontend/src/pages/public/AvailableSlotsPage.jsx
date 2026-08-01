@@ -222,17 +222,32 @@ export default function AvailableSlotsPage() {
     });
   }, [areas, filterFloor, filterVehicleType, searchQuery, slots]);
 
-  // Count slots per floor for summary
+  // Filter slots by selected vehicle type first to keep counts in sync
+  const slotsFilteredByVehicle = useMemo(() => {
+    return (slots || []).filter((s) => {
+      if (filterVehicleType === "ALL") return true;
+      const vt = String(s?.vehicleTypeName || "").toLowerCase();
+      if (filterVehicleType === "Ô tô") {
+        return vt.includes("ô tô") || vt.includes("car") || (!vt.includes("máy") && !vt.includes("bike"));
+      }
+      if (filterVehicleType === "Máy") {
+        return vt.includes("máy") || vt.includes("bike") || vt.includes("mô tô");
+      }
+      return true;
+    });
+  }, [slots, filterVehicleType]);
+
+  // Count slots per floor for summary using exact match on floorCode
   const floorCounts = useMemo(() => {
     return (floors || []).reduce((acc, f) => {
       if (f && f.code) {
-        acc[f.code] = (slots || []).filter((s) => s && (s.floorCode === f.code || String(s.areaCode || s.slotCode || "").startsWith(f.code))).length;
+        acc[f.code] = slotsFilteredByVehicle.filter((s) => s && s.floorCode === f.code).length;
       }
       return acc;
     }, {});
-  }, [floors, slots]);
+  }, [floors, slotsFilteredByVehicle]);
 
-  const totalAvailable = (slots || []).length;
+  const totalAvailable = slotsFilteredByVehicle.length;
   const estimatedCapacity = 40;
   const availabilityPercentage = Math.min(100, Math.round((totalAvailable / estimatedCapacity) * 100));
 
