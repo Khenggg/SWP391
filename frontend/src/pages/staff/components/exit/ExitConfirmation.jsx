@@ -9,9 +9,9 @@ import { useNavigate } from "react-router-dom";
 function MismatchBadge({ status }) {
   if (!status || status === "NONE") return null;
   const cfg = {
-    PENDING:  { cls: "bg-yellow-100 text-yellow-800 border border-yellow-300", label: "🟡 PENDING"  },
-    APPROVED: { cls: "bg-green-100  text-green-800  border border-green-300",  label: "🟢 APPROVED" },
-    REJECTED: { cls: "bg-red-100    text-red-800    border border-red-300",    label: "🔴 REJECTED" },
+    PENDING:  { cls: "bg-yellow-100 text-yellow-800 border border-yellow-300", label: "🟡 ĐANG CHỜ"  },
+    APPROVED: { cls: "bg-green-100  text-green-800  border border-green-300",  label: "🟢 ĐÃ DUYỆT" },
+    REJECTED: { cls: "bg-red-100    text-red-800    border border-red-300",    label: "🔴 TỪ CHỐI" },
   };
   const c = cfg[status];
   if (!c) return null;

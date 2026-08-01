@@ -42,6 +42,14 @@ export default function StaffExitPage() {
   const mismatchStatus = mismatchStatusData?.status ?? "NONE";
   const managerReason = mismatchStatusData?.managerReason ?? null;
 
+  // Preserve exit images if they exist in a pending/approved mismatch report
+  useEffect(() => {
+    if (mismatchStatusData && mismatchStatusData.status !== "NONE") {
+      if (mismatchStatusData.exitPlateImageUrl) setExitPlateImageUrl(mismatchStatusData.exitPlateImageUrl);
+      if (mismatchStatusData.exitVehicleImageUrl) setExitVehicleImageUrl(mismatchStatusData.exitVehicleImageUrl);
+    }
+  }, [mismatchStatusData]);
+
   useEffect(() => {
     const loadData = async () => {
       try {

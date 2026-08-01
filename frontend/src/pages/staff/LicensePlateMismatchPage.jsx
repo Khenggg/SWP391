@@ -156,17 +156,17 @@ function StatusBadge({ status }) {
     PENDING: {
       color: "bg-yellow-100 border-yellow-300 text-yellow-800",
       icon: <Clock className="w-4 h-4" />,
-      label: "🟡 PENDING",
+      label: "🟡 ĐANG CHỜ",
     },
     APPROVED: {
       color: "bg-green-100 border-green-300 text-green-800",
       icon: <CheckCircle2 className="w-4 h-4" />,
-      label: "🟢 APPROVED",
+      label: "🟢 ĐÃ DUYỆT",
     },
     REJECTED: {
       color: "bg-red-100 border-red-300 text-red-800",
       icon: <XCircle className="w-4 h-4" />,
-      label: "🔴 REJECTED",
+      label: "🔴 TỪ CHỐI",
     },
   };
 
