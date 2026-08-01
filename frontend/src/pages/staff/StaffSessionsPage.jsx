@@ -131,10 +131,10 @@ export default function StaffSessionsPage() {
                             <>
                               <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 font-semibold inline-flex items-center gap-1">
                                 <Clock className="h-3 w-3 text-rose-600" />
-                                Quá hạn đệm ra
+                                Quá hạn ra xe
                               </Badge>
                               <div className="text-[10px] text-rose-600 font-medium mt-0.5 whitespace-nowrap">
-                                Hết hạn: {formatDateTime(session.paymentValidUntil)}
+                                Hết hạn ra xe: {formatDateTime(session.paymentValidUntil)}
                               </div>
                             </>
                           ) : (

@@ -58,8 +58,8 @@ export default function ExitPayment({ session, fee, canExit, isZeroCharge, hasPe
 
           {isBufferExpired && !isZeroCharge && (
             <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
-              <p className="font-bold">Cảnh báo: Hạn đệm ra xe đã hết hạn!</p>
-              <p className="mt-0.5">Khách đã trả phí trực tuyến trước đó nhưng quá giờ đệm. Vui lòng thu thêm phần chênh lệch phát sinh.</p>
+              <p className="font-bold">Cảnh báo: Quá thời hạn ra xe sau khi thanh toán!</p>
+              <p className="mt-0.5">Khách đã thanh toán trước đó nhưng đã quá thời gian quy định để ra xe. Vui lòng thu thêm phí chênh lệch phát sinh.</p>
             </div>
           )}
 
