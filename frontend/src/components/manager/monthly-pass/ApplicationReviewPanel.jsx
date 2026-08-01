@@ -251,7 +251,7 @@ export default function ApplicationReviewPanel({ application, onClose, onRefresh
               {application.assignedCardId && (
                 <div className="flex justify-between">
                   <span className="text-slate-400">Thẻ RFID đã cấp:</span>
-                  <strong className="text-slate-800">#{application.assignedCardId}</strong>
+                  <strong className="text-slate-800">{application.assignedCardCode || `#${application.assignedCardId}`}</strong>
                 </div>
               )}
             </div>
