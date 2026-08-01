@@ -33,13 +33,20 @@ export default function StructureManagementPage() {
   const fetchStructure = async () => {
     setIsLoading(true);
     try {
-      const [floorsData, areasData, slotsData, vTypes, activeSessionsData] = await Promise.all([
+      const [floorsRes, areasRes, slotsRes, vTypesRes, activeSessionsRes] = await Promise.allSettled([
         parkingService.getFloors(),
         parkingService.getAreas(),
         parkingService.getSlots(),
         parkingService.getVehicleTypes(),
         parkingService.getActiveSessions(),
       ]);
+
+      const floorsData = floorsRes.status === "fulfilled" ? floorsRes.value : [];
+      const areasData = areasRes.status === "fulfilled" ? areasRes.value : [];
+      const slotsData = slotsRes.status === "fulfilled" ? slotsRes.value : [];
+      const vTypes = vTypesRes.status === "fulfilled" ? vTypesRes.value : [];
+      const activeSessionsData = activeSessionsRes.status === "fulfilled" ? activeSessionsRes.value : [];
+
       setFloors(floorsData || []);
       setAreas(areasData || []);
       

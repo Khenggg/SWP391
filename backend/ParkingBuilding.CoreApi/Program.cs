@@ -321,6 +321,15 @@ using (var scope = app.Services.CreateScope())
         if (context.Database.CanConnect())
         {
             Console.WriteLine("\n[SUCCESS] ======> ĐÃ KẾT NỐI ĐẾN POSTGRESQL/SUPABASE DATABASE THÀNH CÔNG! <======\n");
+
+            // Auto create floor_vehicle_types table if missing
+            context.Database.ExecuteSqlRaw(@"
+                CREATE TABLE IF NOT EXISTS floor_vehicle_types (
+                    floor_id BIGINT NOT NULL REFERENCES floors(id) ON DELETE CASCADE,
+                    vehicle_type_id BIGINT NOT NULL REFERENCES vehicle_types(id) ON DELETE CASCADE,
+                    PRIMARY KEY (floor_id, vehicle_type_id)
+                );
+            ");
         }
         else
         {
