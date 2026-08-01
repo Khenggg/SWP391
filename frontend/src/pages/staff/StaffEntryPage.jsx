@@ -113,7 +113,17 @@ export default function StaffEntryPage() {
   }, []);
 
   const setField = useCallback((name, value) => {
-    setForm((current) => ({ ...current, [name]: value }));
+    setForm((current) => {
+      let updatedPlate = current.licensePlate;
+      if (name === "cardCode" && cardCheck?.entryCardType === "MONTHLY" && cardCheck?.plateNumber) {
+        const cleanCurrent = normalizeText(current.licensePlate).replace(/[^A-Z0-9]/gi, "").toUpperCase();
+        const cleanMonthly = normalizeText(cardCheck.plateNumber).replace(/[^A-Z0-9]/gi, "").toUpperCase();
+        if (cleanCurrent === cleanMonthly) {
+          updatedPlate = current.detectedPlateNumber || current.detectedNormalizedPlateNumber || "";
+        }
+      }
+      return { ...current, [name]: value, licensePlate: updatedPlate };
+    });
     if (["cardCode", "entryGateId", "vehicleTypeId"].includes(name)) {
       setCardCheck(null);
       setSuggestion(null);
@@ -121,7 +131,7 @@ export default function StaffEntryPage() {
     if (["reservationCode", "entryGateId"].includes(name)) {
       setReservationCheck(null);
     }
-  }, []);
+  }, [cardCheck]);
 
   const setEntryMode = useCallback((entryMode) => {
     setForm((current) => ({
@@ -209,20 +219,35 @@ export default function StaffEntryPage() {
       if (result.entryCardType === "MONTHLY") {
         setReservationCheck(null);
         setSuggestion(null);
-        setForm((current) => ({
-          ...current,
-          entryMode: "MONTHLY",
-          noPlate: false,
-          vehicleDescription: "",
-          licensePlate: result.plateNumber || current.licensePlate,
-          vehicleTypeId: result.vehicleTypeId ? String(result.vehicleTypeId) : current.vehicleTypeId,
-        }));
+        setForm((current) => {
+          const ocrPlate = current.detectedPlateNumber || current.detectedNormalizedPlateNumber;
+          const targetPlate = ocrPlate || current.licensePlate || result.plateNumber;
+          return {
+            ...current,
+            entryMode: "MONTHLY",
+            noPlate: false,
+            vehicleDescription: "",
+            licensePlate: targetPlate,
+            vehicleTypeId: result.vehicleTypeId ? String(result.vehicleTypeId) : current.vehicleTypeId,
+          };
+        });
         toast.success("Đã xác minh thẻ tháng cư dân.");
       } else {
-        setForm((current) => ({
-          ...current,
-          entryMode: current.entryMode === "RESERVATION" ? "RESERVATION" : (current.reservationCode ? "RESERVATION" : "CASUAL")
-        }));
+        setForm((current) => {
+          let restoredPlate = current.licensePlate;
+          if (cardCheck?.entryCardType === "MONTHLY" && cardCheck?.plateNumber) {
+            const cleanCurrent = normalizeText(current.licensePlate).replace(/[^A-Z0-9]/gi, "").toUpperCase();
+            const cleanMonthly = normalizeText(cardCheck.plateNumber).replace(/[^A-Z0-9]/gi, "").toUpperCase();
+            if (cleanCurrent === cleanMonthly) {
+              restoredPlate = current.detectedPlateNumber || current.detectedNormalizedPlateNumber || "";
+            }
+          }
+          return {
+            ...current,
+            entryMode: current.entryMode === "RESERVATION" ? "RESERVATION" : (current.reservationCode ? "RESERVATION" : "CASUAL"),
+            licensePlate: restoredPlate,
+          };
+        });
         toast.success(form.entryMode === "RESERVATION" || form.reservationCode ? "Đã xác minh thẻ lượt cho booking." : "Thẻ hợp lệ cho khách vãng lai.");
       }
     } catch (error) {
@@ -232,7 +257,7 @@ export default function StaffEntryPage() {
     } finally {
       setIsCheckingCard(false);
     }
-  }, [entryGateId, form.cardCode, form.reservationCode, form.entryMode, setField]);
+  }, [entryGateId, form.cardCode, form.reservationCode, form.entryMode, setField, cardCheck]);
 
   const handleCheckReservation = useCallback(async () => {
     const reservationCode = normalizeText(form.reservationCode);
