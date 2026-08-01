@@ -7,9 +7,6 @@ This file contains the directory tree and full code contents of the non-ignored 
 ```markdown
 - 📁 **.claude/**
   - 📄 settings.local.json * (0.2 KB)
-- 📁 **.gemini/**
-  - 📁 **scratch/**
-    - 📄 package.json * (0.3 KB)
 - 📁 **backend/**
   - 📁 **ParkingBuilding.CoreApi/**
     - 📄 .env.example * (1.2 KB)
@@ -482,7 +479,6 @@ This file contains the directory tree and full code contents of the non-ignored 
         - 📄 QRLookupPage.jsx * (4.0 KB)
         - 📄 RegisterPage.jsx * (14.3 KB)
         - 📄 RulesPage.jsx * (9.4 KB)
-      - 📁 **simulator/**
       - 📁 **staff/**
         - 📁 **components/**
           - 📁 **exit/**
@@ -576,11 +572,6 @@ This file contains the directory tree and full code contents of the non-ignored 
   - 📄 generate-project-map.js * (6.0 KB)
   - 📁 **project-map/**
   - 📄 upload-project-map.js * (7.5 KB)
-- 📄 test-csharp.cs * (0.2 KB)
-- 📄 test-payos.js * (1.0 KB)
-- 📁 **test-results/**
-  - 📄 .last-run.json * (0.0 KB)
-- 📄 test.cs * (0.9 KB)
 ```
 
 ## 2. File Contents
@@ -595,28 +586,6 @@ This file contains the directory tree and full code contents of the non-ignored 
       "PowerShell(Get-Process -Id 25816)",
       "Bash(npm config *)"
     ]
-  }
-}
-```
-
-### File: `.gemini/scratch/package.json`
-
-```json
-{
-  "name": "scratch",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "dependencies": {
-    "bcryptjs": "^3.0.3",
-    "pg": "^8.22.0"
   }
 }
 ```
@@ -84541,82 +84510,5 @@ async function main() {
 }
 
 main().catch(console.error);
-```
-
-### File: `test-csharp.cs`
-
-```csharp
-using System; using System.Reflection; using Net.payOS.Types; class Program { static void Main() { var props = typeof(CreatePaymentResult).GetProperties(); foreach(var p in props) { Console.WriteLine(p.Name); } } }
-```
-
-### File: `test-payos.js`
-
-```javascript
-const crypto = require('crypto');
-
-const clientId = 'c166c566-3e1b-4d2e-8467-6befb1d2b902';
-const apiKey = 'e1180476-093a-40b7-81fa-276ea66cad4c';
-const checksumKey = '01d687c39f1fe9d5eaaf7d3d5d716fe43d048d0cebf2e2518ed10d4861af79c9';
-
-const body = {
-    orderCode: Math.floor(Math.random() * 1000000),
-    amount: 10000,
-    description: 'TEST PAYOS',
-    cancelUrl: 'http://localhost:5173',
-    returnUrl: 'http://localhost:5173'
-};
-
-const dataStr = `amount=${body.amount}&cancelUrl=${body.cancelUrl}&description=${body.description}&orderCode=${body.orderCode}&returnUrl=${body.returnUrl}`;
-const signature = crypto.createHmac('sha256', checksumKey).update(dataStr).digest('hex');
-body.signature = signature;
-
-fetch('https://api-merchant.payos.vn/v2/payment-requests', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'x-client-id': clientId,
-        'x-api-key': apiKey
-    },
-    body: JSON.stringify(body)
-}).then(res => res.json()).then(data => {
-    console.log(JSON.stringify(data, null, 2));
-}).catch(console.error);
-```
-
-### File: `test-results/.last-run.json`
-
-```json
-{
-  "status": "failed",
-  "failedTests": []
-}
-```
-
-### File: `test.cs`
-
-```csharp
-using System;
-using System.Net.Http;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-
-class Program
-{
-    static async Task Main()
-    {
-        var client = new HttpClient();
-        var content = new StringContent("{ \"username\": \"staff01\", \"password\": \"123456\" }", Encoding.UTF8, "application/json");
-        var res = await client.PostAsync("http://localhost:5000/api/core/auth/login", content);
-        var json = await res.Content.ReadAsStringAsync();
-        using var doc = JsonDocument.Parse(json);
-        var token = doc.RootElement.GetProperty("data").GetProperty("accessToken").GetString();
-
-        client.DefaultRequestHeaders.Add("Authorization", "Bearer " + token);
-        var res2 = await client.GetAsync("http://localhost:5000/api/core/parking-sessions/location-suggestion?vehicleTypeId=5&entryGateId=3");
-        var json2 = await res2.Content.ReadAsStringAsync();
-        Console.WriteLine(json2);
-    }
-}
 ```
 

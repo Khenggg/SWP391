@@ -6,6 +6,7 @@ build/
 .ai/
 .vscode/
 .agents/
+.gemini/scratch/
 .playwright-cli/
 .vercel/
 .vs/
@@ -15,6 +16,7 @@ obj/
 packages/
 target/
 output/
+test-results/
 frontend/test-results/
 frontend/tests/e2e/reports/
 postman/

@@ -37,6 +37,14 @@ Thumbs.db
 # Test and coverage
 coverage/
 .nyc_output/
+test-results/
+tests/e2e/reports/
+
+# Local tool artifacts
+.playwright-cli/
+.vercel/
+.gemini/scratch/
+output/
 
 # Local environment variables
 .env
