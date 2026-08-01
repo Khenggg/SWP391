@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { List, Search, ChevronDown, X } from "lucide-react";
+import { List, Search, ChevronDown, X, ShieldAlert, BadgeInfo } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import EmptyState from "@/components/ui/empty-state";
 
 // ─── STATIC RULES DATA ────────────────────────────────────────────────────────
@@ -76,39 +77,40 @@ export default function RulesPage() {
     .filter(s => !searchText.trim() || s.items.length > 0);
 
   return (
-    <div className="bg-gray-50 min-h-full">
-      {/* Page Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-10">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-              <List size={20} className="text-blue-600" />
-            </div>
-            <h1 className="text-2xl font-black text-gray-900">Nội Quy Bãi Xe</h1>
+    <div className="bg-slate-50 min-h-screen text-slate-800 pb-16">
+      {/* Page Header with Dark Radial Gradient */}
+      <div className="bg-slate-900 text-white py-12 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/40 via-slate-900 to-slate-900 z-0" />
+        <div className="relative z-10 max-w-7xl mx-auto px-6">
+          <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30 mb-3 px-3 py-1 font-semibold rounded-full">
+            Nội quy & quy định
+          </Badge>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">NỘI QUY BÃI XE</h1>
           </div>
-          <p className="text-gray-500 text-sm">
-            Vui lòng tuân thủ các quy định dưới đây để đảm bảo an toàn và trật tự cho bãi đỗ xe.
+          <p className="text-slate-400 text-sm mt-2 max-w-xl">
+            Vui lòng tuân thủ các quy định để đảm bảo an toàn, an ninh và phòng chống cháy nổ cho toàn bộ khuôn viên bãi đỗ.
           </p>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 py-8 space-y-5">
+      <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
         {/* Search */}
         <div className="relative">
-          <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 z-10">
-            <Search size={15} />
+          <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 z-10">
+            <Search size={16} />
           </span>
           <Input
             type="text"
             placeholder="Tìm kiếm quy định..."
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            className="w-full pl-10 pr-10 py-6 rounded-xl border-gray-200 bg-white text-sm text-gray-700 placeholder-gray-400 focus-visible:ring-2 focus-visible:ring-blue-500 shadow-sm"
+            className="w-full pl-11 pr-10 py-6 rounded-2xl border-slate-100 bg-white text-sm text-slate-700 placeholder-slate-400 focus-visible:ring-2 focus-visible:ring-blue-600 shadow-sm"
           />
           {searchText && (
             <button 
               onClick={() => setSearchText("")} 
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full w-6 h-6 flex items-center justify-center text-xs z-10"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 bg-slate-100 rounded-full w-6 h-6 flex items-center justify-center text-xs z-10"
             >
               <X size={14} />
             </button>
@@ -118,42 +120,50 @@ export default function RulesPage() {
         {/* Content */}
         {filteredRules.length === 0 ? (
           <EmptyState 
-            icon={<Search size={36} />} 
+            icon={<Search size={36} className="text-slate-350" />} 
             title="Không tìm thấy quy định" 
             description="Thử sử dụng từ khóa ngắn gọn hơn." 
+            className="bg-white border-slate-100 rounded-2xl p-12"
           />
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {filteredRules.map((section) => {
               const isOpen = openSection === section.id || !!searchText;
               return (
-                <div key={section.id} className={`bg-white rounded-xl border shadow-sm overflow-hidden transition-all ${isOpen ? "border-blue-200" : "border-gray-100"}`}>
+                <div 
+                  key={section.id} 
+                  className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all duration-300 ${
+                    isOpen ? "border-blue-200/80 shadow-blue-500/5" : "border-slate-100/90"
+                  }`}
+                >
                   <button
                     onClick={() => setOpenSection(isOpen && !searchText ? null : section.id)}
-                    className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+                    className="w-full flex items-center justify-between px-6 py-5 text-left hover:bg-slate-50/40 transition-colors"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-black transition-colors ${isOpen ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-600"}`}>
+                    <div className="flex items-center gap-4">
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-base font-extrabold transition-colors ${
+                        isOpen ? "bg-slate-900 text-white" : "bg-blue-50 text-blue-600"
+                      }`}>
                         {section.icon}
                       </div>
                       <div>
-                        <span className={`font-bold text-sm ${isOpen ? "text-blue-700" : "text-gray-800"}`}>{section.title}</span>
-                        <span className="block text-xs text-gray-400">{section.items.length} quy định</span>
+                        <span className={`font-extrabold text-sm ${isOpen ? "text-slate-900" : "text-slate-700"}`}>{section.title}</span>
+                        <span className="block text-[10px] text-slate-400 mt-0.5">{section.items.length} quy định cụ thể</span>
                       </div>
                     </div>
                     {!searchText && (
-                      <ChevronDown size={16} className={`text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                      <ChevronDown size={18} className={`text-slate-450 transition-transform duration-300 ${isOpen ? "rotate-180 text-slate-800" : ""}`} />
                     )}
                   </button>
 
-                  <div className="overflow-hidden transition-all duration-300" style={{ maxHeight: isOpen ? "1000px" : "0px" }}>
-                    <div className="border-t border-gray-100 px-5 py-4 bg-blue-50/30">
-                      <ul className="space-y-3">
+                  <div className={`overflow-hidden transition-all duration-300 ${isOpen ? "max-h-[1000px] border-t border-slate-50" : "max-h-0"}`}>
+                    <div className="px-6 py-5 bg-slate-50/30">
+                      <ul className="space-y-4 m-0 p-0 list-none">
                         {section.items.map((item, idx) => (
                           <li key={idx} className="flex gap-3">
-                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-black flex items-center justify-center">{idx + 1}</span>
+                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100/80 text-blue-700 text-xs font-black flex items-center justify-center mt-0.5">{idx + 1}</span>
                             <span
-                              className="text-sm text-gray-700 leading-relaxed mt-0.5"
+                              className="text-sm text-slate-650 leading-relaxed"
                               dangerouslySetInnerHTML={{
                                 __html: searchText
                                   ? item.replace(new RegExp(`(${searchText})`, "gi"), '<mark class="bg-yellow-200 text-yellow-900 rounded px-0.5">$1</mark>')
@@ -172,9 +182,10 @@ export default function RulesPage() {
         )}
 
         {/* Footer note */}
-        <div className="text-center pt-4 pb-4">
-          <p className="text-xs text-gray-400">
-            Nội quy có hiệu lực từ 01/01/2026. Liên hệ hotline <strong className="text-blue-600">1900 1234</strong> để được hỗ trợ.
+        <div className="text-center pt-6">
+          <p className="text-xs text-slate-400">
+            Nội quy chính thức được ban hành bởi Ban quản lý tòa nhà SWP Building. <br />
+            Mọi thắc mắc xin vui lòng liên hệ hotline bộ phận CSKH <strong className="text-blue-600">1900 1234</strong>.
           </p>
         </div>
       </div>
