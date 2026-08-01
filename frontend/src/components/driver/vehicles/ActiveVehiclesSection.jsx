@@ -33,7 +33,7 @@ export default function ActiveVehiclesSection({ vehicles = [], loading, getStatu
                 </div>
                 <div className="text-xs font-semibold text-slate-500 mt-1 flex items-center gap-2">
                   <span>{v.vehicleType?.name || v.vehicleTypeName || v.vehicleType || "Không rõ"}</span>
-                  {(v.hasMonthlyPass || v.monthlyPassId || v.isMonthlyPass) ? (
+                  {(v.monthlyPassStatus && v.monthlyPassStatus !== "NONE") ? (
                     <span className="px-2 py-0.5 rounded text-[10px] bg-purple-100 text-purple-700 font-bold uppercase tracking-wider">
                       Vé Tháng
                     </span>
@@ -52,7 +52,7 @@ export default function ActiveVehiclesSection({ vehicles = [], loading, getStatu
                   )}
                 </div>
               </div>
-              {getStatusBadge(v.status)}
+              {(v.monthlyPassStatus && v.monthlyPassStatus !== "NONE") ? getStatusBadge(v.monthlyPassStatus) : null}
             </div>
             <div className="text-xs text-slate-500 font-medium space-y-1">
               <div className="flex justify-between">

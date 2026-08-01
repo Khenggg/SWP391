@@ -120,6 +120,11 @@ namespace ParkingBuilding.CoreApi.Controllers
                     color = v.Color,
                     approvalStatus = v.ApprovalStatus,
                     status = v.Status,
+                    monthlyPassStatus = _context.MonthlyPasses
+                        .Where(mp => mp.NormalizedPlateNumber == v.NormalizedPlateNumber)
+                        .OrderByDescending(mp => mp.EndDate)
+                        .Select(mp => mp.Status)
+                        .FirstOrDefault() ?? "NONE",
                     activeSession = _context.ParkingSessions
                         .Where(s =>
                             (s.VehicleId == v.Id ||
@@ -187,18 +192,24 @@ namespace ParkingBuilding.CoreApi.Controllers
                 }
             }
 
-            return Success(new
-            {
-                id = vehicle.Id,
-                driverId = vehicle.DriverId,
-                licensePlate = vehicle.PlateNumber,
-                vehicleType = vehicle.VehicleType.RequiresSlot ? "CAR" : "MOTORBIKE",
-                brand = vehicle.Brand,
-                color = vehicle.Color,
-                approvalStatus = vehicle.ApprovalStatus,
-                createdAt = vehicle.CreatedAt,
-                updatedAt = vehicle.UpdatedAt
-            }, "Get vehicle successfully");
+            var pass = await _context.MonthlyPasses
+                 .Where(mp => mp.NormalizedPlateNumber == vehicle.NormalizedPlateNumber)
+                 .OrderByDescending(mp => mp.EndDate)
+                 .FirstOrDefaultAsync();
+
+             return Success(new
+             {
+                 id = vehicle.Id,
+                 driverId = vehicle.DriverId,
+                 licensePlate = vehicle.PlateNumber,
+                 vehicleType = vehicle.VehicleType.RequiresSlot ? "CAR" : "MOTORBIKE",
+                 brand = vehicle.Brand,
+                 color = vehicle.Color,
+                 approvalStatus = vehicle.ApprovalStatus,
+                 monthlyPassStatus = pass?.Status ?? "NONE",
+                 createdAt = vehicle.CreatedAt,
+                 updatedAt = vehicle.UpdatedAt
+             }, "Get vehicle successfully");
         }
 
         [HttpPost]
