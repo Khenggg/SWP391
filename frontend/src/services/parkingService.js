@@ -90,7 +90,6 @@ export const parkingService = {
   },
 
   getSlots: async () => {
-    // API GET CHƯA HOÀN THIỆN TỪ BACKEND (Giả lập tạm qua MSW)
     const res = await coreAxiosClient.get("/slots");
     return res.success ? res.data : [];
   },

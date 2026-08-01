@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowRightLeft, Ban, RefreshCw, Eye, Search, LockKeyhole, History, Clock, X } from "lucide-react";
+import { ArrowRightLeft, Ban, RefreshCw, Search, LockKeyhole, History, Clock, X } from "lucide-react";
 import { toast } from "sonner";
 import { adminSessionService } from "@/services/adminSessionService";
 import { parkingService } from "@/services/parkingService";
@@ -142,8 +142,8 @@ export default function SessionsAdministrationPage() {
   };
 
   return (
-    <div className="flex h-full gap-4">
-      <div className="flex flex-col flex-1 gap-4 transition-all duration-300">
+    <div className="flex h-full gap-4 overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0 gap-4 transition-all duration-300">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Quản lý Phiên Gửi Xe</h2>
           <p className="text-sm text-slate-500 mt-1">Tra cứu, theo dõi và xử lý các phiên gửi xe đang hoạt động hoặc phát sinh sự cố.</p>
@@ -235,14 +235,14 @@ export default function SessionsAdministrationPage() {
                   <TableHead className="font-semibold text-slate-600 whitespace-nowrap text-center">Thời gian vào</TableHead>
                   <TableHead className="font-semibold text-slate-600 whitespace-nowrap text-center">Trạng thái phiên</TableHead>
                   <TableHead className="font-semibold text-slate-600 whitespace-nowrap text-center">Thanh toán</TableHead>
-                  <TableHead className="font-semibold text-slate-600 whitespace-nowrap text-center">Thao tác</TableHead>
+
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-10 text-slate-500">Đang tải dữ liệu...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center py-10 text-slate-500">Đang tải dữ liệu...</TableCell></TableRow>
                 ) : sessions.length === 0 ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-10 text-slate-500">Không tìm thấy phiên gửi nào</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center py-10 text-slate-500">Không tìm thấy phiên gửi nào</TableCell></TableRow>
                 ) : (
                   sessions.map(session => (
                     <TableRow 
@@ -269,19 +269,7 @@ export default function SessionsAdministrationPage() {
                           {session.paymentStatus}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-center" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-center gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600" onClick={() => setSelectedSession(session)}>
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600" onClick={() => openActionDialog(session, "moveSlot")} title="Chuyển slot">
-                            <ArrowRightLeft className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600" onClick={() => openActionDialog(session, "cancel")} title="Hủy phiên">
-                            <Ban className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+
                     </TableRow>
                   ))
                 )}
@@ -296,7 +284,7 @@ export default function SessionsAdministrationPage() {
 
       {/* Detail Panel */}
       {selectedSession && !action && (
-        <div className="w-[400px] bg-white border border-slate-200 rounded-lg flex flex-col shadow-sm flex-shrink-0 animate-in slide-in-from-right-4">
+        <div className="w-[400px] min-w-[320px] bg-white border border-slate-200 rounded-lg flex flex-col shadow-sm shrink-0 animate-in slide-in-from-right-4">
           <div className="flex items-center justify-between p-4 border-b border-slate-100">
             <h3 className="font-bold text-lg text-slate-800">Chi tiết phiên</h3>
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setSelectedSession(null)}>
@@ -481,7 +469,7 @@ export default function SessionsAdministrationPage() {
                     {availableSlots.length === 0 && <SelectItem value="none" disabled>Không có slot trống</SelectItem>}
                     {availableSlots.map((slot) => (
                       <SelectItem key={slot.id} value={String(slot.id)}>
-                        {slot.floorCode || slot.floor?.code} / {slot.areaCode || slot.area?.code} / {slot.code}
+                        {[slot.floorCode, slot.areaCode, slot.slotCode].filter(Boolean).join(" / ") || `Slot #${slot.id}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
