@@ -275,15 +275,20 @@ namespace ParkingBuilding.CoreApi.Controllers
                 return StatusCodeResponse(400, "Bad Request", "FLOOR_NOT_ACTIVE");
             }
 
-            // Look for active monthly pass
+            // Look for active or locked monthly pass
             var monthlyPass = await _context.MonthlyPasses
                 .Include(p => p.Floor)
                 .Include(p => p.Area)
                 .Include(p => p.Slot)
-                .FirstOrDefaultAsync(p => p.CardId == card.Id && p.Status == "ACTIVE");
+                .FirstOrDefaultAsync(p => p.CardId == card.Id && (p.Status == "ACTIVE" || p.Status == "LOCKED"));
 
             if (monthlyPass != null)
             {
+                if (monthlyPass.Status == "LOCKED")
+                {
+                    return StatusCodeResponse(400, "Bad Request", "MONTHLY_PASS_LOCKED");
+                }
+
                 var today = DateTime.UtcNow.Date;
                 if (monthlyPass.StartDate.Date > today || monthlyPass.EndDate.Date < today)
                 {
