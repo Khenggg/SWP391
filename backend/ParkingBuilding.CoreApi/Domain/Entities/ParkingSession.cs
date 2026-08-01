@@ -18,6 +18,7 @@ public class ParkingSession
     public bool NoPlate { get; set; }
     public string? VehicleDescription { get; set; }
     public long VehicleTypeId { get; set; }
+    public virtual VehicleType? VehicleType { get; set; }
     public long EntryGateId { get; set; }
     public long EntryStaffId { get; set; }
     public DateTimeOffset EntryTime { get; set; } = DateTimeOffset.UtcNow;

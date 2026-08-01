@@ -515,6 +515,82 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
                 throw new BusinessException("CARD_ALREADY_ASSIGNED", StatusCodes.Status400BadRequest);
             }
 
+            long? resolvedFloorId = request.FloorId;
+            long? resolvedAreaId = request.AreaId;
+            long? resolvedSlotId = request.SlotId;
+
+            var vehicleTypeObj = application.Vehicle?.VehicleType ?? await _context.VehicleTypes.FindAsync(application.Vehicle.VehicleTypeId);
+
+            if (vehicleTypeObj != null && vehicleTypeObj.RequiresSlot)
+            {
+                if (resolvedSlotId.HasValue)
+                {
+                    var slot = await _context.Slots
+                        .Include(s => s.Area)
+                            .ThenInclude(a => a.Floor)
+                        .FirstOrDefaultAsync(s => s.Id == resolvedSlotId.Value);
+
+                    if (slot != null && slot.Area != null && slot.Area.Floor != null)
+                    {
+                        resolvedSlotId = slot.Id;
+                        resolvedAreaId = slot.AreaId;
+                        resolvedFloorId = slot.Area.FloorId;
+                    }
+                }
+
+                if (!resolvedSlotId.HasValue || !resolvedFloorId.HasValue || !resolvedAreaId.HasValue)
+                {
+                    var availableSlot = await _context.Slots
+                        .Include(s => s.Area)
+                            .ThenInclude(a => a.Floor)
+                        .Where(s => s.AllowedVehicleTypeId == application.Vehicle.VehicleTypeId
+                            && s.Status == "AVAILABLE"
+                            && s.Area.Status == "ACTIVE"
+                            && s.Area.Floor.Status == "ACTIVE")
+                        .FirstOrDefaultAsync();
+
+                    if (availableSlot != null)
+                    {
+                        resolvedSlotId = availableSlot.Id;
+                        resolvedAreaId = availableSlot.AreaId;
+                        resolvedFloorId = availableSlot.Area.FloorId;
+                    }
+                }
+            }
+            else
+            {
+                if (resolvedAreaId.HasValue)
+                {
+                    var area = await _context.Areas
+                        .Include(a => a.Floor)
+                        .FirstOrDefaultAsync(a => a.Id == resolvedAreaId.Value);
+
+                    if (area != null && area.Floor != null)
+                    {
+                        resolvedAreaId = area.Id;
+                        resolvedFloorId = area.FloorId;
+                    }
+                }
+
+                if (!resolvedAreaId.HasValue || !resolvedFloorId.HasValue)
+                {
+                    var availableArea = await _context.Areas
+                        .Include(a => a.Floor)
+                        .Include(a => a.AreaVehicleTypes)
+                        .Where(a => a.Status == "ACTIVE"
+                            && a.Floor.Status == "ACTIVE"
+                            && a.AreaVehicleTypes.Any(av => av.VehicleTypeId == application.Vehicle.VehicleTypeId))
+                        .FirstOrDefaultAsync();
+
+                    if (availableArea != null)
+                    {
+                        resolvedAreaId = availableArea.Id;
+                        resolvedFloorId = availableArea.FloorId;
+                    }
+                }
+                resolvedSlotId = null;
+            }
+
             var oldVal = JsonSerializer.Serialize(application);
 
             application.Status = "ACTIVE";
@@ -531,6 +607,9 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
                 PlateNumber = application.Vehicle.PlateNumber,
                 NormalizedPlateNumber = application.Vehicle.NormalizedPlateNumber ?? application.Vehicle.PlateNumber.Replace("-", "").ToUpperInvariant(),
                 VehicleTypeId = application.Vehicle.VehicleTypeId,
+                FloorId = resolvedFloorId,
+                AreaId = resolvedAreaId,
+                SlotId = resolvedSlotId,
                 StartDate = DateTime.SpecifyKind(application.StartDate.Date, DateTimeKind.Utc),
                 EndDate = DateTime.SpecifyKind(application.StartDate.Date.AddMonths(1), DateTimeKind.Utc),
                 Status = "ACTIVE",

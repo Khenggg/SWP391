@@ -93,13 +93,16 @@ namespace ParkingBuilding.CoreApi.Controllers
 
             var cardIds = cards.Select(card => card.Id).ToList();
             
+            var vehicleTypes = await _context.VehicleTypes.ToDictionaryAsync(v => v.Id, v => v.Name);
+
             var allocations = await _context.MonthlyPasses
                 .Include(m => m.Floor)
-                .Include(m => m.VehicleType)
                 .Where(monthlyPass => cardIds.Contains(monthlyPass.CardId)
                     && (monthlyPass.Status == "ACTIVE" || monthlyPass.Status == "LOCKED"))
                 .OrderByDescending(monthlyPass => monthlyPass.EndDate)
-                .Select(monthlyPass => new MonthlyPassAllocationDto
+                .ToListAsync();
+
+            var allocationDtos = allocations.Select(monthlyPass => new MonthlyPassAllocationDto
                 {
                     Id = monthlyPass.Id,
                     CardId = monthlyPass.CardId,
@@ -109,11 +112,11 @@ namespace ParkingBuilding.CoreApi.Controllers
                     StartDate = monthlyPass.StartDate,
                     EndDate = monthlyPass.EndDate,
                     FloorName = monthlyPass.Floor != null ? monthlyPass.Floor.FloorName : null,
-                    VehicleTypeName = monthlyPass.VehicleType != null ? monthlyPass.VehicleType.Name : null
+                    VehicleTypeName = vehicleTypes.ContainsKey(monthlyPass.VehicleTypeId) ? vehicleTypes[monthlyPass.VehicleTypeId] : null
                 })
-                .ToListAsync();
+                .ToList();
 
-            var allocationByCardId = allocations
+            var allocationByCardId = allocationDtos
                 .GroupBy(allocation => allocation.CardId)
                 .ToDictionary(group => group.Key, group => group.First());
 
@@ -121,7 +124,6 @@ namespace ParkingBuilding.CoreApi.Controllers
             var activeSessions = await _context.ParkingSessions
                 .Include(s => s.Area)
                 .ThenInclude(a => a.Floor)
-                .Include(s => s.VehicleType)
                 .Where(s => activeSessionIds.Contains(s.Id))
                 .ToListAsync();
             var sessionById = activeSessions.ToDictionary(s => s.Id);
@@ -145,7 +147,7 @@ namespace ParkingBuilding.CoreApi.Controllers
                     CurrentSessionId = card.CurrentSessionId,
                     CurrentCustomerType = session?.CustomerType,
                     CurrentFloorName = session?.Area?.Floor?.FloorName,
-                    CurrentVehicleTypeName = session?.VehicleType?.Name,
+                    CurrentVehicleTypeName = session != null && vehicleTypes.ContainsKey(session.VehicleTypeId) ? vehicleTypes[session.VehicleTypeId] : null,
                     Note = card.Note,
                     CreatedAt = card.CreatedAt,
                     UpdatedAt = card.UpdatedAt,

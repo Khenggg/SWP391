@@ -172,9 +172,12 @@ export const driverService = {
   /**
    * Gán thẻ RFID vật lý và kích hoạt vé tháng (Staff/Admin).
    */
-  assignRfidToApplication: async (id, rfidCardCode) => {
+  assignRfidToApplication: async (id, rfidCardCode, { floorId = null, areaId = null, slotId = null } = {}) => {
     const res = await coreAxiosClient.patch(`/monthly-passes/applications/${id}/assign-rfid`, {
       rfidCardCode,
+      floorId: floorId ? Number(floorId) : null,
+      areaId: areaId ? Number(areaId) : null,
+      slotId: slotId ? Number(slotId) : null,
     });
     if (res.success && res.data) return res.data;
     throw new Error(res.message || "Không thể gán thẻ RFID và kích hoạt.");

@@ -14,6 +14,7 @@ import {
 import LicensePlate from "@/components/ui/license-plate";
 import { driverService } from "../../../services/driverService";
 import { cardService } from "../../../services/cardService";
+import { parkingService } from "../../../services/parkingService";
 import { toast } from "sonner";
 
 const APP_STATUS_BADGE = {
@@ -52,6 +53,11 @@ export default function ApplicationReviewPanel({ application, onClose, onRefresh
   const [showRfidModal, setShowRfidModal] = useState(false);
   const [rfidCardCode, setRfidCardCode] = useState("");
   const [availableCards, setAvailableCards] = useState([]);
+  const [floors, setFloors] = useState([]);
+  const [areas, setAreas] = useState([]);
+  const [slots, setSlots] = useState([]);
+  const [selectedAreaId, setSelectedAreaId] = useState("");
+  const [selectedSlotId, setSelectedSlotId] = useState("");
   const [loadingCards, setLoadingCards] = useState(false);
 
   const [saving, setSaving] = useState(false);
@@ -59,12 +65,22 @@ export default function ApplicationReviewPanel({ application, onClose, onRefresh
   const handleOpenRfidModal = async () => {
     setLoadingCards(true);
     setRfidCardCode("");
+    setSelectedAreaId("");
+    setSelectedSlotId("");
     try {
-      const cards = await cardService.getAvailableCards();
+      const [cards, fetchedFloors, fetchedAreas, fetchedSlots] = await Promise.all([
+        cardService.getAvailableCards(),
+        parkingService.getFloors().catch(() => []),
+        parkingService.getAreas().catch(() => []),
+        parkingService.getSlots().catch(() => []),
+      ]);
       setAvailableCards(cards);
+      setFloors(fetchedFloors);
+      setAreas(fetchedAreas);
+      setSlots(fetchedSlots);
       setShowRfidModal(true);
     } catch (e) {
-      toast.error("Không thể tải danh sách thẻ trống.");
+      toast.error("Không thể tải danh sách thẻ trống hoặc cấu hình bãi xe.");
     } finally {
       setLoadingCards(false);
     }
@@ -120,10 +136,29 @@ export default function ApplicationReviewPanel({ application, onClose, onRefresh
     if (!rfidCardCode.trim()) return;
     setSaving(true);
     try {
-      await driverService.assignRfidToApplication(application.id, rfidCardCode);
+      let locationData = {};
+      if (selectedSlotId) {
+        const foundSlot = slots.find((s) => String(s.id) === String(selectedSlotId));
+        const foundArea = areas.find((a) => String(a.id) === String(foundSlot?.areaId));
+        locationData = {
+          slotId: selectedSlotId,
+          areaId: foundSlot?.areaId || selectedAreaId || null,
+          floorId: foundArea?.floorId || null,
+        };
+      } else if (selectedAreaId) {
+        const foundArea = areas.find((a) => String(a.id) === String(selectedAreaId));
+        locationData = {
+          areaId: selectedAreaId,
+          floorId: foundArea?.floorId || null,
+        };
+      }
+
+      await driverService.assignRfidToApplication(application.id, rfidCardCode, locationData);
       toast.success("Đã gán thẻ RFID và kích hoạt vé tháng!");
       setShowRfidModal(false);
       setRfidCardCode("");
+      setSelectedAreaId("");
+      setSelectedSlotId("");
       onRefresh();
     } catch (e) {
       toast.error(e.message || "Gán thẻ thất bại.");
@@ -410,7 +445,7 @@ export default function ApplicationReviewPanel({ application, onClose, onRefresh
           </DialogHeader>
           <div className="space-y-4 py-2 text-xs font-semibold">
             <div>
-              <label className="block text-slate-500 mb-1.5">Chọn thẻ RFID trống:</label>
+              <label className="block text-slate-500 mb-1.5">Chọn thẻ RFID trống <span className="text-red-500">*</span>:</label>
               {loadingCards ? (
                 <div className="flex items-center gap-2 py-2 text-slate-400">
                   <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
@@ -435,6 +470,44 @@ export default function ApplicationReviewPanel({ application, onClose, onRefresh
                 </Select>
               )}
             </div>
+
+            {slots.length > 0 && (
+              <div>
+                <label className="block text-slate-500 mb-1.5">Chọn Slot đỗ cố định (nếu có):</label>
+                <Select value={selectedSlotId} onValueChange={setSelectedSlotId}>
+                  <SelectTrigger className="w-full text-xs font-bold bg-white border-slate-200">
+                    <SelectValue placeholder="-- Tự động chọn hoặc chọn Slot --" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">-- Tự động gán Slot khả dụng --</SelectItem>
+                    {slots.filter(s => s.status === "AVAILABLE").map((slot) => (
+                      <SelectItem key={slot.id} value={String(slot.id)}>
+                        Slot {slot.slotCode || slot.code} ({slot.areaName || `Khu ${slot.areaCode || ""}`})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {areas.length > 0 && !selectedSlotId && (
+              <div>
+                <label className="block text-slate-500 mb-1.5">Chọn Khu vực đỗ:</label>
+                <Select value={selectedAreaId} onValueChange={setSelectedAreaId}>
+                  <SelectTrigger className="w-full text-xs font-bold bg-white border-slate-200">
+                    <SelectValue placeholder="-- Tự động chọn hoặc chọn Khu vực --" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">-- Tự động gán Khu vực khả dụng --</SelectItem>
+                    {areas.filter(a => a.status === "ACTIVE").map((area) => (
+                      <SelectItem key={area.id} value={String(area.id)}>
+                        {area.areaName || area.name || area.code} ({area.floorCode || `Tầng ${area.floorId}`})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" className="text-xs font-bold" onClick={() => setShowRfidModal(false)}>
