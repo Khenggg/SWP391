@@ -595,8 +595,14 @@ public class UsersController : BaseApiController
             driverProfile.DriverType = cleanDriverType;
             driverProfile.UpdatedAt = DateTimeOffset.UtcNow;
 
+            if (cleanDriverType == "RESIDENT")
+            {
+                driverProfile.ResidentVerified = true;
+                driverProfile.ResidentVerifiedAt = DateTimeOffset.UtcNow;
+                driverProfile.ResidentVerifiedBy = GetActorUserId();
+            }
             // Nếu chuyển từ RESIDENT -> VISITOR: Tự động vô hiệu hóa ResidentVerified và Hủy vé tháng còn hiệu lực
-            if (cleanDriverType == "VISITOR" && oldDriverType == "RESIDENT")
+            else if (cleanDriverType == "VISITOR" && oldDriverType == "RESIDENT")
             {
                 driverProfile.ResidentVerified = false;
 
