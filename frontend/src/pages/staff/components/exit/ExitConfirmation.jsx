@@ -226,7 +226,18 @@ export default function ExitConfirmation({
       <div className="p-4 flex flex-col gap-4 overflow-y-auto min-h-0 flex-1">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-600">Biển số thực tế (nếu khác)</label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-600">Biển số thực tế</label>
+              {session?.plateNumber && plate !== session.plateNumber && (
+                <button
+                  type="button"
+                  onClick={() => setPlate(session.plateNumber)}
+                  className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1"
+                >
+                  Dùng biển số vào ({session.plateNumber})
+                </button>
+              )}
+            </div>
             <div className="relative">
               <Input
                 value={plate}
@@ -243,6 +254,17 @@ export default function ExitConfirmation({
             <Input placeholder="Nhập ghi chú" className="text-sm" disabled={!session} />
           </div>
         </div>
+
+        {hasMismatch && mismatchStatus === "NONE" && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 flex flex-col gap-1">
+            <p className="font-bold flex items-center gap-1.5 text-amber-800">
+              ⚠️ Phát hiện Biển số ra ({plate}) khác Biển số vào ({session?.plateNumber})
+            </p>
+            <p className="text-[11px] text-amber-700">
+              Nếu AI đọc nhầm ký tự, bạn có thể nhấp phóng to ảnh để soi kỹ và sửa lại ô "Biển số thực tế" phía trên hoặc bấm <strong>"Dùng biển số vào"</strong> để tự động mở khóa thanh toán.
+            </p>
+          </div>
+        )}
 
         {/* Mismatch status block */}
         <MismatchStatusBlock
