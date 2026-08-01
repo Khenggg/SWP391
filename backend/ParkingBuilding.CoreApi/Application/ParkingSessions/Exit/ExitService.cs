@@ -164,15 +164,27 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                             ? await paidPaymentQuery.FirstOrDefaultAsync(payment => payment.Id == request.PaymentId.Value)
                             : await paidPaymentQuery.OrderByDescending(payment => payment.PaidAt).FirstOrDefaultAsync();
 
-                        if (paidPayment == null
-                            || paidPayment.TotalAmount < feeResult.TotalAmount
-                            || paidPayment.LostCardFee < feeResult.LostCardFee)
+                        if (paidPayment == null)
                         {
                             throw new BusinessException(ErrorCodes.PaymentRequiredBeforeExit);
                         }
 
-                        // Only a webhook-confirmed bank transfer has a short exit buffer.
                         // Cash is finalized at the staff desk and does not expire.
+                        // Bank transfer has a valid buffer time (PaymentValidUntil).
+                        var isPaymentValid = paidPayment.Method == "CASH" 
+                            || (paidPayment.Method == "BANK_TRANSFER" 
+                                && paidPayment.PaymentValidUntil.HasValue 
+                                && exitTime <= paidPayment.PaymentValidUntil.Value);
+
+                        if (!isPaymentValid)
+                        {
+                            if (paidPayment.TotalAmount < feeResult.TotalAmount
+                                || paidPayment.LostCardFee < feeResult.LostCardFee)
+                            {
+                                throw new BusinessException(ErrorCodes.PaymentRequiredBeforeExit);
+                            }
+                        }
+
                         if (paidPayment.Method == "BANK_TRANSFER"
                             && paidPayment.PaymentValidUntil.HasValue
                             && exitTime > paidPayment.PaymentValidUntil.Value)
@@ -382,11 +394,23 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                             .OrderByDescending(payment => payment.PaidAt)
                             .FirstOrDefaultAsync();
 
-                        if (paidPayment == null
-                            || paidPayment.TotalAmount < feeResult.TotalAmount
-                            || paidPayment.LostCardFee < feeResult.LostCardFee)
+                        if (paidPayment == null)
                         {
                             throw new BusinessException(ErrorCodes.PaymentRequiredBeforeExit);
+                        }
+
+                        var isPaymentValid = paidPayment.Method == "CASH" 
+                            || (paidPayment.Method == "BANK_TRANSFER" 
+                                && paidPayment.PaymentValidUntil.HasValue 
+                                && exitTime <= paidPayment.PaymentValidUntil.Value);
+
+                        if (!isPaymentValid)
+                        {
+                            if (paidPayment.TotalAmount < feeResult.TotalAmount
+                                || paidPayment.LostCardFee < feeResult.LostCardFee)
+                            {
+                                throw new BusinessException(ErrorCodes.PaymentRequiredBeforeExit);
+                            }
                         }
                     }
 
