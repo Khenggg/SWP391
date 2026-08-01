@@ -20,6 +20,7 @@ import PaymentCallbackPage from "../pages/public/PaymentCallbackPage";
 
 import UserManagementPage from "../pages/admin/UserManagementPage";
 import SessionsAdministrationPage from "../pages/admin/SessionsAdministrationPage";
+import ManagerUserPage from "../pages/manager/ManagerUserPage";
 
 import CardManagementPage from "../pages/manager/CardManagementPage";
 import StructureManagementPage from "../pages/manager/StructureManagementPage";
@@ -100,6 +101,7 @@ export default function AppRoutes({ isAuthenticated, userRole, currentUser, onLo
             <Route path="/manager/pricing" element={<PricingManagementPage />} />
             <Route path="/manager/monthly-passes" element={<MonthlyPassManagementPage />} />
             <Route path="/manager/audit-logs" element={<AuditLogsPage scope="manager" />} />
+            <Route path="/manager/users" element={<ManagerUserPage />} />
           </Route>
 
           <Route element={<RequireRole userRole={userRole} allowedRoles={[USER_ROLES.ADMIN]} />}>

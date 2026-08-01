@@ -51,6 +51,7 @@ const MENUS = {
   [USER_ROLES.MANAGER]: [
     { label: "Bảng vận hành", path: "/manager/dashboard", icon: LayoutDashboard },
     { label: "Báo cáo", path: "/manager/reports", icon: BarChart3 },
+    { label: "Người dùng", path: "/manager/users", icon: UsersRound },
     { label: "Duyệt mất thẻ", path: "/manager/lost-card-approvals", icon: ClipboardCheck },
     { label: "Lệch biển số", path: "/manager/mismatch-approvals", icon: BellDot },
     { label: "Quản lý thẻ", path: "/manager/cards", icon: CreditCard },
