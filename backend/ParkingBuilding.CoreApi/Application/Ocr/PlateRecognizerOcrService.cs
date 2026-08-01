@@ -70,13 +70,22 @@ public sealed class PlateRecognizerOcrService : IPlateOcrService
                 return PlateOcrResult.Failed("No plate detected");
             }
 
-            // Pick the result with highest dscore (confidence)
+            // Pick the result with highest OCR score (or dscore fallback)
             JsonElement bestResult = default;
             double maxScore = -1;
 
             foreach (var item in resultsElement.EnumerateArray())
             {
-                double score = item.TryGetProperty("dscore", out var scoreElem) ? scoreElem.GetDouble() : 0;
+                double score = 0;
+                if (item.TryGetProperty("score", out var scoreElem))
+                {
+                    score = scoreElem.GetDouble();
+                }
+                else if (item.TryGetProperty("dscore", out var dscoreElem))
+                {
+                    score = dscoreElem.GetDouble();
+                }
+
                 if (score > maxScore)
                 {
                     maxScore = score;
@@ -90,8 +99,18 @@ public sealed class PlateRecognizerOcrService : IPlateOcrService
             }
 
             string rawPlate = bestResult.TryGetProperty("plate", out var plateElem) ? (plateElem.GetString() ?? "").Trim().ToUpperInvariant() : "";
-            double dscore = bestResult.TryGetProperty("dscore", out var dsElem) ? dsElem.GetDouble() : 0;
-            decimal confidence = Math.Round((decimal)(dscore * 100), 2);
+            
+            double scoreVal = 0;
+            if (bestResult.TryGetProperty("score", out var sElem))
+            {
+                scoreVal = sElem.GetDouble();
+            }
+            else if (bestResult.TryGetProperty("dscore", out var dsElem))
+            {
+                scoreVal = dsElem.GetDouble();
+            }
+
+            decimal confidence = Math.Round((decimal)(scoreVal * 100), 2);
 
             if (string.IsNullOrWhiteSpace(rawPlate))
             {
