@@ -297,6 +297,20 @@ public class PlateMismatchService : IPlateMismatchService
                             priority: "HIGH",
                             parkingSessionId: session.Id);
                     }
+
+                    // Create notification for staff who created the mismatch case
+                    var staffTitle = status == "CONFIRMED" ? "Yêu cầu sai lệch biển số đã được duyệt" : "Yêu cầu sai lệch biển số bị từ chối";
+                    var staffContent = status == "CONFIRMED"
+                        ? $"Yêu cầu sai lệch biển số cho phiên đỗ {session.SessionCode} đã được Quản lý duyệt."
+                        : $"Yêu cầu sai lệch biển số cho phiên đỗ {session.SessionCode} đã bị từ chối. Lý do: {mismatch.RejectionReason}.";
+
+                    await _notificationWriter.CreateNotificationAsync(
+                        userId: mismatch.CreatedBy,
+                        title: staffTitle,
+                        content: staffContent,
+                        type: "SYSTEM",
+                        priority: "HIGH",
+                        parkingSessionId: session.Id);
                 }
 
                 return (await GetByIdAsync(mismatch.Id))!;

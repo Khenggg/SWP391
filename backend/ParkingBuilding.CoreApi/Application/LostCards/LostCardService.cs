@@ -222,6 +222,20 @@ public class LostCardService : ILostCardService
                         parkingSessionId: lostCardCase.SessionId);
                 }
 
+                // Create notification for staff who created the lost card case
+                var staffTitle = status == "APPROVED" ? "Yêu cầu báo mất thẻ đã được duyệt" : "Yêu cầu báo mất thẻ bị từ chối";
+                var staffContent = status == "APPROVED"
+                    ? $"Yêu cầu báo mất thẻ {lostCardCase.ParkingCard?.CardNumber} cho phiên đỗ {lostCardCase.ParkingSession?.SessionCode} đã được Quản lý duyệt."
+                    : $"Yêu cầu báo mất thẻ {lostCardCase.ParkingCard?.CardNumber} cho phiên đỗ {lostCardCase.ParkingSession?.SessionCode} đã bị từ chối. Lý do: {request.RejectionReason}.";
+
+                await _notificationWriter.CreateNotificationAsync(
+                    userId: lostCardCase.CreatedBy,
+                    title: staffTitle,
+                    content: staffContent,
+                    type: "SYSTEM",
+                    priority: "HIGH",
+                    parkingSessionId: lostCardCase.SessionId);
+
                 await _auditWriter.WriteAuditLogAsync(new AuditWriteDto
                 {
                     Action = $"LOST_CARD_{status}",
