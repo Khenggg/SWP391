@@ -1,39 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { parkingService } from "../../services/parkingService";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { COMMON_STATUS, SLOT_STATUS } from "@/constants";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
+import { COMMON_STATUS, SLOT_STATUS, STATUS_LABELS } from "@/constants";
 import { toast } from "sonner";
-import { Layers, Map, Grid, Plus, Edit2, Trash2, AlertTriangle, CheckCircle, Car, Wrench, X, AlertCircle, Search } from "lucide-react";
-import EmptyState from "@/components/ui/empty-state";
+import { Layers, Map, Grid } from "lucide-react";
 import StructureStatCards from "../../components/manager/structure/StructureStatCards";
 import FloorModal from "../../components/manager/structure/FloorModal";
 import AreaModal from "../../components/manager/structure/AreaModal";
 import SlotModal from "../../components/manager/structure/SlotModal";
-import SlotDetailSidebar from "../../components/manager/structure/SlotDetailSidebar";
+import SlotGridPanel from "../../components/manager/structure/SlotGridPanel";
+import CapacityPanel from "../../components/manager/structure/CapacityPanel";
+import SlotDetailDialog from "../../components/manager/structure/SlotDetailDialog";
+import CapacityDialog from "../../components/manager/structure/CapacityDialog";
+import FloorTablePanel from "../../components/manager/structure/FloorTablePanel";
+import AreaTablePanel from "../../components/manager/structure/AreaTablePanel";
 
 
 // Constants & Mappings
@@ -41,28 +20,6 @@ const AREA_STATUS_BADGE = {
   [COMMON_STATUS.ACTIVE]: "text-emerald-600 bg-emerald-50",
   [SLOT_STATUS.LOCKED]: "text-red-600 bg-red-50",
   [SLOT_STATUS.MAINTENANCE]: "text-amber-600 bg-amber-50",
-};
-
-const SLOT_STATUS_COLORS = {
-  [SLOT_STATUS.AVAILABLE]: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  [SLOT_STATUS.OCCUPIED]: "border-blue-300 bg-blue-50 text-blue-700",
-  [SLOT_STATUS.LOCKED]: "border-red-200 bg-red-50 text-red-700",
-  [SLOT_STATUS.MAINTENANCE]: "border-amber-200 bg-amber-50 text-amber-700",
-};
-
-const SLOT_STATUS_DOT = {
-  [SLOT_STATUS.AVAILABLE]: "bg-emerald-500",
-  [SLOT_STATUS.OCCUPIED]: "bg-blue-600",
-  [SLOT_STATUS.LOCKED]: "bg-red-500",
-  [SLOT_STATUS.MAINTENANCE]: "bg-amber-500",
-};
-
-const STATUS_LABELS = {
-  [COMMON_STATUS.ACTIVE]: "Hoạt động",
-  [SLOT_STATUS.LOCKED]: "Khóa / Tạm ngưng",
-  [SLOT_STATUS.MAINTENANCE]: "Bảo trì",
-  [SLOT_STATUS.AVAILABLE]: "Còn trống",
-  [SLOT_STATUS.OCCUPIED]: "Đã đỗ",
 };
 
 export default function StructureManagementPage() {
@@ -76,21 +33,21 @@ export default function StructureManagementPage() {
   const fetchStructure = async () => {
     setIsLoading(true);
     try {
-      const [floorsData, areasData, slotsData, vTypes] = await Promise.all([
+      const [floorsData, areasData, slotsData, vTypes, activeSessionsData] = await Promise.all([
         parkingService.getFloors(),
         parkingService.getAreas(),
         parkingService.getSlots(),
         parkingService.getVehicleTypes(),
+        parkingService.getActiveSessions(),
       ]);
       setFloors(floorsData || []);
-      
-      // BE AreaResponse now returns floorCode, priorityOrder, vehicleTypeIds, vehicleTypeNames directly
       setAreas(areasData || []);
       
-      // Map floor, area, and vehicle type info to slots from enriched areas (SlotResponse still has contract gaps)
+      // Map floor, area, vehicle type, and active session info to slots
       const enrichedAreas = areasData || [];
       const mappedSlots = (slotsData || []).map(slot => {
         const area = enrichedAreas.find(a => a.id === slot.areaId);
+        const activeSession = (activeSessionsData || []).find(s => s.slotCode === slot.slotCode);
         if (area) {
           return {
             ...slot,
@@ -98,10 +55,24 @@ export default function StructureManagementPage() {
             floorId: area.floorId,
             floorCode: area.floorCode,
             vehicleTypeIds: area.vehicleTypeIds || [],
-            vehicleTypeNames: area.vehicleTypeNames || []
+            vehicleTypeNames: area.vehicleTypeNames || [],
+            activeSession: activeSession ? {
+              plateNumber: activeSession.plateNumber,
+              cardCode: activeSession.cardCode,
+              entryTime: activeSession.entryTime,
+              sessionCode: activeSession.sessionCode
+            } : null
           };
         }
-        return slot;
+        return {
+          ...slot,
+          activeSession: activeSession ? {
+            plateNumber: activeSession.plateNumber,
+            cardCode: activeSession.cardCode,
+            entryTime: activeSession.entryTime,
+            sessionCode: activeSession.sessionCode
+          } : null
+        };
       });
       setSlots(mappedSlots);
       
@@ -131,26 +102,7 @@ export default function StructureManagementPage() {
   // Filters
   const [filterFloor, setFilterFloor] = useState("ALL");
   const [filterArea, setFilterArea] = useState("ALL");
-  const [filterVType, setFilterVType] = useState("ALL");
   const [filterSlotStatus, setFilterSlotStatus] = useState("ALL");
-
-  // New Filters & Searches for Area and Slot
-  const [searchAreaQuery, setSearchAreaQuery] = useState("");
-  const [filterAreaVType, setFilterAreaVType] = useState("ALL");
-  const [filterAreaStatus, setFilterAreaStatus] = useState("ALL");
-  const [searchSlotQuery, setSearchSlotQuery] = useState("");
-
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-    setFilterFloor("ALL");
-    setFilterArea("ALL");
-    setFilterVType("ALL");
-    setFilterSlotStatus("ALL");
-    setSearchAreaQuery("");
-    setFilterAreaVType("ALL");
-    setFilterAreaStatus("ALL");
-    setSearchSlotQuery("");
-  };
 
   // Modals state
   const [showFloorModal, setShowFloorModal] = useState(false);
@@ -161,11 +113,35 @@ export default function StructureManagementPage() {
   const [form, setForm] = useState({});
 
   // Slot Detail Sidebar State
-  const [selectedSlot, setSelectedSlot] = useState(null);
-  const [targetStatus, setTargetStatus] = useState("");
-  const [statusReason, setStatusReason] = useState("");
+  const setField = useCallback((name, value) => setForm((p) => ({ ...p, [name]: value })), []);
 
-  const setField = (name, value) => setForm((p) => ({ ...p, [name]: value }));
+  // Capacity Modal State
+  const [showCapacityModal, setShowCapacityModal] = useState(false);
+  const [selectedAreaForCapacity, setSelectedAreaForCapacity] = useState(null);
+  const [capacityForm, setCapacityForm] = useState({ totalCapacity: 0 });
+
+  const openEditCapacity = (area) => {
+    setSelectedAreaForCapacity(area);
+    setCapacityForm({ totalCapacity: area.totalCapacity || 0 });
+    setShowCapacityModal(true);
+  };
+
+  const handleCapacitySave = async () => {
+    if (capacityForm.totalCapacity === "" || Number(capacityForm.totalCapacity) < 0) {
+      return toast.error("Vui lòng nhập sức chứa hợp lệ");
+    }
+    try {
+      await parkingService.updateArea(selectedAreaForCapacity.id, {
+        ...selectedAreaForCapacity,
+        totalCapacity: Number(capacityForm.totalCapacity)
+      });
+      await fetchStructure();
+      setShowCapacityModal(false);
+      toast.success("Cập nhật sức chứa thành công!");
+    } catch (e) {
+      toast.error(e.message || "Lỗi cập nhật sức chứa");
+    }
+  };
 
   // --- ACTIONS ---
   const openCreateFloor = () => { setEditingItem(null); setForm({ floorCode: "", floorName: "", status: COMMON_STATUS.ACTIVE }); setShowFloorModal(true); };
@@ -178,49 +154,31 @@ export default function StructureManagementPage() {
       await fetchStructure();
       setShowFloorModal(false);
       toast.success("Lưu tầng thành công!");
-    } catch (e) {
-      let userFriendlyMsg = "Đã xảy ra lỗi khi lưu thông tin tầng.";
-      if (e.message) {
-        if (e.message.includes("Da co loi he thong xay ra") || e.message.includes("Internal server error")) {
-          userFriendlyMsg = "Lỗi: Không thể lưu tầng. Vui lòng đảm bảo Mã tầng không trùng lặp và trạng thái được chọn hợp lệ.";
-        } else {
-          userFriendlyMsg = e.message;
-        }
-      }
-      toast.error(userFriendlyMsg);
-    }
+    } catch (e) { toast.error(e.message || "Lỗi lưu tầng"); }
   };
 
-  const handleFloorDelete = async (id, floorCode) => {
-    const floorAreasCount = areas.filter(a => a.floorCode === floorCode).length;
-    if (floorAreasCount > 0) {
-      return toast.error("Không thể xóa tầng vì đang có khu vực hoạt động trong tầng này.");
-    }
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa tầng ${floorCode}?`)) return;
-    try {
-      await parkingService.deleteFloor(id);
-      await fetchStructure();
-      toast.success("Xóa tầng thành công!");
-    } catch (e) {
-      let userFriendlyMsg = "Không thể xóa tầng này.";
-      if (e.message) {
-        if (e.message.includes("FLOOR_HAS_AREAS") || e.message.includes("Không thể xóa tầng này vì đang có khu vực hoạt động")) {
-          userFriendlyMsg = "Lỗi: Không thể xóa tầng vì tầng này đang chứa các khu vực đỗ xe hoạt động.";
-        } else {
-          userFriendlyMsg = e.message;
-        }
-      }
-      toast.error(userFriendlyMsg);
-    }
-  };
-
-  const openCreateArea = () => { setEditingItem(null); setForm({ floorId: "", areaCode: "", areaName: "", priorityOrder: 1, totalCapacity: 10, vehicleTypeIds: [], status: COMMON_STATUS.ACTIVE }); setShowAreaModal(true); };
-  const openEditArea = (area) => { setEditingItem(area); setForm({ floorId: area.floorId || "", areaCode: area.areaCode, areaName: area.areaName, priorityOrder: area.priorityOrder || 1, totalCapacity: area.totalCapacity || 10, vehicleTypeIds: area.vehicleTypeIds || [], status: area.status }); setShowAreaModal(true); };
+  const openCreateArea = () => { setEditingItem(null); setForm({ floorId: "", areaCode: "", areaName: "", priorityOrder: 1, totalCapacity: 10, vehicleTypeIds: [], status: "ACTIVE" }); setShowAreaModal(true); };
+  const openEditArea = (area) => { setEditingItem(area); setForm({ floorId: area.floorId || "", areaCode: area.areaCode, areaName: area.areaName, priorityOrder: area.priorityOrder || 1, totalCapacity: area.totalCapacity || 10, vehicleTypeIds: area.vehicleTypeIds || [], status: area.status || "ACTIVE" }); setShowAreaModal(true); };
   const handleAreaSave = async () => {
     if (!form.areaCode || !form.areaName || !form.floorId) return toast.error("Vui lòng điền đủ Mã khu, Tên khu và chọn Tầng");
     try {
-      if (editingItem) await parkingService.updateArea(editingItem.id, form);
-      else await parkingService.addArea(form);
+      // Auto-set capacity for car areas based on slot count
+      const isCar = form.vehicleTypeIds && form.vehicleTypeIds.length > 0
+        ? form.vehicleTypeIds.some(id => {
+            const vt = vehicleTypes.find(v => v.id === id);
+            return vt?.requiresSlot ?? false;
+          })
+        : false;
+      
+      const payload = {
+        ...form,
+        totalCapacity: isCar 
+          ? (editingItem ? slots.filter(s => s.areaId === editingItem.id).length : 0)
+          : Number(form.totalCapacity || 0)
+      };
+
+      if (editingItem) await parkingService.updateArea(editingItem.id, payload);
+      else await parkingService.addArea(payload);
       await fetchStructure();
       setShowAreaModal(false);
       toast.success("Lưu khu vực thành công!");
@@ -232,40 +190,77 @@ export default function StructureManagementPage() {
     if (!form.slotCode || !form.areaId || !form.allowedVehicleTypeId) return toast.error("Vui lòng điền đủ thông tin Slot");
     try {
       await parkingService.addSlot(form);
+      
+      // Auto-sync the area's totalCapacity with the new slot count to ensure check-in works
+      const area = areas.find(a => a.id === form.areaId);
+      if (area) {
+        const areaSlotsCount = slots.filter(s => s.areaId === area.id).length;
+        await parkingService.updateArea(area.id, {
+          ...area,
+          totalCapacity: areaSlotsCount + 1
+        });
+      }
+      
       await fetchStructure();
       setShowSlotModal(false);
       toast.success("Thêm slot thành công!");
     } catch (e) { toast.error(e.message || "Lỗi thêm slot"); }
   };
 
+  // Slot Detail Dialog State
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [targetStatus, setTargetStatus] = useState("");
+  const [statusReason, setStatusReason] = useState("");
+
   const handleUpdateSlotStatus = async () => {
     if (!selectedSlot || !targetStatus) return;
     try {
       await parkingService.updateSlotStatus(selectedSlot.id, targetStatus);
       await fetchStructure();
-      setSelectedSlot({ ...selectedSlot, status: targetStatus });
+      setSelectedSlot(null); // Close dialog on success
       toast.success("Cập nhật trạng thái thành công!");
     } catch (e) { toast.error(e.message || "Lỗi cập nhật trạng thái"); }
   };
 
+  const isCarArea = (area) => {
+    if (area.vehicleTypeIds && area.vehicleTypeIds.length > 0) {
+      return area.vehicleTypeIds.some(vtId => {
+        const vt = vehicleTypes.find(v => v.id === vtId);
+        return vt?.requiresSlot ?? false;
+      });
+    }
+    return (area.vehicleTypeNames || []).some(name => name.toLowerCase().includes("ô tô") || name.toLowerCase().includes("o to"));
+  };
+
   // Filtered Data
-  const filteredAreas = areas.filter((a) => {
-    const matchFloor = filterFloor === "ALL" || a.floorCode === filterFloor;
-    const matchType = filterAreaVType === "ALL" || (a.vehicleTypeIds || []).includes(Number(filterAreaVType));
-    const matchStatus = filterAreaStatus === "ALL" || a.status === filterAreaStatus;
-    const matchQuery = !searchAreaQuery || 
-      a.areaCode.toLowerCase().includes(searchAreaQuery.toLowerCase()) || 
-      a.areaName.toLowerCase().includes(searchAreaQuery.toLowerCase());
-    return matchFloor && matchType && matchStatus && matchQuery;
+  const filteredAreas = filterFloor === "ALL" ? areas : areas.filter((a) => a.floorId?.toString() === filterFloor);
+  
+  // Filter slots for Ô tô only using requiresSlot property
+  const carSlots = slots.filter(s => {
+    if (s.allowedVehicleTypeId) {
+      const vt = vehicleTypes.find(v => v.id === s.allowedVehicleTypeId);
+      return vt?.requiresSlot ?? false;
+    }
+    if (s.vehicleTypeIds && s.vehicleTypeIds.length > 0) {
+      return s.vehicleTypeIds.some(vtId => {
+        const vt = vehicleTypes.find(v => v.id === vtId);
+        return vt?.requiresSlot ?? false;
+      });
+    }
+    return (s.vehicleTypeNames || []).some(name => name.toLowerCase().includes("ô tô") || name.toLowerCase().includes("o to"));
+  });
+  const filteredSlots = carSlots.filter((s) => {
+    const matchFloor = filterFloor === "ALL" || s.floorId?.toString() === filterFloor;
+    const matchArea = filterArea === "ALL" || s.areaId?.toString() === filterArea;
+    const matchStatus = filterSlotStatus === "ALL" || s.status === filterSlotStatus;
+    return matchFloor && matchArea && matchStatus;
   });
 
-  const filteredSlots = slots.filter((s) => {
-    const matchFloor = filterFloor === "ALL" || s.floorCode === filterFloor;
-    const matchArea = filterArea === "ALL" || s.areaCode === filterArea;
-    const matchType = filterVType === "ALL" || (s.vehicleTypeIds || []).includes(Number(filterVType));
-    const matchStatus = filterSlotStatus === "ALL" || s.status === filterSlotStatus;
-    const matchQuery = !searchSlotQuery || s.slotCode.toLowerCase().includes(searchSlotQuery.toLowerCase());
-    return matchFloor && matchArea && matchType && matchStatus && matchQuery;
+  // Areas for non-car vehicles (Xe máy, xe điện, xe đạp...)
+  const nonCarAreas = areas.filter(a => !isCarArea(a));
+  const filteredNonCarAreas = nonCarAreas.filter((a) => {
+    const matchFloor = filterFloor === "ALL" || a.floorId?.toString() === filterFloor;
+    return matchFloor;
   });
 
   return (
@@ -296,7 +291,7 @@ export default function StructureManagementPage() {
           {["Tầng", "Khu vực", "Slot"].map((tab) => (
             <button
               key={tab}
-              onClick={() => handleTabChange(tab)}
+              onClick={() => setActiveTab(tab)}
               className={`px-6 py-4 font-semibold text-sm transition-all border-b-2 ${
                 activeTab === tab
                   ? "border-blue-600 text-blue-600"
@@ -318,323 +313,51 @@ export default function StructureManagementPage() {
           
           {/* TẦNG TAB */}
           {activeTab === "Tầng" && (
-            <div className="flex flex-col h-full animate-in fade-in duration-300">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-slate-800">Quản lý Tầng</h3>
-                <Button onClick={openCreateFloor} className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
-                  <Plus className="w-4 h-4 mr-2" /> Thêm tầng
-                </Button>
-              </div>
-              <div className="border border-slate-200 rounded-xl overflow-hidden flex-1">
-                <Table>
-                  <TableHeader className="bg-slate-50 border-b border-slate-200">
-                    <TableRow>
-                      <TableHead className="font-bold text-slate-600 py-4">Mã tầng</TableHead>
-                      <TableHead className="font-bold text-slate-600">Tên tầng</TableHead>
-                      <TableHead className="font-bold text-slate-600">Số khu vực</TableHead>
-                      <TableHead className="font-bold text-slate-600">Số slot đỗ</TableHead>
-                      <TableHead className="font-bold text-slate-600">Hiện trạng đỗ</TableHead>
-                      <TableHead className="font-bold text-slate-600">Trạng thái</TableHead>
-                      <TableHead className="font-bold text-slate-600 text-right">Thao tác</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {floors.map((floor) => {
-                      const floorCode = floor.code || floor.floorCode;
-                      const floorAreas = areas.filter(a => a.floorCode === floorCode);
-                      const floorAreasCount = floorAreas.length;
-                      const floorSlotsCount = slots.filter(s => s.floorCode === floorCode).length;
-
-                      const totalCapacity = floorAreas.reduce((acc, curr) => acc + (curr.totalCapacity || 0), 0);
-                      const currentOccupancy = floorAreas.reduce((acc, curr) => acc + (curr.currentRealOccupancy || 0), 0);
-                      const occupancyRate = totalCapacity ? Math.round((currentOccupancy / totalCapacity) * 100) : 0;
-
-                      return (
-                        <TableRow key={floor.id}>
-                          <TableCell className="font-semibold text-slate-800">{floorCode}</TableCell>
-                          <TableCell className="text-slate-600">{floor.name || floor.floorName}</TableCell>
-                          <TableCell className="text-slate-600 font-medium">{floorAreasCount} khu</TableCell>
-                          <TableCell className="text-slate-600 font-medium">{floorSlotsCount} ô đỗ</TableCell>
-                          <TableCell>
-                            <div className="flex flex-col w-[120px]">
-                              <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden flex">
-                                <div 
-                                  className={`h-full rounded-full transition-all duration-500 ${
-                                    occupancyRate < 70 ? "bg-emerald-500" : occupancyRate < 90 ? "bg-amber-500" : "bg-rose-500"
-                                  }`}
-                                  style={{ width: `${Math.min(occupancyRate, 100)}%` }}
-                                />
-                              </div>
-                              <span className="text-[10px] text-slate-500 font-bold mt-1">
-                                {currentOccupancy}/{totalCapacity} ô đỗ ({occupancyRate}%)
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={`font-bold rounded-md px-2.5 py-1 ${AREA_STATUS_BADGE[floor.status] || "text-slate-600 bg-slate-100 hover:bg-slate-200"}`}>
-                              {STATUS_LABELS[floor.status] || floor.status || "ACTIVE"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
-                              <Button variant="ghost" size="sm" onClick={() => openEditFloor(floor)} className="text-slate-400 hover:text-blue-600" title="Sửa">
-                                <Edit2 className="w-4 h-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" onClick={() => handleFloorDelete(floor.id, floorCode)} className="text-slate-400 hover:text-red-600" title="Xóa">
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
+            <FloorTablePanel
+              floors={floors}
+              openEditFloor={openEditFloor}
+              openCreateFloor={openCreateFloor}
+              AREA_STATUS_BADGE={AREA_STATUS_BADGE}
+              STATUS_LABELS={STATUS_LABELS}
+            />
           )}
 
           {/* KHU VỰC TAB */}
           {activeTab === "Khu vực" && (
-            <div className="flex flex-col h-full animate-in fade-in duration-300">
-              <div className="flex flex-col gap-4 mb-6">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-bold text-slate-800">Quản lý Khu vực</h3>
-                  <Button onClick={openCreateArea} className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
-                    <Plus className="w-4 h-4 mr-2" /> Thêm khu vực
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-3 items-center">
-                  <div className="relative flex-1 min-w-[200px]">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <Input 
-                      placeholder="Tìm kiếm mã hoặc tên khu vực..." 
-                      value={searchAreaQuery}
-                      onChange={(e) => setSearchAreaQuery(e.target.value)}
-                      className="pl-9 h-9 border-slate-200 bg-white"
-                    />
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-semibold text-slate-500">Tầng:</span>
-                    <Select value={filterFloor} onValueChange={setFilterFloor}>
-                      <SelectTrigger className="w-[110px] border-slate-200 h-9 bg-white">
-                        <SelectValue placeholder="Tất cả" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ALL">Tất cả</SelectItem>
-                        {floors.map((f) => <SelectItem key={f.id} value={f.floorCode}>{f.floorCode}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-semibold text-slate-500">Loại xe:</span>
-                    <Select value={filterAreaVType} onValueChange={setFilterAreaVType}>
-                      <SelectTrigger className="w-[120px] border-slate-200 h-9 bg-white">
-                        <SelectValue placeholder="Tất cả" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ALL">Tất cả</SelectItem>
-                        {vehicleTypes.map((v) => <SelectItem key={v.id} value={v.id.toString()}>{v.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-semibold text-slate-500">Trạng thái:</span>
-                    <Select value={filterAreaStatus} onValueChange={setFilterAreaStatus}>
-                      <SelectTrigger className="w-[135px] border-slate-200 h-9 bg-white">
-                        <SelectValue placeholder="Tất cả" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ALL">Tất cả</SelectItem>
-                        <SelectItem value="ACTIVE">Hoạt động</SelectItem>
-                        <SelectItem value="LOCKED">Khóa / Tạm ngưng</SelectItem>
-                        <SelectItem value="MAINTENANCE">Bảo trì</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-              <div className="border border-slate-200 rounded-xl overflow-hidden flex-1">
-                <Table>
-                  <TableHeader className="bg-slate-50 border-b border-slate-200">
-                    <TableRow>
-                      <TableHead className="font-bold text-slate-600 py-4">Mã khu</TableHead>
-                      <TableHead className="font-bold text-slate-600">Tên khu</TableHead>
-                      <TableHead className="font-bold text-slate-600">Tầng</TableHead>
-                      <TableHead className="font-bold text-slate-600 text-center">Ưu tiên</TableHead>
-                      <TableHead className="font-bold text-slate-600">Loại xe áp dụng</TableHead>
-                      <TableHead className="font-bold text-slate-600">Sức chứa / Hiện trạng</TableHead>
-                      <TableHead className="font-bold text-slate-600">Trạng thái</TableHead>
-                      <TableHead className="font-bold text-slate-600 text-right">Thao tác</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredAreas.map((area) => {
-                      const totalCapacity = area.totalCapacity || 0;
-                      const currentOccupancy = area.currentRealOccupancy || 0;
-                      const occupancyRate = totalCapacity ? Math.round((currentOccupancy / totalCapacity) * 100) : 0;
-                      return (
-                        <TableRow key={area.id}>
-                          <TableCell className="font-semibold text-slate-800">{area.areaCode}</TableCell>
-                          <TableCell className="text-slate-600">{area.areaName}</TableCell>
-                          <TableCell className="text-slate-600 font-medium">{area.floorCode}</TableCell>
-                          <TableCell className="text-center text-slate-500">{area.priorityOrder ?? "—"}</TableCell>
-                          <TableCell>
-                            {(area.vehicleTypeNames || []).length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
-                                {area.vehicleTypeNames.map((name, idx) => (
-                                  <Badge key={idx} className="px-2.5 py-1 font-semibold rounded-md bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100">
-                                    {name}
-                                  </Badge>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="text-slate-400">Không rõ</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col w-[120px]">
-                              <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden flex">
-                                <div 
-                                  className={`h-full rounded-full transition-all duration-500 ${
-                                    occupancyRate < 70 ? "bg-emerald-500" : occupancyRate < 90 ? "bg-amber-500" : "bg-rose-500"
-                                  }`}
-                                  style={{ width: `${Math.min(occupancyRate, 100)}%` }}
-                                />
-                              </div>
-                              <span className="text-[10px] text-slate-500 font-bold mt-1">
-                                {currentOccupancy}/{totalCapacity} ({occupancyRate}%)
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={`font-bold rounded-md px-2.5 py-1 ${AREA_STATUS_BADGE[area.status] || "text-slate-600 bg-slate-100 hover:bg-slate-200"}`}>
-                              {STATUS_LABELS[area.status] || area.status || "ACTIVE"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" onClick={() => openEditArea(area)} className="text-slate-400 hover:text-blue-600">
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
+            <AreaTablePanel
+              filterFloor={filterFloor}
+              setFilterFloor={setFilterFloor}
+              floors={floors}
+              filteredAreas={filteredAreas}
+              openCreateArea={openCreateArea}
+              openEditArea={openEditArea}
+            />
           )}
 
           {/* SLOT TAB */}
           {activeTab === "Slot" && (
-            <div className="flex flex-1 gap-6 animate-in fade-in duration-300 min-h-0">
-              {/* Left Panel: Slot Grid */}
-              <div className="flex-1 flex flex-col border border-slate-200 rounded-xl overflow-hidden bg-white">
-                <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <h3 className="text-base font-bold text-slate-800">Quản lý trạng thái Slot</h3>
-                    <div className="flex gap-2 flex-wrap">
-                      <div className="space-y-1">
-                        <span className="text-xs font-semibold text-slate-500">Tầng</span>
-                        <Select value={filterFloor} onValueChange={setFilterFloor}>
-                          <SelectTrigger className="w-[110px] h-8 text-xs border-slate-200 bg-white"><SelectValue placeholder="Tất cả" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="ALL">Tất cả</SelectItem>
-                            {floors.map((f) => <SelectItem key={f.id} value={f.floorCode}>{f.floorCode}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-xs font-semibold text-slate-500">Khu vực</span>
-                        <Select value={filterArea} onValueChange={setFilterArea}>
-                          <SelectTrigger className="w-[110px] h-8 text-xs border-slate-200 bg-white"><SelectValue placeholder="Tất cả" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="ALL">Tất cả</SelectItem>
-                            {areas.filter(a => filterFloor === "ALL" || a.floorCode === filterFloor).map((a) => <SelectItem key={a.id} value={a.areaCode}>{a.areaCode}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-xs font-semibold text-slate-500">Loại xe</span>
-                        <Select value={filterVType} onValueChange={setFilterVType}>
-                          <SelectTrigger className="w-[110px] h-8 text-xs border-slate-200 bg-white"><SelectValue placeholder="Tất cả" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="ALL">Tất cả</SelectItem>
-                            {vehicleTypes.map((v) => <SelectItem key={v.id} value={v.id.toString()}>{v.name}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-xs font-semibold text-slate-500">Trạng thái</span>
-                        <Select value={filterSlotStatus} onValueChange={setFilterSlotStatus}>
-                          <SelectTrigger className="w-[120px] h-8 text-xs border-slate-200 bg-white"><SelectValue placeholder="Tất cả" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="ALL">Tất cả</SelectItem>
-                            {Object.values(SLOT_STATUS).map(s => <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-xs font-semibold text-slate-500">Tìm kiếm</span>
-                        <div className="relative">
-                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                          <Input 
-                            placeholder="Mã ô đỗ..." 
-                            value={searchSlotQuery}
-                            onChange={(e) => setSearchSlotQuery(e.target.value)}
-                            className="pl-8 h-8 w-[130px] text-xs border-slate-200 bg-white"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <Button onClick={openCreateSlot} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg self-end mb-1">
-                    <Plus className="w-4 h-4 mr-1" /> Thêm Slot
-                  </Button>
-                </div>
-
-                {/* Legend */}
-                <div className="flex gap-4 p-3 border-b border-slate-100 bg-white items-center justify-center text-[11px] font-bold tracking-wider text-slate-600">
-                  <div className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-emerald-300 rounded-sm bg-emerald-50"></div> AVAILABLE</div>
-                  <div className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-blue-400 rounded-sm bg-blue-50"></div> OCCUPIED</div>
-                  <div className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-red-300 rounded-sm bg-red-50"></div> LOCKED</div>
-                  <div className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-amber-300 rounded-sm bg-amber-50"></div> MAINTENANCE</div>
-                </div>
-
-                <div className="p-6 overflow-y-auto flex-1 bg-slate-50/50 min-h-[400px]">
-                  {filteredSlots.length === 0 ? (
-                    <EmptyState icon={<Grid />} title="Không tìm thấy slot nào" description="Thử thay đổi bộ lọc hoặc thêm slot mới." />
-                  ) : (
-                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-2">
-                      {filteredSlots.map(slot => (
-                        <div
-                          key={slot.id}
-                          onClick={() => { setSelectedSlot(slot); setTargetStatus(slot.status); setStatusReason(""); }}
-                          className={`
-                            aspect-square flex items-center justify-center rounded-md border-2 font-bold text-xs cursor-pointer 
-                            transition-all hover:scale-105 hover:shadow-md
-                            ${selectedSlot?.id === slot.id ? "ring-2 ring-slate-400 ring-offset-2" : ""}
-                            ${SLOT_STATUS_COLORS[slot.status] || "border-slate-200 bg-white text-slate-500"}
-                          `}
-                        >
-                          {slot.slotCode?.split("-").pop() || slot.slotCode}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Right Panel: Slot Details */}
-              <SlotDetailSidebar 
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0">
+              <SlotGridPanel
+                filterFloor={filterFloor}
+                setFilterFloor={setFilterFloor}
+                filterArea={filterArea}
+                setFilterArea={setFilterArea}
+                filterSlotStatus={filterSlotStatus}
+                setFilterSlotStatus={setFilterSlotStatus}
+                floors={floors}
+                areas={areas}
+                filteredSlots={filteredSlots}
+                openCreateSlot={openCreateSlot}
                 selectedSlot={selectedSlot}
                 setSelectedSlot={setSelectedSlot}
-                targetStatus={targetStatus}
                 setTargetStatus={setTargetStatus}
-                statusReason={statusReason}
                 setStatusReason={setStatusReason}
-                handleUpdateSlotStatus={handleUpdateSlotStatus}
+                isCarArea={isCarArea}
+              />
+
+              <CapacityPanel
+                filteredNonCarAreas={filteredNonCarAreas}
+                openEditCapacity={openEditCapacity}
               />
             </div>
           )}
@@ -661,6 +384,7 @@ export default function StructureManagementPage() {
         handleSave={handleAreaSave}
         floors={floors}
         vehicleTypes={vehicleTypes}
+        onVehicleTypeCreated={fetchStructure}
       />
 
       <SlotModal 
@@ -669,9 +393,28 @@ export default function StructureManagementPage() {
         form={form}
         setField={setField}
         handleSave={handleSlotSave}
-        areas={areas}
+        areas={areas.filter(isCarArea)}
         vehicleTypes={vehicleTypes}
         floors={floors}
+      />
+
+      <SlotDetailDialog
+        selectedSlot={selectedSlot}
+        setSelectedSlot={setSelectedSlot}
+        targetStatus={targetStatus}
+        setTargetStatus={setTargetStatus}
+        statusReason={statusReason}
+        setStatusReason={setStatusReason}
+        handleUpdateSlotStatus={handleUpdateSlotStatus}
+      />
+
+      <CapacityDialog
+        isOpen={showCapacityModal}
+        onClose={setShowCapacityModal}
+        selectedAreaForCapacity={selectedAreaForCapacity}
+        capacityForm={capacityForm}
+        setCapacityForm={setCapacityForm}
+        handleCapacitySave={handleCapacitySave}
       />
     </div>
   );

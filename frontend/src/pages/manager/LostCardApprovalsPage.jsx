@@ -169,11 +169,11 @@ export default function LostCardApprovalsPage() {
       <div className="flex flex-1 flex-col gap-6 overflow-hidden transition-all duration-300">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-slate-800">Phe duyet the mat</h2>
-            <p className="mt-1 text-sm text-slate-500">Xem xet va duyet yeu cau xu ly mat the.</p>
+            <h2 className="text-2xl font-bold text-slate-800">Phê duyệt thẻ mất</h2>
+            <p className="mt-1 text-sm text-slate-500">Xem xét và duyệt yêu cầu xử lí mất thẻ.</p>
           </div>
           <Button variant="outline" className="bg-white text-slate-700" onClick={loadCases} disabled={isLoading}>
-            <RefreshCw className="mr-2 h-4 w-4" /> Lam moi
+            <RefreshCw className="mr-2 h-4 w-4" /> Làm mới
           </Button>
         </div>
 
@@ -200,7 +200,7 @@ export default function LostCardApprovalsPage() {
         <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-200 p-4">
             <h3 className="text-sm font-bold text-slate-800">
-              Danh sach yeu cau ({filtered.length})
+              Danh sách yêu cầu ({filtered.length})
             </h3>
           </div>
 
@@ -213,7 +213,7 @@ export default function LostCardApprovalsPage() {
 
           <div className="flex items-center justify-between border-t border-slate-200 bg-white p-3 text-sm text-slate-500">
             <div>
-              Hien thi {filtered.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filtered.length)} cua {filtered.length} ket qua
+              Hiển thị {filtered.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filtered.length)} cua {filtered.length} ket qua
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -294,14 +294,14 @@ export default function LostCardApprovalsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowReasonDialog(false)} disabled={isSubmitting}>
-              Huy
+              Hủy
             </Button>
             <Button
               className={decisionType === "APPROVE" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"}
               onClick={confirmDecision}
               disabled={isSubmitting}
             >
-              Xac nhan
+              Xác nhận
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -4,7 +4,6 @@ import { Menu, X, Globe } from "lucide-react";
 
 const NAV_ITEMS = [
   { label: "Trang chủ", path: "/" },
-  { label: "Thông tin bãi xe", path: "/parking-info" },
   { label: "Bảng giá", path: "/pricing" },
   { label: "Chỗ trống", path: "/available-slots" },
   { label: "Quy định", path: "/rules" },

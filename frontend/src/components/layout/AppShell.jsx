@@ -1,5 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   AlertTriangle,
   ArrowRightFromLine,
@@ -78,8 +86,8 @@ function isActivePath(currentPath, itemPath) {
 
 export default function AppShell({ currentUser, onLogout }) {
   const location = useLocation();
-  const navigate = useNavigate();
   const mainRef = useRef(null);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   useEffect(() => {
     if (mainRef.current) {
@@ -129,11 +137,8 @@ export default function AppShell({ currentUser, onLogout }) {
     return () => clearInterval(interval);
   }, [role, location.pathname]);
 
-  const handleLogout = () => {
-    if (window.confirm("Xác nhận đăng xuất khỏi hệ thống?")) {
-      onLogout();
-      navigate("/login");
-    }
+  const handleLogout = async () => {
+    await onLogout();
   };
 
   return (
@@ -274,7 +279,7 @@ export default function AppShell({ currentUser, onLogout }) {
               </span>
               <span className={cn("rounded-md px-2 py-1 text-xs font-black uppercase", roleMeta.tone)}>{roleMeta.label}</span>
             </div>
-            <Button variant="outline" onClick={handleLogout} aria-label="Đăng xuất">
+            <Button variant="outline" onClick={() => setShowLogoutDialog(true)} aria-label="Đăng xuất">
               <LogOut data-icon="inline-start" />
               <span className="hidden sm:inline">Đăng xuất</span>
             </Button>
@@ -305,6 +310,35 @@ export default function AppShell({ currentUser, onLogout }) {
           </button>
         </div>
       </nav>
+      {/* Logout Confirmation Dialog */}
+      <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <DialogContent showCloseButton={false} className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <LogOut className="size-4 text-destructive" />
+              Xác nhận đăng xuất
+            </DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không? Phiên làm việc hiện tại sẽ kết thúc.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>
+              Hủy
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                setShowLogoutDialog(false);
+                await handleLogout();
+              }}
+            >
+              <LogOut data-icon="inline-start" />
+              Đăng xuất
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

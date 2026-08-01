@@ -1,3 +1,5 @@
+using ParkingBuilding.CoreApi.Application.Ocr;
+using ParkingBuilding.CoreApi.Application.Storage;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -150,7 +152,9 @@ builder.Services.Configure<SupabaseStorageOptions>(options =>
         options.MaxFileSizeBytes = maxBytes;
     }
 });
+
 builder.Services.AddHttpClient<IStorageService, SupabaseStorageService>();
+builder.Services.AddHttpClient<IPlateOcrService, PlateRecognizerOcrService>();
 builder.Services.AddScoped<IParkingSessionImageStorageService, ParkingSessionImageStorageService>();
 builder.Services.AddScoped<IParkingImageSnapshotService, ParkingImageSnapshotService>();
 builder.Services.AddScoped<ILostCardDocumentService, LostCardDocumentService>();

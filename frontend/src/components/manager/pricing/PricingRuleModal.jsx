@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,9 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { COMMON_STATUS } from "@/constants";
+import { parkingService } from "@/services/parkingService";
+import { toast } from "sonner";
+import { Plus } from "lucide-react";
 
 const STATUS_BADGE = {
   [COMMON_STATUS.ACTIVE]: "bg-emerald-100 text-emerald-700 border-emerald-200",
@@ -61,59 +64,161 @@ export default function PricingRuleModal({
   setField,
   formErrors,
   handleSave,
-  vehicleTypes
+  vehicleTypes,
+  onVehicleTypeCreated
 }) {
+  const [showAddType, setShowAddType] = useState(false);
+  const [newTypeName, setNewTypeName] = useState("");
+  const [newTypeDesc, setNewTypeDesc] = useState("");
+  const [newTypeRequiresSlot, setNewTypeRequiresSlot] = useState(true);
+  const [isCreatingType, setIsCreatingType] = useState(false);
+
+  const handleCreateVehicleType = async () => {
+    if (!newTypeName.trim()) {
+      toast.error("Vui lòng nhập tên loại xe");
+      return;
+    }
+    try {
+      setIsCreatingType(true);
+      const newType = await parkingService.createVehicleType({
+        name: newTypeName.trim(),
+        description: newTypeDesc.trim(),
+        isActive: true,
+        requiresSlot: newTypeRequiresSlot
+      });
+      toast.success(`Đã thêm loại xe "${newType.name}" thành công!`);
+      
+      // Reset form
+      setNewTypeName("");
+      setNewTypeDesc("");
+      setNewTypeRequiresSlot(true);
+      setShowAddType(false);
+
+      if (onVehicleTypeCreated) {
+        await onVehicleTypeCreated(newType.id);
+      }
+    } catch (e) {
+      toast.error(e.message || "Lỗi khi thêm loại xe");
+    } finally {
+      setIsCreatingType(false);
+    }
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{editingRule ? "Sửa Rule Giá" : "Tạo Rule Giá Mới"}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-1">
-            <label className="block text-xs font-semibold text-slate-700">Loại xe <span className="text-red-500">*</span></label>
-            <Select value={form.vehicleTypeId || ""} onValueChange={(val) => setField("vehicleTypeId", val)}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Chọn loại xe" />
-              </SelectTrigger>
-              <SelectContent>
-                {vehicleTypes.map((v) => <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {formErrors.vehicleTypeId && <p className="text-red-500 text-xs">{formErrors.vehicleTypeId}</p>}
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <MoneyField label="Giá ban ngày" name="dayPrice" form={form} setField={setField} formErrors={formErrors} />
-            <MoneyField label="Giá ban đêm" name="nightPrice" form={form} setField={setField} formErrors={formErrors} />
-            <MoneyField label="Giá vé tháng" name="monthlyPrice" form={form} setField={setField} formErrors={formErrors} />
-            <MoneyField label="Phí đặt chỗ (Giờ)" name="reservationHourlyPrice" form={form} setField={setField} formErrors={formErrors} />
-            <HoursField label="Tối đa giờ booking" name="maxReservationHours" form={form} setField={setField} formErrors={formErrors} />
-            <MoneyField label="Phí mất thẻ" name="lostCardFee" form={form} setField={setField} formErrors={formErrors} />
-          </div>
-          <div className="space-y-1">
-            <label className="block text-xs font-semibold text-slate-700">Hiệu lực từ <span className="text-red-500">*</span></label>
-            <Input type="date" value={form.effectiveFrom || ""} onChange={(e) => setField("effectiveFrom", e.target.value)}
-              className={formErrors.effectiveFrom ? "border-red-400 bg-red-50" : ""} />
-            {formErrors.effectiveFrom && <p className="text-red-500 text-xs">{formErrors.effectiveFrom}</p>}
-          </div>
-          <div className="space-y-1">
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Trạng thái</label>
-            <div className="flex gap-4">
-              {[COMMON_STATUS.ACTIVE, COMMON_STATUS.INACTIVE].map((s) => (
-                <label key={s} className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="pricingStatus" value={s} checked={form.status === s} onChange={() => setField("status", s)} className="accent-blue-600" />
-                  <Badge variant="outline" className={`text-[10px] uppercase font-bold tracking-wider ${STATUS_BADGE[s]}`}>{s}</Badge>
-                </label>
-              ))}
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingRule ? "Sửa Rule Giá" : "Tạo Rule Giá Mới"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700">Loại xe <span className="text-red-500">*</span></label>
+                {!editingRule && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddType(true)}
+                    className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <Plus className="size-3" /> Thêm loại xe mới
+                  </button>
+                )}
+              </div>
+              <Select value={form.vehicleTypeId || ""} onValueChange={(val) => setField("vehicleTypeId", val)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Chọn loại xe" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vehicleTypes.map((v) => <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {formErrors.vehicleTypeId && <p className="text-red-500 text-xs">{formErrors.vehicleTypeId}</p>}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <MoneyField label="Giá ban ngày" name="dayPrice" form={form} setField={setField} formErrors={formErrors} />
+              <MoneyField label="Giá ban đêm" name="nightPrice" form={form} setField={setField} formErrors={formErrors} />
+              <MoneyField label="Giá vé tháng" name="monthlyPrice" form={form} setField={setField} formErrors={formErrors} />
+              <MoneyField label="Phí đặt chỗ (Giờ)" name="reservationHourlyPrice" form={form} setField={setField} formErrors={formErrors} />
+              <HoursField label="Tối đa giờ booking" name="maxReservationHours" form={form} setField={setField} formErrors={formErrors} />
+              <MoneyField label="Phí mất thẻ" name="lostCardFee" form={form} setField={setField} formErrors={formErrors} />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-slate-700">Hiệu lực từ <span className="text-red-500">*</span></label>
+              <Input type="date" value={form.effectiveFrom || ""} onChange={(e) => setField("effectiveFrom", e.target.value)}
+                className={formErrors.effectiveFrom ? "border-red-400 bg-red-50" : ""} />
+              {formErrors.effectiveFrom && <p className="text-red-500 text-xs">{formErrors.effectiveFrom}</p>}
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Trạng thái</label>
+              <div className="flex gap-4">
+                {[COMMON_STATUS.ACTIVE, COMMON_STATUS.INACTIVE].map((s) => (
+                  <label key={s} className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="pricingStatus" value={s} checked={form.status === s} onChange={() => setField("status", s)} className="accent-blue-600" />
+                    <Badge variant="outline" className={`text-[10px] uppercase font-bold tracking-wider ${STATUS_BADGE[s]}`}>{s}</Badge>
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onClose(false)}>Hủy</Button>
-          <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">{editingRule ? "Cập Nhật" : "Tạo Rule"}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onClose(false)}>Hủy</Button>
+            <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">{editingRule ? "Cập Nhật" : "Tạo Rule"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Nested Add Vehicle Type Dialog */}
+      <Dialog open={showAddType} onOpenChange={setShowAddType}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Thêm Loại Xe Mới</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-3">
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-slate-700">Tên loại xe <span className="text-red-500">*</span></label>
+              <Input
+                placeholder="Ví dụ: Xe điện, Xe bán tải..."
+                value={newTypeName}
+                onChange={(e) => setNewTypeName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-slate-700">Mô tả</label>
+              <Input
+                placeholder="Nhập mô tả ngắn..."
+                value={newTypeDesc}
+                onChange={(e) => setNewTypeDesc(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+              <div className="space-y-0.5">
+                <label className="block text-xs font-semibold text-slate-700">Có cần chia slot đỗ xe không?</label>
+                <span className="text-[10px] text-slate-400 block font-medium">Bật đối với Ô tô, Tắt đối với Xe máy</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={newTypeRequiresSlot}
+                onChange={(e) => setNewTypeRequiresSlot(e.target.checked)}
+                className="size-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 accent-blue-600 cursor-pointer"
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowAddType(false)} disabled={isCreatingType}>
+              Hủy
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleCreateVehicleType}
+              disabled={isCreatingType}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {isCreatingType ? "Đang lưu..." : "Lưu loại xe"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
