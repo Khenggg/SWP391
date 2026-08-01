@@ -1,19 +1,30 @@
 import React from "react";
 import { Card } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
-export default function ActiveVehiclesSection({ vehicles, loading, getStatusBadge, isResident }) {
+export default function ActiveVehiclesSection({ vehicles = [], loading, getStatusBadge, isResident }) {
+  const vehicleList = Array.isArray(vehicles) ? vehicles : [];
+
   return (
     <div className="space-y-3">
-      <h3 className="text-lg font-bold text-slate-800">Phương tiện của tôi ({vehicles.length})</h3>
+      <h3 className="text-lg font-bold text-slate-800">
+        Phương tiện của tôi {loading ? "" : `(${vehicleList.length})`}
+      </h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {vehicles.length === 0 && !loading && (
-          <div className="col-span-full p-8 border border-dashed rounded-xl bg-slate-50 text-center text-slate-500 text-sm font-semibold">
-            {isResident 
-              ? "Chưa có phương tiện nào. Vui lòng đăng ký vé tháng để thêm phương tiện." 
-              : "Chưa có phương tiện nào."}
+        {loading && (
+          <div className="col-span-full p-10 border border-slate-200/80 rounded-xl bg-slate-50/60 text-center text-slate-500 text-sm font-semibold flex items-center justify-center gap-2.5">
+            <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
+            <span>Đang tải danh sách phương tiện...</span>
           </div>
         )}
-        {vehicles.map((v, i) => (
+        {!loading && vehicleList.length === 0 && (
+          <div className="col-span-full p-8 border border-dashed border-slate-300 rounded-xl bg-slate-50 text-center text-slate-500 text-sm font-semibold">
+            {isResident 
+              ? "Chưa có phương tiện nào. Vui lòng đăng ký vé tháng để thêm phương tiện." 
+              : "Bạn chưa có phương tiện nào được ghi nhận trong hệ thống."}
+          </div>
+        )}
+        {!loading && vehicleList.map((v, i) => (
           <Card key={i} className="p-4 flex flex-col justify-between gap-4 border-slate-200 shadow-sm hover:shadow transition-shadow">
             <div className="flex items-start justify-between">
               <div>

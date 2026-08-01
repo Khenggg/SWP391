@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { driverService } from "../../services/driverService";
+import { authService } from "../../services/authService";
 
 // Import extracted components
 import ApplicationFormDialog from "../../components/driver/vehicles/ApplicationFormDialog";
@@ -62,9 +63,10 @@ const getStatusBadge = (status) => {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function DriverVehiclesPage() {
+  const currentUser = authService.getCurrentUser();
   const [vehicles, setVehicles] = useState([]);
   const [applications, setApplications] = useState([]);
-  const [isResident, setIsResident] = useState(false);
+  const [isResident, setIsResident] = useState(currentUser?.driverType === "RESIDENT");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
