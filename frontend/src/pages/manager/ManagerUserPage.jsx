@@ -112,7 +112,7 @@ export default function ManagerUserPage() {
   const [isLoading, setIsLoading] = useState(true);
   
   // Filters
-  const [filterRole, setFilterRole] = useState("ALL");
+  const [filterRole, setFilterRole] = useState("DRIVER");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [searchText, setSearchText] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -188,18 +188,16 @@ export default function ManagerUserPage() {
   // Stats calculation
   const stats = useMemo(() => {
     const total = users.length;
-    const adminCount = users.filter(u => u.role === USER_ROLES.ADMIN).length;
-    const managerCount = users.filter(u => u.role === USER_ROLES.MANAGER).length;
-    const staffCount = users.filter(u => u.role === USER_ROLES.STAFF).length;
+    const residentCount = users.filter(u => u.driverType === "RESIDENT").length;
+    const visitorCount = users.filter(u => u.driverType !== "RESIDENT").length;
     const lockedCount = users.filter(u => u.status === USER_STATUS.LOCKED).length;
     
     const getPercent = (count) => total > 0 ? ((count / total) * 100).toFixed(1) : 0;
     
     return {
       total,
-      admin: { count: adminCount, percent: getPercent(adminCount) },
-      manager: { count: managerCount, percent: getPercent(managerCount) },
-      staff: { count: staffCount, percent: getPercent(staffCount) },
+      resident: { count: residentCount, percent: getPercent(residentCount) },
+      visitor: { count: visitorCount, percent: getPercent(visitorCount) },
       locked: { count: lockedCount, percent: getPercent(lockedCount) },
     };
   }, [users]);
@@ -214,7 +212,7 @@ export default function ManagerUserPage() {
   const handleReset = () => {
     setSearchText("");
     setAppliedSearch("");
-    setFilterRole("ALL");
+    setFilterRole("DRIVER");
     setFilterStatus("ALL");
     setPage(1);
   };
@@ -391,14 +389,14 @@ export default function ManagerUserPage() {
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
               <Users className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tổng tài khoản</p>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tổng tài xế</p>
             </div>
           </div>
           <div>
@@ -409,46 +407,31 @@ export default function ManagerUserPage() {
 
         <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-600">
+            <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600">
               <Shield className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Admin</p>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cư dân</p>
             </div>
           </div>
           <div>
-            <span className="text-3xl font-black text-slate-800">{stats.admin.count}</span>
-            <p className="text-xs text-slate-400 font-medium mt-1">{stats.admin.percent}% tổng số</p>
+            <span className="text-3xl font-black text-slate-800">{stats.resident.count}</span>
+            <p className="text-xs text-slate-400 font-medium mt-1">{stats.resident.percent}% tổng số</p>
           </div>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+            <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600">
               <Briefcase className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Manager</p>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Vãng lai</p>
             </div>
           </div>
           <div>
-            <span className="text-3xl font-black text-slate-800">{stats.manager.count}</span>
-            <p className="text-xs text-slate-400 font-medium mt-1">{stats.manager.percent}% tổng số</p>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
-              <UserCheck className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Staff</p>
-            </div>
-          </div>
-          <div>
-            <span className="text-3xl font-black text-slate-800">{stats.staff.count}</span>
-            <p className="text-xs text-slate-400 font-medium mt-1">{stats.staff.percent}% tổng số</p>
+            <span className="text-3xl font-black text-slate-800">{stats.visitor.count}</span>
+            <p className="text-xs text-slate-400 font-medium mt-1">{stats.visitor.percent}% tổng số</p>
           </div>
         </div>
 
@@ -493,16 +476,12 @@ export default function ManagerUserPage() {
               <label className="text-xs font-bold text-slate-500 mb-1.5 block">Vai trò</label>
               <Select value={filterRole} onValueChange={(value) => { setFilterRole(value); setPage(1); }}>
                 <SelectTrigger className="h-9 bg-white border-slate-200 shadow-sm text-sm font-medium">
-                  <SelectValue placeholder="Tất cả vai trò" />
+                  <SelectValue placeholder="Tất cả tài xế" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">Tất cả vai trò</SelectItem>
-                  <SelectItem value="ADMIN">ADMIN</SelectItem>
-                  <SelectItem value="MANAGER">MANAGER</SelectItem>
-                  <SelectItem value="STAFF">STAFF</SelectItem>
-                  <SelectItem value="DRIVER_RESIDENT">DRIVER (Cư dân)</SelectItem>
-                  <SelectItem value="DRIVER_VISITOR">DRIVER (Vãng lai)</SelectItem>
-                  <SelectItem value="DRIVER">DRIVER (Tất cả tài xế)</SelectItem>
+                  <SelectItem value="DRIVER">Tất cả tài xế</SelectItem>
+                  <SelectItem value="DRIVER_RESIDENT">Cư dân (RESIDENT)</SelectItem>
+                  <SelectItem value="DRIVER_VISITOR">Vãng lai (VISITOR)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
