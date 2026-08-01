@@ -5,7 +5,7 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
 {
     public record SubmitApplicationRequest(
         string LicensePlate,
-        string VehicleType,
+        long VehicleTypeId,
         string Brand,
         string Color,
         string? Description,
