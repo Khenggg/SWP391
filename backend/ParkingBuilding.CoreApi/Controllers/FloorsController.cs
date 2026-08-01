@@ -46,9 +46,9 @@ public class FloorsController : BaseApiController
     // DELETE
     [HttpDelete("{id}")]
     [Authorize(Roles = "MANAGER,ADMIN")]
-    public async Task<IActionResult> Delete(long id)
+    public async Task<IActionResult> Delete(long id, [FromQuery] bool isHardDelete = false)
     {
-        await _service.DeleteAsync(id);
+        await _service.DeleteAsync(id, isHardDelete);
         return Success("Delete floor successfully.");
     }
 }

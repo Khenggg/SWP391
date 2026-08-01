@@ -120,8 +120,8 @@ export const parkingService = {
     throw new Error(res.message || "Cập nhật tầng thất bại");
   },
 
-  deleteFloor: async (id) => {
-    const res = await coreAxiosClient.delete(`/floors/${id}`);
+  deleteFloor: async (id, isHardDelete = false) => {
+    const res = await coreAxiosClient.delete(`/floors/${id}${isHardDelete ? "?isHardDelete=true" : ""}`);
     if (res.success) return true;
     throw new Error(res.message || "Xóa tầng thất bại");
   },

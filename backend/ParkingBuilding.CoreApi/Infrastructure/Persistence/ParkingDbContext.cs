@@ -18,6 +18,7 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence
         public DbSet<ParkingCard> ParkingCards => Set<ParkingCard>();
         public DbSet<PricingRule> PricingRules => Set<PricingRule>();
         public DbSet<Floor> Floors { get; set; }
+        public DbSet<FloorVehicleType> FloorVehicleTypes { get; set; }
         public DbSet<Area> Areas { get; set; }
         public DbSet<AreaVehicleType> AreaVehicleTypes { get; set; }
         public DbSet<Slot> Slots { get; set; }

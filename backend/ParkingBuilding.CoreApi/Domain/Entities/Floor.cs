@@ -18,4 +18,6 @@ public class Floor
     public ICollection<Area> Areas { get; set; } = new List<Area>();
 
     public ICollection<Gate> Gates { get; set; } = new List<Gate>();
+
+    public ICollection<FloorVehicleType> FloorVehicleTypes { get; set; } = new List<FloorVehicleType>();
 }

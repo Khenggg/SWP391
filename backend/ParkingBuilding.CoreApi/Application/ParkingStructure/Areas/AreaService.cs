@@ -64,6 +64,18 @@ public class AreaService
 
             if (validCount != vehicleTypeIds.Count)
                 throw new BusinessException(ErrorCodes.VehicleTypeNotFound);
+
+            var floorVehicleTypeIds = await _context.FloorVehicleTypes
+                .Where(fvt => fvt.FloorId == request.FloorId)
+                .Select(fvt => fvt.VehicleTypeId)
+                .ToListAsync();
+
+            if (floorVehicleTypeIds.Any())
+            {
+                var invalidForFloor = vehicleTypeIds.Except(floorVehicleTypeIds).ToList();
+                if (invalidForFloor.Any())
+                    throw new BusinessException(ErrorCodes.AreaVehicleTypeMismatch, StatusCodes.Status400BadRequest);
+            }
         }
 
         // ===== 6. CREATE ENTITY =====
@@ -143,6 +155,18 @@ public class AreaService
 
             if (validCount != vehicleTypeIds.Count)
                 throw new BusinessException(ErrorCodes.VehicleTypeNotFound);
+
+            var floorVehicleTypeIds = await _context.FloorVehicleTypes
+                .Where(fvt => fvt.FloorId == entity.FloorId)
+                .Select(fvt => fvt.VehicleTypeId)
+                .ToListAsync();
+
+            if (floorVehicleTypeIds.Any())
+            {
+                var invalidForFloor = vehicleTypeIds.Except(floorVehicleTypeIds).ToList();
+                if (invalidForFloor.Any())
+                    throw new BusinessException(ErrorCodes.AreaVehicleTypeMismatch, StatusCodes.Status400BadRequest);
+            }
         }
 
         // ===== 5. UPDATE BASIC =====

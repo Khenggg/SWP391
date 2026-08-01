@@ -165,6 +165,12 @@ CREATE TABLE IF NOT EXISTS floors (
     CONSTRAINT ck_floors_status CHECK (status IN ('ACTIVE', 'LOCKED', 'MAINTENANCE'))
 );
 
+CREATE TABLE IF NOT EXISTS floor_vehicle_types (
+    floor_id BIGINT NOT NULL REFERENCES floors(id) ON DELETE CASCADE,
+    vehicle_type_id BIGINT NOT NULL REFERENCES vehicle_types(id) ON DELETE CASCADE,
+    PRIMARY KEY (floor_id, vehicle_type_id)
+);
+
 CREATE TABLE IF NOT EXISTS areas (
     id BIGSERIAL PRIMARY KEY,
     floor_id BIGINT NOT NULL REFERENCES floors(id),

@@ -144,8 +144,17 @@ export default function StructureManagementPage() {
   };
 
   // --- ACTIONS ---
-  const openCreateFloor = () => { setEditingItem(null); setForm({ floorCode: "", floorName: "", status: COMMON_STATUS.ACTIVE }); setShowFloorModal(true); };
-  const openEditFloor = (floor) => { setEditingItem(floor); setForm({ floorCode: floor.code || floor.floorCode, floorName: floor.name || floor.floorName, status: floor.status }); setShowFloorModal(true); };
+  const openCreateFloor = () => { setEditingItem(null); setForm({ floorCode: "", floorName: "", vehicleTypeIds: [], status: COMMON_STATUS.ACTIVE }); setShowFloorModal(true); };
+  const openEditFloor = (floor) => { setEditingItem(floor); setForm({ floorCode: floor.code || floor.floorCode, floorName: floor.name || floor.floorName, vehicleTypeIds: floor.vehicleTypeIds || [], status: floor.status }); setShowFloorModal(true); };
+  const handleDeleteFloor = async (floorId, isHardDelete = false) => {
+    try {
+      await parkingService.deleteFloor(floorId, isHardDelete);
+      await fetchStructure();
+      toast.success(isHardDelete ? "Xóa vĩnh viễn tầng thành công!" : "Chuyển tầng sang Ngừng hoạt động thành công!");
+    } catch (e) {
+      toast.error(e.message || "Xóa tầng thất bại");
+    }
+  };
   const handleFloorSave = async () => {
     if (!form.floorCode || !form.floorName) return toast.error("Vui lòng điền đủ Mã tầng và Tên tầng");
     try {
@@ -317,6 +326,7 @@ export default function StructureManagementPage() {
               floors={floors}
               openEditFloor={openEditFloor}
               openCreateFloor={openCreateFloor}
+              onDeleteFloor={handleDeleteFloor}
               AREA_STATUS_BADGE={AREA_STATUS_BADGE}
               STATUS_LABELS={STATUS_LABELS}
             />
@@ -373,6 +383,7 @@ export default function StructureManagementPage() {
         form={form}
         setField={setField}
         handleSave={handleFloorSave}
+        vehicleTypes={vehicleTypes}
       />
 
       <AreaModal 
