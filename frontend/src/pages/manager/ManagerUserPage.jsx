@@ -250,7 +250,7 @@ export default function ManagerUserPage() {
   const openEdit = (u) => { setForm({ ...u }); setFormErrors({}); setSelectedUser(u); setShowEditModal(true); };
   const openRole = (u) => { setForm({ ...u, reason: "" }); setFormErrors({}); setSelectedUser(u); setShowRoleModal(true); };
   const openStatus = (u) => { setForm({ ...u, reason: "" }); setFormErrors({}); setSelectedUser(u); setShowStatusModal(true); };
-  const openDriverType = (u) => { setForm({ ...u, driverType: "RESIDENT", apartmentNumber: u.apartmentNumber || "", cccdNumber: u.cccdNumber || "", reason: "" }); setFormErrors({}); setSelectedUser(u); setShowDriverTypeModal(true); };
+  const openDriverType = (u) => { setForm({ ...u, driverType: u.driverType || "VISITOR", apartmentNumber: u.apartmentNumber || "", cccdNumber: u.cccdNumber || "", reason: "" }); setFormErrors({}); setSelectedUser(u); setShowDriverTypeModal(true); };
   const openDetail = (u) => { setSelectedUser(u); setShowDetailModal(true); };
   const openActivity = (u) => { setSelectedUser(u); setShowActivityModal(true); };
 
@@ -731,10 +731,14 @@ export default function ManagerUserPage() {
           <div className="py-2 space-y-4">
             <div>
               <label className="block text-xs font-bold text-slate-600 uppercase mb-2">Phân loại Driver Mới</label>
-              <div className="grid grid-cols-1 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <label className={`flex items-center justify-center gap-2 p-3 rounded-xl cursor-pointer border transition ${form.driverType === "RESIDENT" ? "bg-purple-50 border-purple-300 text-purple-700 font-bold" : "bg-slate-50 hover:bg-slate-100 border-slate-200"}`}>
-                  <input disabled={isSubmitting} type="radio" name="driverType" value="RESIDENT" checked={true} onChange={() => setField("driverType", "RESIDENT")} className="accent-purple-600 w-4 h-4"/>
+                  <input disabled={isSubmitting} type="radio" name="driverType" value="RESIDENT" checked={form.driverType === "RESIDENT"} onChange={() => setField("driverType", "RESIDENT")} className="accent-purple-600 w-4 h-4"/>
                   <span className="text-xs uppercase font-extrabold">CƯ DÂN (RESIDENT)</span>
+                </label>
+                <label className={`flex items-center justify-center gap-2 p-3 rounded-xl cursor-pointer border transition ${form.driverType === "VISITOR" ? "bg-slate-200 border-slate-400 text-slate-800 font-bold" : "bg-slate-50 hover:bg-slate-100 border-slate-200"}`}>
+                  <input disabled={isSubmitting} type="radio" name="driverType" value="VISITOR" checked={form.driverType === "VISITOR"} onChange={() => setField("driverType", "VISITOR")} className="accent-purple-600 w-4 h-4"/>
+                  <span className="text-xs uppercase font-extrabold">VẮNG LAI (VISITOR)</span>
                 </label>
               </div>
             </div>
@@ -859,9 +863,9 @@ export default function ManagerUserPage() {
                 <Button variant="outline" className="w-full border-indigo-200 text-indigo-700 font-bold hover:bg-indigo-50 h-9 shadow-sm text-xs" onClick={() => { setShowDetailModal(false); openActivity(selectedUser); }}>
                   <Activity className="w-3.5 h-3.5 mr-2 text-indigo-500" /> Xem hoạt động gần đây
                 </Button>
-                {selectedUser.role === "DRIVER" && selectedUser.driverType !== "RESIDENT" && (
+                {selectedUser.role === "DRIVER" && (
                   <Button variant="outline" className="w-full border-purple-200 text-purple-700 font-bold hover:bg-purple-50 h-9 shadow-sm text-xs" onClick={() => { setShowDetailModal(false); openDriverType(selectedUser); }}>
-                    <Users className="w-3.5 h-3.5 mr-2 text-purple-600" /> Đổi loại Driver thành Cư dân
+                    <Users className="w-3.5 h-3.5 mr-2 text-purple-600" /> Đổi loại Driver (Cư dân / Vắng lai)
                   </Button>
                 )}
               </div>

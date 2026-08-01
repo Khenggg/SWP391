@@ -526,9 +526,6 @@ public class UsersController : BaseApiController
         if (cleanDriverType != "RESIDENT" && cleanDriverType != "VISITOR")
             return BusinessError(ErrorCodes.InvalidRequest, "Phân loại Driver chỉ có thể là RESIDENT hoặc VISITOR.");
 
-        if (User.IsInRole("MANAGER") && cleanDriverType != "RESIDENT")
-            return BusinessError(ErrorCodes.InvalidRequest, "Manager chỉ có thể chuyển đổi thành Cư dân (RESIDENT).");
-
         if (string.IsNullOrWhiteSpace(model.Reason))
             return Failure(
                 ErrorMessages.GetMessage(ErrorCodes.ReasonRequired),
