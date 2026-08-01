@@ -395,7 +395,7 @@ public class UsersController : BaseApiController
         if (reason.Length > 500)
             return ValidationFailure(new[] { "reason: Reason must not exceed 500 characters." });
 
-        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        await using var transaction = await _context.Database.BeginTransactionAsync();
         var user = await _context.Users.FirstOrDefaultAsync(item => item.Id == id && !item.DeletedAt.HasValue);
         if (user == null)
             return UserNotFoundFailure();
@@ -470,7 +470,7 @@ public class UsersController : BaseApiController
         var strategy = _context.Database.CreateExecutionStrategy();
         await strategy.ExecuteAsync(async () =>
         {
-            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            await using var transaction = await _context.Database.BeginTransactionAsync();
             var user = await _context.Users.FirstOrDefaultAsync(item => item.Id == id && !item.DeletedAt.HasValue);
             if (user == null)
             {
@@ -558,7 +558,7 @@ public class UsersController : BaseApiController
         var strategy = _context.Database.CreateExecutionStrategy();
         await strategy.ExecuteAsync(async () =>
         {
-            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            await using var transaction = await _context.Database.BeginTransactionAsync();
             var user = await _context.Users.FirstOrDefaultAsync(item => item.Id == id && !item.DeletedAt.HasValue);
             if (user == null)
             {
