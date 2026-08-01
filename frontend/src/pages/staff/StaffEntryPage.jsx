@@ -279,8 +279,18 @@ export default function StaffEntryPage() {
         vehicleTypeId: result.vehicleTypeId ? String(result.vehicleTypeId) : current.vehicleTypeId,
       }));
 
-      if (result.status === "VALID") toast.success("Booking hợp lệ cho xe vào.");
-      else toast.error(`Booking chưa thể vào bãi: ${result.status || "không hợp lệ"}.`);
+      if (result.status === "VALID") {
+        toast.success("Booking hợp lệ cho xe vào.");
+      } else {
+        const statusMap = {
+          EXPIRED: "Booking đã hết hạn",
+          CANCELLED: "Booking đã bị hủy",
+          ALREADY_CHECKED_IN: "Booking đã được sử dụng cho xe vào trước đó",
+          NOT_FOUND: "Không tìm thấy thông tin Booking",
+        };
+        const statusText = statusMap[result.status] || `Booking không hợp lệ (${result.status})`;
+        toast.error(`${statusText}. Vui lòng chuyển sang Khách vãng lai.`);
+      }
     } catch (error) {
       setReservationCheck(null);
       toast.error(error.message || "Kiểm tra booking thất bại.");

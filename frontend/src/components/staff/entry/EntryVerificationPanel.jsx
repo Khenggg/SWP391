@@ -3,7 +3,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreditCard, QrCode, ShieldAlert, CheckCircle2 } from "lucide-react";
 
 function formatReservationHeadline(status) {
-  return status === "VALID" ? "Booking hợp lệ" : `Booking ${status || "không hợp lệ"}`;
+  const map = {
+    VALID: "Booking hợp lệ",
+    EXPIRED: "Booking đã hết hạn!",
+    CANCELLED: "Booking đã bị hủy!",
+    ALREADY_CHECKED_IN: "Booking đã sử dụng!",
+    NOT_FOUND: "Không tìm thấy Booking!",
+  };
+  return map[status] || `Booking ${status || "không hợp lệ"}`;
+}
+
+function getReservationStatusBadge(status) {
+  const map = {
+    VALID: "Hợp lệ",
+    EXPIRED: "Đã hết hạn",
+    CANCELLED: "Đã bị hủy",
+    ALREADY_CHECKED_IN: "Đã xe vào trước đó",
+    NOT_FOUND: "Không tồn tại",
+  };
+  return map[status] || status || "Không hợp lệ";
 }
 
 export default function EntryVerificationPanel({
@@ -162,17 +180,25 @@ export default function EntryVerificationPanel({
           {reservationCheck && (
             <div className="w-full flex flex-col gap-2">
               <div className="flex flex-col items-center">
-                <div className="h-12 w-12 rounded-full bg-emerald-50 flex items-center justify-center border-4 border-emerald-100">
-                  <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-                </div>
-                <h3 className="text-sm font-bold text-emerald-700 mt-1">
+                {reservationCheck.status === "VALID" ? (
+                  <div className="h-12 w-12 rounded-full bg-emerald-50 flex items-center justify-center border-4 border-emerald-100">
+                    <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+                  </div>
+                ) : (
+                  <div className="h-12 w-12 rounded-full bg-red-50 flex items-center justify-center border-4 border-red-100 animate-pulse">
+                    <ShieldAlert className="h-6 w-6 text-red-600" />
+                  </div>
+                )}
+                <h3 className={`text-sm font-bold mt-1 ${reservationCheck.status === "VALID" ? "text-emerald-700" : "text-red-600"}`}>
                   {formatReservationHeadline(reservationCheck.status)}
                 </h3>
               </div>
-              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 w-full text-left space-y-1.5">
+              <div className={`rounded-xl p-3 border w-full text-left space-y-1.5 ${reservationCheck.status === "VALID" ? "bg-slate-50 border-slate-100" : "bg-red-50/60 border-red-200"}`}>
                 <div className="flex justify-between text-xs">
                   <span className="text-slate-500">Trạng thái</span>
-                  <span className="font-semibold text-slate-800">{reservationCheck.status}</span>
+                  <span className={`font-bold ${reservationCheck.status === "VALID" ? "text-emerald-700" : "text-red-600"}`}>
+                    {getReservationStatusBadge(reservationCheck.status)}
+                  </span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-slate-500">Mã Booking</span>
