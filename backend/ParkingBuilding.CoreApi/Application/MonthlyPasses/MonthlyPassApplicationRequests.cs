@@ -33,7 +33,10 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
     );
 
     public record AssignRfidRequest(
-        string RfidCardCode
+        string RfidCardCode,
+        long? FloorId = null,
+        long? AreaId = null,
+        long? SlotId = null
     );
 
     public class DriverVehicleStatusDto

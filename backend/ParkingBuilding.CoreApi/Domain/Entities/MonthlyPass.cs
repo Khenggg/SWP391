@@ -16,6 +16,7 @@ public class MonthlyPass
     public string PlateNumber { get; set; } = null!;
     public string NormalizedPlateNumber { get; set; } = null!;
     public long VehicleTypeId { get; set; }
+    public VehicleType? VehicleType { get; set; }
     public long? FloorId { get; set; }
     public Floor? Floor { get; set; }
     public long? AreaId { get; set; }
