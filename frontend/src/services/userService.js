@@ -56,8 +56,13 @@ export const userService = {
     throw new Error(response.message || "Không thể cập nhật trạng thái người dùng.");
   },
 
-  updateDriverType: async (id, driverType, reason) => {
-    const response = await coreAxiosClient.patch(`/users/${id}/driver-type`, { driverType, reason });
+  updateDriverType: async (id, driverType, reason, apartmentNumber, cccdNumber) => {
+    const response = await coreAxiosClient.patch(`/users/${id}/driver-type`, {
+      driverType,
+      reason,
+      apartmentNumber,
+      cccdNumber
+    });
     if (response.success && response.data) {
       return response.data;
     }

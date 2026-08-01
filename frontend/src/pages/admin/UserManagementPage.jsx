@@ -250,7 +250,7 @@ export default function UserManagementPage() {
   const openEdit = (u) => { setForm({ ...u }); setFormErrors({}); setSelectedUser(u); setShowEditModal(true); };
   const openRole = (u) => { setForm({ ...u, reason: "" }); setFormErrors({}); setSelectedUser(u); setShowRoleModal(true); };
   const openStatus = (u) => { setForm({ ...u, reason: "" }); setFormErrors({}); setSelectedUser(u); setShowStatusModal(true); };
-  const openDriverType = (u) => { setForm({ ...u, driverType: u.driverType || "VISITOR", reason: "" }); setFormErrors({}); setSelectedUser(u); setShowDriverTypeModal(true); };
+  const openDriverType = (u) => { setForm({ ...u, driverType: u.driverType || "VISITOR", apartmentNumber: u.apartmentNumber || "", cccdNumber: u.cccdNumber || "", reason: "" }); setFormErrors({}); setSelectedUser(u); setShowDriverTypeModal(true); };
   const openDetail = (u) => { setSelectedUser(u); setShowDetailModal(true); };
   const openActivity = (u) => { setSelectedUser(u); setShowActivityModal(true); };
 
@@ -342,14 +342,32 @@ export default function UserManagementPage() {
 
   const handleDriverType = async () => {
     if (isSubmitting) return;
-    if (!form.reason?.trim()) {
-      setFormErrors({ reason: "Bắt buộc nhập lý do." });
+    const errs = {};
+    if (form.driverType === "RESIDENT") {
+      if (!form.apartmentNumber?.trim()) errs.apartmentNumber = "Bắt buộc nhập Số căn hộ khi chuyển sang Cư dân.";
+      if (!form.cccdNumber?.trim()) errs.cccdNumber = "Bắt buộc nhập Số CCCD khi chuyển sang Cư dân.";
+    }
+    if (!form.reason?.trim()) errs.reason = "Bắt buộc nhập lý do.";
+    if (Object.keys(errs).length > 0) {
+      setFormErrors(errs);
       return;
     }
     try {
       setIsSubmitting(true);
-      const updated = await userService.updateDriverType(selectedUser.id, form.driverType, form.reason.trim());
-      const merged = { ...selectedUser, ...updated, driverType: updated.newDriverType || form.driverType };
+      const updated = await userService.updateDriverType(
+        selectedUser.id,
+        form.driverType,
+        form.reason.trim(),
+        form.apartmentNumber?.trim(),
+        form.cccdNumber?.trim()
+      );
+      const merged = {
+        ...selectedUser,
+        ...updated,
+        driverType: updated.newDriverType || form.driverType,
+        apartmentNumber: form.apartmentNumber?.trim(),
+        cccdNumber: form.cccdNumber?.trim()
+      };
       setUsers((prev) => prev.map((u) => u.id === selectedUser.id ? merged : u));
       if (selectedUser?.id === updated.id) setSelectedUser(merged);
       setIsSubmitting(false);
@@ -713,20 +731,49 @@ export default function UserManagementPage() {
           <DialogHeader>
             <DialogTitle>Đổi Loại Driver: {selectedUser?.username}</DialogTitle>
           </DialogHeader>
-          <div className="py-4">
-            <label className="block text-xs font-bold text-slate-600 uppercase mb-3">Phân loại Driver Mới</label>
-            <div className="space-y-2">
-              <label className="flex items-center gap-3 p-3 rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 border border-slate-200 transition">
-                <input disabled={isSubmitting} type="radio" name="driverType" value="RESIDENT" checked={form.driverType === "RESIDENT"} onChange={() => setField("driverType", "RESIDENT")} className="accent-purple-600 w-4 h-4"/>
-                <Badge variant="outline" className="px-2.5 py-0.5 rounded text-[10px] font-black uppercase border border-purple-300 text-purple-700 bg-purple-50">CƯ DÂN (RESIDENT)</Badge>
-              </label>
-              <label className="flex items-center gap-3 p-3 rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 border border-slate-200 transition">
-                <input disabled={isSubmitting} type="radio" name="driverType" value="VISITOR" checked={form.driverType === "VISITOR"} onChange={() => setField("driverType", "VISITOR")} className="accent-purple-600 w-4 h-4"/>
-                <Badge variant="outline" className="px-2.5 py-0.5 rounded text-[10px] font-black uppercase border border-slate-300 text-slate-700 bg-slate-100">VẮNG LAI (VISITOR)</Badge>
-              </label>
+          <div className="py-2 space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-600 uppercase mb-2">Phân loại Driver Mới</label>
+              <div className="grid grid-cols-2 gap-2">
+                <label className={`flex items-center justify-center gap-2 p-3 rounded-xl cursor-pointer border transition ${form.driverType === "RESIDENT" ? "bg-purple-50 border-purple-300 text-purple-700 font-bold" : "bg-slate-50 hover:bg-slate-100 border-slate-200"}`}>
+                  <input disabled={isSubmitting} type="radio" name="driverType" value="RESIDENT" checked={form.driverType === "RESIDENT"} onChange={() => setField("driverType", "RESIDENT")} className="accent-purple-600 w-4 h-4"/>
+                  <span className="text-xs uppercase font-extrabold">CƯ DÂN (RESIDENT)</span>
+                </label>
+                <label className={`flex items-center justify-center gap-2 p-3 rounded-xl cursor-pointer border transition ${form.driverType === "VISITOR" ? "bg-slate-200 border-slate-400 text-slate-800 font-bold" : "bg-slate-50 hover:bg-slate-100 border-slate-200"}`}>
+                  <input disabled={isSubmitting} type="radio" name="driverType" value="VISITOR" checked={form.driverType === "VISITOR"} onChange={() => setField("driverType", "VISITOR")} className="accent-purple-600 w-4 h-4"/>
+                  <span className="text-xs uppercase font-extrabold">VẮNG LAI (VISITOR)</span>
+                </label>
+              </div>
             </div>
+
+            {form.driverType === "RESIDENT" && (
+              <div className="p-3.5 bg-purple-50/70 rounded-xl border border-purple-200 space-y-3">
+                <p className="text-[11px] font-extrabold text-purple-900 uppercase tracking-wide">Thông tin Cư dân bắt buộc</p>
+                <Field
+                  label="Số Căn hộ"
+                  name="apartmentNumber"
+                  placeholder="Ví dụ: A-1204, B-0502"
+                  required
+                  disabled={isSubmitting}
+                  value={form.apartmentNumber || ""}
+                  onChange={setField}
+                  error={formErrors.apartmentNumber}
+                />
+                <Field
+                  label="Số CCCD / CMND"
+                  name="cccdNumber"
+                  placeholder="Ví dụ: 012345678999"
+                  required
+                  disabled={isSubmitting}
+                  value={form.cccdNumber || ""}
+                  onChange={setField}
+                  error={formErrors.cccdNumber}
+                />
+              </div>
+            )}
+
+            <Field label="Lý do" name="reason" placeholder="Lý do chuyển đổi loại Driver" required disabled={isSubmitting} value={form.reason || ""} onChange={setField} error={formErrors.reason} />
           </div>
-          <Field label="Lý do" name="reason" placeholder="Lý do chuyển đổi loại Driver" required disabled={isSubmitting} value={form.reason || ""} onChange={setField} error={formErrors.reason} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDriverTypeModal(false)}>Hủy</Button>
             <Button onClick={handleDriverType} className="bg-purple-600 hover:bg-purple-700 text-white font-bold">Cập nhật Loại Driver</Button>
