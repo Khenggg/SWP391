@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using ParkingBuilding.CoreApi.Application.Ocr;
 using ParkingBuilding.CoreApi.Application.Storage;
 using ParkingBuilding.CoreApi.Contracts.Common;
 using ParkingBuilding.CoreApi.Domain.Entities;
@@ -20,15 +21,18 @@ public sealed class ParkingImageSnapshotService : IParkingImageSnapshotService
     private readonly ParkingDbContext _context;
     private readonly IParkingSessionImageStorageService _imageStorageService;
     private readonly IStorageService _storageService;
+    private readonly IPlateOcrService _ocrService;
 
     public ParkingImageSnapshotService(
         ParkingDbContext context,
         IParkingSessionImageStorageService imageStorageService,
-        IStorageService storageService)
+        IStorageService storageService,
+        IPlateOcrService ocrService)
     {
         _context = context;
         _imageStorageService = imageStorageService;
         _storageService = storageService;
+        _ocrService = ocrService;
     }
 
     public async Task<ParkingImageSnapshotResponse> CreateAsync(
@@ -64,6 +68,18 @@ public sealed class ParkingImageSnapshotService : IParkingImageSnapshotService
             imageType,
             ct);
 
+        bool isPlateImage = imageType.EndsWith("_PLATE", StringComparison.Ordinal);
+        PlateOcrResult ocrResult = PlateOcrResult.NotRequested();
+
+        if (isPlateImage)
+        {
+            var (contentType, bytes) = TryExtractImageBytes(request.ImageSource);
+            if (bytes != null && bytes.Length > 0)
+            {
+                ocrResult = await _ocrService.RecognizePlateAsync(bytes, contentType, ct);
+            }
+        }
+
         var snapshot = new VehicleSnapshotUpload
         {
             SnapshotToken = snapshotToken,
@@ -74,7 +90,12 @@ public sealed class ParkingImageSnapshotService : IParkingImageSnapshotService
             MimeType = stored.MimeType,
             SizeBytes = stored.SizeBytes,
             UploadStatus = "UPLOADED",
-            OcrStatus = imageType.EndsWith("_PLATE", StringComparison.Ordinal) ? "PENDING" : "NOT_REQUESTED",
+            OcrStatus = isPlateImage ? (ocrResult.OcrStatus ?? "PENDING") : "NOT_REQUESTED",
+            DetectedPlateNumber = ocrResult.DetectedPlateNumber,
+            DetectedNormalizedPlateNumber = ocrResult.DetectedNormalizedPlateNumber,
+            Confidence = ocrResult.Confidence,
+            OcrError = ocrResult.Error,
+            OcrProcessedAt = isPlateImage ? now : null,
             UploadedBy = uploadedBy,
             CapturedAt = request.CapturedAt ?? now,
             ExpiresAt = now.AddHours(24),
@@ -106,6 +127,36 @@ public sealed class ParkingImageSnapshotService : IParkingImageSnapshotService
         }
 
         return snapshot.ToResponse();
+    }
+
+    private static (string ContentType, byte[]? Bytes) TryExtractImageBytes(string source)
+    {
+        if (string.IsNullOrWhiteSpace(source) || !source.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+        {
+            return ("image/jpeg", null);
+        }
+
+        var commaIndex = source.IndexOf(',');
+        if (commaIndex <= "data:".Length)
+        {
+            return ("image/jpeg", null);
+        }
+
+        var metadata = source["data:".Length..commaIndex];
+        var data = source[(commaIndex + 1)..];
+        var segments = metadata.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var contentType = segments.Length > 0 ? segments[0].ToLowerInvariant() : "image/jpeg";
+        var isBase64 = segments.Skip(1).Any(segment => string.Equals(segment, "base64", StringComparison.OrdinalIgnoreCase));
+
+        try
+        {
+            var bytes = isBase64 ? Convert.FromBase64String(data) : System.Text.Encoding.UTF8.GetBytes(Uri.UnescapeDataString(data));
+            return (contentType, bytes);
+        }
+        catch
+        {
+            return (contentType, null);
+        }
     }
 
     public async Task<ParkingSessionImage> PromoteAsync(
