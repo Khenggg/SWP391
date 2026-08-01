@@ -207,7 +207,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                     throw new BusinessException(ErrorCodes.MonthlySlotVehicleTypeMismatch);
                 }
 
-                if (monthlyPass.Slot.Status != "AVAILABLE")
+                if (monthlyPass.Slot.Status != "AVAILABLE" && monthlyPass.Slot.Status != "RESERVED")
                 {
                     throw new BusinessException(ErrorCodes.MonthlySlotNotAvailable);
                 }
@@ -281,6 +281,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
 
             if (vehicleType.RequiresSlot)
             {
+                // Slot transitions from RESERVED -> OCCUPIED when monthly pass vehicle enters
                 monthlyPass.Slot!.Status = "OCCUPIED";
                 monthlyPass.Slot.CurrentSessionId = newSession.Id;
                 monthlyPass.Slot.Area.CurrentRealOccupancy += 1;

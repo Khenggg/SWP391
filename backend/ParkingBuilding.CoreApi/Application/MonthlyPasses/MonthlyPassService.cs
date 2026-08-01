@@ -309,10 +309,36 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
             if (normalizedStatus != "ACTIVE" && normalizedStatus != "EXPIRED" && normalizedStatus != "LOCKED")
                 throw new BusinessException(ErrorCodes.InvalidStatus);
 
+            var oldStatus = pass.Status;
             pass.Status = normalizedStatus;
             pass.UpdatedAt = DateTime.UtcNow;
 
             _context.MonthlyPasses.Update(pass);
+
+            // When pass becomes EXPIRED or LOCKED, release its reserved slot back to AVAILABLE
+            if ((normalizedStatus == "EXPIRED" || normalizedStatus == "LOCKED") &&
+                oldStatus == "ACTIVE" &&
+                pass.SlotId.HasValue)
+            {
+                var slot = await _context.Slots.FindAsync(pass.SlotId.Value);
+                if (slot != null && slot.Status == "RESERVED")
+                {
+                    slot.Status = "AVAILABLE";
+                    slot.UpdatedAt = DateTimeOffset.UtcNow;
+                }
+            }
+
+            // When pass becomes ACTIVE again (e.g. renewed from LOCKED), re-reserve its slot
+            if (normalizedStatus == "ACTIVE" && oldStatus != "ACTIVE" && pass.SlotId.HasValue)
+            {
+                var slot = await _context.Slots.FindAsync(pass.SlotId.Value);
+                if (slot != null && slot.Status == "AVAILABLE")
+                {
+                    slot.Status = "RESERVED";
+                    slot.UpdatedAt = DateTimeOffset.UtcNow;
+                }
+            }
+
             await _context.SaveChangesAsync();
 
             return pass;

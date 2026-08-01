@@ -621,6 +621,18 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
             _context.MonthlyPasses.Add(monthlyPass);
             await _context.SaveChangesAsync();
 
+            // Reserve the fixed slot for this monthly pass holder
+            if (resolvedSlotId.HasValue)
+            {
+                var reservedSlot = await _context.Slots.FindAsync(resolvedSlotId.Value);
+                if (reservedSlot != null)
+                {
+                    reservedSlot.Status = "RESERVED";
+                    reservedSlot.UpdatedAt = DateTimeOffset.UtcNow;
+                    await _context.SaveChangesAsync();
+                }
+            }
+
             // Link the payment to the created monthly pass
             var payment = await _context.Payments
                 .Where(p => p.CollectedBy == userId && p.Amount == application.Price && p.Purpose == "MONTHLY_PASS_RENEWAL" && p.MonthlyPassId == null)

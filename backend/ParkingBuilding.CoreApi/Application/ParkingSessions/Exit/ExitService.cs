@@ -238,7 +238,10 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                         var slot = await _context.Slots.Include(s => s.Area).FirstOrDefaultAsync(s => s.Id == session.SlotId.Value);
                         if (slot != null)
                         {
-                            slot.Status = "AVAILABLE";
+                            // If this slot belongs to an active monthly pass, restore to RESERVED; otherwise free it
+                            var hasActiveMonthlyPass = await _context.MonthlyPasses
+                                .AnyAsync(mp => mp.SlotId == slot.Id && (mp.Status == "ACTIVE" || mp.Status == "LOCKED"));
+                            slot.Status = hasActiveMonthlyPass ? "RESERVED" : "AVAILABLE";
                             slot.CurrentSessionId = null;
                             slot.UpdatedAt = DateTimeOffset.UtcNow;
                             slot.Area.CurrentRealOccupancy = Math.Max(0, slot.Area.CurrentRealOccupancy - 1);
@@ -469,7 +472,10 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                         var slot = await _context.Slots.Include(s => s.Area).FirstOrDefaultAsync(s => s.Id == session.SlotId.Value);
                         if (slot != null)
                         {
-                            slot.Status = "AVAILABLE";
+                            // If this slot belongs to an active monthly pass, restore to RESERVED; otherwise free it
+                            var hasActiveMonthlyPass = await _context.MonthlyPasses
+                                .AnyAsync(mp => mp.SlotId == slot.Id && (mp.Status == "ACTIVE" || mp.Status == "LOCKED"));
+                            slot.Status = hasActiveMonthlyPass ? "RESERVED" : "AVAILABLE";
                             slot.CurrentSessionId = null;
                             slot.UpdatedAt = DateTimeOffset.UtcNow;
                             slot.Area.CurrentRealOccupancy = Math.Max(0, slot.Area.CurrentRealOccupancy - 1);

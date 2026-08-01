@@ -128,12 +128,15 @@ export default function SlotGridPanel({
       </div>
 
       {/* Legend */}
-      <div className="flex gap-4 p-3 border-b border-slate-100 bg-white items-center justify-center text-[11px] font-bold tracking-wider text-slate-600">
+      <div className="flex gap-4 p-3 border-b border-slate-100 bg-white items-center justify-center text-[11px] font-bold tracking-wider text-slate-600 flex-wrap">
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 border-2 border-emerald-300 rounded-sm bg-emerald-50"></div> AVAILABLE
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 border-2 border-blue-400 rounded-sm bg-blue-50"></div> OCCUPIED
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 border-2 border-purple-400 rounded-sm bg-purple-50"></div> RESERVED
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 border-2 border-red-300 rounded-sm bg-red-50"></div> LOCKED
