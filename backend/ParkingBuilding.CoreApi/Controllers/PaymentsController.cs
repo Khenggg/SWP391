@@ -108,13 +108,19 @@ namespace ParkingBuilding.CoreApi.Controllers
             if (session.CustomerType == "MONTHLY" && !hasApprovedLostCard)
                 throw new BusinessException(ErrorCodes.InvalidRequest);
 
-            if (session.PaymentStatus == "PAID" || session.PaymentStatus == "WAIVED")
-                throw new BusinessException(ErrorCodes.PaymentAlreadyFinal);
-
             var feeResult = await _feeCalculationService.CalculateFeeAsync(
                 session.Id,
                 DateTimeOffset.UtcNow,
                 hasApprovedLostCard);
+
+            var totalPaid = await _context.Payments
+                .Where(p => p.SessionId == session.Id && p.Status == "PAID")
+                .SumAsync(p => p.TotalAmount);
+
+            var remainingAmount = feeResult.TotalAmount - totalPaid;
+
+            if (remainingAmount <= 0m)
+                throw new BusinessException(ErrorCodes.PaymentAlreadyFinal);
 
             if (feeResult.TotalAmount <= 0m)
             {
@@ -134,8 +140,7 @@ namespace ParkingBuilding.CoreApi.Controllers
                 .Where(p => p.SessionId == session.Id
                          && p.Purpose == expectedPurpose
                          && p.Status == "PENDING"
-                         && p.TotalAmount >= feeResult.TotalAmount
-                         && p.LostCardFee >= feeResult.LostCardFee
+                         && p.TotalAmount >= remainingAmount
                          && p.ExpiredAt > DateTimeOffset.UtcNow)
                 .OrderByDescending(p => p.CreatedAt)
                 .FirstOrDefaultAsync();
@@ -171,9 +176,9 @@ namespace ParkingBuilding.CoreApi.Controllers
             var payment = new Payment
             {
                 SessionId = session.Id,
-                Amount = feeResult.Amount,
-                LostCardFee = feeResult.LostCardFee,
-                TotalAmount = feeResult.TotalAmount,
+                Amount = remainingAmount - (hasApprovedLostCard && totalPaid == 0 ? feeResult.LostCardFee : 0m),
+                LostCardFee = hasApprovedLostCard && totalPaid == 0 ? feeResult.LostCardFee : 0m,
+                TotalAmount = remainingAmount,
                 Purpose = expectedPurpose,
                 Method = "BANK_TRANSFER",
                 Status = "PENDING",
