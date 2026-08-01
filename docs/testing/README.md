@@ -22,11 +22,10 @@ Nếu là người mới vào task, nên đọc theo thứ tự:
 3. [Test_Team_Assignment_2_Days.md](./Test_Team_Assignment_2_Days.md)
 4. [Test_Cases.md](./Test_Cases.md)
 5. [Demo_Script.md](./Demo_Script.md)
-6. [Postman_Guide.md](./Postman_Guide.md)
 
 Nếu cần giao việc cho AI:
 
-7. [templates/AI_Test_Task_Template.md](./templates/AI_Test_Task_Template.md)
+6. [templates/AI_Test_Task_Template.md](./templates/AI_Test_Task_Template.md)
 
 ---
 

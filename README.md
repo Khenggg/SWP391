@@ -16,7 +16,6 @@ SWP301/
 |-- frontend/                             # React frontend skeleton
 |-- database/                             # Official PostgreSQL schema and seed scripts
 |-- docs/                                 # Specifications and references
-|-- postman/                              # Shared API collection and environment template
 `-- README.md
 ```
 

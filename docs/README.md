@@ -10,7 +10,7 @@ docs/
   specification/   Requirements, API, ERD, and implementation spec
   planning/        Sprint plan, GitHub Project guide, and meeting notes
   git/             Git, branch, and Pull Request workflow
-  testing/         Test cases, demo script, and Postman guide
+  testing/         Test cases, architecture, and demo scripts
   references/      Reference PDF/DOCX files
   Parking Building Management UI (1)/  UI reference package
 ```
@@ -41,7 +41,6 @@ docs/
 
 - `testing/Test_Cases.md`: required MVP/demo test groups.
 - `testing/Demo_Script.md`: minimum demo flow.
-- `testing/Postman_Guide.md`: how to use the collection and environment in `postman/`.
 
 ## References
 

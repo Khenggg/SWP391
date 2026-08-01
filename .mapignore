@@ -19,7 +19,6 @@ output/
 test-results/
 frontend/test-results/
 frontend/tests/e2e/reports/
-postman/
 .postman/
 docs/references/
 docs/reference-configs/
