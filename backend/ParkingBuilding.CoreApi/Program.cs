@@ -329,6 +329,20 @@ using (var scope = app.Services.CreateScope())
                     vehicle_type_id BIGINT NOT NULL REFERENCES vehicle_types(id) ON DELETE CASCADE,
                     PRIMARY KEY (floor_id, vehicle_type_id)
                 );
+
+                INSERT INTO gates (floor_id, gate_code, gate_type, status)
+                SELECT f.id, f.floor_code || '-IN', 'ENTRY', 'ACTIVE'
+                FROM floors f
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM gates g WHERE g.floor_id = f.id AND g.gate_type = 'ENTRY'
+                );
+
+                INSERT INTO gates (floor_id, gate_code, gate_type, status)
+                SELECT f.id, f.floor_code || '-OUT', 'EXIT', 'ACTIVE'
+                FROM floors f
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM gates g WHERE g.floor_id = f.id AND g.gate_type = 'EXIT'
+                );
             ");
         }
         else

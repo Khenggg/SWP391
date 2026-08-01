@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AlertCircle } from "lucide-react";
 
 export default function SlotModal({ isOpen, onClose, form, setField, handleSave, areas, vehicleTypes, floors = [] }) {
   const [selectedFloorId, setSelectedFloorId] = React.useState("");
@@ -37,7 +38,6 @@ export default function SlotModal({ isOpen, onClose, form, setField, handleSave,
         setField("allowedVehicleTypeId", targetId);
       }
     } else if (allowedVehicleTypesForArea.length > 1) {
-      // If the current value is not one of the allowed types, reset it
       if (form.allowedVehicleTypeId && !allowedVehicleTypesForArea.some(v => v.id === form.allowedVehicleTypeId)) {
         setField("allowedVehicleTypeId", "");
       }
@@ -46,7 +46,7 @@ export default function SlotModal({ isOpen, onClose, form, setField, handleSave,
         setField("allowedVehicleTypeId", "");
       }
     }
-  }, [form.areaId, allowedVehicleTypesForArea.length, form.allowedVehicleTypeId, setField]);
+  }, [form.areaId, allowedVehicleTypesForArea, form.allowedVehicleTypeId, setField]);
 
   const filteredAreas = selectedFloorId
     ? areas.filter(a => Number(a.floorId) === Number(selectedFloorId))
@@ -54,7 +54,7 @@ export default function SlotModal({ isOpen, onClose, form, setField, handleSave,
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[400px]">
+      <DialogContent className="sm:max-w-[420px]">
         <DialogHeader>
           <DialogTitle>Thêm Slot</DialogTitle>
         </DialogHeader>
@@ -72,7 +72,7 @@ export default function SlotModal({ isOpen, onClose, form, setField, handleSave,
               <SelectContent>
                 {floors.map(f => (
                   <SelectItem key={f.id} value={f.id.toString()}>
-                    {f.floorCode}
+                    {f.floorCode} - {f.floorName}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -89,7 +89,7 @@ export default function SlotModal({ isOpen, onClose, form, setField, handleSave,
               <SelectContent>
                 {filteredAreas.map(a => (
                   <SelectItem key={a.id} value={a.id.toString()}>
-                    {a.areaCode}
+                    {a.areaCode} - {a.areaName}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -103,6 +103,16 @@ export default function SlotModal({ isOpen, onClose, form, setField, handleSave,
               placeholder="VD: B1-A-01" 
             />
           </div>
+
+          {selectedArea && allowedVehicleTypesForArea.length === 0 && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 text-xs text-amber-800">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                Khu vực <strong>{selectedArea.areaCode} ({selectedArea.areaName})</strong> chưa được cấu hình loại xe yêu cầu Slot (ví dụ: Ô tô). Vui lòng chuyển sang tab <strong>Khu vực</strong> để sửa và tích chọn loại xe cho Khu vực này trước.
+              </div>
+            </div>
+          )}
+
           {allowedVehicleTypesForArea.length > 1 ? (
             <div className="space-y-2">
               <label className="text-sm font-bold text-slate-700">Loại xe được phép *</label>
@@ -120,21 +130,31 @@ export default function SlotModal({ isOpen, onClose, form, setField, handleSave,
                 </SelectContent>
               </Select>
             </div>
-          ) : (
+          ) : allowedVehicleTypesForArea.length === 1 ? (
             <div className="space-y-2">
               <label className="text-sm font-bold text-slate-700">Loại xe được phép</label>
               <div className="p-2 border border-slate-200 rounded-lg bg-slate-50 text-xs font-semibold text-slate-700 h-9 flex items-center">
-                {form.allowedVehicleTypeId 
-                  ? vehicleTypes.find(v => v.id === form.allowedVehicleTypeId)?.name || "Không rõ"
-                  : "Vui lòng chọn Khu vực trước"
-                }
+                {allowedVehicleTypesForArea[0].name}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-700">Loại xe được phép</label>
+              <div className="p-2 border border-slate-200 rounded-lg bg-slate-50 text-xs text-slate-400 h-9 flex items-center">
+                Vui lòng chọn Khu vực hợp lệ trước
               </div>
             </div>
           )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onClose(false)}>Hủy</Button>
-          <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white">Lưu</Button>
+          <Button 
+            onClick={handleSave} 
+            disabled={!form.areaId || !form.allowedVehicleTypeId || !form.slotCode}
+            className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+          >
+            Lưu
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

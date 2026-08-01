@@ -51,7 +51,14 @@ public class SlotService
             .Any(x => x.VehicleTypeId == request.AllowedVehicleTypeId);
 
         if (!allowed)
-            throw new BusinessException(ErrorCodes.SlotNotAllowedForVehicleType);
+        {
+            var vehicleTypeName = await _context.Set<VehicleType>()
+                .Where(v => v.Id == request.AllowedVehicleTypeId)
+                .Select(v => v.Name)
+                .FirstOrDefaultAsync() ?? "này";
+
+            throw new BusinessException($"Khu vực '{area.AreaCode}' ({area.AreaName}) chưa được cấu hình hỗ trợ loại xe '{vehicleTypeName}'. Vui lòng bổ sung loại xe áp dụng cho Khu vực trước khi thêm Slot.", StatusCodes.Status400BadRequest);
+        }
 
         // ===== CREATE =====
         var entity = new Slot

@@ -113,6 +113,29 @@ public class FloorService
 
         await _context.SaveChangesAsync();
 
+        // Auto create default ENTRY & EXIT gates for the new floor
+        _context.Gates.Add(new Gate
+        {
+            FloorId = entity.Id,
+            GateCode = $"{entity.FloorCode}-IN",
+            GateType = "ENTRY",
+            Status = "ACTIVE",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+
+        _context.Gates.Add(new Gate
+        {
+            FloorId = entity.Id,
+            GateCode = $"{entity.FloorCode}-OUT",
+            GateType = "EXIT",
+            Status = "ACTIVE",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _context.SaveChangesAsync();
+
         await NotifyDriversAsync(
             $"Thêm tầng đỗ xe mới: {entity.FloorCode}",
             $"Tầng đỗ xe {entity.FloorName} ({entity.FloorCode}) đã được đưa vào hoạt động. Bạn đã có thể đặt chỗ hoặc đỗ xe tại tầng này."
