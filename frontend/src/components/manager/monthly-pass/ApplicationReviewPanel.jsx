@@ -481,9 +481,10 @@ export default function ApplicationReviewPanel({ application, onClose, onRefresh
               <div>
                 <label className="block text-slate-500 mb-1.5">Chọn Tầng đỗ:</label>
                 <Select
-                  value={selectedFloorId}
+                  value={selectedFloorId || "ALL"}
                   onValueChange={(val) => {
-                    setSelectedFloorId(val);
+                    const nextVal = val === "ALL" ? "" : val;
+                    setSelectedFloorId(nextVal);
                     setSelectedAreaId("");
                     setSelectedSlotId("");
                   }}
@@ -492,7 +493,7 @@ export default function ApplicationReviewPanel({ application, onClose, onRefresh
                     <SelectValue placeholder="-- Tự động chọn hoặc chọn Tầng --" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">-- Tất cả các tầng --</SelectItem>
+                    <SelectItem value="ALL">-- Tất cả các tầng --</SelectItem>
                     {floors.filter(f => f.status === "ACTIVE").map((f) => (
                       <SelectItem key={f.id} value={String(f.id)}>
                         Tầng {f.floorCode || f.code} ({f.floorName || f.name || ""})
@@ -508,12 +509,13 @@ export default function ApplicationReviewPanel({ application, onClose, onRefresh
               <div>
                 <label className="block text-slate-500 mb-1.5">Chọn Khu vực đỗ:</label>
                 <Select
-                  value={selectedAreaId}
+                  value={selectedAreaId || "AUTO"}
                   onValueChange={(val) => {
-                    setSelectedAreaId(val);
+                    const nextVal = val === "AUTO" ? "" : val;
+                    setSelectedAreaId(nextVal);
                     setSelectedSlotId("");
-                    if (val) {
-                      const foundArea = areas.find(a => String(a.id) === String(val));
+                    if (nextVal) {
+                      const foundArea = areas.find(a => String(a.id) === String(nextVal));
                       if (foundArea?.floorId) setSelectedFloorId(String(foundArea.floorId));
                     }
                   }}
@@ -522,7 +524,7 @@ export default function ApplicationReviewPanel({ application, onClose, onRefresh
                     <SelectValue placeholder="-- Tự động chọn hoặc chọn Khu vực --" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">-- Tự động gán Khu vực khả dụng --</SelectItem>
+                    <SelectItem value="AUTO">-- Tự động gán Khu vực khả dụng --</SelectItem>
                     {areas
                       .filter(a => a.status === "ACTIVE" && (!selectedFloorId || String(a.floorId) === String(selectedFloorId)))
                       .map((area) => (
@@ -540,11 +542,12 @@ export default function ApplicationReviewPanel({ application, onClose, onRefresh
               <div>
                 <label className="block text-slate-500 mb-1.5">Chọn Slot đỗ cố định (Cần Slot):</label>
                 <Select
-                  value={selectedSlotId}
+                  value={selectedSlotId || "AUTO"}
                   onValueChange={(val) => {
-                    setSelectedSlotId(val);
-                    if (val) {
-                      const foundSlot = slots.find(s => String(s.id) === String(val));
+                    const nextVal = val === "AUTO" ? "" : val;
+                    setSelectedSlotId(nextVal);
+                    if (nextVal) {
+                      const foundSlot = slots.find(s => String(s.id) === String(nextVal));
                       if (foundSlot?.areaId) {
                         setSelectedAreaId(String(foundSlot.areaId));
                         const foundArea = areas.find(a => String(a.id) === String(foundSlot.areaId));
@@ -557,7 +560,7 @@ export default function ApplicationReviewPanel({ application, onClose, onRefresh
                     <SelectValue placeholder="-- Tự động chọn hoặc chọn Slot --" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">-- Tự động gán Slot khả dụng --</SelectItem>
+                    <SelectItem value="AUTO">-- Tự động gán Slot khả dụng --</SelectItem>
                     {slots
                       .filter(s => s.status === "AVAILABLE" 
                         && (!selectedAreaId || String(s.areaId) === String(selectedAreaId))
