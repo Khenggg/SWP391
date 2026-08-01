@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { parkingService } from "../../services/parkingService";
 import { COMMON_STATUS, SLOT_STATUS, STATUS_LABELS } from "@/constants";
 import { toast } from "sonner";
-import { Layers, Map, Grid } from "lucide-react";
+import { Layers, Map, Grid, Settings } from "lucide-react";
 import StructureStatCards from "../../components/manager/structure/StructureStatCards";
 import FloorModal from "../../components/manager/structure/FloorModal";
 import AreaModal from "../../components/manager/structure/AreaModal";
@@ -13,6 +13,7 @@ import SlotDetailDialog from "../../components/manager/structure/SlotDetailDialo
 import CapacityDialog from "../../components/manager/structure/CapacityDialog";
 import FloorTablePanel from "../../components/manager/structure/FloorTablePanel";
 import AreaTablePanel from "../../components/manager/structure/AreaTablePanel";
+import VehicleTypeManagerModal from "@/components/manager/pricing/VehicleTypeManagerModal";
 
 
 // Constants & Mappings
@@ -108,6 +109,7 @@ export default function StructureManagementPage() {
   const [showFloorModal, setShowFloorModal] = useState(false);
   const [showAreaModal, setShowAreaModal] = useState(false);
   const [showSlotModal, setShowSlotModal] = useState(false);
+  const [showVehicleManager, setShowVehicleManager] = useState(false);
 
   const [editingItem, setEditingItem] = useState(null);
   const [form, setForm] = useState({});
@@ -266,9 +268,19 @@ export default function StructureManagementPage() {
   return (
     <div className="space-y-6 max-w-full overflow-hidden bg-[#f8fafc] min-h-screen p-6">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-slate-800">Quản lý Cấu trúc Bãi xe</h2>
-        <p className="text-sm text-slate-500 mt-1">Quản lý tầng, khu vực và trạng thái các slot trong hệ thống bãi xe.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">Quản lý Cấu trúc Bãi xe</h2>
+          <p className="text-sm text-slate-500 mt-1">Quản lý tầng, khu vực và trạng thái các slot trong hệ thống bãi xe.</p>
+        </div>
+        <Button 
+          variant="outline" 
+          onClick={() => setShowVehicleManager(true)}
+          className="bg-white border-slate-200 hover:bg-slate-50 text-slate-700 font-bold gap-2 cursor-pointer shadow-sm"
+        >
+          <Settings className="size-4 text-slate-500" />
+          Quản lý loại xe
+        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -414,6 +426,13 @@ export default function StructureManagementPage() {
         capacityForm={capacityForm}
         setCapacityForm={setCapacityForm}
         handleCapacitySave={handleCapacitySave}
+      />
+
+      <VehicleTypeManagerModal 
+        isOpen={showVehicleManager}
+        onClose={setShowVehicleManager}
+        vehicleTypes={vehicleTypes}
+        onRefresh={fetchStructure}
       />
     </div>
   );
