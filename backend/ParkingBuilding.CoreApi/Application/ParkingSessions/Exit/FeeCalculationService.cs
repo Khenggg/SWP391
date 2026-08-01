@@ -60,8 +60,8 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
             if (exitTime <= startTime)
             {
                 result.Amount = 0m;
-                result.LostCardFee = 0m;
-                result.TotalAmount = 0m;
+                result.LostCardFee = includeLostCardFee ? pricing.LostCardFee : 0m;
+                result.TotalAmount = result.Amount + result.LostCardFee;
                 result.Breakdown.Add(new FeeBreakdownItem
                 {
                     TimeFrame = "DAY",
