@@ -72,6 +72,7 @@ public class SlotService
             Id = entity.Id,
             AreaId = entity.AreaId,
             SlotCode = entity.SlotCode,
+            AllowedVehicleTypeId = entity.AllowedVehicleTypeId,
             Status = entity.Status
         };
     }
@@ -162,6 +163,7 @@ public class SlotService
             Id = slot.Id,
             AreaId = slot.AreaId,
             SlotCode = slot.SlotCode,
+            AllowedVehicleTypeId = slot.AllowedVehicleTypeId,
             Status = slot.Status
         };
     }
@@ -174,6 +176,7 @@ public class SlotService
                 Id = x.Id,
                 AreaId = x.AreaId,
                 SlotCode = x.SlotCode,
+                AllowedVehicleTypeId = x.AllowedVehicleTypeId,
                 Status = x.Status
             })
             .ToListAsync();

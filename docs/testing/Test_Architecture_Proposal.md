@@ -227,7 +227,7 @@ Kết luận:
 
 - Playwright cho smoke + E2E
 - Vitest + Testing Library cho component test
-- MSW cho mock trong component/local isolated test
+- Moi truong backend test rieng cho integration va E2E frontend
 
 ### 7.2 .NET Core
 

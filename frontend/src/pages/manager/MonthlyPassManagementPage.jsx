@@ -202,9 +202,9 @@ export default function MonthlyPassManagementPage() {
   };
 
   return (
-    <div className="flex h-full gap-4">
+    <div className="flex h-full gap-4 overflow-hidden">
       {/* ── Main panel ── */}
-      <div className="flex flex-col flex-1 gap-6 overflow-hidden">
+      <div className="flex flex-col flex-1 gap-6 overflow-hidden min-w-0">
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>

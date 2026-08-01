@@ -69,7 +69,7 @@ export default function DriverProfilePage() {
         if (profileResult.status !== "fulfilled" || !profileResult.value) {
           throw profileResult.status === "rejected"
             ? profileResult.reason
-            : new Error("Khong the tai thong tin ho so");
+            : new Error("Không thể tải thông tin hồ sơ");
         }
 
         const profileData = profileResult.value;
@@ -96,7 +96,7 @@ export default function DriverProfilePage() {
         if (!cancelled) {
           console.error("Error loading driver profile:", err);
           setProfile(null);
-          setErrorMessage(err.message || "Khong the tai thong tin ho so");
+          setErrorMessage(err.message || "Không thể tải thông tin hồ sơ");
         }
       } finally {
         if (!cancelled) {
@@ -123,8 +123,8 @@ export default function DriverProfilePage() {
           <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-6 h-6" />
           </div>
-          <h2 className="text-xl font-black text-slate-900 mb-2">Khong the tai thong tin ho so</h2>
-          <p className="text-sm text-slate-500 font-medium">{errorMessage || "Vui long thu lai sau."}</p>
+          <h2 className="text-xl font-black text-slate-900 mb-2">Không thể tải thông tin hồ sơ</h2>
+          <p className="text-sm text-slate-500 font-medium">{errorMessage || "Vui lòng thử lại sau."}</p>
         </div>
       </div>
     );
@@ -148,8 +148,8 @@ export default function DriverProfilePage() {
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12">
       <div className="mb-8">
-        <h1 className="text-2xl font-black text-slate-900 mb-1">Ho so cua toi</h1>
-        <p className="text-slate-500 text-sm">Quan ly thong tin tai khoan, phuong tien va lich su booking cua ban</p>
+        <h1 className="text-2xl font-black text-slate-900 mb-1">Hồ sơ của tôi</h1>
+        <p className="text-slate-500 text-sm">Quản lý thông tin tài khoản, phương tiện và lịch sử booking của bạn</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

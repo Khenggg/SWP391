@@ -8,25 +8,11 @@ import { clearAuthStorage, saveAccessToken } from "@/services/sessionService";
 
 /**
  * Hàm giải mã và lấy vai trò (role) từ token
- * Hỗ trợ cả Token giả lập (mock) khi chạy offline và Token thật (JWT) từ backend
+ * Token JWT do backend production phát hành là nguồn xác định vai trò.
  */
 const getRoleFromToken = (token) => {
   if (!token) return null;
 
-  // 1. Kiểm tra nếu là Token giả lập (Mock Token) dùng cho chạy thử
-  if (token.startsWith("mock-token-for-")) {
-    const username = token.replace("mock-token-for-", "");
-    const mockRoles = {
-      admin01: "ADMIN",
-      manager01: "MANAGER",
-      staff01: "STAFF",
-      driver01: "DRIVER",
-      driver02: "DRIVER",
-    };
-    return mockRoles[username] || null;
-  }
-
-  // 2. Kiểm tra giải mã phần Payload của chuỗi JWT thật (.NET/Spring Boot)
   try {
     const base64Url = token.split(".")[1];
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
@@ -68,19 +54,17 @@ export default function App() {
           setUserRole(resolvedRole);
           setIsAuthenticated(true);
 
-          if (!savedToken.startsWith("mock-token-for-")) {
-            authService.getCurrentProfile()
-              .then((profile) => {
-                const profileRole = getRoleFromToken(savedToken) || profile.role;
-                setCurrentUser({ ...profile, role: profileRole });
-                setUserRole(profileRole);
-              })
-              .catch(() => {
-                handleLogout();
-              })
-              .finally(() => setIsInitializing(false));
-            return;
-          }
+          authService.getCurrentProfile()
+            .then((profile) => {
+              const profileRole = getRoleFromToken(savedToken) || profile.role;
+              setCurrentUser({ ...profile, role: profileRole });
+              setUserRole(profileRole);
+            })
+            .catch(() => {
+              handleLogout();
+            })
+            .finally(() => setIsInitializing(false));
+          return;
         } catch (err) {
           console.error("Lỗi phân tích cú pháp dữ liệu người dùng, đang xóa phiên lỗi...");
           handleLogout();

@@ -296,6 +296,8 @@ ON reservations(vehicle_id)
 WHERE vehicle_id IS NOT NULL
   AND status IN ('PENDING', 'CONFIRMED');
 
+DROP INDEX IF EXISTS ux_active_reservation_by_driver;
+
 DROP INDEX IF EXISTS ux_pending_reservation_by_plate_type;
 CREATE UNIQUE INDEX IF NOT EXISTS ux_active_reservation_by_plate_type
 ON reservations(normalized_plate_number, vehicle_type_id)

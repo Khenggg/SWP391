@@ -16,7 +16,6 @@ SWP301/
 |-- frontend/                             # Source frontend React
 |-- database/                             # SQL schema va seed chinh thuc
 |-- docs/                                 # Tai lieu dac ta va tham khao
-|-- postman/                              # Collection va environment template
 `-- README.md
 ```
 

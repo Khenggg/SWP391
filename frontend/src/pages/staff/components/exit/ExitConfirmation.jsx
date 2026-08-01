@@ -65,6 +65,7 @@ function MismatchStatusBlock({
   if (!status || status === "NONE") {
     const platesDiffer =
       session &&
+      !session.noPlate &&
       plate &&
       plate.replace(/[^A-Z0-9]/gi, "").toUpperCase() !==
         (session.plateNumber || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
@@ -227,7 +228,7 @@ export default function ExitConfirmation({
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-600">Biển số thực tế</label>
+              <label className="text-xs font-bold text-slate-600">{session?.noPlate ? "Nhận dạng xe" : "Biển số thực tế"}</label>
               {session?.plateNumber && plate !== session.plateNumber && (
                 <button
                   type="button"
@@ -240,11 +241,11 @@ export default function ExitConfirmation({
             </div>
             <div className="relative">
               <Input
-                value={plate}
+                value={session?.noPlate ? (session.vehicleDescription || "Không biển số") : plate}
                 onChange={(e) => setPlate(e.target.value.toUpperCase())}
                 className="font-bold uppercase pr-8"
-                placeholder="Nhập biển số thực tế"
-                disabled={!session}
+                placeholder={session?.noPlate ? "Mô tả xe lúc vào" : "Nhập biển số thực tế"}
+                disabled={!session || session.noPlate}
               />
               <Camera className="w-4 h-4 absolute right-3 top-2.5 text-slate-400" />
             </div>

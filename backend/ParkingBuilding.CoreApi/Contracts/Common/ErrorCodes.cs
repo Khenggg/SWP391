@@ -121,7 +121,6 @@ public static class ErrorCodes
     public const string ReservationNotCancellable = "RESERVATION_NOT_CANCELLABLE";
     public const string ReservationNotExtendable = "RESERVATION_NOT_EXTENDABLE";
     public const string ReservationAlreadyCheckedIn = "RESERVATION_ALREADY_CHECKED_IN";
-    public const string ReservationPlateMismatch = "RESERVATION_PLATE_MISMATCH";
     public const string ReservationExtensionMinutesInvalid = "RESERVATION_EXTENSION_MINUTES_INVALID";
     public const string ReservationEntryTokenRequired = "RESERVATION_ENTRY_TOKEN_REQUIRED";
     public const string ReservationEntryTokenMismatch = "RESERVATION_ENTRY_TOKEN_MISMATCH";
@@ -140,12 +139,12 @@ public static class ErrorCodes
     public const string EntryPlateImageRequired = "ENTRY_PLATE_IMAGE_REQUIRED";
     public const string EntryVehicleImageMissing = "ENTRY_VEHICLE_IMAGE_MISSING";
     public const string EntryPlateImageMissing = "ENTRY_PLATE_IMAGE_MISSING";
-    public const string PlateRequiredForSlotVehicle = "PLATE_REQUIRED_FOR_SLOT_VEHICLE";
     public const string QrTokenRequired = "QR_TOKEN_REQUIRED";
     public const string ClaimFailed = "CLAIM_FAILED";
     public const string SessionNotFound = "SESSION_NOT_FOUND";
     public const string SessionAlreadyClaimed = "SESSION_ALREADY_CLAIMED";
     public const string SessionNotOwnedByDriver = "SESSION_NOT_OWNED_BY_DRIVER";
+    public const string SessionMoveTargetUnchanged = "SESSION_MOVE_TARGET_UNCHANGED";
     public const string LicensePlateRequired = "LICENSE_PLATE_REQUIRED";
     public const string PlateAlreadyMapped = "PLATE_ALREADY_MAPPED";
     public const string PlateAlreadyHasActiveReservation = "PLATE_ALREADY_HAS_ACTIVE_RESERVATION";

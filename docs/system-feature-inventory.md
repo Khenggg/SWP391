@@ -29,7 +29,6 @@
 - `[MAT THE]` - Ly do uu tien: can session active + storage + manager approval.
 - `[SAI LECH BIEN SO]` - Ly do uu tien: phu thuoc exit evidence, anh, session state.
 - `[LUU TRU ANH VA TAI LIEU]` - Ly do uu tien: phu tro cho cac flow P3, de loi theo he thong luu tru ngoai.
-- `[THIET BI GIA LAP VA GATE SIMULATOR]` - Ly do uu tien: co event/device demo, de tac dong den stability cua E2E.
 
 ### Thu tu chay de xuat
 
@@ -160,17 +159,11 @@
 - Chuc nang chi tiet: Cung cap cho trong, thong tin bai, gia, quy dinh, tra cuu card/QR, du lieu driver va reservation o che do doc.
 - Muc do phu thuoc: Doc PostgreSQL bang repository/shared read model; duoc Public pages, Driver pages, Staff va Manager UI goi qua `supportAxiosClient.js`/`publicAxiosClient.js`.
 ---
-[THIET BI GIA LAP VA GATE SIMULATOR]
-- Uu tien E2E: P3
-- Duong dan file/component chinh: `frontend/src/pages/simulator/GateSimulatorPage.jsx`, `frontend/src/services/gateSimulatorBus.js`, `backend/ParkingBuilding.CoreApi/Controllers/GateSimulatorFixturesController.cs`, `backend/parking-building-support-api/src/main/java/com/parkingbuilding/support/controller/Mock*.java`.
-- Chuc nang chi tiet: Mo phong camera, RFID, barrier va phat su kien vao Staff Entry de demo luong cong.
-- Muc do phu thuoc: Phu thuoc fixtures/gate/vehicle/card; Staff Entry nhan event va tiep tuc xu ly entry.
----
-[CLIENT API, MOCK VA DU LIEU DEMO]
+[CLIENT API PRODUCTION]
 - Uu tien E2E: P2
-- Duong dan file/component chinh: `frontend/src/api/`, `frontend/src/mocks/`, `frontend/src/mocks/handlers/`.
-- Chuc nang chi tiet: Chuan hoa HTTP client, token/interceptor, chuyen doi real API/mock API, MSW handlers cho toan bo nhom role va du lieu demo local.
-- Muc do phu thuoc: Toan bo `frontend/src/services/` phu thuoc axios clients/mock config; mock handlers mo phong contract cua hai backend.
+- Duong dan file/component chinh: `frontend/src/api/`, `frontend/src/services/`.
+- Chuc nang chi tiet: Chuan hoa HTTP client, timeout, token/interceptor va contract goi Core API, Public API, Support API.
+- Muc do phu thuoc: Toan bo page/component nghiep vu goi backend that thong qua service va axios client tuong ung.
 ---
 [THANH PHAN UI TAI SU DUNG]
 - Uu tien E2E: P2

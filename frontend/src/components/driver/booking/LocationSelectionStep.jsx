@@ -10,10 +10,11 @@ export default function LocationSelectionStep({
   selectedSlotId,
   onSelectSlot,
   vehicleTypeId,
-  vehicleTypeName
+  vehicleTypeName,
+  requiresSlot
 }) {
   const normalizedVehicleTypeId = Number(vehicleTypeId || 0);
-  const isSlotManaged = normalizedVehicleTypeId === 5 || normalizedVehicleTypeId === 7 || vehicleTypeName === "Ô Tô";
+  const isSlotManaged = Boolean(requiresSlot);
   const validAreas = areas.filter((area) =>
     area.status === "ACTIVE" &&
     (!normalizedVehicleTypeId || !area.vehicleTypeId || Number(area.vehicleTypeId) === normalizedVehicleTypeId)

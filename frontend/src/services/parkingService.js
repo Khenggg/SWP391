@@ -78,19 +78,16 @@ export const parkingService = {
 
   // Manager/Common APIs
   getFloors: async () => {
-    // API GET ĐÃ CÓ TỪ BACKEND
     const res = await coreAxiosClient.get("/floors");
     return res.success ? res.data : [];
   },
 
   getAreas: async () => {
-    // API GET CHƯA HOÀN THIỆN TỪ BACKEND (Giả lập tạm qua MSW)
     const res = await coreAxiosClient.get("/areas");
     return res.success ? res.data : [];
   },
 
   getSlots: async () => {
-    // API GET CHƯA HOÀN THIỆN TỪ BACKEND (Giả lập tạm qua MSW)
     const res = await coreAxiosClient.get("/slots");
     return res.success ? res.data : [];
   },

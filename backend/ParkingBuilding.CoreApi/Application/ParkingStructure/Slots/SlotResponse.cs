@@ -6,5 +6,7 @@ public class SlotResponse
 
     public string SlotCode { get; set; } = null!;
 
+    public long AllowedVehicleTypeId { get; set; }
+
     public string Status { get; set; } = null!;
 }

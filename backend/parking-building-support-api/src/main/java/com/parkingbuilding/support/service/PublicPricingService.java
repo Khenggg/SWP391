@@ -24,12 +24,12 @@ public class PublicPricingService {
 
     public List<PublicPricingResponse> getPricing() {
 
-        Map<Long, String> vehicleTypeMap =
+        Map<Long, VehicleTypeReadEntity> vehicleTypeMap =
                 vehicleTypeRepository.findByIsActiveTrue()
                         .stream()
                         .collect(Collectors.toMap(
                                 VehicleTypeReadEntity::getId,
-                                VehicleTypeReadEntity::getName
+                                vehicleType -> vehicleType
                         ));
 
         return pricingRuleRepository.findByStatus("ACTIVE")
@@ -38,7 +38,14 @@ public class PublicPricingService {
                         .pricingRuleId(rule.getId())
                         .vehicleTypeId(rule.getVehicleTypeId())
                         .vehicleTypeName(
-                                vehicleTypeMap.get(rule.getVehicleTypeId())
+                                vehicleTypeMap.containsKey(rule.getVehicleTypeId())
+                                        ? vehicleTypeMap.get(rule.getVehicleTypeId()).getName()
+                                        : null
+                        )
+                        .requiresSlot(
+                                vehicleTypeMap.containsKey(rule.getVehicleTypeId())
+                                        ? vehicleTypeMap.get(rule.getVehicleTypeId()).getRequiresSlot()
+                                        : null
                         )
                         .dayPrice(rule.getDayPrice())
                         .nightPrice(rule.getNightPrice())

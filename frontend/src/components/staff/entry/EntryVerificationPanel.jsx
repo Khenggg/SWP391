@@ -194,9 +194,9 @@ export default function EntryVerificationPanel({
                 </div>
                 {typeof reservationCheck.plateRequiredAtEntry === "boolean" && (
                   <div className="flex justify-between text-xs">
-                    <span className="text-slate-500">Bắt buộc biển số</span>
+                    <span className="text-slate-500">Cho phép không biển số</span>
                     <span className="font-semibold text-slate-800">
-                      {reservationCheck.plateRequiredAtEntry ? "Có" : "Không"}
+                      {reservationCheck.plateRequiredAtEntry ? "Không" : "Có"}
                     </span>
                   </div>
                 )}

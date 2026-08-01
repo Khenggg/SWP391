@@ -91,6 +91,7 @@ public sealed class ParkingImageSnapshotService : IParkingImageSnapshotService
             SizeBytes = stored.SizeBytes,
             UploadStatus = "UPLOADED",
             OcrStatus = isPlateImage ? (ocrResult.OcrStatus ?? "PENDING") : "NOT_REQUESTED",
+            OcrProvider = isPlateImage ? "PlateRecognizer" : null,
             DetectedPlateNumber = ocrResult.DetectedPlateNumber,
             DetectedNormalizedPlateNumber = ocrResult.DetectedNormalizedPlateNumber,
             Confidence = ocrResult.Confidence,

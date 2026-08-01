@@ -78,7 +78,7 @@ function ImageUploadSlot({ label, value, onChange, disabled, inputRef, id, onZoo
   );
 }
 
-export default function EntryImageSection({ plateImageUrl, vehicleImageUrl, onPlateImageChange, onVehicleImageChange, disabled = false }) {
+export default function EntryImageSection({ plateImageUrl, vehicleImageUrl, onPlateImageChange, onVehicleImageChange, noPlate = false, disabled = false }) {
   const plateInputRef = useRef(null);
   const vehicleInputRef = useRef(null);
   const [zoomImage, setZoomImage] = useState(null);
@@ -100,9 +100,13 @@ export default function EntryImageSection({ plateImageUrl, vehicleImageUrl, onPl
         </span>
       </header>
       <div className="flex-1 p-3">
-        <p className="mb-3 text-xs font-medium text-slate-500">Tải thủ công ảnh biển số và ảnh toàn xe trước khi tạo phiên. (Bấm vào ảnh để phóng to)</p>
+        <p className="mb-3 text-xs font-medium text-slate-500">
+          {noPlate
+            ? "Tải ảnh vùng nhận dạng và ảnh toàn xe trước khi tạo phiên. (Bấm vào ảnh để phóng to)"
+            : "Tải ảnh biển số và ảnh toàn xe trước khi tạo phiên. (Bấm vào ảnh để phóng to)"}
+        </p>
         <div className="grid grid-cols-2 gap-3">
-          <ImageUploadSlot label="Ảnh biển số" value={plateImageUrl} onChange={onPlateImageChange} disabled={disabled} inputRef={plateInputRef} id="entry-plate-image" onZoom={handleZoom} />
+          <ImageUploadSlot label={noPlate ? "Ảnh vùng nhận dạng" : "Ảnh biển số"} value={plateImageUrl} onChange={onPlateImageChange} disabled={disabled} inputRef={plateInputRef} id="entry-plate-image" onZoom={handleZoom} />
           <ImageUploadSlot label="Ảnh toàn xe" value={vehicleImageUrl} onChange={onVehicleImageChange} disabled={disabled} inputRef={vehicleInputRef} id="entry-vehicle-image" onZoom={handleZoom} />
         </div>
       </div>

@@ -17,7 +17,7 @@ File này dùng để đọc nhanh database khi xem cùng ERD trong `database/er
 | Xác thực | `auth_sessions`, `refresh_tokens`, `revoked_access_tokens` | Phiên đăng nhập, refresh-token rotation và danh sách access token đã thu hồi |
 | Xe | `vehicle_types`, `vehicles` | Loại xe và xe đã đăng ký/quản lý |
 | Bãi xe | `floors`, `areas`, `slots`, `gates`, `area_vehicle_types` | Tầng, khu, ô đỗ, cổng, loại xe được phép vào khu |
-| Thẻ và lượt gửi | `parking_cards`, `parking_sessions`, `parking_session_images` | Thẻ QR, phiên gửi xe, ảnh OCR/xe |
+| Thẻ và lượt gửi | `parking_cards`, `parking_sessions`, `parking_session_images`, `vehicle_snapshot_uploads` | Thẻ QR, phiên gửi xe, ảnh OCR/xe và bảng upload snapshot tạm |
 | Đặt chỗ | `reservations`, `reservation_extensions` | Đặt chỗ, gia hạn đặt chỗ |
 | Vé tháng | `monthly_passes`, `monthly_pass_applications` | Đơn đăng ký và vé tháng đã được kích hoạt |
 | Thanh toán | `payments`, `payment_attempts`, `receipts` | Phí gửi xe, VietQR/payment attempts, biên lai |

@@ -36,7 +36,6 @@ import {
   Briefcase,
   UserCheck,
   Lock,
-  Eye,
   Edit,
   UserCog,
   Trash2,
@@ -176,7 +175,7 @@ export default function UserManagementPage() {
     try {
       setIsLoadingActivities(true);
       // Gọi API F054
-      const logs = await auditService.getAuditLogs({ targetUser: username, limit: 5 });
+      const logs = await auditService.getAuditLogs({ actor: username, size: 5 });
       setRecentActivities(logs || []);
     } catch (err) {
       console.error("Lỗi khi tải hoạt động:", err);
@@ -533,7 +532,7 @@ export default function UserManagementPage() {
                     <TableHead className="text-xs font-bold uppercase text-slate-500">Số Điện Thoại</TableHead>
                     <TableHead className="text-xs font-bold uppercase text-slate-500 text-center">Vai Trò</TableHead>
                     <TableHead className="text-xs font-bold uppercase text-slate-500 text-center">Trạng Thái</TableHead>
-                    <TableHead className="w-28 text-xs font-bold uppercase text-slate-500 text-center">Thao tác</TableHead>
+
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -577,19 +576,7 @@ export default function UserManagementPage() {
                             {user.status}
                           </Badge>
                         </TableCell>
-                        <TableCell className="py-3 text-center">
-                          <div className="flex justify-center gap-1" onClick={(e) => e.stopPropagation()}>
-                             <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50" title="Xem hoạt động gần đây" onClick={() => openActivity(user)}>
-                               <Eye className="w-4 h-4" />
-                             </Button>
-                             <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-blue-600 hover:bg-blue-50" title="Chỉnh sửa thông tin" onClick={() => openEdit(user)}>
-                               <Edit className="w-4 h-4" />
-                             </Button>
-                             <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-amber-600 hover:bg-amber-50" title="Đổi vai trò / phân loại" onClick={() => user.role === 'DRIVER' ? openDriverType(user) : openRole(user)}>
-                               <UserCog className="w-4 h-4" />
-                             </Button>
-                          </div>
-                        </TableCell>
+
                       </TableRow>
                     ))}
                 </TableBody>
@@ -829,6 +816,9 @@ export default function UserManagementPage() {
               </div>
 
               <div className="space-y-2 pt-2 border-t border-slate-100">
+                <Button variant="outline" className="w-full border-indigo-200 text-indigo-700 font-bold hover:bg-indigo-50 h-9 shadow-sm text-xs" onClick={() => { setShowDetailModal(false); openActivity(selectedUser); }}>
+                  <Activity className="w-3.5 h-3.5 mr-2 text-indigo-500" /> Xem hoạt động gần đây
+                </Button>
                 <Button variant="default" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-9 shadow-sm text-xs" onClick={() => { setShowDetailModal(false); openEdit(selectedUser); }}>
                   <Edit className="w-3.5 h-3.5 mr-2" /> Chỉnh sửa
                 </Button>

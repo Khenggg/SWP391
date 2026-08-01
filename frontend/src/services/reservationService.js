@@ -108,6 +108,11 @@ const mapReservationForCache = (reservation, payment, metadata = {}) => ({
   paymentStatus: reservation.paymentStatus,
   bookingAmount: reservation.bookingAmount,
   plateNumber: reservation.plateNumber,
+  vehicleTypeId: reservation.vehicleTypeId,
+  vehicleTypeName: metadata.vehicleTypeName || reservation.vehicleTypeName,
+  requiresSlot: metadata.requiresSlot ?? reservation.requiresSlot,
+  snapshotReservationHourlyPrice: Number(reservation.snapshotReservationHourlyPrice ?? 0),
+  durationHours: Number(reservation.reservedDurationMinutes ?? 0) / 60 || metadata.durationHours,
   areaId: reservation.areaId,
   slotId: reservation.slotId,
   areaName: metadata.areaName || "Khu vực đã chọn",
@@ -129,6 +134,15 @@ const mapSupportReservationForCache = (reservation, cached = {}) => ({
   paymentStatus: reservation.paymentStatus,
   bookingAmount: reservation.bookingAmount,
   plateNumber: reservation.plateNumber,
+  vehicleTypeId: reservation.vehicleTypeId,
+  vehicleTypeName: reservation.vehicleTypeName || cached.vehicleTypeName,
+  requiresSlot: reservation.requiresSlot ?? cached.requiresSlot,
+  snapshotReservationHourlyPrice: Number(
+    reservation.snapshotReservationHourlyPrice ?? cached.snapshotReservationHourlyPrice ?? 0
+  ),
+  durationHours: Number(
+    reservation.reservedDurationMinutes ?? (Number(cached.durationHours || 0) * 60)
+  ) / 60,
   areaId: reservation.areaId,
   slotId: reservation.slotId,
   areaName: reservation.areaName || "Khu vực đã chọn",
@@ -148,6 +162,9 @@ const mapSupportHistoryItem = (item) => ({
   paymentStatus: item.paymentStatus,
   plateNumber: item.plateNumber,
   vehicleTypeId: item.vehicleTypeId,
+  vehicleTypeName: item.vehicleTypeName,
+  snapshotReservationHourlyPrice: Number(item.snapshotReservationHourlyPrice ?? 0),
+  durationHours: Number(item.reservedDurationMinutes ?? 0) / 60,
   areaId: item.areaId,
   areaName: item.areaName || "Khu vực đã chọn",
   slotId: item.slotId,
@@ -245,10 +262,10 @@ export const reservationService = {
     return cached;
   },
 
-  getAvailableSlots: async (vehicleTypeId = 5) => {
+  getAvailableSlots: async (vehicleTypeId) => {
     const vId = Number(vehicleTypeId);
     const res = await coreAxiosClient.get(`/reservations/available-locations?vehicleTypeId=${vId}`);
-    if (!res.success || !res.data) return { slots: [], areas: [] };
+    if (!res.success || !res.data) return { slots: [], areas: [], requiresSlot: false };
 
     const slots = (res.data.availableSlots || []).map((s) => ({
       id: s.slotId,
@@ -271,7 +288,7 @@ export const reservationService = {
       floorName: a.floorName,
       availableSlots: a.availableCapacity,
       totalSlots: a.totalCapacity,
-      vehicleTypeName: vId === 5 ? "Ô Tô" : "Xe Máy",
+      vehicleTypeId: vId,
       status: "ACTIVE"
     }));
 
@@ -289,14 +306,14 @@ export const reservationService = {
             floorName: s.floorName,
             availableSlots: slots.filter((sl) => sl.areaId === s.areaId).length,
             totalSlots: slots.filter((sl) => sl.areaId === s.areaId).length,
-            vehicleTypeName: "Ô Tô",
+            vehicleTypeId: vId,
             status: "ACTIVE"
           });
         }
       });
     }
 
-    return { slots, areas };
+    return { slots, areas, requiresSlot: Boolean(res.data.requiresSlot) };
   },
 
   getHistory: async (_page = 0, limit = 5) => {
@@ -341,9 +358,18 @@ export const reservationService = {
     };
   },
 
-  createReservation: async (plateNumber, vehicleTypeId, floorId, areaId, durationHours, slotId, areaName, slotName) => {
+  createReservation: async ({
+    vehicleTypeId,
+    vehicleTypeName,
+    requiresSlot,
+    floorId,
+    areaId,
+    durationHours,
+    slotId,
+    areaName,
+    slotName
+  }) => {
     const res = await coreAxiosClient.post("/reservations", {
-      plateNumber,
       vehicleTypeId,
       floorId,
       areaId,
@@ -354,7 +380,10 @@ export const reservationService = {
     if (res.success && res.data) {
       const flatReservation = mapReservationForCache(res.data.reservation, res.data.payment, {
         areaName,
-        slotName
+        slotName,
+        vehicleTypeName,
+        requiresSlot,
+        durationHours
       });
 
       if (Number(flatReservation.bookingAmount || 0) > 0 && !flatReservation.qrCode && !flatReservation.checkoutUrl) {

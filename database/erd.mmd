@@ -69,6 +69,8 @@ erDiagram
     users o|--o{ parking_sessions : "override_by nullable"
     users o|--o{ parking_sessions : "plate_corrected_by nullable"
     parking_sessions ||--o{ parking_session_images : "session_id"
+    parking_sessions o|--o{ vehicle_snapshot_uploads : "session_id nullable"
+    users o|--o{ vehicle_snapshot_uploads : "uploaded_by nullable"
 
     parking_sessions o|--o{ payments : "session_id nullable"
     reservations o|--o{ payments : "reservation_id nullable"
@@ -426,6 +428,32 @@ erDiagram
         NUMERIC confidence "nullable 0-100"
         BOOLEAN is_primary "one primary per session/type"
         TIMESTAMPTZ captured_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    vehicle_snapshot_uploads {
+        BIGSERIAL id PK
+        UUID snapshot_token "unique"
+        BIGINT session_id FK "nullable"
+        VARCHAR image_type "ENTRY_PLATE/ENTRY_VEHICLE/EXIT_PLATE/EXIT_VEHICLE"
+        VARCHAR image_url "not null"
+        VARCHAR storage_path "nullable"
+        VARCHAR mime_type "nullable"
+        BIGINT size_bytes "nullable"
+        VARCHAR upload_status "UPLOADED/ATTACHED/EXPIRED/FAILED"
+        VARCHAR ocr_status "NOT_REQUESTED/PENDING/PROCESSING/SUCCEEDED/FAILED"
+        VARCHAR ocr_provider "nullable"
+        TIMESTAMPTZ ocr_processed_at "nullable"
+        TEXT ocr_error "nullable"
+        JSONB ocr_payload "nullable"
+        VARCHAR detected_plate_number "nullable"
+        VARCHAR detected_normalized_plate_number "nullable"
+        NUMERIC confidence "nullable 0-100"
+        BIGINT uploaded_by FK "nullable"
+        TIMESTAMPTZ captured_at
+        TIMESTAMPTZ attached_at "nullable"
+        TIMESTAMPTZ expires_at "nullable"
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
     }

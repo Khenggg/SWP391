@@ -101,8 +101,21 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
 
             // 2. Tìm bảng giá
             var activeRule = await _context.PricingRules
+                .Where(p => p.VehicleTypeId == vehicle.VehicleTypeId && p.Status == "ACTIVE" && p.EffectiveFrom <= DateTimeOffset.UtcNow)
+                .OrderByDescending(p => p.EffectiveFrom)
+                .ThenByDescending(p => p.Id)
+                .FirstOrDefaultAsync();
+
+            activeRule ??= await _context.PricingRules
                 .Where(p => p.VehicleTypeId == vehicle.VehicleTypeId && p.Status == "ACTIVE")
                 .OrderByDescending(p => p.EffectiveFrom)
+                .ThenByDescending(p => p.Id)
+                .FirstOrDefaultAsync();
+
+            activeRule ??= await _context.PricingRules
+                .Where(p => p.VehicleTypeId == vehicle.VehicleTypeId)
+                .OrderByDescending(p => p.EffectiveFrom)
+                .ThenByDescending(p => p.Id)
                 .FirstOrDefaultAsync();
             if (activeRule == null)
             {

@@ -20,3 +20,4 @@ Thu muc nay dung cho smoke test va acceptance E2E, khong dung de thay the integr
 - Moi spec chi nen co 1 business goal ro rang.
 - Ten file phai noi duoc acceptance criteria.
 - E2E chi cover critical journey, khong cover tat ca chi tiet UI.
+- E2E goi backend that cua moi truong test/production-like; khong intercept API de tra du lieu gia.

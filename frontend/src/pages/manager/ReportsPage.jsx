@@ -109,6 +109,11 @@ export default function ReportsPage() {
                 value={dateRange.from}
                 onChange={(e) => setDateRange(prev => ({...prev, from: e.target.value}))}
                 className="bg-transparent border-none text-sm focus:ring-0 text-slate-700 font-medium cursor-pointer"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    loadData();
+                  }
+                }}
               />
             </div>
             <div className="h-4 w-[1px] bg-slate-300"></div>
@@ -119,6 +124,11 @@ export default function ReportsPage() {
                 value={dateRange.to}
                 onChange={(e) => setDateRange(prev => ({...prev, to: e.target.value}))}
                 className="bg-transparent border-none text-sm focus:ring-0 text-slate-700 font-medium cursor-pointer"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    loadData();
+                  }
+                }}
               />
             </div>
             <Button 

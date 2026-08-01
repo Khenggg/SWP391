@@ -9,15 +9,15 @@ const formatRecentTime = (value) => {
 
 const statusBadge = (status) => {
   if (status === "COMPLETED") {
-    return <span className="bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded mr-2 text-[10px]">Da su dung</span>;
+    return <span className="bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded mr-2 text-[10px]">Đã sử dụng</span>;
   }
   if (status === "EXPIRED") {
-    return <span className="bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded mr-2 text-[10px]">Het han</span>;
+    return <span className="bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded mr-2 text-[10px]">Hết hạn</span>;
   }
   if (status === "CONFIRMED") {
-    return <span className="bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded mr-2 text-[10px]">Da xac nhan</span>;
+    return <span className="bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded mr-2 text-[10px]">Đã xác nhận</span>;
   }
-  return <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded mr-2 text-[10px]">Dang cho</span>;
+  return <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded mr-2 text-[10px]">Đang chờ</span>;
 };
 
 const RecentHistorySkeleton = () => (
@@ -42,10 +42,13 @@ export default function BookingSummaryPanel({
   hourlyPrice = 20000,
   recentHistory = [],
   isHistoryLoading = false,
-  activeReservation = null
+  activeReservation = null,
+  vehicleTypes = []
 }) {
-  const displayVehicle = activeReservation 
-    ? { plateNumber: activeReservation.plateNumber, vehicleTypeName: activeReservation.vehicleTypeName || (activeReservation.vehicleTypeId === 5 ? "Ô Tô" : "Xe Máy") }
+  const activeVehicleTypeName = activeReservation?.vehicleTypeName
+    || vehicleTypes.find((item) => String(item.vehicleTypeId) === String(activeReservation?.vehicleTypeId))?.vehicleTypeName;
+  const displayVehicle = activeReservation
+    ? { vehicleTypeName: activeVehicleTypeName }
     : selectedVehicle;
     
   const displayAreaName = activeReservation?.areaName || selectedAreaName;
@@ -56,31 +59,31 @@ export default function BookingSummaryPanel({
     <div className="space-y-6">
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
         <h3 className="font-bold text-slate-800 border-b border-slate-100 pb-4 mb-4">
-          Tom tat dat cho
+          Tóm tắt đặt chỗ
         </h3>
 
         <div className="space-y-4 text-sm">
           <div className="flex justify-between gap-4">
-            <span className="text-slate-500">Phuong tien</span>
+            <span className="text-slate-500">Phương tiện</span>
             <span className="font-semibold text-slate-800 text-right">
               {displayVehicle ? (
                 <>
-                  <span className="mr-2 uppercase">{displayVehicle.plateNumber || displayVehicle.plate}</span>
-                  <span className="text-xs text-slate-500">({displayVehicle.vehicleTypeName || "Không xác định"})</span>
+                  <span className="block uppercase">{displayVehicle.vehicleTypeName || "Không xác định"}</span>
+                  <span className="block text-xs font-medium text-slate-500">Biển số xác nhận tại cổng</span>
                 </>
-              ) : "Chua chon"}
+              ) : "Chưa chọn"}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-slate-500">Thoi gian</span>
+            <span className="text-slate-500">Thời gian</span>
             <span className="font-semibold text-slate-800">
-              {activeReservation ? `${activeReservation.durationHours || 3} gio` : (durationHours ? `${durationHours} gio` : "Chua chon")}
+              {activeReservation ? `${activeReservation.durationHours || 3} giờ` : (durationHours ? `${durationHours} giờ` : "Chưa chọn")}
             </span>
           </div>
           <div className="flex justify-between gap-4">
-            <span className="text-slate-500">Vi tri do</span>
+            <span className="text-slate-500">Vị trí đỗ</span>
             <span className="font-semibold text-slate-800 text-right">
-              {displayAreaName || "Chua chon"}
+              {displayAreaName || "Chưa chọn"}
               {displaySlotName && (
                 <span className="block text-indigo-600 text-xs font-bold mt-0.5">
                   Slot: {displaySlotName}
@@ -92,37 +95,37 @@ export default function BookingSummaryPanel({
 
         <div className="border-t border-slate-100 mt-4 pt-4">
           <div className="flex justify-between items-center mb-2 gap-4">
-            <span className="text-slate-500 font-semibold">Gia du kien</span>
+            <span className="text-slate-500 font-semibold">Giá dự kiến</span>
             <span className="text-xl font-black text-indigo-600">
               {displayPrice > 0 ? `${displayPrice.toLocaleString()} VND` : "0 VND"}
             </span>
           </div>
           {(!displayVehicle || !displayAreaName) && (
             <div className="bg-blue-50 text-blue-600 text-xs font-semibold p-3 rounded-lg text-center">
-              Vui long chon day du thong tin de xem chi tiet.
+              Vui lòng chọn đầy đủ thông tin để xem chi tiết.
             </div>
           )}
         </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-        <h3 className="font-bold text-slate-800 mb-4">Quy dinh dat cho</h3>
+        <h3 className="font-bold text-slate-800 mb-4">Quy định đặt chỗ</h3>
         <ul className="space-y-3 text-xs text-slate-600">
           <li className="flex gap-2 items-start">
             <Info className="w-4 h-4 shrink-0 text-slate-400" />
-            <span>Ap dung theo khu vuc va loai phuong tien con cho trong he thong.</span>
+            <span>Áp dụng theo khu vực và loại phương tiện còn chỗ trống trên hệ thống.</span>
           </li>
           <li className="flex gap-2 items-start">
             <Clock className="w-4 h-4 shrink-0 text-slate-400" />
-            <span>Giu cho toi da <strong className="text-rose-500">10 phut</strong> ke tu khi xac nhan.</span>
+            <span>Giữ chỗ tối đa <strong className="text-rose-500">10 phút</strong> kể từ khi xác nhận.</span>
           </li>
           <li className="flex gap-2 items-start">
             <CheckCircle2 className="w-4 h-4 shrink-0 text-slate-400" />
-            <span>Booking da thanh toan se hien trong lich su va dung de quet vao bai.</span>
+            <span>Booking đã thanh toán sẽ hiện trong lịch sử và dùng để quét vào bãi.</span>
           </li>
           <li className="flex gap-2 items-start">
             <XCircle className="w-4 h-4 shrink-0 text-slate-400" />
-            <span>Booking da huy khong hien trong lich su cua tai xe.</span>
+            <span>Booking đã hủy không hiện trong lịch sử của tài xế.</span>
           </li>
         </ul>
       </div>
@@ -132,7 +135,7 @@ export default function BookingSummaryPanel({
       ) : recentHistory.length > 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-slate-800">Dat cho gan day</h3>
+            <h3 className="font-bold text-slate-800">Đặt chỗ gần đây</h3>
           </div>
 
           <div className="space-y-4">
@@ -146,7 +149,7 @@ export default function BookingSummaryPanel({
                     </span>
                   </div>
                   <div className="text-slate-600 font-medium">
-                    {item.areaName || "--"} - Bien so: {item.plateNumber || "--"}
+                    {item.areaName || "--"} - {item.vehicleTypeName || `Loại xe #${item.vehicleTypeId}`}
                   </div>
                 </div>
               </div>

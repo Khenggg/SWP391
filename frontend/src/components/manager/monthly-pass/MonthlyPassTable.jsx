@@ -1,8 +1,6 @@
 import React from "react";
-import { Eye, Edit, RefreshCw, Lock, Unlock } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import LicensePlate from "@/components/ui/license-plate";
 import { PASS_STATUS } from "@/constants";
 
@@ -26,10 +24,7 @@ export default function MonthlyPassTable({
   passes, 
   isLoading, 
   selectedPassId, 
-  onRowClick,
-  onEdit,
-  onRenew,
-  onLockToggle
+  onRowClick
 }) {
   return (
     <div className="overflow-x-auto flex-1">
@@ -44,14 +39,13 @@ export default function MonthlyPassTable({
             <TableHead className="whitespace-nowrap">Hiệu lực</TableHead>
             <TableHead className="whitespace-nowrap text-center">Số ngày còn lại</TableHead>
             <TableHead className="whitespace-nowrap text-center">Trạng thái</TableHead>
-            <TableHead className="whitespace-nowrap text-center">Thao tác</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            <TableRow><TableCell colSpan={9} className="text-center py-10 text-slate-500">Đang tải dữ liệu...</TableCell></TableRow>
+            <TableRow><TableCell colSpan={8} className="text-center py-10 text-slate-500">Đang tải dữ liệu...</TableCell></TableRow>
           ) : passes.length === 0 ? (
-            <TableRow><TableCell colSpan={9} className="text-center py-10 text-slate-500">Không tìm thấy vé tháng nào</TableCell></TableRow>
+            <TableRow><TableCell colSpan={8} className="text-center py-10 text-slate-500">Không tìm thấy vé tháng nào</TableCell></TableRow>
           ) : (
             passes.map((pass) => {
               const remainingDays = calculateRemainingDays(pass.endDate);
@@ -101,22 +95,6 @@ export default function MonthlyPassTable({
                     <Badge variant="outline" className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeClass}`}>
                       {statusDisplay}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-blue-600" onClick={() => onRowClick(pass)}>
-                        <Eye className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-slate-800" onClick={() => onEdit(pass)}>
-                        <Edit className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-emerald-600" onClick={() => onRenew(pass)}>
-                        <RefreshCw className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className={`h-7 w-7 text-slate-400 ${pass.status === PASS_STATUS.LOCKED ? 'hover:text-emerald-600' : 'hover:text-red-600'}`} onClick={() => onLockToggle(pass)}>
-                        {pass.status === PASS_STATUS.LOCKED ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-                      </Button>
-                    </div>
                   </TableCell>
                 </TableRow>
               );

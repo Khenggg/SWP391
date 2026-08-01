@@ -9,7 +9,7 @@ Ownership:
 - Dashboard
 - Reports and Excel export
 - Audit log search
-- Optional feedback/notification/mock device modules
+- Optional feedback/notification modules
 - `/api/public/*` and `/api/support/*`
 
 Database rule:

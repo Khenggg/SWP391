@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowRightLeft, Ban, RefreshCw, Eye, Search, LockKeyhole, History, Clock, X } from "lucide-react";
+import { ArrowRightLeft, Ban, RefreshCw, Search, LockKeyhole, History, Clock, X } from "lucide-react";
 import { toast } from "sonner";
 import { adminSessionService } from "@/services/adminSessionService";
 import { parkingService } from "@/services/parkingService";
@@ -38,17 +38,19 @@ const PAYMENT_STATUS_BADGE = {
   "WAIVED": "bg-slate-100 text-slate-600 border-slate-200"
 };
 
-function formatVND(amount) { 
+function formatVND(amount) {
   if (amount === undefined || amount === null) return "-";
-  return Number(amount).toLocaleString("vi-VN") + "đ"; 
+  return Number(amount).toLocaleString("vi-VN") + "đ";
 }
 
 export default function SessionsAdministrationPage() {
   const [sessions, setSessions] = useState([]);
+  const [floors, setFloors] = useState([]);
+  const [areas, setAreas] = useState([]);
   const [slots, setSlots] = useState([]);
   const [vehicleTypes, setVehicleTypes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Filters
   const [filterSearch, setFilterSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
@@ -61,6 +63,8 @@ export default function SessionsAdministrationPage() {
   const [action, setAction] = useState(null);
   const [reason, setReason] = useState("");
   const [newSlotId, setNewSlotId] = useState("");
+  const [selectedFloorId, setSelectedFloorId] = useState("");
+  const [selectedAreaId, setSelectedAreaId] = useState("");
 
   const loadData = async () => {
     setIsLoading(true);
@@ -70,13 +74,17 @@ export default function SessionsAdministrationPage() {
       if (filterCustomerType !== "ALL") params.customerType = filterCustomerType;
       if (filterVehicleType !== "ALL") params.vehicleTypeId = filterVehicleType;
       if (filterSearch) params.keyword = filterSearch;
-      
-      const [sessionData, slotData, vTypes] = await Promise.all([
+
+      const [sessionData, floorData, areaData, slotData, vTypes] = await Promise.all([
         adminSessionService.getSessions(params),
+        parkingService.getFloors(),
+        parkingService.getAreas(),
         parkingService.getSlots(),
         parkingService.getVehicleTypes()
       ]);
       setSessions(sessionData || []);
+      setFloors(floorData || []);
+      setAreas(areaData || []);
       setSlots(slotData || []);
       setVehicleTypes(vTypes || []);
     } catch (error) {
@@ -98,19 +106,50 @@ export default function SessionsAdministrationPage() {
     loadData();
   }
 
-  const availableSlots = slots.filter((slot) => slot.status === "AVAILABLE");
+  const selectedVehicleType = vehicleTypes.find((vehicleType) =>
+    String(vehicleType.id) === String(selectedSession?.vehicleTypeId)
+  );
+  const isCarSession = Boolean(
+    selectedSession && (selectedSession.requiresSlot ?? selectedVehicleType?.requiresSlot)
+  );
+  const selectedVehicleTypeId = selectedSession?.vehicleTypeId ?? selectedVehicleType?.id;
+
+  // Cascading filter: areas for the selected floor matching the session vehicle type
+  const filteredAreas = areas.filter((area) => {
+    const belongsToFloor = String(area.floorId) === selectedFloorId;
+    const isActive = area.status === "ACTIVE";
+    if (!belongsToFloor || !isActive) return false;
+
+    const supportsVehicleType = (area.vehicleTypeIds || []).some(
+      (vehicleTypeId) => String(vehicleTypeId) === String(selectedVehicleTypeId)
+    );
+    const isCurrentArea = String(area.id) === String(selectedSession?.areaId);
+    return supportsVehicleType && (isCarSession || !isCurrentArea);
+  });
+
+  // Available slots for the selected area
+  const filteredSlots = slots.filter(s =>
+    String(s.areaId) === selectedAreaId &&
+    s.status === "AVAILABLE" &&
+    String(s.allowedVehicleTypeId) === String(selectedVehicleTypeId) &&
+    String(s.id) !== String(selectedSession?.slotId)
+  );
 
   const openActionDialog = (session, act) => {
     setSelectedSession(session);
     setAction(act);
     setReason("");
     setNewSlotId("");
+    setSelectedFloorId("");
+    setSelectedAreaId("");
   };
 
   const closeDialog = () => {
     setAction(null);
     setReason("");
     setNewSlotId("");
+    setSelectedFloorId("");
+    setSelectedAreaId("");
   };
 
   const submitAction = async () => {
@@ -121,29 +160,36 @@ export default function SessionsAdministrationPage() {
     }
 
     try {
-
       if (action === "cancel") {
         await adminSessionService.cancel(selectedSession.id, { reason });
       }
       if (action === "moveSlot") {
-        if (!newSlotId) {
-          toast.error("Vui lòng chọn slot mới.");
-          return;
+        if (isCarSession) {
+          if (!newSlotId) {
+            toast.error("Vui lòng chọn slot mới.");
+            return;
+          }
+          await adminSessionService.moveSlot(selectedSession.id, { reason, targetSlotId: newSlotId });
+        } else {
+          if (!selectedAreaId) {
+            toast.error("Vui lòng chọn khu vực mới.");
+            return;
+          }
+          await adminSessionService.moveSlot(selectedSession.id, { reason, targetAreaId: selectedAreaId });
         }
-        await adminSessionService.moveSlot(selectedSession.id, { reason, newSlotId });
       }
       toast.success("Thao tác thành công.");
       closeDialog();
       await loadData();
-      setSelectedSession(null); 
+      setSelectedSession(null);
     } catch (error) {
       toast.error(error.message || "Không thể thực hiện thao tác.");
     }
   };
 
   return (
-    <div className="flex h-full gap-4">
-      <div className="flex flex-col flex-1 gap-4 transition-all duration-300">
+    <div className="flex h-full gap-4 overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0 gap-4 transition-all duration-300">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Quản lý Phiên Gửi Xe</h2>
           <p className="text-sm text-slate-500 mt-1">Tra cứu, theo dõi và xử lý các phiên gửi xe đang hoạt động hoặc phát sinh sự cố.</p>
@@ -153,14 +199,19 @@ export default function SessionsAdministrationPage() {
         <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-slate-200">
           <div className="relative flex-1 max-w-xs">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <Input 
-              placeholder="Tìm mã phiên, thẻ, biển số..." 
+            <Input
+              placeholder="Tìm mã phiên, thẻ, biển số..."
               className="pl-9 bg-slate-50"
               value={filterSearch}
               onChange={e => setFilterSearch(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  loadData();
+                }
+              }}
             />
           </div>
-          
+
           <div className="flex flex-col gap-1">
             <span className="text-[10px] text-slate-500 font-medium">Trạng thái</span>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -230,18 +281,18 @@ export default function SessionsAdministrationPage() {
                   <TableHead className="font-semibold text-slate-600 whitespace-nowrap text-center">Thời gian vào</TableHead>
                   <TableHead className="font-semibold text-slate-600 whitespace-nowrap text-center">Trạng thái phiên</TableHead>
                   <TableHead className="font-semibold text-slate-600 whitespace-nowrap text-center">Thanh toán</TableHead>
-                  <TableHead className="font-semibold text-slate-600 whitespace-nowrap text-center">Thao tác</TableHead>
+
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-10 text-slate-500">Đang tải dữ liệu...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center py-10 text-slate-500">Đang tải dữ liệu...</TableCell></TableRow>
                 ) : sessions.length === 0 ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-10 text-slate-500">Không tìm thấy phiên gửi nào</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center py-10 text-slate-500">Không tìm thấy phiên gửi nào</TableCell></TableRow>
                 ) : (
                   sessions.map(session => (
-                    <TableRow 
-                      key={session.id} 
+                    <TableRow
+                      key={session.id}
                       className={`hover:bg-slate-50 cursor-pointer ${selectedSession?.id === session.id && !action ? "bg-blue-50/50" : ""}`}
                       onClick={() => setSelectedSession(session)}
                     >
@@ -264,19 +315,7 @@ export default function SessionsAdministrationPage() {
                           {session.paymentStatus}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-center" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-center gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600" onClick={() => setSelectedSession(session)}>
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600" onClick={() => openActionDialog(session, "moveSlot")} title="Chuyển slot">
-                            <ArrowRightLeft className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600" onClick={() => openActionDialog(session, "cancel")} title="Hủy phiên">
-                            <Ban className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+
                     </TableRow>
                   ))
                 )}
@@ -291,14 +330,14 @@ export default function SessionsAdministrationPage() {
 
       {/* Detail Panel */}
       {selectedSession && !action && (
-        <div className="w-[400px] bg-white border border-slate-200 rounded-lg flex flex-col shadow-sm flex-shrink-0 animate-in slide-in-from-right-4">
+        <div className="w-[400px] min-w-[320px] bg-white border border-slate-200 rounded-lg flex flex-col shadow-sm shrink-0 animate-in slide-in-from-right-4">
           <div className="flex items-center justify-between p-4 border-b border-slate-100">
             <h3 className="font-bold text-lg text-slate-800">Chi tiết phiên</h3>
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setSelectedSession(null)}>
               <X className="w-4 h-4" />
             </Button>
           </div>
-          
+
           <div className="p-5 flex-1 overflow-y-auto space-y-4 text-sm">
             <div className="flex justify-between items-center bg-blue-50/50 p-2 rounded-md">
               <span className="text-slate-500 font-medium">Mã phiên</span>
@@ -330,7 +369,7 @@ export default function SessionsAdministrationPage() {
             </div>
 
             <div className="w-full h-px bg-slate-100" />
-            
+
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-slate-500">Cổng vào / Cổng ra</span>
@@ -361,7 +400,7 @@ export default function SessionsAdministrationPage() {
             </div>
 
             <div className="w-full h-px bg-slate-100" />
-            
+
             <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 space-y-2">
               <div className="flex justify-between items-center mb-3">
                 <span className="font-semibold text-slate-700">Snapshot giá (khi vào)</span>
@@ -434,7 +473,7 @@ export default function SessionsAdministrationPage() {
             <p className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">Thao tác quản trị</p>
             <div className="grid grid-cols-2 gap-2">
               <Button variant="outline" className="w-full justify-center bg-white hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200" onClick={() => openActionDialog(selectedSession, "moveSlot")}>
-                <ArrowRightLeft className="w-4 h-4 mr-2" /> Chuyển slot
+                <ArrowRightLeft className="w-4 h-4 mr-2" /> Chuyển vị trí
               </Button>
               <Button variant="outline" className="w-full justify-center text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 bg-white" onClick={() => openActionDialog(selectedSession, "cancel")}>
                 <Ban className="w-4 h-4 mr-2" /> Hủy phiên
@@ -449,10 +488,10 @@ export default function SessionsAdministrationPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {action === "moveSlot" ? "Điều chuyển slot thủ công" : "Hủy phiên"}
+              {action === "moveSlot" ? (isCarSession ? "Điều chuyển slot thủ công" : "Điều chuyển khu vực thủ công") : "Hủy phiên"}
             </DialogTitle>
             <DialogDescription>
-              {action === "moveSlot" ? "Chuyển xe sang slot AVAILABLE khi cảm biến hoặc slot gặp lỗi." : 
+              {action === "moveSlot" ? (isCarSession ? "Chuyển xe sang slot AVAILABLE khi cảm biến hoặc slot gặp lỗi." : "Điều chuyển xe máy sang khu vực đỗ mới.") :
                "Chuyển phiên sang CANCELLED để giải phóng vận hành."}
             </DialogDescription>
           </DialogHeader>
@@ -461,26 +500,68 @@ export default function SessionsAdministrationPage() {
             <div className="rounded-lg border bg-slate-50 p-3 text-sm">
               <div className="font-mono font-black">{selectedSession.sessionCode}</div>
               <div className="mt-1 text-slate-500">{selectedSession.card?.code || selectedSession.cardCode} / {selectedSession.plateNumber || "Không biển"}</div>
+              {isCarSession && !selectedSession.slotCode && (
+                <div className="mt-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 p-2 rounded font-medium">
+                  ⚠️ Phiên xe này chưa có vị trí đỗ cũ. Yêu cầu điều chuyển có thể bị từ chối bởi hệ thống (Yêu cầu phải có vị trí đỗ cũ).
+                </div>
+              )}
             </div>
           )}
 
           <div className="space-y-4 py-2">
             {action === "moveSlot" && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Slot mới <span className="text-red-500">*</span></label>
-                <Select value={newSlotId} onValueChange={setNewSlotId}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Chọn slot AVAILABLE" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableSlots.length === 0 && <SelectItem value="none" disabled>Không có slot trống</SelectItem>}
-                    {availableSlots.map((slot) => (
-                      <SelectItem key={slot.id} value={String(slot.id)}>
-                        {slot.floorCode || slot.floor?.code} / {slot.areaCode || slot.area?.code} / {slot.code}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Tầng <span className="text-red-500">*</span></label>
+                  <Select value={selectedFloorId} onValueChange={(v) => { setSelectedFloorId(v); setSelectedAreaId(""); setNewSlotId(""); }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Chọn tầng" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {floors.filter(f => f.status === "ACTIVE").map((floor) => (
+                        <SelectItem key={floor.id} value={String(floor.id)}>
+                          {floor.floorCode} - {floor.floorName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">{isCarSession ? "Khu vực (Ô tô)" : "Khu vực (Xe máy)"} <span className="text-red-500">*</span></label>
+                  <Select value={selectedAreaId} onValueChange={(v) => { setSelectedAreaId(v); setNewSlotId(""); }} disabled={!selectedFloorId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={!selectedFloorId ? "Chọn tầng trước" : filteredAreas.length === 0 ? "Tầng này không có khu vực phù hợp" : "Chọn khu vực"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredAreas.length === 0 && <SelectItem value="none" disabled>Không có khu vực phù hợp</SelectItem>}
+                      {filteredAreas.map((area) => (
+                        <SelectItem key={area.id} value={String(area.id)}>
+                          {area.areaCode} - {area.areaName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {isCarSession && (
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Slot mới <span className="text-red-500">*</span></label>
+                    <Select value={newSlotId} onValueChange={setNewSlotId} disabled={!selectedAreaId}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={!selectedAreaId ? "Chọn khu vực trước" : filteredSlots.length === 0 ? "Không có slot trống" : "Chọn slot AVAILABLE"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredSlots.length === 0 && <SelectItem value="none" disabled>Không có slot trống</SelectItem>}
+                        {filteredSlots.map((slot) => (
+                          <SelectItem key={slot.id} value={String(slot.id)}>
+                            {slot.slotCode}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             )}
 

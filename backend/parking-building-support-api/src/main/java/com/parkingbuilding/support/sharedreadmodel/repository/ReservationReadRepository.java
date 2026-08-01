@@ -31,6 +31,9 @@ public interface ReservationReadRepository extends ReadOnlyRepository<Reservatio
                 r.booking_amount AS "bookingAmount",
                 r.plate_number AS "plateNumber",
                 r.vehicle_type_id AS "vehicleTypeId",
+                vt.name AS "vehicleTypeName",
+                r.snapshot_reservation_hourly_price AS "snapshotReservationHourlyPrice",
+                r.reserved_duration_minutes AS "reservedDurationMinutes",
                 r.floor_id AS "floorId",
                 r.area_id AS "areaId",
                 a.area_name AS "areaName",
@@ -52,6 +55,7 @@ public interface ReservationReadRepository extends ReadOnlyRepository<Reservatio
                 p.expired_at AS "paymentExpiredAt"
             FROM reservations r
             JOIN driver_profiles dp ON dp.id = r.driver_id
+            JOIN vehicle_types vt ON vt.id = r.vehicle_type_id
             LEFT JOIN areas a ON a.id = r.area_id
             LEFT JOIN slots s ON s.id = r.slot_id
             LEFT JOIN LATERAL (
@@ -79,6 +83,9 @@ public interface ReservationReadRepository extends ReadOnlyRepository<Reservatio
                 r.booking_amount AS "bookingAmount",
                 r.plate_number AS "plateNumber",
                 r.vehicle_type_id AS "vehicleTypeId",
+                vt.name AS "vehicleTypeName",
+                r.snapshot_reservation_hourly_price AS "snapshotReservationHourlyPrice",
+                r.reserved_duration_minutes AS "reservedDurationMinutes",
                 r.floor_id AS "floorId",
                 r.area_id AS "areaId",
                 a.area_name AS "areaName",
@@ -100,6 +107,7 @@ public interface ReservationReadRepository extends ReadOnlyRepository<Reservatio
                 p.expired_at AS "paymentExpiredAt"
             FROM reservations r
             JOIN driver_profiles dp ON dp.id = r.driver_id
+            JOIN vehicle_types vt ON vt.id = r.vehicle_type_id
             LEFT JOIN areas a ON a.id = r.area_id
             LEFT JOIN slots s ON s.id = r.slot_id
             LEFT JOIN LATERAL (
@@ -131,6 +139,9 @@ public interface ReservationReadRepository extends ReadOnlyRepository<Reservatio
         java.math.BigDecimal getBookingAmount();
         String getPlateNumber();
         Long getVehicleTypeId();
+        String getVehicleTypeName();
+        java.math.BigDecimal getSnapshotReservationHourlyPrice();
+        Integer getReservedDurationMinutes();
         Long getFloorId();
         Long getAreaId();
         String getAreaName();

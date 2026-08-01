@@ -9,6 +9,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
         public string CardCode { get; set; } = string.Empty;
         public string QrToken { get; set; } = string.Empty;
         public string? PlateNumber { get; set; }
+        public bool NoPlate { get; set; }
         public string? VehicleDescription { get; set; }
         public long VehicleTypeId { get; set; }
         public string VehicleTypeName { get; set; } = string.Empty;

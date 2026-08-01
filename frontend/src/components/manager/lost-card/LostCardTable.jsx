@@ -1,5 +1,4 @@
 import React from "react";
-import { Eye } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,24 +28,18 @@ export default function LostCardTable({
             <TableHead className="whitespace-nowrap">Thời gian tạo</TableHead>
             <TableHead className="whitespace-nowrap">Lý do mất thẻ</TableHead>
             <TableHead className="whitespace-nowrap text-center">Mức độ</TableHead>
-            <TableHead className="whitespace-nowrap text-center">Thao tác</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            <TableRow><TableCell colSpan={9} className="text-center py-10 text-slate-500">Đang tải dữ liệu...</TableCell></TableRow>
+            <TableRow><TableCell colSpan={8} className="text-center py-10 text-slate-500">Đang tải dữ liệu...</TableCell></TableRow>
           ) : cases.length === 0 ? (
-            <TableRow><TableCell colSpan={9} className="text-center py-10 text-slate-500">Không tìm thấy yêu cầu nào</TableCell></TableRow>
+            <TableRow><TableCell colSpan={8} className="text-center py-10 text-slate-500">Không tìm thấy yêu cầu nào</TableCell></TableRow>
           ) : (
             cases.map((item) => {
               const isSelected = selectedCaseId === item.id;
-              
-              // Mocking priority for demo purposes if not present
-              const priority = item.priority || "MEDIUM";
-              const priorityLabel = priority === "HIGH" ? "Cao" : priority === "MEDIUM" ? "Trung bình" : "Thấp";
-
-              // Mock creator role
-              const creatorRole = item.creatorRole || "STAFF";
+              const priority = item.priority?.toUpperCase();
+              const priorityLabel = priority === "HIGH" ? "Cao" : priority === "MEDIUM" ? "Trung bình" : priority === "LOW" ? "Thấp" : "Không xác định";
 
               return (
                 <TableRow 
@@ -74,9 +67,11 @@ export default function LostCardTable({
                       </div>
                       <div className="flex flex-col">
                         <span className="text-sm font-semibold text-slate-700">{item.reporterName || "Staff"}</span>
-                        <Badge variant="outline" className={`px-1.5 py-0 text-[9px] w-fit font-bold ${creatorRole === 'MANAGER' ? 'text-blue-600 border-blue-200 bg-blue-50' : 'text-emerald-600 border-emerald-200 bg-emerald-50'}`}>
-                          {creatorRole}
-                        </Badge>
+                        {item.creatorRole && (
+                          <Badge variant="outline" className={`px-1.5 py-0 text-[9px] w-fit font-bold ${item.creatorRole === 'MANAGER' ? 'text-blue-600 border-blue-200 bg-blue-50' : 'text-emerald-600 border-emerald-200 bg-emerald-50'}`}>
+                            {item.creatorRole}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </TableCell>
@@ -90,14 +85,9 @@ export default function LostCardTable({
                     {item.reason || "Không có lý do"}
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge variant="outline" className={`px-2 py-0.5 text-[10px] font-bold border ${PRIORITY_BADGE[priority]}`}>
+                    <Badge variant="outline" className={`px-2 py-0.5 text-[10px] font-bold border ${PRIORITY_BADGE[priority] || "border-slate-200 bg-slate-50 text-slate-500"}`}>
                       {priorityLabel}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600 bg-white border border-slate-200 shadow-sm" onClick={(e) => { e.stopPropagation(); onRowClick(item); }}>
-                      <Eye className="w-4 h-4" />
-                    </Button>
                   </TableCell>
                 </TableRow>
               );

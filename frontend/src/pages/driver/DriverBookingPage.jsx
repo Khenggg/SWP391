@@ -23,12 +23,12 @@ const isConfirmedReservationActive = (reservation) => {
 export default function DriverBookingPage() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
-  const [vehicles, setVehicles] = useState([]);
   const [areas, setAreas] = useState([]);
   const [recentHistory, setRecentHistory] = useState([]);
   const [pricingRules, setPricingRules] = useState([]);
   const [activeReservation, setActiveReservation] = useState(null);
   const [availableSlots, setAvailableSlots] = useState([]);
+  const [locationRequiresSlot, setLocationRequiresSlot] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   const [selectedVehicle, setSelectedVehicle] = useState(null);
@@ -38,13 +38,20 @@ export default function DriverBookingPage() {
   const [selectedSlotId, setSelectedSlotId] = useState(null);
   const [selectedSlotName, setSelectedSlotName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const selectedVehicleKey = selectedVehicle
-    ? [
-        selectedVehicle.id || selectedVehicle.vehicleId || "",
-        selectedVehicle.plateNumber || selectedVehicle.plate || "",
-        selectedVehicle.vehicleTypeId || selectedVehicle.vehicleTypeName || ""
-      ].join("|")
-    : null;
+  const selectedVehicleKey = selectedVehicle?.vehicleTypeId || null;
+
+  const bookingVehicleTypes = useMemo(() => {
+    const uniqueTypes = new Map();
+    pricingRules.forEach((rule) => {
+      if (!rule?.vehicleTypeId || !rule?.vehicleTypeName) return;
+      uniqueTypes.set(String(rule.vehicleTypeId), {
+        vehicleTypeId: Number(rule.vehicleTypeId),
+        vehicleTypeName: rule.vehicleTypeName,
+        requiresSlot: rule.requiresSlot ?? null,
+      });
+    });
+    return Array.from(uniqueTypes.values());
+  }, [pricingRules]);
 
   const selectedPricingRule = useMemo(() => {
     if (!selectedVehicle) return null;
@@ -54,6 +61,8 @@ export default function DriverBookingPage() {
       || rule.vehicleTypeName === selectedVehicle.vehicleTypeName
     ) || null;
   }, [pricingRules, selectedVehicle]);
+
+  const selectedRequiresSlot = selectedVehicle?.requiresSlot ?? locationRequiresSlot;
 
   const maxReservationHours = Math.min(
     24,
@@ -69,6 +78,7 @@ export default function DriverBookingPage() {
     setSelectedAreaName("");
     setSelectedSlotId(null);
     setSelectedSlotName("");
+    setLocationRequiresSlot(false);
   };
 
   useEffect(() => {
@@ -81,7 +91,6 @@ export default function DriverBookingPage() {
           reservationService.getActiveReservation()
         ]);
 
-        setVehicles([]);
         setRecentHistory(historyResult.status === "fulfilled" ? historyResult.value || [] : []);
         setPricingRules(pricingResult.status === "fulfilled" ? pricingResult.value || [] : []);
 
@@ -120,15 +129,16 @@ export default function DriverBookingPage() {
     setSelectedAreaName("");
     setSelectedSlotId(null);
     setSelectedSlotName("");
+    setLocationRequiresSlot(false);
 
     const loadSlotsAndAreas = async () => {
       try {
-        const vehicleTypeId =
-          selectedVehicle.vehicleTypeId || (selectedVehicle.vehicleTypeName === "Ô Tô" ? 5 : 3);
+        const vehicleTypeId = selectedVehicle.vehicleTypeId;
         const slotsData = await reservationService.getAvailableSlots(vehicleTypeId);
         if (!cancelled) {
           setAvailableSlots(slotsData?.slots || []);
           setAreas(slotsData?.areas || []);
+          setLocationRequiresSlot(Boolean(slotsData?.requiresSlot));
         }
 
       } catch (error) {
@@ -161,8 +171,8 @@ export default function DriverBookingPage() {
         return;
       }
 
-      if (selectedVehicle?.vehicleTypeName === "Ô Tô" && !selectedSlotId) {
-        alert("Vui lòng chọn slot đỗ cụ thể cho ô tô");
+      if (selectedRequiresSlot && !selectedSlotId) {
+        alert("Vui lòng chọn slot đỗ cụ thể cho loại xe này");
         return;
       }
     }
@@ -179,22 +189,22 @@ export default function DriverBookingPage() {
 
     setIsSubmitting(true);
     try {
-      const vehicleTypeId =
-        selectedVehicle.vehicleTypeId || (selectedVehicle.vehicleTypeName === "Ô Tô" ? 5 : 3);
+      const vehicleTypeId = selectedVehicle.vehicleTypeId;
 
       const selectedAreaObj = areas.find((a) => a.id === selectedAreaId || a.code === selectedAreaId);
       const floorId = selectedAreaObj?.floorId || 1;
 
-      const res = await reservationService.createReservation(
-        selectedVehicle.plateNumber || selectedVehicle.plate,
+      const res = await reservationService.createReservation({
         vehicleTypeId,
+        vehicleTypeName: selectedVehicle.vehicleTypeName,
+        requiresSlot: selectedRequiresSlot,
         floorId,
-        selectedAreaId,
+        areaId: selectedAreaId,
         durationHours,
-        selectedSlotId,
-        selectedAreaName,
-        selectedSlotName
-      );
+        slotId: selectedSlotId,
+        areaName: selectedAreaName,
+        slotName: selectedSlotName,
+      });
 
       setActiveReservation(res);
       setCurrentStep(5);
@@ -236,19 +246,7 @@ export default function DriverBookingPage() {
   };
 
   const getDynamicHourlyPrice = () => {
-    if (!selectedVehicle) return 0;
-    const targetTypeId = selectedVehicle.vehicleTypeId || (selectedVehicle.vehicleTypeName === "Ô Tô" ? 5 : 3);
-    const rule = pricingRules.find(
-      (r) => 
-        r.status === "ACTIVE" &&
-        (Number(r.vehicleTypeId) === Number(targetTypeId) || 
-         r.vehicleTypeName?.toLowerCase() === selectedVehicle.vehicleTypeName?.toLowerCase())
-    );
-    if (rule && rule.reservationHourlyPrice !== undefined && rule.reservationHourlyPrice !== null) {
-      return Number(rule.reservationHourlyPrice);
-    }
-    const isCar = selectedVehicle.vehicleTypeName?.toLowerCase() === "ô tô" || selectedVehicle.vehicleTypeName?.toLowerCase() === "ô tô điện" || Number(targetTypeId) === 5 || Number(targetTypeId) === 6;
-    return isCar ? 10000 : 2000;
+    return Number(selectedPricingRule?.reservationHourlyPrice ?? 0);
   };
 
   const hourlyPrice = getDynamicHourlyPrice();
@@ -287,13 +285,9 @@ export default function DriverBookingPage() {
             <div className="mt-8 min-h-[300px]">
               {currentStep === 1 && (
                 <VehicleSelectionStep
-                  vehicles={vehicles}
+                  vehicleTypes={bookingVehicleTypes}
                   selectedVehicle={selectedVehicle}
                   onSelectVehicle={setSelectedVehicle}
-                  onVehicleAdded={(newVehicle) => {
-                    setVehicles((prev) => [...prev, newVehicle]);
-                    setSelectedVehicle(newVehicle);
-                  }}
                 />
               )}
 
@@ -323,6 +317,7 @@ export default function DriverBookingPage() {
                   }}
                   vehicleTypeId={selectedVehicle?.vehicleTypeId}
                   vehicleTypeName={selectedVehicle?.vehicleTypeName}
+                  requiresSlot={selectedRequiresSlot}
                 />
               )}
 
@@ -344,7 +339,7 @@ export default function DriverBookingPage() {
                     <div className="flex justify-between items-center pb-3 border-b border-slate-200/60">
                       <span className="text-sm text-slate-500">Phương tiện</span>
                       <span className="text-sm font-bold text-slate-800 uppercase">
-                        {selectedVehicle ? `${selectedVehicle.plateNumber || selectedVehicle.plate} (${selectedVehicle.vehicleTypeName || "Không xác định"})` : "--"}
+                        {selectedVehicle?.vehicleTypeName || "--"}
                       </span>
                     </div>
                     <div className="flex justify-between items-center pb-3 border-b border-slate-200/60">
@@ -422,6 +417,7 @@ export default function DriverBookingPage() {
             recentHistory={recentHistory}
             isHistoryLoading={isInitialLoading}
             activeReservation={activeReservation}
+            vehicleTypes={bookingVehicleTypes}
           />
         </div>
       </div>
