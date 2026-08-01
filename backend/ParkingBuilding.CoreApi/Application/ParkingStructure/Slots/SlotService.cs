@@ -46,6 +46,25 @@ public class SlotService
         if (exists)
             throw new BusinessException(ErrorCodes.SlotCodeExists, StatusCodes.Status409Conflict);
 
+        // ===== CHECK FLOOR VEHICLE TYPES =====
+        var floor = await _context.Floors
+            .Include(x => x.FloorVehicleTypes)
+            .FirstOrDefaultAsync(x => x.Id == area.FloorId);
+
+        if (floor != null && floor.FloorVehicleTypes.Any())
+        {
+            var isFloorAllowed = floor.FloorVehicleTypes.Any(x => x.VehicleTypeId == request.AllowedVehicleTypeId);
+            if (!isFloorAllowed)
+            {
+                var vehicleTypeName = await _context.Set<VehicleType>()
+                    .Where(v => v.Id == request.AllowedVehicleTypeId)
+                    .Select(v => v.Name)
+                    .FirstOrDefaultAsync() ?? "này";
+
+                throw new BusinessException($"Tầng '{floor.FloorCode}' ({floor.FloorName}) không được cấu hình cho phép loại xe '{vehicleTypeName}'. Không thể tạo Slot cho tầng này.", StatusCodes.Status400BadRequest);
+            }
+        }
+
         // ===== VALIDATE VEHICLE TYPE =====
         var allowed = area.AreaVehicleTypes
             .Any(x => x.VehicleTypeId == request.AllowedVehicleTypeId);

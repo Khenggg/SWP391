@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, AlertTriangle } from "lucide-react";
 
 export default function SlotModal({ isOpen, onClose, form, setField, handleSave, areas, vehicleTypes, floors = [] }) {
   const [selectedFloorId, setSelectedFloorId] = React.useState("");
@@ -25,6 +25,13 @@ export default function SlotModal({ isOpen, onClose, form, setField, handleSave,
       setSelectedFloorId("");
     }
   }, [isOpen]);
+
+  const selectedFloor = selectedFloorId ? floors.find(f => Number(f.id) === Number(selectedFloorId)) : null;
+
+  // Check if selected floor allows any slot-requiring vehicle types (e.g. Ô tô)
+  const isFloorCarAllowed = selectedFloor
+    ? (!selectedFloor.vehicleTypeIds || selectedFloor.vehicleTypeIds.length === 0 || vehicleTypes.some(v => v.requiresSlot && selectedFloor.vehicleTypeIds.includes(v.id)))
+    : true;
 
   const selectedArea = form.areaId ? areas.find(a => Number(a.id) === Number(form.areaId)) : null;
   const allowedVehicleTypesForArea = selectedArea
@@ -78,14 +85,24 @@ export default function SlotModal({ isOpen, onClose, form, setField, handleSave,
               </SelectContent>
             </Select>
           </div>
+
+          {selectedFloor && !isFloorCarAllowed && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2 text-xs text-red-800">
+              <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <strong>Tầng {selectedFloor.floorCode} ({selectedFloor.floorName})</strong> không được cấu hình cho phép Ô tô / loại xe yêu cầu Slot. Bạn không thể thêm Slot cho tầng này. Vui lòng chuyển sang tab <strong>Tầng</strong> để cập nhật loại xe cho tầng hoặc chọn tầng khác.
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <label className="text-sm font-bold">Khu vực *</label>
             <Select 
               value={form.areaId?.toString() || ""} 
               onValueChange={(val) => setField("areaId", Number(val))}
-              disabled={!selectedFloorId}
+              disabled={!selectedFloorId || !isFloorCarAllowed}
             >
-              <SelectTrigger><SelectValue placeholder={selectedFloorId ? "Chọn khu..." : "Vui lòng chọn tầng trước"} /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={!selectedFloorId ? "Vui lòng chọn tầng trước" : (!isFloorCarAllowed ? "Tầng không hỗ trợ Slot" : "Chọn khu...")} /></SelectTrigger>
               <SelectContent>
                 {filteredAreas.map(a => (
                   <SelectItem key={a.id} value={a.id.toString()}>
@@ -101,10 +118,11 @@ export default function SlotModal({ isOpen, onClose, form, setField, handleSave,
               value={form.slotCode || ""} 
               onChange={(e) => setField("slotCode", e.target.value.toUpperCase())} 
               placeholder="VD: B1-A-01" 
+              disabled={!isFloorCarAllowed}
             />
           </div>
 
-          {selectedArea && allowedVehicleTypesForArea.length === 0 && (
+          {selectedArea && isFloorCarAllowed && allowedVehicleTypesForArea.length === 0 && (
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 text-xs text-amber-800">
               <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <div>
@@ -119,6 +137,7 @@ export default function SlotModal({ isOpen, onClose, form, setField, handleSave,
               <Select 
                 value={form.allowedVehicleTypeId?.toString() || ""} 
                 onValueChange={(val) => setField("allowedVehicleTypeId", Number(val))}
+                disabled={!isFloorCarAllowed}
               >
                 <SelectTrigger className="h-9"><SelectValue placeholder="Chọn loại xe..." /></SelectTrigger>
                 <SelectContent>
@@ -150,7 +169,7 @@ export default function SlotModal({ isOpen, onClose, form, setField, handleSave,
           <Button variant="outline" onClick={() => onClose(false)}>Hủy</Button>
           <Button 
             onClick={handleSave} 
-            disabled={!form.areaId || !form.allowedVehicleTypeId || !form.slotCode}
+            disabled={!isFloorCarAllowed || !form.areaId || !form.allowedVehicleTypeId || !form.slotCode}
             className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
           >
             Lưu
