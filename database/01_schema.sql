@@ -178,6 +178,7 @@ CREATE TABLE IF NOT EXISTS areas (
     area_name VARCHAR(100) NOT NULL,
     priority_order INT NOT NULL DEFAULT 0,
     status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
+    management_type VARCHAR(30) NOT NULL DEFAULT 'CAPACITY',
     total_capacity INT NOT NULL DEFAULT 0,
     current_real_occupancy INT NOT NULL DEFAULT 0,
     current_booked_slots INT NOT NULL DEFAULT 0,

@@ -86,6 +86,7 @@ public class AreaService
             AreaName = request.AreaName.Trim(),
             PriorityOrder = request.PriorityOrder,
             Status = "ACTIVE",
+            ManagementType = string.IsNullOrWhiteSpace(request.ManagementType) ? "CAPACITY" : request.ManagementType.Trim().ToUpper(),
             TotalCapacity = request.TotalCapacity,
             CurrentRealOccupancy = 0,
             CurrentBookedSlots = 0,
@@ -175,6 +176,7 @@ public class AreaService
         entity.PriorityOrder = request.PriorityOrder;
         entity.TotalCapacity = request.TotalCapacity;
         entity.Status = request.Status.Trim().ToUpper();
+        entity.ManagementType = string.IsNullOrWhiteSpace(request.ManagementType) ? "CAPACITY" : request.ManagementType.Trim().ToUpper();
         entity.UpdatedAt = DateTimeOffset.UtcNow;
 
         // ===== 6. SYNC MANY-TO-MANY =====
@@ -245,6 +247,7 @@ public class AreaService
                 PriorityOrder = x.PriorityOrder,
                 TotalCapacity = x.TotalCapacity,
                 Status = x.Status,
+                ManagementType = x.ManagementType,
                 VehicleTypeIds = x.AreaVehicleTypes.Select(vt => vt.VehicleTypeId).ToList(),
                 VehicleTypeNames = x.AreaVehicleTypes.Select(vt => vt.VehicleType.Name).ToList()
             })
@@ -266,6 +269,7 @@ public class AreaService
                 PriorityOrder = x.PriorityOrder,
                 TotalCapacity = x.TotalCapacity,
                 Status = x.Status,
+                ManagementType = x.ManagementType,
                 VehicleTypeIds = x.AreaVehicleTypes.Select(vt => vt.VehicleTypeId).ToList(),
                 VehicleTypeNames = x.AreaVehicleTypes.Select(vt => vt.VehicleType.Name).ToList()
             })

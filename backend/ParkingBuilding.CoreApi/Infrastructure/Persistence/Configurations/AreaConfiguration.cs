@@ -37,6 +37,11 @@ public class AreaConfiguration : IEntityTypeConfiguration<Area>
             .HasMaxLength(30)
             .IsRequired();
 
+        builder.Property(x => x.ManagementType)
+            .HasColumnName("management_type")
+            .HasMaxLength(30)
+            .IsRequired();
+
         builder.Property(x => x.TotalCapacity)
             .HasColumnName("total_capacity");
 

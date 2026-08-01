@@ -14,6 +14,8 @@ public class Area
 
     public string Status { get; set; } = "ACTIVE";
 
+    public string ManagementType { get; set; } = "CAPACITY";
+
     public int TotalCapacity { get; set; }
 
     public int CurrentRealOccupancy { get; set; }

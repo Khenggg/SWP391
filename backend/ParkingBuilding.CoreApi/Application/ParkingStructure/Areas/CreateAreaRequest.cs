@@ -10,5 +10,7 @@ public class CreateAreaRequest
 
     public int TotalCapacity { get; set; }
 
+    public string ManagementType { get; set; } = "CAPACITY";
+
     public List<long> VehicleTypeIds { get; set; } = new();
 }

@@ -29,7 +29,7 @@ export default function CapacityPanel({ filteredNonCarAreas, openEditCapacity })
     <div className="flex flex-col border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
       <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
         <div>
-          <h3 className="text-base font-bold text-slate-800">Quản lý Sức chứa xe máy & xe khác</h3>
+          <h3 className="text-base font-bold text-slate-800">Quản lý Sức chứa (Không chia slot)</h3>
           <p className="text-xs text-slate-500">Đặt tổng sức chứa chỗ đỗ cho các khu vực tự do không chia slot.</p>
         </div>
       </div>
@@ -39,7 +39,7 @@ export default function CapacityPanel({ filteredNonCarAreas, openEditCapacity })
           <EmptyState
             icon={<Layers />}
             title="Không tìm thấy khu vực nào"
-            description="Hãy thêm khu vực xe máy mới ở tab Khu vực."
+            description="Hãy thêm khu vực sức chứa mới ở tab Khu vực."
           />
         ) : (
           <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
