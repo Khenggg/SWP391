@@ -197,6 +197,7 @@ public class LostCardService : ILostCardService
 
                 lostCardCase.UpdatedAt = DateTimeOffset.UtcNow;
                 await _context.SaveChangesAsync();
+                await _context.Entry(lostCardCase).Reference(lc => lc.ApprovedByUser).LoadAsync();
                 await transaction.CommitAsync();
 
                 // Create notification for driver
@@ -273,6 +274,7 @@ public class LostCardService : ILostCardService
         var query = _context.LostCardCases
             .Include(lc => lc.ParkingCard)
             .Include(lc => lc.ParkingSession)
+            .Include(lc => lc.ApprovedByUser)
             .AsNoTracking()
             .AsQueryable();
 
@@ -308,6 +310,7 @@ public class LostCardService : ILostCardService
         var lostCardCase = await _context.LostCardCases
             .Include(lc => lc.ParkingCard)
             .Include(lc => lc.ParkingSession)
+            .Include(lc => lc.ApprovedByUser)
             .AsNoTracking()
             .FirstOrDefaultAsync(lc => lc.Id == caseId);
 
