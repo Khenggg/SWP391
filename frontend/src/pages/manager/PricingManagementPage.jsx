@@ -11,7 +11,7 @@ import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Search, Plus, RefreshCw, Eye, Info, Settings } from "lucide-react";
+import { Search, Plus, RefreshCw, Info, Settings } from "lucide-react";
 import { COMMON_STATUS } from "@/constants";
 
 import PricingRuleModal from "@/components/manager/pricing/PricingRuleModal";
@@ -196,9 +196,9 @@ export default function PricingManagementPage() {
   };
 
   return (
-    <div className="flex h-full gap-4">
+    <div className="flex h-full gap-4 overflow-hidden">
       {/* Main Content Area */}
-      <div className="flex flex-col flex-1 gap-4 transition-all duration-300 overflow-hidden">
+      <div className="flex flex-col flex-1 gap-4 transition-all duration-300 min-w-0 overflow-hidden">
         {/* Header */}
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Quản lý Cấu hình Giá</h2>
@@ -279,12 +279,11 @@ export default function PricingManagementPage() {
                   <TableHead className="font-semibold text-slate-600 text-right whitespace-nowrap">Phí mất thẻ</TableHead>
                   <TableHead className="font-semibold text-slate-600 text-center whitespace-nowrap">Hiệu lực từ</TableHead>
                   <TableHead className="font-semibold text-slate-600 text-center whitespace-nowrap">Trạng thái</TableHead>
-                  <TableHead className="font-semibold text-slate-600 text-center whitespace-nowrap">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-10 text-slate-500">Không tìm thấy rule nào</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center py-10 text-slate-500">Không tìm thấy rule nào</TableCell></TableRow>
                 ) : filtered.map((rule) => (
                   <TableRow 
                     key={rule.id} 
@@ -303,13 +302,6 @@ export default function PricingManagementPage() {
                       <Badge variant="outline" className={`text-[10px] uppercase font-bold tracking-wider ${STATUS_BADGE[rule.status] || STATUS_BADGE.ACTIVE}`}>
                         {rule.status}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-center" onClick={e => e.stopPropagation()}>
-                      <div className="flex items-center justify-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600" onClick={() => setSelectedRule(rule)}>
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

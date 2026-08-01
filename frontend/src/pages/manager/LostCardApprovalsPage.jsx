@@ -165,8 +165,8 @@ export default function LostCardApprovalsPage() {
   };
 
   return (
-    <div className="flex h-full gap-4">
-      <div className="flex flex-1 flex-col gap-6 overflow-hidden transition-all duration-300">
+    <div className="flex h-full gap-4 overflow-hidden">
+      <div className="flex flex-1 flex-col gap-6 overflow-hidden min-w-0 transition-all duration-300">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-slate-800">Phê duyệt thẻ mất</h2>
@@ -290,6 +290,11 @@ export default function LostCardApprovalsPage() {
               placeholder={decisionType === "APPROVE" ? "Ghi chú phê duyệt" : "Lý do từ chối"}
               value={reasonText}
               onChange={(event) => setReasonText(event.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  confirmDecision();
+                }
+              }}
             />
           </div>
           <DialogFooter>

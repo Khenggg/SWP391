@@ -14,7 +14,7 @@ import {
 import { toast } from "sonner";
 import EmptyState from "@/components/ui/empty-state";
 import { CARD_STATUS } from "@/constants";
-import { Search, RefreshCw, Eye, Plus, EyeOff } from "lucide-react";
+import { Search, RefreshCw, Plus, EyeOff } from "lucide-react";
 
 import CardStatCards from "@/components/manager/card/CardStatCards";
 import CreateCardModal from "@/components/manager/card/CreateCardModal";
@@ -197,8 +197,8 @@ export default function CardManagementPage() {
 
       <CardStatCards stats={stats} />
 
-      <div className="flex gap-4 h-[calc(100vh-280px)] min-h-[500px]">
-        <div className={`flex flex-col bg-white border border-gray-200 rounded-xl shadow-sm h-full transition-all duration-300 ${selectedCard ? "w-full lg:w-[calc(100%-366px)] hidden lg:flex" : "w-full"}`}>
+      <div className="flex gap-4 h-[calc(100vh-280px)] min-h-[500px] overflow-hidden">
+        <div className={`flex flex-col bg-white border border-gray-200 rounded-xl shadow-sm h-full transition-all duration-300 min-w-0 ${selectedCard ? "w-full lg:w-[calc(100%-366px)] hidden lg:flex" : "w-full"}`}>
           
           <div className="p-4 border-b border-gray-100 flex flex-wrap gap-3 items-center justify-between bg-gray-50/50 rounded-t-xl">
             <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
@@ -241,17 +241,16 @@ export default function CardManagementPage() {
                   <TableHead className="w-[140px]">Trạng thái</TableHead>
                   <TableHead className="w-[130px]">Loại khách</TableHead>
                   <TableHead className="w-[130px]">Tầng gửi</TableHead>
-                  <TableHead className="text-right w-[100px]">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-32 text-center text-gray-500">Đang tải dữ liệu...</TableCell>
+                    <TableCell colSpan={5} className="h-32 text-center text-gray-500">Đang tải dữ liệu...</TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-64">
+                    <TableCell colSpan={5} className="h-64">
                       <EmptyState icon={<EyeOff className="w-12 h-12" />} title="Không tìm thấy thẻ xe" description="Thử thay đổi bộ lọc hoặc tìm kiếm khác." />
                     </TableCell>
                   </TableRow>
@@ -292,16 +291,6 @@ export default function CardManagementPage() {
                         ) : (
                           <span className="text-gray-400">-</span>
                         )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" onClick={() => setSelectedCard(c)} title="Xem chi tiết">
-                            <Eye className="h-4 w-4 text-gray-500" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => openStatusModal(c)} title="Đổi trạng thái">
-                            <RefreshCw className="h-4 w-4 text-amber-500" />
-                          </Button>
-                        </div>
                       </TableCell>
                     </TableRow>
                   ))

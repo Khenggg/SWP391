@@ -1,5 +1,4 @@
-import React from "react";
-import { Clock, User, LayoutGrid, Eye } from "lucide-react";
+import { Clock, User, LayoutGrid } from "lucide-react";
 import { formatDateTime } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,14 +16,13 @@ export default function AuditLogTable({ logs, isLoading, selectedLogId, onRowCli
             <TableHead className="font-semibold text-slate-600 whitespace-nowrap">Hành động</TableHead>
             <TableHead className="font-semibold text-slate-600 whitespace-nowrap"><LayoutGrid className="w-4 h-4 inline-block mr-1 mb-0.5 text-slate-400" /> Đối tượng</TableHead>
             <TableHead className="font-semibold text-slate-600 whitespace-nowrap">Nguồn</TableHead>
-            <TableHead className="font-semibold text-slate-600 whitespace-nowrap w-[50px] text-center"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            <TableRow><TableCell colSpan={7} className="text-center py-10 text-slate-500">Đang tải nhật ký...</TableCell></TableRow>
+            <TableRow><TableCell colSpan={6} className="text-center py-10 text-slate-500">Đang tải nhật ký...</TableCell></TableRow>
           ) : logs.length === 0 ? (
-            <TableRow><TableCell colSpan={7} className="text-center py-10 text-slate-500">Không tìm thấy dữ liệu nhật ký phù hợp</TableCell></TableRow>
+            <TableRow><TableCell colSpan={6} className="text-center py-10 text-slate-500">Không tìm thấy dữ liệu nhật ký phù hợp</TableCell></TableRow>
           ) : (
             logs.map((log, idx) => {
               const isSelected = selectedLogId === log.id;
@@ -50,11 +48,6 @@ export default function AuditLogTable({ logs, isLoading, selectedLogId, onRowCli
                     <Badge variant="outline" className={`text-[10px] ${log.sourceService === 'CORE_API' ? 'text-blue-600 border-blue-200 bg-blue-50' : 'text-purple-600 border-purple-200 bg-purple-50'}`}>
                       {log.sourceService || 'UNKNOWN'}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Button variant="ghost" size="icon" className={`h-8 w-8 ${isSelected ? 'text-blue-600' : 'text-slate-400'}`}>
-                      <Eye className="w-4 h-4" />
-                    </Button>
                   </TableCell>
                 </TableRow>
               );
