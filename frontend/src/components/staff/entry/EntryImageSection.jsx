@@ -1,9 +1,10 @@
 import React, { useRef, useState } from "react";
-import { Camera, Upload, X } from "lucide-react";
+import { Camera, Upload, X, ZoomIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { prepareParkingImage } from "@/lib/parkingImage";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
-function ImageUploadSlot({ label, value, onChange, disabled, inputRef, id }) {
+function ImageUploadSlot({ label, value, onChange, disabled, inputRef, id, onZoom }) {
   const [hasLoadError, setHasLoadError] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [isUploading, setIsUploading] = useState(false);
@@ -28,25 +29,36 @@ function ImageUploadSlot({ label, value, onChange, disabled, inputRef, id }) {
 
   const isDisabled = disabled || isUploading;
 
+  const handleClickImage = () => {
+    if (value && !hasLoadError) {
+      onZoom(value, label);
+    } else {
+      inputRef.current?.click();
+    }
+  };
+
   return (
     <div className="flex min-w-0 flex-col gap-2">
       <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{label} *</p>
       <button
         type="button"
-        className="group relative aspect-video overflow-hidden rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 text-left transition hover:border-blue-300 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+        className="group relative aspect-video overflow-hidden rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 text-left transition hover:border-blue-300 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
         disabled={isDisabled}
-        onClick={() => inputRef.current?.click()}
+        onClick={handleClickImage}
       >
         {value && !hasLoadError ? (
-          <img src={value} alt={label} className="size-full object-cover" onError={() => setHasLoadError(true)} />
+          <>
+            <img src={value} alt={label} className="size-full object-cover transition-transform group-hover:scale-105" onError={() => setHasLoadError(true)} />
+            <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-slate-950/50 text-white opacity-0 transition group-hover:opacity-100">
+              <ZoomIn className="size-5" />
+              <span className="text-[11px] font-bold">Bấm để phóng to xem ảnh</span>
+            </span>
+          </>
         ) : (
           <span className="flex size-full flex-col items-center justify-center gap-2 text-center">
             <Camera className="size-6 text-slate-300" />
             <span className="text-xs font-semibold text-slate-400">{hasLoadError ? "Không đọc được ảnh" : "Chọn ảnh"}</span>
           </span>
-        )}
-        {value && !hasLoadError && (
-          <span className="absolute inset-x-0 bottom-0 bg-slate-950/65 px-2 py-1.5 text-center text-[11px] font-bold text-white opacity-0 transition group-hover:opacity-100">Bấm để đổi ảnh</span>
         )}
       </button>
       <input ref={inputRef} id={id} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden" onChange={handleFileChange} disabled={isDisabled} />
@@ -69,7 +81,12 @@ function ImageUploadSlot({ label, value, onChange, disabled, inputRef, id }) {
 export default function EntryImageSection({ plateImageUrl, vehicleImageUrl, onPlateImageChange, onVehicleImageChange, disabled = false }) {
   const plateInputRef = useRef(null);
   const vehicleInputRef = useRef(null);
+  const [zoomImage, setZoomImage] = useState(null);
   const hasAllImages = Boolean(plateImageUrl && vehicleImageUrl);
+
+  const handleZoom = (url, title) => {
+    setZoomImage({ url, title });
+  };
 
   return (
     <section className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -83,12 +100,25 @@ export default function EntryImageSection({ plateImageUrl, vehicleImageUrl, onPl
         </span>
       </header>
       <div className="flex-1 p-3">
-        <p className="mb-3 text-xs font-medium text-slate-500">Tải thủ công ảnh biển số và ảnh toàn xe trước khi tạo phiên.</p>
+        <p className="mb-3 text-xs font-medium text-slate-500">Tải thủ công ảnh biển số và ảnh toàn xe trước khi tạo phiên. (Bấm vào ảnh để phóng to)</p>
         <div className="grid grid-cols-2 gap-3">
-          <ImageUploadSlot label="Ảnh biển số" value={plateImageUrl} onChange={onPlateImageChange} disabled={disabled} inputRef={plateInputRef} id="entry-plate-image" />
-          <ImageUploadSlot label="Ảnh toàn xe" value={vehicleImageUrl} onChange={onVehicleImageChange} disabled={disabled} inputRef={vehicleInputRef} id="entry-vehicle-image" />
+          <ImageUploadSlot label="Ảnh biển số" value={plateImageUrl} onChange={onPlateImageChange} disabled={disabled} inputRef={plateInputRef} id="entry-plate-image" onZoom={handleZoom} />
+          <ImageUploadSlot label="Ảnh toàn xe" value={vehicleImageUrl} onChange={onVehicleImageChange} disabled={disabled} inputRef={vehicleInputRef} id="entry-vehicle-image" onZoom={handleZoom} />
         </div>
       </div>
+
+      <Dialog open={Boolean(zoomImage)} onOpenChange={(open) => !open && setZoomImage(null)}>
+        <DialogContent className="max-w-3xl p-3 sm:rounded-xl">
+          <div className="flex flex-col gap-2">
+            <h3 className="text-sm font-bold text-slate-800">{zoomImage?.title}</h3>
+            <div className="overflow-hidden rounded-lg border border-slate-200 bg-black max-h-[75vh] flex items-center justify-center">
+              {zoomImage?.url && (
+                <img src={zoomImage.url} alt={zoomImage.title} className="max-h-[70vh] w-auto max-w-full object-contain" />
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
