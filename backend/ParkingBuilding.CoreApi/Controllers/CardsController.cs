@@ -95,6 +95,7 @@ namespace ParkingBuilding.CoreApi.Controllers
             
             var allocations = await _context.MonthlyPasses
                 .Include(m => m.Floor)
+                .Include(m => m.VehicleType)
                 .Where(monthlyPass => cardIds.Contains(monthlyPass.CardId)
                     && (monthlyPass.Status == "ACTIVE" || monthlyPass.Status == "LOCKED"))
                 .OrderByDescending(monthlyPass => monthlyPass.EndDate)
@@ -107,7 +108,8 @@ namespace ParkingBuilding.CoreApi.Controllers
                     OwnerName = monthlyPass.OwnerName,
                     StartDate = monthlyPass.StartDate,
                     EndDate = monthlyPass.EndDate,
-                    FloorName = monthlyPass.Floor != null ? monthlyPass.Floor.FloorName : null
+                    FloorName = monthlyPass.Floor != null ? monthlyPass.Floor.FloorName : null,
+                    VehicleTypeName = monthlyPass.VehicleType != null ? monthlyPass.VehicleType.Name : null
                 })
                 .ToListAsync();
 
@@ -119,6 +121,7 @@ namespace ParkingBuilding.CoreApi.Controllers
             var activeSessions = await _context.ParkingSessions
                 .Include(s => s.Area)
                 .ThenInclude(a => a.Floor)
+                .Include(s => s.VehicleType)
                 .Where(s => activeSessionIds.Contains(s.Id))
                 .ToListAsync();
             var sessionById = activeSessions.ToDictionary(s => s.Id);
@@ -142,6 +145,7 @@ namespace ParkingBuilding.CoreApi.Controllers
                     CurrentSessionId = card.CurrentSessionId,
                     CurrentCustomerType = session?.CustomerType,
                     CurrentFloorName = session?.Area?.Floor?.FloorName,
+                    CurrentVehicleTypeName = session?.VehicleType?.Name,
                     Note = card.Note,
                     CreatedAt = card.CreatedAt,
                     UpdatedAt = card.UpdatedAt,
@@ -380,6 +384,7 @@ namespace ParkingBuilding.CoreApi.Controllers
             public long? CurrentSessionId { get; set; }
             public string? CurrentCustomerType { get; set; }
             public string? CurrentFloorName { get; set; }
+            public string? CurrentVehicleTypeName { get; set; }
             public string? Note { get; set; }
             public DateTime CreatedAt { get; set; }
             public DateTime UpdatedAt { get; set; }
@@ -398,6 +403,7 @@ namespace ParkingBuilding.CoreApi.Controllers
             public DateTime StartDate { get; set; }
             public DateTime EndDate { get; set; }
             public string? FloorName { get; set; }
+            public string? VehicleTypeName { get; set; }
         }
     }
 }

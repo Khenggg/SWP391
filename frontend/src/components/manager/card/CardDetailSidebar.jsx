@@ -96,6 +96,12 @@ export default function CardDetailSidebar({
                 </span>
               </div>
               <div className="flex justify-between items-center">
+                <span className="text-gray-500 text-xs flex items-center gap-1.5"><Car className="w-3.5 h-3.5" /> Loại xe đăng ký</span>
+                <span className="font-bold text-gray-900">
+                  {monthlyPass.vehicleTypeName || "N/A"}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
                 <span className="text-gray-500 text-xs flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> Thời hạn vé</span>
                 <span className="text-xs font-medium text-gray-700">
                   {monthlyPass.startDate ? new Date(monthlyPass.startDate).toLocaleDateString("vi-VN") : ""} - {monthlyPass.endDate ? new Date(monthlyPass.endDate).toLocaleDateString("vi-VN") : ""}
@@ -158,6 +164,12 @@ export default function CardDetailSidebar({
                   <span className="text-gray-600 text-xs flex items-center gap-1.5"><Car className="w-3.5 h-3.5" /> Biển số xe gửi</span>
                   <span className="font-mono font-extrabold text-blue-900 bg-white px-2.5 py-1 rounded-md border border-blue-300 text-base shadow-xs">
                     {activeSession.plateNumber || "Không xác định"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 text-xs flex items-center gap-1.5"><Car className="w-3.5 h-3.5" /> Loại xe vào</span>
+                  <span className="font-bold text-gray-900">
+                    {activeSession.vehicleTypeName || selectedCard.currentVehicleTypeName || "Không xác định"}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
