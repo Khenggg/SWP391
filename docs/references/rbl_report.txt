@@ -1,0 +1,603 @@
+﻿FPT UNIVERSITY
+SWP391 — Software Development Project
+Research-Based Learning Report
+Parking Slot Allocation Strategy in a Dual-Backend Parking Building Management System:
+A Literature-Grounded Analysis of an Implemented Case Study
+Project ID: SU26SWP08  |  Class SE1919
+Research Team
+Le The Khang — SE182126 (Leader)
+Tran Duy Hung — SE196431
+Trinh Hoang Phong — SE194418
+To Trieu Tien — SE196703
+Nguyen Hoang Hung — SE180765
+Supervisor: Nguyen Minh Sang (SangNM18)
+July 2026
+Note on Method and Academic Integrity
+This report was produced with AI assistance (Claude) working directly from the project's own technical documentation — the SRS, developer implementation specification, database schema, API contract, feature report, and sprint backlog — combined with a targeted review of publicly accessible academic literature retrieved through live web search.
+Three constraints shaped how it was written, and the team should be able to explain them at defense:
+This is a targeted literature review of approximately nineteen verifiable, individually checked sources spanning IEEE Xplore, MDPI, Springer, ScienceDirect, and Nature/PMC. It is not a full systematic literature review (SLR) with PRISMA-style screening counts, because the tools available for this report cannot query Scopus/Web of Science coverage statistics or verify citation-count metadata at that level of rigor. Claiming a PRISMA flow diagram without having actually run one would itself be a fabrication, so none is presented.
+No simulation, experiment, or live test was run against the actual Parking Building Management System (PBMS) in producing this report. Any numeric performance figures in Chapter 2 belong to the cited literature, not to this project, and are labelled accordingly. Where the report discusses how the existing system would likely behave, this is Author Analysis reasoned from the documented design, not a measured result.
+Every substantive claim below is tagged by provenance: [Project Fact] for statements verifiable directly in the uploaded documents, [Literature Evidence] for statements attributable to a cited source, and [Author Analysis] for the team's own reasoning connecting the two. Where the evidence needed to answer a question does not exist yet, the report says [Insufficient Evidence] rather than filling the gap with a plausible-sounding assumption.
+The 'ten-phase / five-reviewer-persona / numeric self-confidence score' framing used in some of the drafting prompts was intentionally not carried into the final document: a self-assigned 9.5/10 or a simulated panel score is not a real quality signal, and presenting one would misrepresent the report's actual state of verification. In its place, Chapter 8 gives an honest, itemised account of what is and is not yet supported.
+Abstract
+Multi-story parking buildings increasingly rely on software to allocate limited parking resources across floors, areas, and individual slots. This report examines parking slot allocation strategy using the Parking Building Management System (PBMS) — a dual-backend (ASP.NET Core + Spring Boot) academic capstone project — as a case study, and situates its design choices within the operations-research and intelligent-transportation-systems literature on smart parking allocation. Four original research questions are examined: the effect of vehicle-type floor/area segregation on utilization (RQ1), whether automatic allocation reduces search time relative to free selection (RQ2), which criteria should be prioritised during allocation (RQ3), and whether allocation algorithms can improve peak-hour utilization (RQ4). Analysis of the project's implementation specification shows that PBMS currently allocates parking using a deterministic, greedy heuristic — ranking candidate areas by available-slot count and a manually configured priority order, then assigning the first available slot — rather than any of the optimization, multi-criteria decision-making (MCDM), or learning-based methods documented in the literature. Cross-referencing the literature further reveals that MCDM techniques (AHP, TOPSIS, and related methods) are mostly applied to macro-level parking-lot site selection rather than real-time, in-facility slot assignment, and that different MCDM ranking methods can produce materially different, sometimes contradictory rankings for the same problem — a methodological gap directly relevant to RQ3. The report concludes that PBMS's current mechanism is best understood as a reasonable, low-complexity operational baseline comparable to the FCFS/nearest-slot baselines against which more advanced literature methods are typically benchmarked, and identifies the absence of distance, expected-duration, and dynamic-occupancy signals in the current allocation logic as concrete, evidence-grounded directions for future work rather than as already-solved problems.
+Keywords
+smart parking; parking slot allocation; multi-criteria decision making; parking building management system; operations research; intelligent transportation systems
+List of Abbreviations
+Abbreviation
+Meaning
+PBMS
+Parking Building Management System (the project under study)
+RQ
+Research Question
+MCDM
+Multi-Criteria Decision Making
+AHP
+Analytic Hierarchy Process
+TOPSIS
+Technique for Order of Preference by Similarity to Ideal Solution
+FCFS
+First-Come-First-Served
+SIRO
+Service In Random Order
+MARL
+Multi-Agent Reinforcement Learning
+RL
+Reinforcement Learning
+MILP
+Mixed-Integer Linear Programming
+ITS
+Intelligent Transportation Systems
+SRS
+Software Requirements Specification
+RBL
+Research-Based Learning
+Chapter 1 — Introduction
+1.1 Background
+Urban parking demand continues to grow while usable land for parking remains constrained, which has motivated a large body of research on smart parking: systems that use software, sensors, and networking to make better use of a fixed parking supply rather than simply expanding it [Literature Evidence, see ref. 9]. A multi-story parking building is one common response to this constraint — it trades horizontal space for vertical capacity — but stacking capacity across floors introduces a coordination problem that a single flat lot does not have: vehicles must be directed not only to a free space, but to the right floor, the right area, and, in some designs, a specific slot.
+[Project Fact] 
+The Parking Building Management System (PBMS) examined in this report is exactly this kind of building. Per the SRS, it has three floors — B1 for motorbikes and bicycles, B2 for cars, and B3 for trucks — each with a different management granularity: B1 and B3 are managed at the area/total-capacity level with no individual slot tracking, while B2 is the only floor with individually addressed slots (e.g. A1–A4, B1–B4) and the only floor that supports advance reservation.
+1.2 Problem Statement
+Without an allocation strategy, multi-story parking facilities are exposed to several operational problems documented in the smart-parking literature: drivers cruising in search of an open space (search time and associated congestion), uneven occupancy across floors or zones even while overall capacity remains available, and allocation decisions that ignore criteria — such as walking distance or expected duration — that materially affect user experience [Literature Evidence, refs. 10, 11, 16]. The practical question for a real, already-built system such as PBMS is not whether an allocation strategy is needed in the abstract — one is already implemented — but whether the specific strategy in place is well matched to what the literature says matters, and where the gaps are.
+1.3 Research Objectives
+The objective of this report is to examine parking slot allocation strategy academically, using PBMS as a bounded case study rather than as the object of redesign. Concretely, the report aims to: (1) characterise the allocation mechanism actually implemented in PBMS from its own specification; (2) situate that mechanism within the published literature on parking allocation algorithms and criteria; (3) identify, with literature support, where a genuine research gap exists; and (4) answer the four original research questions and a small set of literature-motivated extensions, honestly distinguishing what can be answered from documentation and literature alone from what would require an experiment this report does not run.
+1.4 Research Questions
+Original research questions, as specified by the course team:
+RQ1 — How does separating parking floors and areas by vehicle type affect parking space utilization efficiency?
+RQ2 — Does automatic parking slot allocation reduce parking searching time compared to free slot selection?
+RQ3 — Which criteria should be prioritized during slot allocation (distance, floor, vehicle type, expected duration, occupancy rate, user type, reservation status, accessibility, traffic flow, energy efficiency)?
+RQ4 — Can parking slot allocation algorithms improve parking utilization during peak hours?
+Section 6.5 introduces four literature-motivated extensions — fairness of static priority ordering, scalability of the current algorithm, resilience to slot-state failures, and reservation-conflict handling — each justified by a specific gap observed either in the implemented design or in the literature reviewed in Chapter 2.
+1.5 Scope
+This report does not redesign PBMS. It does not propose replacing the existing architecture, and it does not run a live experiment, simulation, or A/B test against the deployed system. Its scope is: (a) a literature-grounded discussion of the four RQs and their extensions, and (b) an evidence-based comparison between what the literature recommends and what PBMS's own specification says is implemented, partially implemented, or absent. Quantitative claims about how PBMS itself would perform under an alternative allocation strategy are explicitly marked [Insufficient Evidence] throughout, since no operational telemetry (e.g. real occupancy time series) was available for this report.
+1.6 Contributions
+Dimension
+Contribution
+Novelty assessment
+Academic
+Synthesis of a scale mismatch in the MCDM-for-parking literature: most MCDM/AHP/TOPSIS work addresses macro-level lot or site selection, not micro-level, real-time in-building slot assignment (Ch. 2–3).
+Engineering synthesis of an existing pattern across independently published studies, not a new algorithm.
+Practical / engineering
+A precise, code-level description of PBMS's actual allocation pipeline (candidate-area filtering → sort by availability and static priority → first-available-slot pick), read directly from the developer specification, and its classification against literature taxonomies.
+Documentation and classification of an existing implementation; not new engineering work.
+Business
+Identification of measurable, already-available schema fields (area occupancy counters, override/violation flags) that could support a future evaluation without new instrumentation.
+Feasibility observation, not a costed business case — no ROI figures are asserted.
+1.7 Report Organization
+Chapter 2 reviews the literature by theme. Chapter 3 identifies the research gap. Chapter 4 states the research methodology and its limits. Chapter 5 documents the existing project as built, strictly from its own specification. Chapter 6 answers the RQs and extensions by connecting Chapters 2 and 5. Chapter 7 proposes — without executing — an evaluation framework for future validation. Chapter 8 concludes, states limitations plainly, and lists future work. Appendices provide a traceability matrix and a reviewer question bank.
+Chapter 2 — Literature Review
+This chapter reviews nineteen peer-reviewed or publisher-indexed sources retrieved via live search of IEEE Xplore, MDPI, Springer, ScienceDirect, and Nature/PMC, chosen for direct relevance to parking slot allocation, MCDM applications in parking, and search-time/utilization evaluation. Predatory, non-indexed, and marketing sources returned by the same searches (e.g. vendor blog posts on 'parking reservation software') were excluded, consistent with the source-tier policy given for this report. A comprehensive, independently published scoping review of 124 smart-parking studies is also drawn on for general framing [ref. 9], though this report's own search was far narrower than that review's.
+2.1 Rule-based and heuristic allocation
+First-come-first-served (FCFS) and nearest-available-slot allocation are the most common baselines against which more sophisticated methods are benchmarked. A study on IoT-based smart parking algorithms describes a nearest-slot allotment approach as the default assignment logic in a hybrid automated/rotary parking design [ref. 14]. More recent work uses FCFS and "service in random order" (SIRO) explicitly as baseline comparators for a proposed multi-agent reinforcement-learning allocator, reporting that the learned method outperforms both baselines on cruising time and parking success rate in their simulated environment [ref. 12]. This positions FCFS/nearest-slot/greedy heuristics not as an obsolete approach but as the standard comparison point the field uses to judge more complex methods.
+2.2 Optimization-based allocation
+A recurring approach formulates allocation as an assignment or optimization problem solved centrally. Geng and Cassandras propose a resource-allocation-and-reservation system that solves a mixed-integer linear program at each decision point, assigning a driver's parking space according to a cost function that combines proximity and price, and report reduced average search time and parking cost relative to uncontrolled or state-of-the-art guidance-based baselines in their evaluation [ref. 3]. A separate line of work models allocation as a matching problem between drivers' and managers' preferences, adding a rematching mechanism so that already-parked and newly arriving drivers can be reassigned as waiting times change, and the authors analyse the stability and strategy-proofness of the resulting matching [ref. 2]. A blockchain-oriented proposal instead frames allocation as a distributed consensus problem — using a virtual-voting/hashgraph mechanism so that parking-lot owners and drivers converge on the same allocation record without a centralized authority, motivated by the observation that centralized, prediction-based allocation degrades when demand is highly dynamic [ref. 1].
+2.3 Metaheuristic and learning-based allocation
+Beyond linear and combinatorial optimization, metaheuristics have been applied directly to space allocation. A campus parking study compares a pattern-search algorithm against a hybrid particle-swarm/pattern-search algorithm for allocating both reserved and unreserved permits, reporting that the hybrid metaheuristic outperforms the plain pattern-search method on their allocation model [ref. 5]. More recent work applies deep reinforcement learning: a multi-agent framework combining graph neural networks (to capture spatial correlation between locations) and gated recurrent units (to capture temporal demand variation) is proposed for dynamic, real-time parking allocation, and is reported to outperform FCFS and SIRO baselines on cruising time and allocation success in simulation [ref. 12]; a related multi-agent reinforcement-learning framework has also been applied to dynamically reconfiguring on-street parking space allocation at the lane level [ref. 13]. A separate multi-objective formulation frames parking recommendation itself as a Pareto-optimization problem across several competing objectives simultaneously, rather than a single scalar cost, which is directly relevant to RQ3's premise that several criteria may need to be balanced rather than reduced to one [ref. 4].
+2.4 Multi-criteria decision making (MCDM) in parking
+MCDM methods — principally the Analytic Hierarchy Process (AHP) and the Technique for Order of Preference by Similarity to Ideal Solution (TOPSIS) — are well represented in the parking literature, but a close reading of the retrieved papers shows they are overwhelmingly applied to parking-lot or parking-area site selection: deciding where a parking facility should be built or which existing facility is most suitable, using GIS layers and criteria such as accessibility, land cost, and environmental impact [refs. 7, 8]. One paper explicitly proposes MCDM as a parking-space allocation model and compares four distance-based MCDM techniques — CODAS, TOPSIS, EDAS, and WASPAS — on the same case, finding that the four methods do not agree with each other and in places produce contradictory rankings of the same alternatives [ref. 6]. This is a directly relevant, literature-documented finding for RQ3: even within the MCDM family, method choice is not a solved, neutral step — it can change which option is judged best.
+2.5 Parking guidance systems and search-time reduction
+A separate strand of literature quantifies the effect of guidance/allocation systems on search (cruising) time rather than proposing a specific algorithm. One simulation-based study proposes a generalized methodology to estimate the cruising-time savings achievable by an intelligent parking service relative to unassisted searching, applying it to a case study of Zurich, and finds that guidance based on real-time occupancy can reduce distance-to-park, though the relationship is not a simple linear function of occupancy alone — cruising speed and parking duration also matter [ref. 10]. A multi-agent simulation comparing an intelligent parking guidance system against a conventional nearest-lot-preference system reports that the guided system better equalises capacity utilisation across car parks and reduces wasted search time and associated emissions in the simulated scenarios [ref. 11]. Both studies support the general direction of RQ2 (automated guidance/allocation tends to reduce search time relative to unassisted or naive selection in the settings studied) while being explicit that the effect is scenario- and model-dependent rather than universal.
+2.6 Vehicle-type segregation and multi-story utilization
+Directly relevant to RQ1, a field study of multi-story parking buildings in Hilla City used license-plate-based observation across four floors to compute turnover, occupancy, duration, and an efficiency index for the facility, establishing that these per-floor characteristics can differ substantially within the same building [ref. 15]. A separate modelling study of an urban complex parking lot found significant differences in space-utilization efficiency across different spatial zones within the same facility, and proposed a dynamic-allocation model that measurably reduced the demand-characteristic gap between zones in simulation, improving both balance and reported driver satisfaction [ref. 16]. Neither study isolates vehicle-type segregation specifically as the causal driver of utilization differences — both are about zones/floors in general — which matters for how confidently RQ1 can be answered (see Chapter 6.1).
+2.7 Sensor and IoT-based occupancy detection
+A 2025 study proposes a camera-and-IR-sensor system with automated license-plate recognition and coordinate-linked slot verification, reporting a substantial reduction in billing discrepancies and a revenue increase in pilot deployments, and frames peak-hour occupancy (approaching 90–95% in their scenario) as the operating condition under which manual and semi-automated methods are most likely to fail [ref. 17]. This is relevant context for RQ4: it corroborates that peak-hour conditions are where allocation and verification failures concentrate, though the specific percentages reported belong to that paper's pilot site, not to PBMS.
+2.8 Evidence Table
+Ref.
+Source (short)
+Core method
+Reported metric(s)
+Limitation noted
+[1]
+Hassija et al., IEEE, 2020
+Distributed consensus (virtual voting / hashgraph) allocation
+Consensus finality, bandwidth
+No comparison to centralized baseline on search-time/utilization
+[2]
+IEEE, 2022 — rematching model
+Matching theory + rematching + dynamic fee
+Stability, strategy-proofness
+Theoretical guarantees; limited empirical field validation
+[3]
+Geng & Cassandras, IEEE TITS, 2013
+MILP solved per decision point
+Search time, parking cost, capacity utilization
+Requires accurate real-time state; centralized solve
+[5]
+IEEE, 2016 — campus study
+Pattern search vs. PSO-pattern-search hybrid
+Allocation quality vs. baseline heuristic
+Campus permit context, not real-time in-building routing
+[6]
+Sustainability (MDPI), 2023
+CODAS / TOPSIS / EDAS / WASPAS comparison
+Ranking agreement across methods
+Rankings contradict across methods — no consensus best method
+[10]
+ScienceDirect, 2018 — Zurich case
+Microscopic cruising-time simulation
+Cruising time savings, distance-to-park
+Simulation-based; single-city calibration
+[11]
+ScienceDirect, 2021
+Multi-agent simulation, IPGS vs. conventional
+Capacity utilisation, wasted value-of-time, emissions
+Simulated agents; not field-deployed
+[12]
+PMC / Sci. Reports, 2025
+MARL with GNN + GRU
+Cruising time, parking success rate vs. FCFS/SIRO
+Simulated network; generalisation to a single building unverified
+[13]
+arXiv, 2025
+Two-layer MARL for on-street configuration
+Congestion / space utilization (on-street)
+On-street context, not multi-story facility
+[15]
+Springer, 2024
+Field observation (license-plate method), 4 floors
+Turnover, occupancy, duration, efficiency index
+Single-site field study; descriptive, not prescriptive
+[16]
+MDPI Applied Sciences, 2021
+GIS-based dynamic zone-allocation model
+Inter-zone demand-characteristic gap, satisfaction
+Simulation on one complex; not vehicle-type-specific
+[17]
+Nature Sci. Reports, 2025
+IoT + ALPR + IR sensor verification
+Billing-discrepancy reduction, revenue change
+Pilot-scale; figures specific to that deployment
+[18]
+ScienceDirect, 2021 — urban-scale model
+Macro zone-allocation + micro within-zone sort
+Demand distribution across zones
+Two-level split is algorithmic, not a differentiated reservation contract per vehicle class
+[19]
+J. Adv. Transp. (Wiley), 2022
+Two-level grid allocation optimization
+Demand-supply gap per grid cell
+Zone/space split motivated by tractability, not by vehicle category
+2.9 Synthesis
+Three patterns emerge across this set that matter directly for Chapters 3 and 6. First, the field treats FCFS/nearest-slot/greedy heuristics as the standard comparison baseline, not as a discredited approach — which is directly relevant because it is also, per Chapter 5, the category PBMS's own mechanism falls into. Second, MCDM methods are heavily used for parking but concentrated at the site-selection scale, and even within that scale, different MCDM techniques can disagree with each other on the same problem [ref. 6] — a genuine, literature-documented reason for caution before recommending a specific weighting scheme for RQ3. Third, the utilization studies that most directly speak to RQ1 [refs. 15, 16] establish that intra-building zone differences in utilization are real and measurable, but neither isolates vehicle-type segregation as the variable responsible, which limits how strong a causal claim this report can make about RQ1 specifically.
+2.10 Hierarchical and mixed-granularity allocation
+A smaller set of studies addresses allocation as an explicitly two-level (hierarchical) problem rather than a single flat assignment. One urban-scale model separates a macro-allocation step, which spreads incoming parking demand across a city's zones, from a micro-level step that sorts and assigns specific available spaces within whichever zone a request was routed to [ref. 18]. A separate optimization framework similarly structures allocation around a two-level grid, treating which grid cell (zone) a vehicle is directed to as a decision distinct from which specific space within that cell it eventually occupies [ref. 19]. Both papers motivate the split on computational and demand-forecasting grounds — solving one global assignment problem at building- or city-scale is harder than solving a coarse zone assignment followed by a cheaper within-zone assignment — rather than on a difference between vehicle categories. Neither paper reserves the zone/area itself as the unit of the reservation for one class of vehicle while reserving an individual space for another; in both, the two levels describe stages of one algorithm's internal logic, not two different reservation contracts offered to different users. This is the precise distinction relevant to Section 3.2's Gap 4 and to RQ3's hierarchical decision model (Section 6.3).
+Chapter 3 — Research Gap
+3.1 What the literature has already addressed
+Search-time reduction from automated guidance/allocation relative to unassisted search is empirically and simulation-supported across several independent studies [refs. 10, 11, 12].
+A wide algorithmic spectrum for the allocation problem itself — FCFS/nearest-slot, MILP-based optimization, matching theory, metaheuristics (PSO/pattern search), and multi-agent reinforcement learning — is documented with at least one implementation and evaluation each [refs. 1, 2, 3, 5, 12, 13].
+MCDM techniques for parking-related site/lot selection are extensively studied, with AHP and TOPSIS the dominant methods [refs. 6, 7, 8].
+3.2 What remains thin or unresolved (gap validation)
+[Gap 1 — scale mismatch in MCDM applications] 
+The MCDM literature retrieved for this report is concentrated on macro-level site/lot selection (choosing where a facility should be, or which of several separate facilities a driver should use) rather than micro-level, real-time assignment of an individual slot inside an already-chosen building. This is supported by refs. [7] and [8], both of which frame the decision as site selection, and by ref. [6], which is the one paper in this set that frames MCDM explicitly as an allocation model but still evaluates it as a single, static ranking rather than a live per-vehicle assignment process. This satisfies the two-citation minimum for a validated gap.
+[Gap 2 — no consensus MCDM aggregation method] 
+Ref. [6] shows that CODAS, TOPSIS, EDAS, and WASPAS can rank the same alternatives differently. Combined with the general MCDM literature comparing AHP/TOPSIS/PROMETHEE variants for other domains (cited within ref. 8's own reference list, e.g. comparisons of five MCDM methods for road-trip risk selection), this indicates that recommending 'use MCDM' for RQ3 is not, by itself, a complete or safely reproducible answer — the choice of aggregation method is itself an open design decision, not a settled one.
+[Gap 3 — vehicle-type segregation is not isolated as a causal variable] 
+Refs. [15] and [16] both document real utilization differences across floors/zones within a multi-story or complex facility, but neither study varies vehicle-type segregation specifically while holding other factors constant. No paper in the retrieved set runs a controlled comparison of a vehicle-type-segregated design against a mixed-use design on the same building. This is a genuine, currently unaddressed gap in the literature reviewed — not merely a limitation of this report — and directly bounds how confidently RQ1 can be answered (see 6.1).
+[Gap 4 — vehicle-category-differentiated reservation granularity] 
+Per the project team's stated requirement update (Section 5.2), PBMS now reserves at Area granularity for one vehicle category (Motorbike) and at Slot granularity for another (Car) within the same building. Refs. [18] and [19] show that hierarchical, two-level allocation (zone, then space) is studied in the literature, but in both cases the two levels are stages of a single algorithm's internal logic applied uniformly to all demand, not two different reservation contracts assigned by vehicle category. No paper retrieved for this report studies a system that offers a coarser reservation contract to one vehicle class and a finer one to another within one facility. This satisfies the two-citation minimum for a validated gap (refs. [18], [19] establish that the hierarchical mechanism itself is studied; neither, nor any other source found, studies it split by vehicle category), and should be stated as [Insufficient Evidence] rather than assumed to be either beneficial or detrimental until studied.
+3.3 Where PBMS fits
+[Project Fact] 
+PBMS implements exactly the kind of vehicle-type-segregated, multi-floor structure that refs. [15] and [16] study in general terms (B1 motorbike/bicycle, B2 car, B3 truck, each with a distinct management granularity), which means PBMS is a plausible future data source for closing Gap 3 — but only if occupancy telemetry is collected over time, which the current specification does not describe as implemented (see 5.6).
+[Requirement Update] 
+With the stated move to Area-level reservation for Motorbike alongside Slot-level reservation for Car (Section 5.2, 5.4), PBMS also becomes a plausible future case for closing Gap 4 — but, as with Gap 3, only once the design is actually implemented and instrumented; today it exists as a requirement, not yet as data D1–D3 describe.
+[Author Analysis] 
+On the allocation-algorithm axis, PBMS sits entirely within the 'rule-based heuristic' category from Section 2.1 — it implements none of the optimization, matching-theory, metaheuristic, or reinforcement-learning methods surveyed in Sections 2.2–2.3, and it does not implement an MCDM-style weighted scoring model as surveyed in Section 2.4. This is not, by itself, a criticism: Section 2.1 shows the field treats this category as a legitimate, common baseline. It does mean that any claim that PBMS is already 'optimized' in the sense the literature uses that word would be unsupported, and this report does not make that claim.
+Chapter 4 — Research Methodology
+4.1 Methodology chosen
+This report uses a case-study method combined with a narrative (non-statistical) comparative literature analysis. Concretely: (1) the project's own technical documents were read to extract verifiable, specific facts about the implemented allocation mechanism; (2) a targeted literature search was conducted across major academic publishers and indexers for parking allocation, MCDM, and utilization studies; (3) each research question was then answered by explicitly connecting a project fact to a literature finding, with the connecting reasoning kept visible as Author Analysis rather than presented as an additional fact.
+4.2 Why this methodology, and not an experiment or simulation
+A discrete-event simulation or a controlled field experiment comparing PBMS's greedy heuristic against an alternative (e.g. a weighted-score or MILP-based allocator) would be the appropriate methodology to produce quantitative, PBMS-specific performance claims — and Chapter 7 proposes exactly such a framework. It was not executed for this report because no occupancy time-series, arrival-rate data, or other operational telemetry from a running PBMS deployment was available. Fabricating plausible-looking simulation output to fill that gap would violate the academic-integrity constraints given for this report, so the case-study/comparative-analysis method was chosen instead, with the simulation explicitly deferred to future work (Chapter 7, Chapter 8).
+4.3 Reproducibility
+The project-document evidence in Chapter 5 is reproducible by any reader with access to the same five files (SRS, developer implementation specification, database schema, API contract, sprint backlog) by following the section references given alongside each claim. The literature evidence in Chapter 2 is reproducible by re-running the search queries listed in Table 4.1 against the same or equivalent academic search tools; exact ranking order may vary with time and index changes, which is disclosed as a limitation in Chapter 8.
+#
+Search query used
+Primary purpose
+1
+smart parking slot allocation algorithm survey IEEE
+Baseline algorithmic taxonomy
+2
+multi-criteria decision making parking slot selection TOPSIS AHP
+RQ3 grounding
+3
+automated parking guidance system reduce searching time empirical study
+RQ2 grounding
+4
+parking reservation system no-show overbooking fairness peak hour
+Extended RQ (fairness) — mostly excluded as non-academic
+5
+reinforcement learning parking space allocation dynamic
+RQ4 / algorithm comparison
+6
+segregated parking zones vehicle type utilization efficiency multi-story building
+RQ1 grounding
+4.4 Terminology glossary
+To avoid the inconsistency the drafting brief specifically warned against, this report standardises on the following terms and does not mix them: 'slot' for an individually addressed car parking space (PBMS's B2 floor only); 'area' for a named zone containing either individually addressed slots (B2) or an undifferentiated capacity count (B1); 'floor' for the top-level structural division (B1/B2/B3); 'allocation' for the act of assigning a vehicle to a floor/area/slot, whether performed by a human, a rule, or an algorithm.
+[Requirement Update] 
+Two further terms are introduced by the stated new business rule and are used consistently from here on: 'Motorbike allocation' refers to Area-level reservation — the reservation locks an Area, and an internal position within it is only resolved at check-in. 'Car allocation' refers to Slot-level reservation — the reservation locks one exact, individually addressed Slot at booking time. Where this report says 'allocation' without qualification, the statement applies to both; where the distinction matters, the report says 'Area-level' or 'Slot-level' explicitly rather than using 'reservation' or 'booking' alone.
+Chapter 5 — Existing Project Analysis
+This chapter states only what is directly verifiable in the uploaded project documents, tagged [Project Fact] with a source reference. A brief note on the project-map.md file: its content is a source-code snapshot of an internal React/TypeScript/Vite tool (a feature-tree editor with Zustand state and Dexie/IndexedDB persistence) used to author and organise the project's own specification, not the production frontend of PBMS itself. It is therefore cited only where relevant to how the documentation was produced, not as evidence about the deployed parking system's user interface.
+5.1 System architecture
+[Project Fact [D2, D4]] 
+PBMS is built as two backend services sharing one PostgreSQL database: an ASP.NET Core "Core" API (auth, parking sessions, payments) and a Spring Boot "Support" API (dashboard, reports, audit logs), plus a "Public" API surface for driver-facing queries. The dual-backend specification states a strict rule that a single use case must not be split into a transaction spanning both backends, and defines a module-ownership matrix so each database table has exactly one owning backend. Base URLs and the full prefix convention (/api/core/*, /api/support/*, /api/public/*) are fixed in the API contract.
+5.2 Structural allocation model
+[Project Fact [D1 §5.2–5.3]] 
+The SRS defines three floors, each with a different vehicle type, management granularity, and reservation support, summarised below.
+Floor
+Vehicle type
+Area granularity
+Slot granularity
+Advance reservation (per SRS as uploaded)
+B1
+Motorbike, bicycle
+Areas A–J, default capacity 20 each
+None — area-level only
+Not supported
+B2
+Car
+Areas A–J, 4 slots per area
+Individually addressed (e.g. A1–A4)
+Supported
+B3
+Truck / delivery
+Undifferentiated
+None — total capacity only (default 10)
+Not supported
+Electric vehicles are handled as their corresponding vehicle type; there is no charging-related business logic in the MVP scope.
+[Requirement Update — not yet reflected in uploaded SRS/schema] 
+The project team has since communicated a new business rule: motorbike booking is now supported, at area granularity only — a motorbike user books an Area, and the system later allocates an available position inside that Area at check-in, without ever locking an individually addressed slot. Car booking remains as originally specified: a reservation locks one exact Slot. This directly updates the 'Not supported' entry for B1 in the table above. The uploaded SRS, dev spec, and schema (§5.2–5.3, §12.7, D3) still describe B1 as non-reservable and contain no area-level booking table or endpoint, so this section treats the rule as a stated requirement to be implemented rather than as a verified, already-built mechanism. Every subsequent reference to it in this report is tagged accordingly, and the distinction should be resolved by updating D1/D2/D3 to match before this report is treated as fully current.
+5.3 Data model for allocation
+[Project Fact [D3]] 
+The schema defines floors → areas → slots as a strict hierarchy. The areas table carries a priority_order integer (admin-configured, static), plus total_capacity, current_real_occupancy, and current_booked_slots counters. The slots table carries a status enum (AVAILABLE, RESERVED, OCCUPIED, LOCKED, MAINTENANCE) and an allowed_vehicle_type_id foreign key, enforced by a check constraint linking status to current_session_id. Critically, neither table contains a distance, coordinate, or walking-time field of any kind — physical proximity to the entrance/gate is not a modelled variable anywhere in the schema; the closest available proxy is the manually configured priority_order on the area.
+5.4 The implemented (Car) and proposed (Motorbike) allocation workflows
+[Project Fact [D2 §12.7]] 
+For Car (B2), the developer specification defines a dedicated Slot Suggestion module (POST /api/core/parking-sessions/suggest-slot), implemented as a fixed pipeline of five service calls: FindCandidateAreasAsync (filter areas by vehicle type), RemoveUnavailableAreasAsync (drop locked/unavailable areas), SortByAvailableSlotsAndPriority (order remaining candidates by available-slot count and the static priority_order field), PickFirstAvailableSlotAsync (take the first slot in the top-ranked area), and BuildSuggestionReason (produce a human-readable justification string). This is a deterministic, single-pass greedy heuristic ending in a locked Slot: it does not search, backtrack, or optimise a combined objective.
+[Requirement Update — not yet reflected in uploaded SRS/schema] 
+For Motorbike (B1), the stated new workflow instead terminates one level higher: Booking → Area Selection (using the same candidate-filtering and priority-sort logic as the Car pipeline, since neither requires a distance or duration input the current schema lacks) → reservation of the Area itself → at check-in, Assign Available Position inside that Area → Create Session. No exact position is locked at booking time; the internal position is only decided when the vehicle actually arrives. This is a hybrid allocation architecture: two different reservation depths (Area-level for Motorbike, Slot-level for Car) served by the same underlying area-ranking logic, terminating at different points in the hierarchy depending on vehicle type.
+[Author Analysis] 
+Classified against the taxonomy in Chapter 2, the Car pipeline sits in the same family as the FCFS/nearest-slot/greedy baselines described in Section 2.1 — the category the literature most often uses as the comparison point for more advanced methods, not as an already-superseded approach. The proposed Motorbike pipeline is structurally closer to the two-level 'macro-allocation then micro-sort' pattern described in Section 2.10 (macro: assign a zone/area; micro: resolve an exact position within it), except that in PBMS the micro step is deferred to check-in rather than resolved immediately, since B1 does not track individual positions in the schema as uploaded. 'Priority' in both pipelines remains a static, admin-set ranking rather than a derived or learned signal, which is a meaningfully different design choice from the dynamic, demand-responsive weighting used in the MARL and MILP-based systems reviewed in Sections 2.2–2.3.
+5.4b Architectural characteristic: two reservation granularities in one system
+[Author Analysis] 
+Running Area-level reservation for one vehicle type and Slot-level reservation for another, inside a single system sharing one allocation-ranking core, is not a common configuration in the papers reviewed for this report: the retrieved literature (Sections 2.1–2.7, 2.10) generally studies systems with a single reservation granularity throughout — either always zone/area-level [ref. 10, ref. 12] or always individual-space-level [refs. 2, 3, 11, 14, 15]. This is worth stating plainly as an architectural characteristic of PBMS rather than inflating it into a claim of academic novelty: the report has not found a peer-reviewed evaluation of this exact configuration, so 'uncommon in the sample reviewed' is the accurate claim, not 'novel' or 'unprecedented' in the field at large, which would require a far broader search than the one performed here. [Insufficient Evidence] for any stronger novelty claim.
+5.5 Staff override and audit controls
+[Project Fact [D2 §12.7–12.8]] 
+A plain Staff role cannot select a slot other than the one the system suggests — attempting to do so returns SUGGESTION_OVERRIDE_NOT_ALLOWED. Manager/Admin roles may override, but must supply a reason, and the SRS separately requires that any such change be written to reservation_assignment_history and run inside a database transaction, so that a slot swap on one reservation cannot be committed without an equivalent update elsewhere. This is an explicit, already-implemented control for at least one class of allocation-fairness risk (arbitrary staff discretion) even though it is not framed by the project documents in those terms.
+5.6 Implementation status
+[Project Fact [D6]] 
+The sprint backlog lists F031 'Slot Suggestion' as a P0-priority, MVP-scope backend task (Sprint, Size L), depended on by F033 'Create Entry Transaction'. This confirms the mechanism described in 5.4 is implemented (or was firmly committed as in-scope for the MVP), not a future-work proposal.
+Capability
+Status
+Source
+Car: Area/slot suggestion by vehicle type + priority + availability, ending in a locked Slot
+Implemented
+D2 §12.7, D6 F031
+Motorbike: Area-level booking with position assigned at check-in (no locked Slot at booking time)
+Stated requirement update — not in uploaded SRS/schema/dev spec
+This chat's requirement update; contradicted by D1 §5.2 ('Not supported') as uploaded
+Individually addressed slots
+Implemented (B2 only)
+D1 §5.3, D3
+Advance reservation with grace period and paid extension
+Implemented (Car/B2, per D1 as uploaded)
+D1 §5.7
+Slot-change with mandatory audit log + transaction
+Implemented
+D1 §5.8
+Distance / walking-time as an allocation input
+Not implemented
+D3 (no such column exists)
+Expected-duration as an allocation input
+Not implemented
+D2 §12.7 (suggestion pipeline uses only vehicle type, availability, priority)
+Dynamic/learned re-prioritisation of areas
+Not implemented
+D3 (priority_order has no update mechanism described); D2
+MCDM or weighted multi-criteria scoring
+Not implemented
+D2 §12.7
+Chapter 6 — Discussion: Answering the Research Questions
+6.1 RQ1 — Does floor/area segregation by vehicle type affect utilization?
+[Literature Evidence] 
+Refs. [15] and [16] both establish, in different multi-story/complex facilities, that utilization efficiency varies measurably across floors or zones within the same building.
+[Project Fact] 
+PBMS's three floors differ not only by vehicle type but by management granularity itself (B2 has individually tracked slots and reservation support; B1 and B3 do not), so any utilization comparison across PBMS's floors would be confounded by that granularity difference, not just by vehicle-type segregation.
+[Author Analysis] 
+RQ1 as originally phrased asks about a causal effect (segregation → utilization). The literature located supports that within-building utilization differences exist and are measurable (a necessary condition for RQ1 to be meaningful) but no retrieved study isolates vehicle-type segregation as the causal variable while holding other design choices constant — and PBMS's own floors are not a clean natural experiment for this either, since B2's higher management granularity is itself a confound. The honest answer is that segregation by vehicle type is very likely to affect utilization patterns (different vehicle types have different arrival patterns, dwell times, and footprints), but the specific magnitude and direction for PBMS's building cannot be established without floor-level occupancy time series, which the current schema could log (current_real_occupancy exists per area) but which no document describes as being collected historically. [Insufficient Evidence] for a quantitative effect size specific to PBMS.
+[Requirement Update] 
+The stated move to Area-level reservation for Motorbike alongside Slot-level reservation for Car (Section 5.2) adds a second, distinct confound on top of vehicle type and management granularity: Motorbike utilization would now be measured at Area resolution (an Area counts as 'used' once any internal position is occupied) while Car utilization is measured at Slot resolution, so a raw utilization-percentage comparison between B1 and B2 would not be comparing like with like even after controlling for vehicle type. Any future utilization study (Chapter 7) would need to report Motorbike and Car utilization as separate metrics for this reason, not normalise them onto one shared figure.
+6.2 RQ2 — Does automatic allocation reduce search time versus free selection?
+[Literature Evidence] 
+Refs. [10], [11], and [12] each report reduced search/cruising time or improved capacity utilisation for guided or automated allocation relative to unassisted or naive (FCFS/SIRO) search, in simulation.
+[Project Fact] 
+PBMS does not implement 'free slot selection' as a driver-facing alternative to compare against: the entry workflow requires Staff to follow the system's suggestion, and a plain Staff override is explicitly rejected (SUGGESTION_OVERRIDE_NOT_ALLOWED).
+[Author Analysis] 
+This means RQ2, for PBMS specifically, is less an open empirical question than a description of a design decision already made: the project has procedurally foreclosed free selection at the point of vehicle entry. The literature is directionally consistent with that decision (automated/guided allocation is generally reported as reducing search time relative to unassisted search in the cited studies), which is a reasonable justification for the design choice, but this report cannot claim the literature's reported effect sizes transfer to PBMS's specific building, layout, and traffic pattern. [Insufficient Evidence] for a PBMS-specific search-time reduction figure; the evaluation framework in Chapter 7 outlines how such a figure could be produced.
+[Requirement Update] 
+Under the stated Motorbike workflow, 'search time' decomposes into two stages that Car does not have: an Area-booking stage (resolved automatically, before arrival) and an internal-position stage (resolved at check-in, inside whatever Area was booked). Car allocation resolves both in one automated step (a Slot is picked and locked at booking time). Whether this two-stage process is faster or slower overall for the Motorbike driver at check-in than Car's single-step process at check-in is not established by any source available to this report — the two-level urban-scale model in ref. [18] measures zone-then-space assignment speed at a city-routing scale, not at the scale of a driver walking from an Area entrance to an open space inside it. [Insufficient Evidence] for a Motorbike-vs-Car search-time comparison specific to PBMS.
+6.3 RQ3 — Which criteria should be prioritized during allocation?
+Each criterion named in the original RQ is assessed against what PBMS currently models (Section 5.3–5.4) and what the literature says about it:
+Criterion
+Modelled in PBMS today?
+Literature note
+Vehicle type
+Yes — hard constraint (allowed_vehicle_type_id)
+Universally treated as a hard constraint, not a weighted criterion, across refs. [1]–[13]
+Floor
+Yes — structural, fixed by vehicle type
+Consistent with segregated-floor designs in refs. [15], [16]
+Occupancy / availability
+Yes — proxy via 'most available area first' sort
+Central to nearly all methods reviewed, from FCFS through RL [refs. 3, 12]
+Distance / walking distance
+No — no coordinate or distance field in schema
+A primary cost-function input in refs. [3], [10], [11]
+Expected parking duration
+No — not used in the suggestion pipeline
+Used as a demand-signal input in the dynamic-allocation literature [ref. 16] but rarely as a driver-facing allocation input
+User type (Resident/Visitor)
+Affects pricing and access, not slot ranking
+[Insufficient Evidence] — no retrieved paper treats user-type-based allocation priority directly
+Reservation status
+Yes — governs slot state machine (RESERVED etc.)
+Consistent with reservation-and-rematching literature [ref. 2]
+Accessibility, traffic flow, energy efficiency
+No — none present in schema or suggestion logic
+[Insufficient Evidence] — not directly addressed by any source retrieved for this report
+[Author Analysis] 
+The literature does not support a single universally-correct priority ordering (Section 3.2, Gap 2), and ref. [6] shows that even a chosen set of criteria can be ranked differently depending on the MCDM aggregation method used. The defensible, literature-grounded position is therefore not 'criterion X should be first' but rather: vehicle type and hard-capacity constraints should be enforced first (as PBMS already does), occupancy/availability should inform relative ranking among remaining candidates (as PBMS already does), and any further refinement — adding distance or expected duration as additional weighted criteria — should be treated as a design hypothesis to be tested (Chapter 7), not asserted as already known to be correct.
+6.3b A hierarchical decision model for mixed reservation granularity
+[Requirement Update] 
+Once Motorbike and Car resolve reservations at different levels of the same hierarchy, a single flat weighting scheme applied identically to both is unlikely to be appropriate: the criteria that matter for choosing an Area (aggregate availability, admin priority, expected inflow) are not the same as the criteria that matter for choosing a specific Slot inside an already-chosen Area (which exact position is open right now). Applying one shared weighted score across both decisions would either force Area-level criteria to be evaluated on data B1 does not track per-position, or force Slot-level criteria onto a Motorbike decision that, by the stated rule, never reaches individual-position resolution at booking time. A two-level decision structure avoids this mismatch:
+Level 1 — Vehicle Type: a hard, non-weighted filter (as already implemented via allowed_vehicle_type_id), determining which pipeline below applies.
+Level 2 — Allocation Granularity, branching by vehicle type: for Motorbike, an Area Selection step (candidate areas ranked by availability and priority, as in the existing Car pipeline) followed by an Internal Placement step deferred to check-in; for Car, a single Slot Selection step performed at booking time.
+[Author Analysis] 
+This structure is consistent with the general zone-then-space pattern described in refs. [18] and [19] (Section 2.10), with one difference worth stating explicitly rather than glossing over: those papers apply the two levels uniformly to all demand as an internal solution technique, whereas PBMS's version would expose the two levels as two different reservation contracts depending on vehicle type, only completing Level 2's inner step for Motorbike at check-in instead of at booking time. No source retrieved evaluates that specific configuration, so its performance relative to a single flat model is [Insufficient Evidence] rather than assumed to be superior. The argument for it here is architectural fit (it reuses the existing area-ranking logic for both vehicle types and only adds a deferred placement step for Motorbike) rather than a demonstrated optimality result.
+6.4 RQ4 — Can allocation algorithms improve peak-hour utilization?
+[Literature Evidence] 
+The MARL-based studies [refs. 12, 13] and the dynamic-allocation study [ref. 16] each report improved utilization or reduced imbalance under demand conditions comparable to what would be described as peak load, relative to static or FCFS/SIRO baselines. Ref. [25] separately corroborates that peak-hour occupancy (approaching the mid-90s percent range in that paper's own pilot site) is where manual/semi-automated methods are most likely to show strain, though that specific figure describes that paper's deployment, not PBMS.
+[Author Analysis] 
+Because Section 5.4 establishes that PBMS's mechanism is a static-priority greedy heuristic — structurally the baseline category these RL and dynamic-allocation papers benchmark against, not the proposed improvement — the literature is consistent with there being room for improvement during high-occupancy periods. Whether that headroom is actually realizable for this specific building depends on its real arrival-rate pattern and physical layout, which are not documented. [Insufficient Evidence] for a specific peak-hour utilization gain; Chapter 7 proposes how to measure it rather than asserting a number.
+[Requirement Update] 
+The optimization objective for peak-hour balancing now differs by vehicle type. For Motorbike, the relevant objective is Area balancing — keeping aggregate occupancy roughly even across B1's areas, since individual positions inside an area are not tracked until check-in and so cannot be individually balanced at booking time. For Car, the relevant objective is Slot balancing — the finer-grained question of which specific slots within and across B2's areas sit idle versus occupied, since every Car slot is individually addressed. A single peak-hour metric ('percentage of the building full') would obscure this difference; Chapter 7's evaluation framework treats the two as separate metrics rather than one combined figure for exactly this reason.
+6.5 Extended research questions
+[Extended RQ-A — Fairness] 
+Is a static, admin-configured priority_order acceptable, or does it risk a structurally under-utilised or over-utilised area over time? [Author Analysis] Because priority_order has no described update mechanism (5.3), an area ranked low at configuration time has no built-in path to being re-prioritised as conditions change, which is an architectural fairness/staleness risk distinct from a statistical one — worth investigating because it is cheap to check against existing occupancy counters without new instrumentation.
+[Extended RQ-B — Scalability] 
+Does the current algorithm scale beyond this building's size? [Author Analysis] The pipeline in 5.4 is bounded by the number of areas for one vehicle type plus the number of slots in the chosen area — trivial for a single small-to-medium building, but the specification does not describe behaviour for a multi-building or campus deployment, which is a reasonable scalability question for future work, motivated by the campus-scale study in ref. [5].
+[Extended RQ-C — Resilience / failure handling] 
+How does the system behave when slot data is inconsistent? [Project Fact, D1 §5.4] The SRS defines WRONG_OCCUPIED, DATA_CONFLICT, and TEMP_LOCKED slot states, indicating the design does anticipate certain failure modes at the data level. [Author Analysis] No document describes an algorithm-level fallback (e.g. what the suggestion service does if its top-ranked area's data is in DATA_CONFLICT) — worth investigating because ref. [1] specifically motivates its consensus-based design by the failure modes of centralized, prediction-reliant allocation under exactly this kind of data uncertainty.
+[Extended RQ-D — Reservation conflicts] 
+[Project Fact, D1 §5.7–5.8] PBMS already implements a concrete conflict-handling mechanism: a 15-minute check-in grace period, paid 15-minute extensions, and a mandatory, audited, transactional slot-change procedure. [Author Analysis] This is a more mature answer to reservation-conflict handling than the matching/rematching literature [ref. 2] typically assumes, since ref. 2's rematching mechanism is proposed as a novel contribution where PBMS already has an operational, if simpler, equivalent.
+6.6 Algorithm comparison matrix (qualitative, literature-informed)
+Algorithm family
+Computational complexity
+Data/infra required
+Fit to current PBMS architecture
+Literature-reported benefit context
+FCFS / nearest-slot
+O(1)–O(n) per request
+Slot status only
+Trivial fit — closest to what PBMS runs today
+Standard baseline in refs. [12], [14]
+Greedy availability+priority (PBMS today)
+O(areas)+O(slots in area)
+Slot status, static priority config
+Already implemented
+Same category as baselines above; no direct literature evaluation of this exact variant found
+Weighted-score / MCDM (AHP, TOPSIS, etc.)
+O(criteria × candidates), low
+Needs distance, duration, or other criteria not yet in schema
+Requires new data fields; moderate integration effort
+Widely used for site selection [refs. 7, 8]; contradictory rankings across methods for the same problem [ref. 6]
+MILP / matching-theory optimization
+Polynomial to NP-hard depending on formulation
+Needs a live solver and accurate real-time state
+Significant integration effort; solver dependency not in current dual-backend design
+Reported search-time and cost reductions [ref. 3]; stability guarantees [ref. 2]
+Metaheuristic (GA / PSO)
+Iterative, tunable; heavier than greedy
+Needs an objective function and enough data to evaluate candidates
+Would require a new scoring service; not present today
+Hybrid PSO reported to outperform plain pattern search on a campus allocation model [ref. 5]
+Multi-agent reinforcement learning
+Training-heavy offline, cheap at inference
+Needs historical demand data to train; highest data requirement of all options
+Largest architectural change; no training data pipeline exists today
+Reported gains over FCFS/SIRO in simulation [refs. 12, 13]
+6.7 Trade-offs
+[Author Analysis] 
+The current greedy design trades optimality (it ignores distance and duration entirely) for simplicity and auditability — the suggestion pipeline is short, deterministic, and easy to explain to a Staff user via the human-readable BuildSuggestionReason string, and every override is logged. Moving toward MCDM or learned methods would likely improve fit to more criteria but would cost some of that transparency and would require new data collection (distance, duration) that does not exist in the schema today. This is a genuine trade-off, not a case where one option dominates the other, and the choice depends on operational priorities (auditability for a small staffed facility vs. optimality for a larger, less-staffed one) that are a business decision outside the scope of this report.
+Chapter 7 — Proposed Evaluation Framework (Not Executed)
+This chapter designs, but does not run, an evaluation that could turn the [Insufficient Evidence] items in Chapter 6 into supported findings. Presenting it as a proposal rather than a result is a deliberate choice: none of the figures below have been produced by any experiment for this report.
+7.1 Metrics derivable from the existing schema without new instrumentation
+[Requirement Update] 
+Because Motorbike and Car now resolve reservations at different granularities (Section 5.2, 5.4), the metrics below are kept as two separate sets rather than one combined table — combining them would average away exactly the distinction Section 6.1 and 6.4 identify as important.
+Motorbike (Area-level) metrics
+Metric
+Derivation
+Which RQ it informs
+Area utilization
+current_real_occupancy / total_capacity per area, sampled over time
+RQ1, RQ4
+Area occupancy balance
+Standard deviation of per-area utilization across B1's areas
+RQ4 (Area balancing)
+Area-booking-to-arrival gap
+Time between Area reservation and actual check-in, if logged
+RQ2
+Car (Slot-level) metrics
+Metric
+Derivation
+Which RQ it informs
+Slot utilization
+Fraction of individually addressed B2 slots occupied, sampled over time
+RQ1, RQ4
+Slot occupancy balance / turnover
+Standard deviation of per-slot occupancy plus session count per slot per period
+RQ4 (Slot balancing)
+Suggestion-to-entry latency
+Time between suggest-slot call and CreateEntrySessionAsync commit
+RQ2
+Shared metrics (both vehicle types)
+Metric
+Derivation
+Which RQ it informs
+Override rate
+Count of Manager/Admin overrides (with OVERRIDE_REASON_REQUIRED) divided by total entries
+RQ3, Extended RQ-A
+Violation rate
+Count of WRONG_OCCUPIED / DATA_CONFLICT incidents per period
+Extended RQ-C
+Reservation expiry/no-show rate
+Count of EXPIRED reservations / total reservations
+Extended RQ-D
+7.2 Proposed comparison design
+A discrete-event simulation, seeded with logged arrival and dwell-time data from an operating PBMS deployment (not currently collected per Section 5.6), comparing: (a) the current greedy heuristic as implemented, (b) a weighted-score variant adding placeholder distance and expected-duration criteria, and (c) an FCFS baseline as a lower control. Candidate output metrics: mean/95th-percentile search-to-assignment time, occupancy-balance standard deviation across areas, and override rate.
+7.3 Threats to validity (anticipated, not yet tested)
+Internal validity: without real arrival-rate data, any simulation would need synthetic demand curves, which risks encoding the researchers' own assumptions about peak timing rather than the building's actual pattern.
+External validity: PBMS is a single-site case study; findings from one building's layout and vehicle mix would not automatically generalise to a larger or differently laid-out facility.
+Construct validity: 'search time' as defined in the cited literature (driver cruising time) is not identical to 'suggestion-to-entry latency' as measurable in PBMS's logs (a Staff-mediated process), so any comparison to literature-reported search-time figures would need to account for that difference rather than treating the two as interchangeable.
+These threats are stated here so that, if this evaluation is carried out as future work, the team does not present results without having first addressed them.
+Chapter 8 — Conclusion, Limitations, and Future Work
+8.1 Conclusion
+PBMS implements a deterministic, greedy allocation heuristic — filter candidate areas by vehicle type, sort by availability and a static admin-configured priority, then resolve a reservation — with an explicit, audited override path for Manager/Admin roles. As originally specified, reservation resolved to an individually addressed Slot for Car; per the project team's stated requirement update, reservation now resolves to an Area for Motorbike (with the exact internal position deferred to check-in) and continues to resolve to a Slot for Car. This placed PBMS squarely within the rule-based baseline category that the wider smart-parking literature treats as the standard comparison point for more advanced methods, and the Area/Slot split places it, architecturally, closer to the two-level zone-then-space pattern described in a smaller strand of that literature (Section 2.10) — though, as stated there, no source reviewed evaluates that pattern applied differently by vehicle category, so this remains an architectural observation, not a validated performance claim. Cross-referencing the literature against the four research questions shows: (RQ1) vehicle-type/floor segregation plausibly affects utilization, consistent with general zone-level findings in the literature, but no available study or project data isolates segregation — or the added Area-vs-Slot granularity difference — as the specific causal factor; (RQ2) PBMS has already made automated allocation mandatory at entry for both vehicle types, though Motorbike's allocation now completes in two stages (Area, then position) while Car's completes in one, a distinction the literature does not directly speak to; (RQ3) no single priority ordering is supported as universally correct, and a flat weighting model is additionally a poor fit once Motorbike and Car resolve at different levels of the hierarchy — a two-level decision structure (Section 6.3b) is proposed as an architecturally consistent response, not as a proven-optimal one; (RQ4) the literature suggests headroom exists for adaptive methods during peak occupancy relative to static heuristics, and this now needs to be assessed separately as Area balancing (Motorbike) and Slot balancing (Car) rather than as one combined figure. None of these conclusions required inventing data PBMS does not have — where the evidence stopped, the report stopped and said so, including explicitly flagging that the Motorbike Area-booking rule itself is not yet reflected in the uploaded SRS, schema, or developer specification.
+8.2 Limitations
+Literature coverage: approximately nineteen sources, individually verified, across five reputable indexers — a targeted review, not a full PRISMA-documented systematic literature review. Coverage of paywalled Scopus/Web of Science-only material could not be verified.
+No live experiment: all PBMS-specific quantitative claims are explicitly marked [Insufficient Evidence]; nothing in Chapters 5–6 about PBMS's future performance under an alternative allocation strategy should be read as measured.
+Document provenance: project-map.md documents an internal authoring tool, not the production PBMS frontend, and was used accordingly (Section 5, opening note).
+Requirement/document mismatch: the Motorbike Area-level booking rule (Sections 5.2, 5.4, 6.1–6.4) was communicated as a new requirement but is not yet present in the uploaded SRS, schema, or developer specification, which still describe B1 as non-reservable. Every claim about this rule in this report is tagged 'Requirement Update' rather than 'Project Fact' for that reason, and should be re-verified once D1–D3 are updated to match.
+Single-site case study: conclusions about PBMS do not generalise to other parking buildings without further work.
+8.3 Future work
+Update the SRS, database schema, and developer implementation specification to formally reflect Area-level Motorbike reservation, including the check-in-time position-assignment step, so that the claims in Sections 5.2, 5.4, and 6 can be re-tagged from 'Requirement Update' to 'Project Fact'.
+Instrument the existing area/slot occupancy counters over time to build the data series Chapter 7's evaluation framework requires, tracked separately for Area-level (Motorbike) and Slot-level (Car) metrics.
+Run the proposed discrete-event simulation comparing the current greedy heuristic, a weighted-score variant, and an FCFS control.
+If a weighted or MCDM-style extension is pursued, treat method choice (AHP vs. TOPSIS vs. other aggregation) as an explicit design decision to be justified, per the contradiction documented in ref. [6], rather than a default.
+Investigate Extended RQ-A (fairness of static priority_order) directly against logged override and occupancy data, since it requires no new instrumentation beyond what the schema already supports.
+References
+Academic literature (IEEE-style numbering, matching in-text bracket numbers used throughout this report):
+[1] V. Hassija, V. Saxena, V. Chamola, and F. R. Yu, "A Parking Slot Allocation Framework Based on Virtual Voting and Adaptive Pricing Algorithm," IEEE Trans. Veh. Technol., 2020. [Online]. Available: https://ieeexplore.ieee.org/document/9028256/
+[2] "Parking Lot Allocation Using Rematching and Dynamic Parking Fee Design," IEEE Journals & Magazine, 2022. [Online]. Available: https://ieeexplore.ieee.org/document/9749940/
+[3] Y. Geng and C. G. Cassandras, "New 'Smart Parking' System Based on Resource Allocation and Reservations," IEEE Trans. Intell. Transp. Syst., vol. 14, no. 3, pp. 1129–1139, 2013. [Online]. Available: https://ieeexplore.ieee.org/document/6492250
+[4] "MoParkeR: Multi-objective Parking Recommendation," arXiv preprint, 2021. [Online]. Available: https://arxiv.org/pdf/2106.07384
+[5] "Campus Parking Space Allocation Distribution Using Pattern Search and Particle Swarm Pattern Search Algorithms," IEEE Conference Publication, 2014. [Online]. Available: https://ieeexplore.ieee.org/document/7044839
+[6] "New Parking Lot Selection Approach Based on the Multi-Criteria Decision Making (MCDM) Methods: Health Criteria," Sustainability, 2023, doi: 10.3390/su15020938.
+[7] S. Kazazi Darani, A. Akbari Eslami, M. Jabbari, and H. Asefi, "Parking Lot Site Selection Using a Fuzzy AHP-TOPSIS Framework in Tuyserkan, Iran," J. Urban Plann. Dev., vol. 144, no. 3, 2018, doi: 10.1061/(ASCE)UP.1943-5444.0000456.
+[8] "A Decision Support Model Based on the Analytic Hierarchy Process (AHP) for Parking Area Selection: A Sample for İzmir Demokrasi University, Türkiye," Int. J. Civ. Eng., 2025, doi: 10.1007/s40999-025-01167-0.
+[9] "A Review of Smart Parking Systems," (systematic review, 124 studies screened per source), ScienceDirect / Heliyon-type publication, 2023–2024. [Online]. Available: https://www.sciencedirect.com/science/article/pii/S235214652301219X
+[10] "Quantification of Potential Cruising Time Savings Through Intelligent Parking Services," Transp. Res. Part C, 2018. [Online]. Available: https://www.sciencedirect.com/science/article/abs/pii/S0965856416307121
+[11] "Comparison of Intelligent Parking Guidance System and Conventional System with Regard to Capacity Utilisation," ScienceDirect, 2021. [Online]. Available: https://www.sciencedirect.com/science/article/abs/pii/S2210670721004340
+[12] "A Deep Reinforcement Learning and Graph Convolution Approach to On-Street Parking Search Navigation," PMC, 2025. [Online]. Available: https://pmc.ncbi.nlm.nih.gov/articles/PMC12031427/
+[13] "Dynamic Configuration of On-Street Parking Spaces Using Multi-Agent Reinforcement Learning," arXiv:2512.02406, 2025. [Online]. Available: https://arxiv.org/abs/2512.02406
+[14] "Intelligent Smart Parking Algorithm," IEEE Conference Publication, 2018. [Online]. Available: https://ieeexplore.ieee.org/document/8358524/
+[15] "Efficiency of Using Multi-Story Parking Buildings in Hilla City," in Proc., Springer, 2024, doi: 10.1007/978-981-97-9368-6_30.
+[16] "Improving Utilization Efficiency and Drivers' Degree of Satisfaction in Urban Complex Parking Lot Through Modelling the Dynamic Allocation of Parking Spaces," Appl. Sci., vol. 11, no. 18, p. 8680, 2021, doi: 10.3390/app11188680.
+[17] "Advanced IoT-Integrated Parking Systems with Automated License Plate Recognition and Payment Management," Sci. Rep., 2025. [Online]. Available: https://www.nature.com/articles/s41598-025-86441-w
+[18] "Dynamic Parking Space Allocation at Urban Scale: Problem Formulation and Resolution," ScienceDirect, 2021. [Online]. Available: https://www.sciencedirect.com/science/article/pii/S1319157821003256
+[19] "Parking Resource Allocation Optimization Framework Based on a Two-Level Grid Model," J. Adv. Transp., vol. 2022, 2022, doi: 10.1155/2022/5977168.
+Internal project documents
+[D1] SRS_Parking_Building_Management_System_v2.md — Software Requirements Specification, Parking Building Management System.
+[D2] Developer_Implementation_Specification_Dual_Backend_NET_SpringBoot.md — Developer Implementation Specification v1.1.
+[D3] 01_schema.sql — PostgreSQL/Supabase MVP schema.
+[D4] API_Contract.md — API Contract (base URLs, prefix rules, priority endpoints).
+[D5] Main_Feature_Report_Parking_Building_Management_System.md — Main Feature Report.
+[D6] backend_sprint_issues_dev_scoring.md — Backend Sprint Issues & Dev Scoring.
+[D7] project-map.md — source snapshot of an internal specification-authoring tool (see Chapter 5 opening note); not the PBMS production frontend.
+Appendix A — Traceability Matrix
+RQ
+Literature evidence
+Project evidence
+Current answer status
+RQ1
+[15], [16]
+D1 §5.2–5.3 (floor/vehicle-type structure)
+Directionally supported; effect size not established — Insufficient Evidence
+RQ2
+[10], [11], [12]
+D2 §12.7–12.8 (mandatory suggestion, override blocked)
+Design decision already made; literature directionally supportive, PBMS-specific effect not measured
+RQ3
+[6], [7], [8], [3]
+D2 §12.7, D3 (no distance/duration fields)
+Partial answer: hard constraints + availability justified; further criteria are untested hypotheses
+RQ4
+[12], [13], [16], [25]
+D2 §12.7 (static priority, no dynamic re-ranking)
+Headroom plausible per literature; PBMS-specific gain — Insufficient Evidence
+Ext-A Fairness
+General MCDM/allocation literature (Ch. 2)
+D3 (priority_order static, no update mechanism found)
+Open — recommended for direct investigation (Ch. 8.3)
+Ext-B Scalability
+[5]
+D2 §12.7 (algorithm complexity)
+Low risk at current scale; untested beyond single building
+Ext-C Resilience
+[1]
+D1 §5.4 (WRONG_OCCUPIED, DATA_CONFLICT states)
+Data-level handling exists; algorithm-level fallback undocumented
+Ext-D Reservation conflicts
+[2]
+D1 §5.7–5.8 (grace period, audited slot-change)
+Implemented; comparable in intent to literature's rematching proposals
+Ext-E Mixed reservation granularity
+[18], [19]
+Section 5.2, 5.4 (Requirement Update — not yet in D1/D2/D3)
+Open — architecturally described (6.3b); performance not established, and not yet reflected in uploaded documents
+Appendix B — Anticipated Reviewer Questions
+A focused set of questions a defense panel is realistically likely to ask, with direct, sourced answers. This replaces the drafting brief's request for a simulated five-persona panel and a numeric confidence score for each answer — a single honest answer, sourced to a specific chapter, is more defensible at a real defense than a fabricated score would be.
+Q: 
+Is PBMS's allocation algorithm actually novel?
+No, and the report does not claim it is. It is a greedy, availability-and-static-priority heuristic — the same family as FCFS/nearest-slot baselines in the literature (Section 5.4, 6.6).
+Q: 
+Why didn't you run a simulation to get real numbers?
+No operational telemetry (arrival rates, dwell times, occupancy history) was available for PBMS. Chapter 7 specifies exactly what such a simulation would need; running it with fabricated data would misrepresent the report's findings (Chapter 4.2, 7.2).
+Q: 
+Why is distance not used in the current system?
+The database schema has no coordinate or distance field on areas or slots (Section 5.3); the suggestion pipeline only uses vehicle type, availability, and static priority (Section 5.4).
+Q: 
+Isn't MCDM the obvious answer to RQ3?
+Not unconditionally — ref. [6] shows that different MCDM aggregation methods (TOPSIS, CODAS, EDAS, WASPAS) can produce contradictory rankings for the same parking allocation problem, so 'use MCDM' is not a complete answer without also justifying the specific method (Section 3.2, Gap 2; Section 6.3).
+Q: 
+How do you know PBMS's floors actually differ in utilization?
+This report does not know that for PBMS specifically — it is [Insufficient Evidence]. What is supported is that comparable multi-story facilities in the literature show measurable inter-floor/zone differences (refs. [15], [16]), which motivates checking PBMS's own data if it is collected (Section 6.1).
+Q: 
+What happens if two staff members try to change the same slot at once?
+The SRS requires the slot-change operation to run inside a database transaction and to be logged to reservation_assignment_history, specifically to prevent one reservation being updated without the corresponding update elsewhere (Section 5.5, D1 §5.8).
+Q: 
+Why did you exclude most of the results your searches returned?
+Several returned pages were vendor blogs or marketing content (e.g. parking-reservation software vendors) rather than peer-reviewed or publisher-indexed academic sources, and were excluded per the source-tier policy given for this report (Chapter 2 introduction).
+Q: 
+Could this algorithm handle a much bigger building?
+Not addressed empirically here. The complexity of the current pipeline (bounded by area and slot counts for one vehicle type) is trivial at PBMS's current scale, but no document describes behaviour at campus scale; ref. [5] studies a comparable campus-scale allocation problem and is the closest available analogue (Section 6.5, Ext-B).
+Q: 
+Does the system handle a slot with conflicting or corrupted data?
+The SRS defines WRONG_OCCUPIED and DATA_CONFLICT slot states, so the data model anticipates this. No document describes what the suggestion algorithm itself does if its top-ranked candidate area contains such a slot — this is flagged as an open question, not silently assumed to be handled (Section 6.5, Ext-C).
+Q: 
+Is this report's literature review a full systematic review?
+No — it is explicitly described as a targeted review of about nineteen verified sources, not a PRISMA-documented SLR, because the tools available could not verify full database-coverage statistics. This is stated as a limitation, not hidden (Section 4.2, 8.2).
+Q: 
+Why does the report keep saying 'Requirement Update' instead of just stating the Motorbike Area-booking rule as fact?
+Because the uploaded SRS, schema, and developer specification still describe B1/Motorbike as not supporting reservation at all, and were not updated when this rule was communicated. Citing them as if they already said otherwise would be a fabricated citation. The rule is treated as a genuine, current business requirement — just not yet a verified project fact (Section 5.2, 8.2).
+Q: 
+Doesn't offering both Area-level and Slot-level reservation in one system prove this design is novel?
+No, and the report is explicit about not claiming that. Two verifiable sources describe two-level (zone-then-space) allocation as an internal algorithmic technique (refs. [18], [19]), but neither splits reservation granularity by vehicle category the way PBMS now does. The honest claim is 'uncommon in the sample reviewed here', not 'novel in the field', since a much broader search would be needed to support the latter (Section 5.4b).
+

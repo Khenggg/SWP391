@@ -47,8 +47,8 @@ function ImageUploadSlot({ id, label, description, preview, onSelect, onRemove, 
   const isDisabled = disabled || isUploading;
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-2 h-full">
+      <div className="flex items-start justify-between min-h-[64px]">
         <div>
           <p className="text-sm font-bold text-slate-700">
             {label} <span className="text-rose-500">*</span>
@@ -205,10 +205,10 @@ function ManagerReasonCard({ status, managerReason }) {
         <div>
           <p className={`font-bold text-sm ${textCls}`}>
             {status === "APPROVED"
-              ? "Manager đã phê duyệt yêu cầu"
+              ? "Quản lý đã phê duyệt yêu cầu"
               : status === "REJECTED"
-              ? "Manager đã từ chối yêu cầu"
-              : "Yêu cầu đang chờ Manager xét duyệt"}
+              ? "Quản lý đã từ chối yêu cầu"
+              : "Yêu cầu đang chờ Quản lý xét duyệt"}
           </p>
         </div>
         <StatusBadge status={status} />
@@ -216,9 +216,9 @@ function ManagerReasonCard({ status, managerReason }) {
 
       {/* Manager Reason — always shown, read-only */}
       <div className="bg-white rounded-lg border p-3">
-        <p className="text-xs font-bold text-slate-500 uppercase mb-1">Lý do Manager</p>
+        <p className="text-xs font-bold text-slate-500 uppercase mb-1">Lý do Quản lý</p>
         {status === "PENDING" ? (
-          <p className="text-sm text-slate-400 italic">Đang chờ Manager xét duyệt...</p>
+          <p className="text-sm text-slate-400 italic">Đang chờ Quản lý xét duyệt...</p>
         ) : managerReason ? (
           <p className="text-sm text-slate-700">{managerReason}</p>
         ) : (
@@ -524,7 +524,7 @@ export default function LicensePlateMismatchPage() {
               {isResubmit && (
                 <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-700 font-medium">
                   ℹ️ Yêu cầu mới sẽ được tạo. Yêu cầu bị từ chối trước vẫn được lưu trong lịch sử.
-                  Manager sẽ xét duyệt lại yêu cầu mới.
+                  Quản lý sẽ xét duyệt lại yêu cầu mới.
                 </div>
               )}
             </div>
@@ -533,16 +533,16 @@ export default function LicensePlateMismatchPage() {
             <div className="border-t border-slate-100">
               <div className="px-5 pt-4 pb-1 flex items-center gap-2">
                 <ImageIcon className="w-5 h-5 text-emerald-600" />
-                <h3 className="font-bold text-slate-800">Ảnh Xe Ra (Exit Vehicle Images)</h3>
+                <h3 className="font-bold text-slate-800">Ảnh Xe Ra</h3>
               </div>
               <p className="px-5 pb-3 text-xs text-slate-500">
-                Tải lên hai ảnh xe ra bãi để Manager có thể so sánh với ảnh xe vào.
+                Tải lên hai ảnh xe ra bãi để Quản lý có thể so sánh với ảnh xe vào.
               </p>
               <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <ImageUploadSlot
                   id="exit-plate-image"
-                  label="Exit Plate Image"
-                  description="Photo clearly showing the rear/front license plate of the vehicle leaving."
+                  label="Ảnh Biển Số Xe Ra"
+                  description="Ảnh chụp rõ nét biển số trước/sau của xe khi ra."
                   preview={exitPlatePreview}
                   onSelect={(dataUrl) => handleSnapshotUpload("EXIT_PLATE", dataUrl)}
                   onRemove={() => {
@@ -556,8 +556,8 @@ export default function LicensePlateMismatchPage() {
                 />
                 <ImageUploadSlot
                   id="exit-vehicle-image"
-                  label="Exit Full Vehicle Image"
-                  description="Photo showing the complete vehicle leaving the parking lot."
+                  label="Ảnh Toàn Bộ Xe Ra"
+                  description="Ảnh chụp toàn bộ hình dáng xe khi ra khỏi bãi đỗ."
                   preview={exitVehiclePreview}
                   onSelect={(dataUrl) => handleSnapshotUpload("EXIT_VEHICLE", dataUrl)}
                   onRemove={() => {
