@@ -7,7 +7,6 @@ public class UpdateAreaRequest
     public int TotalCapacity { get; set; }
 
     public string Status { get; set; } = null!;
-    public string ManagementType { get; set; } = "CAPACITY";
 
     public List<long> VehicleTypeIds { get; set; } = new();
 }

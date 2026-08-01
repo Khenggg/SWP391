@@ -173,16 +173,22 @@ export default function StructureManagementPage() {
     } catch (e) { toast.error(e.message || "Lỗi lưu tầng"); }
   };
 
-  const openCreateArea = () => { setEditingItem(null); setForm({ floorId: "", areaCode: "", areaName: "", priorityOrder: 1, totalCapacity: 10, managementType: "CAPACITY", vehicleTypeIds: [], status: "ACTIVE" }); setShowAreaModal(true); };
-  const openEditArea = (area) => { setEditingItem(area); setForm({ floorId: area.floorId || "", areaCode: area.areaCode, areaName: area.areaName, priorityOrder: area.priorityOrder || 1, totalCapacity: area.totalCapacity || 10, managementType: area.managementType || "CAPACITY", vehicleTypeIds: area.vehicleTypeIds || [], status: area.status || "ACTIVE" }); setShowAreaModal(true); };
+  const openCreateArea = () => { setEditingItem(null); setForm({ floorId: "", areaCode: "", areaName: "", priorityOrder: 1, totalCapacity: 10, vehicleTypeIds: [], status: "ACTIVE" }); setShowAreaModal(true); };
+  const openEditArea = (area) => { setEditingItem(area); setForm({ floorId: area.floorId || "", areaCode: area.areaCode, areaName: area.areaName, priorityOrder: area.priorityOrder || 1, totalCapacity: area.totalCapacity || 10, vehicleTypeIds: area.vehicleTypeIds || [], status: area.status || "ACTIVE" }); setShowAreaModal(true); };
   const handleAreaSave = async () => {
     if (!form.areaCode || !form.areaName || !form.floorId) return toast.error("Vui lòng điền đủ Mã khu, Tên khu và chọn Tầng");
     try {
-      const isSlot = form.managementType === "SLOT";
+      // Auto-set capacity for car areas based on slot count
+      const isCar = form.vehicleTypeIds && form.vehicleTypeIds.length > 0
+        ? form.vehicleTypeIds.some(id => {
+            const vt = vehicleTypes.find(v => v.id === id);
+            return vt?.requiresSlot ?? false;
+          })
+        : false;
       
       const payload = {
         ...form,
-        totalCapacity: isSlot 
+        totalCapacity: isCar 
           ? (editingItem ? slots.filter(s => s.areaId === editingItem.id).length : 0)
           : Number(form.totalCapacity || 0)
       };
@@ -233,16 +239,31 @@ export default function StructureManagementPage() {
   };
 
   const isCarArea = (area) => {
-    return area.managementType === "SLOT";
+    if (area.vehicleTypeIds && area.vehicleTypeIds.length > 0) {
+      return area.vehicleTypeIds.some(vtId => {
+        const vt = vehicleTypes.find(v => v.id === vtId);
+        return vt?.requiresSlot ?? false;
+      });
+    }
+    return (area.vehicleTypeNames || []).some(name => name.toLowerCase().includes("ô tô") || name.toLowerCase().includes("o to"));
   };
 
   // Filtered Data
   const filteredAreas = filterFloor === "ALL" ? areas : areas.filter((a) => a.floorId?.toString() === filterFloor);
   
-  // Filter slots for SLOT-managed areas
+  // Filter slots for Ô tô only using requiresSlot property
   const carSlots = slots.filter(s => {
-    const area = areas.find(a => a.id === s.areaId);
-    return area?.managementType === "SLOT";
+    if (s.allowedVehicleTypeId) {
+      const vt = vehicleTypes.find(v => v.id === s.allowedVehicleTypeId);
+      return vt?.requiresSlot ?? false;
+    }
+    if (s.vehicleTypeIds && s.vehicleTypeIds.length > 0) {
+      return s.vehicleTypeIds.some(vtId => {
+        const vt = vehicleTypes.find(v => v.id === vtId);
+        return vt?.requiresSlot ?? false;
+      });
+    }
+    return (s.vehicleTypeNames || []).some(name => name.toLowerCase().includes("ô tô") || name.toLowerCase().includes("o to"));
   });
   const filteredSlots = carSlots.filter((s) => {
     const matchFloor = filterFloor === "ALL" || s.floorId?.toString() === filterFloor;
@@ -251,8 +272,8 @@ export default function StructureManagementPage() {
     return matchFloor && matchArea && matchStatus;
   });
 
-  // Areas for capacity-managed vehicles
-  const nonCarAreas = areas.filter(a => a.managementType === "CAPACITY");
+  // Areas for non-car vehicles (Xe máy, xe điện, xe đạp...)
+  const nonCarAreas = areas.filter(a => !isCarArea(a));
   const filteredNonCarAreas = nonCarAreas.filter((a) => {
     const matchFloor = filterFloor === "ALL" || a.floorId?.toString() === filterFloor;
     return matchFloor;

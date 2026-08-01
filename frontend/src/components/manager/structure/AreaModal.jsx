@@ -158,42 +158,12 @@ export default function AreaModal({
                 )}
               </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-bold block">Hình thức quản lý *</label>
-              <Select 
-                value={form.managementType || "CAPACITY"} 
-                onValueChange={(val) => {
-                  setField("managementType", val);
-                  if (val === "SLOT") {
-                    setField("totalCapacity", editingItem ? (form.totalCapacity || 0) : 0);
-                  }
-                }}
-              >
-                <SelectTrigger><SelectValue placeholder="Chọn hình thức..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="SLOT">Quản lý theo SLOT (Vẽ vị trí đỗ)</SelectItem>
-                  <SelectItem value="CAPACITY">Quản lý theo SỨC CHỨA (Không vẽ vị trí đỗ)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {form.managementType === "SLOT" ? (
-              <div className="space-y-2">
-                <label className="text-sm font-bold">Sức chứa (Tính theo số slot)</label>
-                <Input 
-                  type="text"
-                  value={form.totalCapacity || 0}
-                  disabled
-                  className="bg-slate-50 text-slate-500 cursor-not-allowed"
-                />
-                <span className="text-[10px] text-slate-400 block">Sức chứa sẽ tự động cập nhật khi bạn thêm/xóa Slot trong khu vực này</span>
-              </div>
-            ) : (
+            {!isCar && (
               <div className="space-y-2">
                 <label className="text-sm font-bold">Sức chứa *</label>
                 <Input 
                   type="number"
-                  min={1}
+                  min={0}
                   value={form.totalCapacity === undefined || form.totalCapacity === null ? "" : form.totalCapacity} 
                   onChange={(e) => setField("totalCapacity", e.target.value === "" ? "" : Number(e.target.value))} 
                   placeholder="VD: 50" 

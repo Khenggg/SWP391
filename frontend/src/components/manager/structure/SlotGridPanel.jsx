@@ -64,7 +64,7 @@ export default function SlotGridPanel({
     <div className="flex flex-col border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
       <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-1">
-          <h3 className="text-base font-bold text-slate-800">Quản lý Vị trí đỗ (Slot)</h3>
+          <h3 className="text-base font-bold text-slate-800">Quản lý Slot Ô tô</h3>
           <div className="flex gap-2 flex-wrap">
             <div className="space-y-1">
               <span className="text-xs font-semibold text-slate-500">Tầng</span>

@@ -17,7 +17,6 @@ public class AreaResponse
     public int TotalCapacity { get; set; }
 
     public string Status { get; set; } = null!;
-    public string ManagementType { get; set; } = null!;
 
     public List<long> VehicleTypeIds { get; set; } = new();
 
