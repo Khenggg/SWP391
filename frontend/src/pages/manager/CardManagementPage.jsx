@@ -108,7 +108,7 @@ export default function CardManagementPage() {
       setAuditLogs([]);
       setActiveSession(null);
     }
-  }, [selectedCard]);
+  }, [selectedCard?.id, selectedCard?.status, selectedCard?.currentSessionId]); // Only run when card ID, status, or session changes, not on every object reference update
 
   const fetchActiveSession = async (cardCode) => {
     setIsActiveSessionLoading(true);
