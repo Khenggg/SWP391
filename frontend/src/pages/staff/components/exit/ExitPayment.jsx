@@ -100,10 +100,10 @@ export default function ExitPayment({ session, fee, canExit, isZeroCharge, hasPe
                     {isBufferExpired ? "Thu thêm tiền chênh lệch" : "Chọn hình thức thanh toán"}
                   </p>
                   <div className="grid grid-cols-2 gap-3">
-                    <Button variant="outline" onClick={handleRequestCash} disabled={isLoading || !fee} className="h-12 border-2 border-indigo-600 bg-indigo-50 font-bold text-indigo-700 hover:bg-indigo-100">
+                    <Button variant="outline" onClick={handleRequestCash} disabled={isLoading || !fee || !hasExitImages} className="h-12 border-2 border-indigo-600 bg-indigo-50 font-bold text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50">
                       <Check className="mr-2 size-5" />Tiền mặt
                     </Button>
-                    <Button variant="outline" onClick={handlePayOS} disabled={isLoading || !fee} className="h-12 border-2 border-emerald-600 bg-emerald-50 font-bold text-emerald-700 hover:bg-emerald-100">
+                    <Button variant="outline" onClick={handlePayOS} disabled={isLoading || !fee || !hasExitImages} className="h-12 border-2 border-emerald-600 bg-emerald-50 font-bold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50">
                       <QrCode className="mr-2 size-5" />Chuyển khoản (QR)
                     </Button>
                   </div>
