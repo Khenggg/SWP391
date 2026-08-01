@@ -566,6 +566,16 @@ public class UsersController : BaseApiController
 
         if (cleanDriverType == "RESIDENT")
         {
+            // Satisfy DB check constraint 'ck_driver_profiles_resident_fields':
+            // (driver_type != 'RESIDENT' OR (apartment_number IS NOT NULL AND cccd_number IS NOT NULL))
+            driverProfile.ApartmentNumber = !string.IsNullOrWhiteSpace(model.ApartmentNumber)
+                ? model.ApartmentNumber.Trim()
+                : (!string.IsNullOrWhiteSpace(driverProfile.ApartmentNumber) ? driverProfile.ApartmentNumber : "CHUA_CAP_NHAT");
+
+            driverProfile.CccdNumber = !string.IsNullOrWhiteSpace(model.CccdNumber)
+                ? model.CccdNumber.Trim()
+                : (!string.IsNullOrWhiteSpace(driverProfile.CccdNumber) ? driverProfile.CccdNumber : "CHUA_CAP_NHAT");
+
             driverProfile.ResidentVerified = true;
             driverProfile.ResidentVerifiedAt = DateTimeOffset.UtcNow;
             driverProfile.ResidentVerifiedBy = GetActorUserId();
@@ -808,6 +818,8 @@ public class UsersController : BaseApiController
     public sealed class ChangeDriverTypeDto
     {
         public string DriverType { get; set; } = string.Empty;
+        public string? ApartmentNumber { get; set; }
+        public string? CccdNumber { get; set; }
         public string? Reason { get; set; }
     }
 
