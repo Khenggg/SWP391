@@ -58,9 +58,10 @@ export default function DriverProfilePage() {
       setErrorMessage("");
 
       try {
-        const [profileResult, vehiclesResult, historyResult] = await Promise.allSettled([
+        const [profileResult, vehiclesResult, entryExitResult, bookingHistoryResult] = await Promise.allSettled([
           driverService.getDriverProfile(),
           vehicleService.getVehicles().then(res => res.items),
+          driverService.getEntryExitHistory({ page: 1, pageSize: 5 }).then(res => res.items),
           reservationService.getHistory(0, 5)
         ]);
 
@@ -77,10 +78,14 @@ export default function DriverProfilePage() {
           vehiclesResult.status === "fulfilled" && Array.isArray(vehiclesResult.value)
             ? vehiclesResult.value
             : [];
-        const historyData =
-          historyResult.status === "fulfilled" && Array.isArray(historyResult.value)
-            ? historyResult.value
+        let historyData =
+          entryExitResult.status === "fulfilled" && Array.isArray(entryExitResult.value)
+            ? entryExitResult.value
             : [];
+
+        if (historyData.length === 0 && bookingHistoryResult.status === "fulfilled" && Array.isArray(bookingHistoryResult.value)) {
+          historyData = bookingHistoryResult.value;
+        }
 
         const derivedDriverType =
           profileData?.driverType ||

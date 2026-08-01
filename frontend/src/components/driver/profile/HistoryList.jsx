@@ -25,17 +25,17 @@ export default function HistoryList({ history, formatDate, formatDateTime }) {
         <Table>
           <TableHeader className="bg-slate-50/50">
             <TableRow>
-              <TableHead className="w-[100px] text-xs font-bold text-slate-500 uppercase">Ngày tạo</TableHead>
+              <TableHead className="w-[100px] text-xs font-bold text-slate-500 uppercase">Ngày</TableHead>
               <TableHead className="text-xs font-bold text-slate-500 uppercase">Biển số</TableHead>
               <TableHead className="text-xs font-bold text-slate-500 uppercase">Thời gian</TableHead>
-              <TableHead className="text-xs font-bold text-slate-500 uppercase text-right">Phí booking</TableHead>
+              <TableHead className="text-xs font-bold text-slate-500 uppercase text-right">Phí gửi / booking</TableHead>
               <TableHead className="text-xs font-bold text-slate-500 uppercase text-right">Trạng thái</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {recentHistory.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-32 text-center text-slate-500">
+                <TableCell colSpan={5} className="h-32 text-center text-slate-500 font-semibold">
                   Chưa có lịch sử gửi xe
                 </TableCell>
               </TableRow>
@@ -43,52 +43,71 @@ export default function HistoryList({ history, formatDate, formatDateTime }) {
               recentHistory.map((h, idx) => {
                 const isPaid = h.paymentStatus === "PAID";
                 const isCompleted = h.status === "COMPLETED";
+                const isDeparted = h.status === "DEPARTED";
+                const isInBuilding = h.status === "IN_BUILDING";
                 const isCancelled = h.status === "CANCELLED";
                 const isExpired = h.status === "EXPIRED";
                 const isConfirmed = h.status === "CONFIRMED";
                 const isPending = h.status === "PENDING";
 
                 const statusColor =
-                  isPaid || isCompleted
-                    ? "bg-emerald-50 text-emerald-600 border-emerald-200"
-                    : isConfirmed
-                      ? "bg-blue-50 text-blue-600 border-blue-200"
-                      : isCancelled
-                        ? "bg-red-50 text-red-600 border-red-200"
-                        : isExpired
-                          ? "bg-slate-100 text-slate-500 border-slate-200"
-                          : "bg-amber-50 text-amber-600 border-amber-200";
+                  isInBuilding
+                    ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                    : isDeparted || isPaid || isCompleted
+                      ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+                      : isConfirmed
+                        ? "bg-blue-50 text-blue-600 border-blue-200"
+                        : isCancelled
+                          ? "bg-red-50 text-red-600 border-red-200"
+                          : isExpired
+                            ? "bg-slate-100 text-slate-500 border-slate-200"
+                            : "bg-amber-50 text-amber-600 border-amber-200";
 
                 const statusText =
-                  isPaid || isCompleted
-                    ? "Đã thanh toán"
-                    : isConfirmed
-                      ? "Đã xác nhận"
-                      : isCancelled
-                        ? "Đã hủy"
-                        : isExpired
-                          ? "Hết hạn"
-                          : isPending
-                            ? "Đang chờ"
-                            : h.status || "Không xác định";
+                  isInBuilding
+                    ? "🔵 Trong bãi"
+                    : isDeparted
+                      ? "✅ Đã ra"
+                      : isPaid || isCompleted
+                        ? "Đã thanh toán"
+                        : isConfirmed
+                          ? "Đã xác nhận"
+                          : isCancelled
+                            ? "Đã hủy"
+                            : isExpired
+                              ? "Hết hạn"
+                              : isPending
+                                ? "Đang chờ"
+                                : h.status || "Không xác định";
+
+                const startTime = h.entryTime || h.createdAt || h.reservationStartTime;
+                const endTime = h.exitTime || h.reservationEndTime;
+                const plateNo = h.licensePlate || h.plateNumber || "—";
+                const feeAmount = h.parkingFee !== undefined && h.parkingFee !== null
+                  ? h.parkingFee
+                  : h.bookingAmount;
 
                 return (
-                  <TableRow key={idx} className="hover:bg-slate-50 transition-colors">
+                  <TableRow key={h.id || idx} className="hover:bg-slate-50 transition-colors">
                     <TableCell className="font-semibold text-slate-700 text-sm">
-                      {formatDate(h.createdAt || h.reservationStartTime)}
+                      {formatDate(startTime)}
                     </TableCell>
                     <TableCell className="font-mono font-bold text-slate-900">
-                      {h.plateNumber}
+                      {plateNo}
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col text-sm">
                         <span className="font-medium text-slate-700">
-                          {formatDateTime(h.createdAt || h.reservationStartTime)} - {formatDateTime(h.reservationEndTime)}
+                          {formatDateTime(startTime)}
+                          {endTime ? ` - ${formatDateTime(endTime)}` : isInBuilding ? " (Đang đỗ)" : ""}
                         </span>
+                        {h.parkingDuration && (
+                          <span className="text-[11px] text-slate-400 font-semibold">{h.parkingDuration}</span>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="text-right font-bold text-slate-800">
-                      {h.bookingAmount !== undefined ? `${h.bookingAmount.toLocaleString()} đ` : "0 đ"}
+                      {feeAmount !== undefined && feeAmount !== null ? `${Number(feeAmount).toLocaleString("vi-VN")} ₫` : "0 ₫"}
                     </TableCell>
                     <TableCell className="text-right">
                       <Badge variant="outline" className={`shadow-none font-bold text-[10px] ${statusColor}`}>
