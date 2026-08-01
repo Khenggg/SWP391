@@ -10,6 +10,7 @@ using ParkingBuilding.CoreApi.Contracts.Common;
 using ParkingBuilding.CoreApi.Application.Audit;
 using ParkingBuilding.CoreApi.Application.Audit.Dtos;
 using ParkingBuilding.CoreApi.Application.Storage;
+using ParkingBuilding.CoreApi.Application.ParkingSessions.Snapshots;
 
 using ParkingBuilding.CoreApi.Application.Notifications;
 
@@ -21,6 +22,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
         private readonly IFeeCalculationService _feeCalculationService;
         private readonly IAuditWriterService _auditWriter;
         private readonly IParkingSessionImageStorageService _imageStorageService;
+        private readonly IParkingImageSnapshotService _snapshotService;
         private readonly INotificationWriterService _notificationWriter;
 
         public ExitService(
@@ -28,12 +30,14 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
             IFeeCalculationService feeCalculationService,
             IAuditWriterService auditWriter,
             IParkingSessionImageStorageService imageStorageService,
+            IParkingImageSnapshotService snapshotService,
             INotificationWriterService notificationWriter)
         {
             _context = context;
             _feeCalculationService = feeCalculationService;
             _auditWriter = auditWriter;
             _imageStorageService = imageStorageService;
+            _snapshotService = snapshotService;
             _notificationWriter = notificationWriter;
         }
 
@@ -117,7 +121,12 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                     throw new BusinessException(ErrorCodes.ExitGateInvalid);
                 }
 
-                await EnsureRequiredVehicleImagesAsync(session.Id, request.ExitPlateImageUrl, request.ExitVehicleImageUrl);
+                await EnsureRequiredVehicleImagesAsync(
+                    session.Id,
+                    request.ExitPlateImageUrl,
+                    request.ExitVehicleImageUrl,
+                    request.ExitPlateSnapshotId,
+                    request.ExitVehicleSnapshotId);
 
                 // Plate verification before transaction to prevent rollback of mismatch case log
                 var normalizedEntry = NormalizePlate(session.PlateNumber);
@@ -136,7 +145,11 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                         session.Id,
                         request.ExitPlateImageUrl,
                         request.ExitVehicleImageUrl,
-                        request.OcrConfidence);
+                        request.ExitPlateSnapshotId,
+                        request.ExitVehicleSnapshotId,
+                        request.DetectedPlateNumber,
+                        request.OcrConfidence,
+                        staffId);
 
                     var exitTime = request.ExitTime ?? DateTimeOffset.UtcNow;
                                         // Check if there is an APPROVED lost card case for this session
@@ -350,7 +363,12 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                     throw new BusinessException(ErrorCodes.ExitGateInvalid);
                 }
 
-                await EnsureRequiredVehicleImagesAsync(session.Id, request.ExitPlateImageUrl, request.ExitVehicleImageUrl);
+                await EnsureRequiredVehicleImagesAsync(
+                    session.Id,
+                    request.ExitPlateImageUrl,
+                    request.ExitVehicleImageUrl,
+                    request.ExitPlateSnapshotId,
+                    request.ExitVehicleSnapshotId);
 
                 var pass = await _context.MonthlyPasses.FindAsync(session.MonthlyPassId.Value);
                 if (pass == null || pass.Status != "ACTIVE")
@@ -375,7 +393,11 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                         session.Id,
                         request.ExitPlateImageUrl,
                         request.ExitVehicleImageUrl,
-                        request.OcrConfidence);
+                        request.ExitPlateSnapshotId,
+                        request.ExitVehicleSnapshotId,
+                        request.DetectedPlateNumber,
+                        request.OcrConfidence,
+                        staffId);
 
                     var exitTime = request.ExitTime ?? DateTimeOffset.UtcNow;
 
@@ -542,7 +564,9 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
         private async Task EnsureRequiredVehicleImagesAsync(
             long sessionId,
             string? exitPlateImageUrl,
-            string? exitVehicleImageUrl)
+            string? exitVehicleImageUrl,
+            long? exitPlateSnapshotId,
+            long? exitVehicleSnapshotId)
         {
             var hasAnyImages = await _context.ParkingSessionImages
                 .AnyAsync(image => image.SessionId == sessionId);
@@ -570,7 +594,8 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                 }
             }
 
-            var hasExitPlateImage = !string.IsNullOrWhiteSpace(exitPlateImageUrl)
+            var hasExitPlateImage = exitPlateSnapshotId.HasValue
+                || !string.IsNullOrWhiteSpace(exitPlateImageUrl)
                 || await _context.ParkingSessionImages
                     .AnyAsync(image => image.SessionId == sessionId
                         && image.ImageType == "EXIT_PLATE"
@@ -581,7 +606,8 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                 throw new BusinessException(ErrorCodes.ExitPlateImageRequired);
             }
 
-            var hasExitVehicleImage = !string.IsNullOrWhiteSpace(exitVehicleImageUrl)
+            var hasExitVehicleImage = exitVehicleSnapshotId.HasValue
+                || !string.IsNullOrWhiteSpace(exitVehicleImageUrl)
                 || await _context.ParkingSessionImages
                     .AnyAsync(image => image.SessionId == sessionId
                         && image.ImageType == "EXIT_VEHICLE"
@@ -597,7 +623,11 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
             long sessionId,
             string? exitPlateImageUrl,
             string? exitVehicleImageUrl,
-            double? ocrConfidence)
+            long? exitPlateSnapshotId,
+            long? exitVehicleSnapshotId,
+            string? detectedPlateNumber,
+            double? ocrConfidence,
+            long staffId)
         {
             var existingImageTypes = await _context.ParkingSessionImages
                 .Where(image => image.SessionId == sessionId
@@ -606,7 +636,20 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                 .Select(image => image.ImageType)
                 .ToListAsync();
 
-            if (!existingImageTypes.Contains("EXIT_PLATE") && !string.IsNullOrWhiteSpace(exitPlateImageUrl))
+            if (exitPlateSnapshotId.HasValue)
+            {
+                await _snapshotService.PromoteAsync(new PromoteParkingImageSnapshotCommand
+                {
+                    SnapshotId = exitPlateSnapshotId.Value,
+                    SessionId = sessionId,
+                    ExpectedImageType = "EXIT_PLATE",
+                    ActorUserId = staffId,
+                    IsPrimary = true,
+                    DetectedPlateNumber = detectedPlateNumber,
+                    Confidence = ocrConfidence.HasValue ? (decimal)ocrConfidence.Value : null
+                });
+            }
+            else if (!existingImageTypes.Contains("EXIT_PLATE") && !string.IsNullOrWhiteSpace(exitPlateImageUrl))
             {
                 var storedImageUrl = await _imageStorageService.StoreAsync(exitPlateImageUrl, sessionId, "exit", "plate");
                 _context.ParkingSessionImages.Add(new ParkingSessionImage
@@ -614,12 +657,27 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                     SessionId = sessionId,
                     ImageUrl = storedImageUrl,
                     ImageType = "EXIT_PLATE",
+                    DetectedPlateNumber = detectedPlateNumber,
+                    DetectedNormalizedPlateNumber = string.IsNullOrWhiteSpace(detectedPlateNumber) ? null : NormalizePlate(detectedPlateNumber),
                     Confidence = ocrConfidence.HasValue ? (decimal)ocrConfidence.Value : null,
+                    IsPrimary = true,
+                    UploadedBy = staffId,
                     CapturedAt = DateTimeOffset.UtcNow
                 });
             }
 
-            if (!existingImageTypes.Contains("EXIT_VEHICLE") && !string.IsNullOrWhiteSpace(exitVehicleImageUrl))
+            if (exitVehicleSnapshotId.HasValue)
+            {
+                await _snapshotService.PromoteAsync(new PromoteParkingImageSnapshotCommand
+                {
+                    SnapshotId = exitVehicleSnapshotId.Value,
+                    SessionId = sessionId,
+                    ExpectedImageType = "EXIT_VEHICLE",
+                    ActorUserId = staffId,
+                    IsPrimary = true
+                });
+            }
+            else if (!existingImageTypes.Contains("EXIT_VEHICLE") && !string.IsNullOrWhiteSpace(exitVehicleImageUrl))
             {
                 var storedImageUrl = await _imageStorageService.StoreAsync(exitVehicleImageUrl, sessionId, "exit", "vehicle");
                 _context.ParkingSessionImages.Add(new ParkingSessionImage
@@ -627,6 +685,8 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                     SessionId = sessionId,
                     ImageUrl = storedImageUrl,
                     ImageType = "EXIT_VEHICLE",
+                    IsPrimary = true,
+                    UploadedBy = staffId,
                     CapturedAt = DateTimeOffset.UtcNow
                 });
             }

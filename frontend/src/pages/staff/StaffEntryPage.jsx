@@ -12,6 +12,7 @@ import EntrySystemChecksPanel from "@/components/staff/entry/EntrySystemChecksPa
 import EntrySuggestionPanel from "@/components/staff/entry/EntrySuggestionPanel";
 import { entryService } from "@/services/entryService";
 import { parkingService } from "@/services/parkingService";
+import { parkingImageSnapshotService } from "@/services/parkingImageSnapshotService";
 
 const initialForm = {
   entryMode: "CASUAL",
@@ -24,6 +25,11 @@ const initialForm = {
   vehicleTypeId: "",
   entryPlateImageUrl: "",
   entryVehicleImageUrl: "",
+  entryPlateSnapshotId: null,
+  entryVehicleSnapshotId: null,
+  detectedPlateNumber: null,
+  detectedNormalizedPlateNumber: null,
+  ocrConfidence: null,
 };
 
 function parseNumber(value) {
@@ -109,6 +115,48 @@ export default function StaffEntryPage() {
     }));
     setSuggestion(null);
     if (entryMode !== "RESERVATION") setReservationCheck(null);
+  }, []);
+
+  const handleEntryImageChange = useCallback(async (imageType, imageSource) => {
+    const isPlate = imageType === "ENTRY_PLATE";
+    const imageUrlField = isPlate ? "entryPlateImageUrl" : "entryVehicleImageUrl";
+    const snapshotIdField = isPlate ? "entryPlateSnapshotId" : "entryVehicleSnapshotId";
+
+    if (!imageSource) {
+      setForm((current) => ({
+        ...current,
+        [imageUrlField]: "",
+        [snapshotIdField]: null,
+        ...(isPlate
+          ? {
+              detectedPlateNumber: null,
+              detectedNormalizedPlateNumber: null,
+              ocrConfidence: null,
+            }
+          : {}),
+      }));
+      return;
+    }
+
+    const snapshot = await parkingImageSnapshotService.upload({
+      imageSource,
+      imageType,
+      capturedAt: new Date().toISOString(),
+    });
+
+    setForm((current) => ({
+      ...current,
+      [imageUrlField]: snapshot.imageUrl,
+      [snapshotIdField]: snapshot.id ?? snapshot.snapshotId,
+      ...(isPlate
+        ? {
+            licensePlate: current.licensePlate || snapshot.detectedPlateNumber || "",
+            detectedPlateNumber: snapshot.detectedPlateNumber || null,
+            detectedNormalizedPlateNumber: snapshot.detectedNormalizedPlateNumber || null,
+            ocrConfidence: snapshot.confidence ?? snapshot.ocrConfidence ?? null,
+          }
+        : {}),
+    }));
   }, []);
 
   const resetFlow = useCallback(() => {
@@ -237,7 +285,12 @@ export default function StaffEntryPage() {
   const canCheckCard = Boolean(normalizeText(form.cardCode) && entryGateId && entryGateId > 0);
   const canCheckReservation = Boolean(form.entryMode === "RESERVATION" && normalizeText(form.reservationCode) && entryGateId && entryGateId > 0);
   const canLoadSuggestion = Boolean(form.entryMode === "CASUAL" && isNormalCardVerified && derivedVehicleTypeId && entryGateId && entryGateId > 0);
-  const hasEntryImages = Boolean(normalizeText(form.entryPlateImageUrl) && normalizeText(form.entryVehicleImageUrl));
+  const hasEntryImages = Boolean(
+    form.entryPlateSnapshotId
+      && form.entryVehicleSnapshotId
+      && normalizeText(form.entryPlateImageUrl)
+      && normalizeText(form.entryVehicleImageUrl)
+  );
 
   const canSubmit = useMemo(() => {
     if (!normalizeText(form.cardCode) || !entryGateId || !hasEntryImages) return false;
@@ -300,9 +353,11 @@ export default function StaffEntryPage() {
       selectedSlotId,
       entryPlateImageUrl: form.entryPlateImageUrl,
       entryVehicleImageUrl: form.entryVehicleImageUrl,
-      detectedPlateNumber: form.noPlate ? null : normalizeText(form.licensePlate),
-      detectedNormalizedPlateNumber: form.noPlate ? null : normalizeText(form.licensePlate).replace(/[^A-Za-z0-9]/g, "").toUpperCase(),
-      ocrConfidence: null,
+      entryPlateSnapshotId: form.entryPlateSnapshotId,
+      entryVehicleSnapshotId: form.entryVehicleSnapshotId,
+      detectedPlateNumber: form.noPlate ? null : form.detectedPlateNumber,
+      detectedNormalizedPlateNumber: form.noPlate ? null : form.detectedNormalizedPlateNumber,
+      ocrConfidence: form.ocrConfidence,
     };
 
     if (form.entryMode === "CASUAL") return { ...basePayload, suggestionToken: suggestion?.suggestionToken || null };
@@ -363,8 +418,8 @@ export default function StaffEntryPage() {
               <EntryImageSection
                 plateImageUrl={form.entryPlateImageUrl}
                 vehicleImageUrl={form.entryVehicleImageUrl}
-                onPlateImageChange={(value) => setField("entryPlateImageUrl", value)}
-                onVehicleImageChange={(value) => setField("entryVehicleImageUrl", value)}
+                onPlateImageChange={(value) => handleEntryImageChange("ENTRY_PLATE", value)}
+                onVehicleImageChange={(value) => handleEntryImageChange("ENTRY_VEHICLE", value)}
                 disabled={isSubmitting}
               />
             </div>

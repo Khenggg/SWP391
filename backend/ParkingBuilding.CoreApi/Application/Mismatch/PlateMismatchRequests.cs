@@ -7,6 +7,8 @@ public class CreatePlateMismatchRequest
     public string? Reason { get; set; }
     public string? ExitPlateImageUrl { get; set; }
     public string? ExitVehicleImageUrl { get; set; }
+    public long? ExitPlateSnapshotId { get; set; }
+    public long? ExitVehicleSnapshotId { get; set; }
     public double? OcrConfidence { get; set; }
 }
 

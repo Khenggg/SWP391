@@ -7,6 +7,7 @@ import { adminHandlers } from "./handlers/admin";
 import { reservationHandlers } from "./handlers/reservation";
 import { exitHandlers } from "./handlers/exit";
 import { notificationHandlers } from "./handlers/notification";
+import { snapshotHandlers } from "./handlers/snapshot";
 
 export const handlers = [
   ...authHandlers,
@@ -18,4 +19,5 @@ export const handlers = [
   ...reservationHandlers,
   ...exitHandlers,
   ...notificationHandlers,
+  ...snapshotHandlers,
 ];

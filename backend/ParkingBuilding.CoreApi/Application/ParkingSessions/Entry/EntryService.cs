@@ -14,6 +14,7 @@ using ParkingBuilding.CoreApi.Application.ParkingSessions.Exit;
 using ParkingBuilding.CoreApi.Application.Reservations;
 using ParkingBuilding.CoreApi.Application.MonthlyPasses;
 using ParkingBuilding.CoreApi.Application.Storage;
+using ParkingBuilding.CoreApi.Application.ParkingSessions.Snapshots;
 
 using ParkingBuilding.CoreApi.Application.Notifications;
 
@@ -29,6 +30,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
         private readonly IMonthlyPassService _monthlyPassService;
         private readonly IMonthlyEntryTokenService _monthlyTokenService;
         private readonly IParkingSessionImageStorageService _imageStorageService;
+        private readonly IParkingImageSnapshotService _snapshotService;
         private readonly IFeeCalculationService _feeCalculationService;
         private readonly INotificationWriterService _notificationWriter;
 
@@ -41,6 +43,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
             IMonthlyPassService monthlyPassService,
             IMonthlyEntryTokenService monthlyTokenService,
             IParkingSessionImageStorageService imageStorageService,
+            IParkingImageSnapshotService snapshotService,
             IFeeCalculationService feeCalculationService,
             INotificationWriterService notificationWriter)
         {
@@ -52,6 +55,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
             _monthlyPassService = monthlyPassService;
             _monthlyTokenService = monthlyTokenService;
             _imageStorageService = imageStorageService;
+            _snapshotService = snapshotService;
             _feeCalculationService = feeCalculationService;
             _notificationWriter = notificationWriter;
         }
@@ -290,7 +294,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
             card.CurrentSessionId = newSession.Id;
             await _dbContext.SaveChangesAsync();
 
-            await SaveImagesAsync(request, newSession.Id);
+            await SaveImagesAsync(request, newSession.Id, staffId);
 
             await _auditWriter.WriteAuditLogAsync(new AuditWriteDto
             {
@@ -548,7 +552,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
             card.CurrentSessionId = newSession.Id;
             await _dbContext.SaveChangesAsync();
 
-            await SaveImagesAsync(request, newSession.Id);
+            await SaveImagesAsync(request, newSession.Id, staffId);
 
             if (request.ConvertedFromReservationId.HasValue)
             {
@@ -778,7 +782,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
             card.CurrentSessionId = newSession.Id;
             await _dbContext.SaveChangesAsync();
 
-            await SaveImagesAsync(request, newSession.Id);
+            await SaveImagesAsync(request, newSession.Id, staffId);
 
             await _auditWriter.WriteAuditLogAsync(new AuditWriteDto
             {
@@ -801,9 +805,23 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
             return MapSessionToResponse(newSession, card, request);
         }
 
-        private async Task SaveImagesAsync(CreateEntryRequest request, long sessionId)
+        private async Task SaveImagesAsync(CreateEntryRequest request, long sessionId, long staffId)
         {
-            if (!string.IsNullOrWhiteSpace(request.EntryPlateImageUrl))
+            if (request.EntryPlateSnapshotId.HasValue)
+            {
+                await _snapshotService.PromoteAsync(new PromoteParkingImageSnapshotCommand
+                {
+                    SnapshotId = request.EntryPlateSnapshotId.Value,
+                    SessionId = sessionId,
+                    ExpectedImageType = "ENTRY_PLATE",
+                    ActorUserId = staffId,
+                    IsPrimary = true,
+                    DetectedPlateNumber = request.DetectedPlateNumber,
+                    DetectedNormalizedPlateNumber = request.DetectedNormalizedPlateNumber,
+                    Confidence = request.OcrConfidence
+                });
+            }
+            else if (!string.IsNullOrWhiteSpace(request.EntryPlateImageUrl))
             {
                 var processedUrl = await _imageStorageService.StoreAsync(request.EntryPlateImageUrl, sessionId, "entry", "plate");
                 _dbContext.ParkingSessionImages.Add(new ParkingSessionImage
@@ -815,11 +833,23 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                     DetectedNormalizedPlateNumber = request.DetectedNormalizedPlateNumber ?? (string.IsNullOrWhiteSpace(request.DetectedPlateNumber) ? null : NormalizePlate(request.DetectedPlateNumber)),
                     Confidence = request.OcrConfidence,
                     IsPrimary = true,
+                    UploadedBy = staffId,
                     CapturedAt = DateTimeOffset.UtcNow
                 });
             }
 
-            if (!string.IsNullOrWhiteSpace(request.EntryVehicleImageUrl))
+            if (request.EntryVehicleSnapshotId.HasValue)
+            {
+                await _snapshotService.PromoteAsync(new PromoteParkingImageSnapshotCommand
+                {
+                    SnapshotId = request.EntryVehicleSnapshotId.Value,
+                    SessionId = sessionId,
+                    ExpectedImageType = "ENTRY_VEHICLE",
+                    ActorUserId = staffId,
+                    IsPrimary = true
+                });
+            }
+            else if (!string.IsNullOrWhiteSpace(request.EntryVehicleImageUrl))
             {
                 var processedUrl = await _imageStorageService.StoreAsync(request.EntryVehicleImageUrl, sessionId, "entry", "vehicle");
                 _dbContext.ParkingSessionImages.Add(new ParkingSessionImage
@@ -830,7 +860,8 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                     DetectedPlateNumber = null,
                     DetectedNormalizedPlateNumber = null,
                     Confidence = null,
-                    IsPrimary = false,
+                    IsPrimary = true,
+                    UploadedBy = staffId,
                     CapturedAt = DateTimeOffset.UtcNow
                 });
             }
@@ -1065,10 +1096,10 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
             if (request.EntryGateId <= 0)
                 throw new BusinessException(ErrorCodes.EntryGateRequired);
 
-            if (string.IsNullOrWhiteSpace(request.EntryVehicleImageUrl))
+            if (!request.EntryVehicleSnapshotId.HasValue && string.IsNullOrWhiteSpace(request.EntryVehicleImageUrl))
                 throw new BusinessException(ErrorCodes.EntryVehicleImageRequired);
 
-            if (string.IsNullOrWhiteSpace(request.EntryPlateImageUrl))
+            if (!request.EntryPlateSnapshotId.HasValue && string.IsNullOrWhiteSpace(request.EntryPlateImageUrl))
                 throw new BusinessException(ErrorCodes.EntryPlateImageRequired);
 
             if (!request.NoPlate && string.IsNullOrWhiteSpace(request.LicensePlate))

@@ -8,4 +8,10 @@ public interface IParkingSessionImageStorageService
         string phase,
         string imageKind,
         CancellationToken ct = default);
+
+    Task<ParkingImageStorageResult> StoreSnapshotAsync(
+        string imageSource,
+        Guid snapshotToken,
+        string imageType,
+        CancellationToken ct = default);
 }

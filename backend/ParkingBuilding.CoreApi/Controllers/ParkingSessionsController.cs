@@ -201,10 +201,36 @@ namespace ParkingBuilding.CoreApi.Controllers
                 .FirstOrDefault(image => image.ImageType == "ENTRY_PLATE")?.ImageUrl;
             var entryVehicleImageUrl = sessionImages
                 .FirstOrDefault(image => image.ImageType == "ENTRY_VEHICLE")?.ImageUrl;
-            var exitPlateImageUrl = sessionImages
+            var finalizedExitPlateImageUrl = sessionImages
                 .FirstOrDefault(image => image.ImageType == "EXIT_PLATE")?.ImageUrl;
-            var exitVehicleImageUrl = sessionImages
+            var finalizedExitVehicleImageUrl = sessionImages
                 .FirstOrDefault(image => image.ImageType == "EXIT_VEHICLE")?.ImageUrl;
+
+            var now = DateTimeOffset.UtcNow;
+            var pendingExitSnapshots = await _context.VehicleSnapshotUploads
+                .AsNoTracking()
+                .Where(snapshot => snapshot.SessionId == session.Id
+                    && snapshot.UploadStatus == "UPLOADED"
+                    && (snapshot.ImageType == "EXIT_PLATE" || snapshot.ImageType == "EXIT_VEHICLE")
+                    && (!snapshot.ExpiresAt.HasValue || snapshot.ExpiresAt > now))
+                .OrderByDescending(snapshot => snapshot.CapturedAt)
+                .Select(snapshot => new
+                {
+                    snapshot.Id,
+                    snapshot.ImageType,
+                    snapshot.ImageUrl,
+                    snapshot.DetectedPlateNumber,
+                    snapshot.DetectedNormalizedPlateNumber,
+                    snapshot.Confidence
+                })
+                .ToListAsync();
+
+            var exitPlateSnapshot = pendingExitSnapshots
+                .FirstOrDefault(snapshot => snapshot.ImageType == "EXIT_PLATE");
+            var exitVehicleSnapshot = pendingExitSnapshots
+                .FirstOrDefault(snapshot => snapshot.ImageType == "EXIT_VEHICLE");
+            var exitPlateImageUrl = exitPlateSnapshot?.ImageUrl ?? finalizedExitPlateImageUrl;
+            var exitVehicleImageUrl = exitVehicleSnapshot?.ImageUrl ?? finalizedExitVehicleImageUrl;
 
             Domain.Entities.User? claimedUser = null;
             if (session.ClaimedByUserId.HasValue)
@@ -249,6 +275,11 @@ namespace ParkingBuilding.CoreApi.Controllers
                 entryVehicleImageUrl,
                 exitPlateImageUrl,
                 exitVehicleImageUrl,
+                exitPlateSnapshotId = exitPlateSnapshot?.Id,
+                exitVehicleSnapshotId = exitVehicleSnapshot?.Id,
+                exitDetectedPlateNumber = exitPlateSnapshot?.DetectedPlateNumber,
+                exitDetectedNormalizedPlateNumber = exitPlateSnapshot?.DetectedNormalizedPlateNumber,
+                exitOcrConfidence = exitPlateSnapshot?.Confidence,
                 mismatchExitPlateNumber = latestMismatch?.ExitPlateNumber
             }, "Tim kiem phien gui xe theo the thanh cong.");
         }
@@ -267,6 +298,8 @@ namespace ParkingBuilding.CoreApi.Controllers
                 Reason = request.Reason,
                 ExitPlateImageUrl = request.ExitPlateImageUrl,
                 ExitVehicleImageUrl = request.ExitVehicleImageUrl,
+                ExitPlateSnapshotId = request.ExitPlateSnapshotId,
+                ExitVehicleSnapshotId = request.ExitVehicleSnapshotId,
                 OcrConfidence = request.OcrConfidence
             }, staffId);
 
@@ -421,6 +454,8 @@ namespace ParkingBuilding.CoreApi.Controllers
         public string? Reason { get; set; }
         public string? ExitPlateImageUrl { get; set; }
         public string? ExitVehicleImageUrl { get; set; }
+        public long? ExitPlateSnapshotId { get; set; }
+        public long? ExitVehicleSnapshotId { get; set; }
         public double? OcrConfidence { get; set; }
     }
 }

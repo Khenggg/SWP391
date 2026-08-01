@@ -24,6 +24,8 @@ public class CreateEntryRequest
 
     public string? EntryPlateImageUrl { get; set; }
     public string? EntryVehicleImageUrl { get; set; }
+    public long? EntryPlateSnapshotId { get; set; }
+    public long? EntryVehicleSnapshotId { get; set; }
     public string? DetectedPlateNumber { get; set; }
     public string? DetectedNormalizedPlateNumber { get; set; }
     public decimal? OcrConfidence { get; set; }

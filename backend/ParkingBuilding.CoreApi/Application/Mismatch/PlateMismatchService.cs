@@ -10,6 +10,7 @@ using ParkingBuilding.CoreApi.Contracts.Common;
 using ParkingBuilding.CoreApi.Domain.Entities;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
 using ParkingBuilding.CoreApi.Application.Storage;
+using ParkingBuilding.CoreApi.Application.ParkingSessions.Snapshots;
 
 using ParkingBuilding.CoreApi.Application.Notifications;
 
@@ -20,17 +21,20 @@ public class PlateMismatchService : IPlateMismatchService
     private readonly ParkingDbContext _context;
     private readonly IAuditWriterService _auditWriter;
     private readonly IParkingSessionImageStorageService _imageStorageService;
+    private readonly IParkingImageSnapshotService _snapshotService;
     private readonly INotificationWriterService _notificationWriter;
 
     public PlateMismatchService(
         ParkingDbContext context, 
         IAuditWriterService auditWriter,
         IParkingSessionImageStorageService imageStorageService,
+        IParkingImageSnapshotService snapshotService,
         INotificationWriterService notificationWriter)
     {
         _context = context;
         _auditWriter = auditWriter;
         _imageStorageService = imageStorageService;
+        _snapshotService = snapshotService;
         _notificationWriter = notificationWriter;
     }
 
@@ -81,7 +85,19 @@ public class PlateMismatchService : IPlateMismatchService
                 var existingPlateImage = await _context.ParkingSessionImages
                     .FirstOrDefaultAsync(i => i.SessionId == session.Id && i.ImageType == "EXIT_PLATE");
 
-                if (!string.IsNullOrWhiteSpace(request.ExitPlateImageUrl))
+                if (request.ExitPlateSnapshotId.HasValue)
+                {
+                    await _snapshotService.PromoteAsync(new PromoteParkingImageSnapshotCommand
+                    {
+                        SnapshotId = request.ExitPlateSnapshotId.Value,
+                        SessionId = session.Id,
+                        ExpectedImageType = "EXIT_PLATE",
+                        ActorUserId = staffId,
+                        IsPrimary = true,
+                        Confidence = request.OcrConfidence.HasValue ? (decimal)request.OcrConfidence.Value : null
+                    });
+                }
+                else if (!string.IsNullOrWhiteSpace(request.ExitPlateImageUrl))
                 {
                     var processedPlateUrl = await _imageStorageService.StoreAsync(request.ExitPlateImageUrl, session.Id, "exit", "plate");
                     if (existingPlateImage != null)
@@ -91,6 +107,7 @@ public class PlateMismatchService : IPlateMismatchService
                         existingPlateImage.DetectedNormalizedPlateNumber = normalizedExit;
                         existingPlateImage.Confidence = request.OcrConfidence.HasValue ? (decimal)request.OcrConfidence.Value : null;
                         existingPlateImage.IsPrimary = true;
+                        existingPlateImage.UploadedBy = staffId;
                         existingPlateImage.CapturedAt = DateTimeOffset.UtcNow;
                         existingPlateImage.UpdatedAt = DateTimeOffset.UtcNow;
                     }
@@ -105,6 +122,7 @@ public class PlateMismatchService : IPlateMismatchService
                             DetectedNormalizedPlateNumber = normalizedExit,
                             Confidence = request.OcrConfidence.HasValue ? (decimal)request.OcrConfidence.Value : null,
                             IsPrimary = true,
+                            UploadedBy = staffId,
                             CapturedAt = DateTimeOffset.UtcNow,
                             CreatedAt = DateTimeOffset.UtcNow,
                             UpdatedAt = DateTimeOffset.UtcNow
@@ -115,12 +133,25 @@ public class PlateMismatchService : IPlateMismatchService
                 var existingVehicleImage = await _context.ParkingSessionImages
                     .FirstOrDefaultAsync(i => i.SessionId == session.Id && i.ImageType == "EXIT_VEHICLE");
 
-                if (!string.IsNullOrWhiteSpace(request.ExitVehicleImageUrl))
+                if (request.ExitVehicleSnapshotId.HasValue)
+                {
+                    await _snapshotService.PromoteAsync(new PromoteParkingImageSnapshotCommand
+                    {
+                        SnapshotId = request.ExitVehicleSnapshotId.Value,
+                        SessionId = session.Id,
+                        ExpectedImageType = "EXIT_VEHICLE",
+                        ActorUserId = staffId,
+                        IsPrimary = true
+                    });
+                }
+                else if (!string.IsNullOrWhiteSpace(request.ExitVehicleImageUrl))
                 {
                     var processedVehicleUrl = await _imageStorageService.StoreAsync(request.ExitVehicleImageUrl, session.Id, "exit", "vehicle");
                     if (existingVehicleImage != null)
                     {
                         existingVehicleImage.ImageUrl = processedVehicleUrl;
+                        existingVehicleImage.IsPrimary = true;
+                        existingVehicleImage.UploadedBy = staffId;
                         existingVehicleImage.CapturedAt = DateTimeOffset.UtcNow;
                         existingVehicleImage.UpdatedAt = DateTimeOffset.UtcNow;
                     }
@@ -131,7 +162,8 @@ public class PlateMismatchService : IPlateMismatchService
                             SessionId = session.Id,
                             ImageType = "EXIT_VEHICLE",
                             ImageUrl = processedVehicleUrl,
-                            IsPrimary = false,
+                            IsPrimary = true,
+                            UploadedBy = staffId,
                             CapturedAt = DateTimeOffset.UtcNow,
                             CreatedAt = DateTimeOffset.UtcNow,
                             UpdatedAt = DateTimeOffset.UtcNow

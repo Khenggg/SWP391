@@ -19,34 +19,32 @@ import { toast } from "sonner";
 import LicensePlateInfo from "./components/LicensePlateInfo";
 import { useSubmitLicensePlateMismatch } from "../../hooks/useSubmitLicensePlateMismatch";
 import { useMismatchStatus } from "../../hooks/useLicensePlateMismatch";
+import { prepareParkingImage } from "../../lib/parkingImage";
+import { parkingImageSnapshotService } from "../../services/parkingImageSnapshotService";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const ACCEPTED_TYPES = ["image/jpeg", "image/png"];
-const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
-
 // ─── Image Upload Slot ────────────────────────────────────────────────────────
 function ImageUploadSlot({ id, label, description, preview, onSelect, onRemove, error, disabled }) {
   const inputRef = useRef(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
 
-    if (!ACCEPTED_TYPES.includes(file.type.toLowerCase())) {
-      toast.error("Chỉ chấp nhận ảnh JPG hoặc PNG.");
-      return;
+    setIsUploading(true);
+    try {
+      const imageSource = await prepareParkingImage(file);
+      await onSelect(imageSource);
+    } catch (uploadError) {
+      toast.error(uploadError?.message || "Không thể lưu ảnh đã chọn.");
+    } finally {
+      setIsUploading(false);
     }
-    if (file.size > MAX_FILE_BYTES) {
-      toast.error("Ảnh tối đa 10 MB.");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => onSelect(reader.result);
-    reader.onerror = () => toast.error("Không thể đọc ảnh đã chọn.");
-    reader.readAsDataURL(file);
   };
+
+  const isDisabled = disabled || isUploading;
 
   return (
     <div className="flex flex-col gap-2">
@@ -61,7 +59,7 @@ function ImageUploadSlot({ id, label, description, preview, onSelect, onRemove, 
           <button
             type="button"
             onClick={onRemove}
-            disabled={disabled}
+            disabled={isDisabled}
             className="flex items-center gap-1 px-2 py-1 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition-colors disabled:opacity-50"
           >
             <X className="w-3 h-3" />
@@ -85,7 +83,7 @@ function ImageUploadSlot({ id, label, description, preview, onSelect, onRemove, 
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          disabled={disabled}
+          disabled={isDisabled}
           className={`flex flex-col items-center justify-center gap-3 w-full h-48 rounded-xl border-2 border-dashed transition-colors ${
             error
               ? "border-rose-400 bg-rose-50/50"
@@ -101,9 +99,9 @@ function ImageUploadSlot({ id, label, description, preview, onSelect, onRemove, 
             <p className={`text-sm font-semibold ${
               error ? "text-rose-500" : "text-slate-400"
             }`}>
-              {error ? "Ảnh bắt buộc" : "Nhấn để tải ảnh lên"}
+              {isUploading ? "Đang lưu ảnh..." : error ? "Ảnh bắt buộc" : "Nhấn để tải ảnh lên"}
             </p>
-            <p className="text-xs text-slate-400 mt-0.5">JPG, PNG • Tối đa 10 MB</p>
+            <p className="text-xs text-slate-400 mt-0.5">JPG, PNG, WebP • Tối đa 8 MB</p>
           </div>
           <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold ${
             error
@@ -111,7 +109,7 @@ function ImageUploadSlot({ id, label, description, preview, onSelect, onRemove, 
               : "bg-slate-200 text-slate-500"
           }`}>
             <Upload className="w-3.5 h-3.5" />
-            Tải ảnh lên
+            {isUploading ? "Đang lưu..." : "Tải ảnh lên"}
           </div>
         </button>
       )}
@@ -127,21 +125,21 @@ function ImageUploadSlot({ id, label, description, preview, onSelect, onRemove, 
         ref={inputRef}
         id={id}
         type="file"
-        accept="image/jpeg,image/png"
+        accept="image/jpeg,image/png,image/webp"
         className="hidden"
         onChange={handleFileChange}
-        disabled={disabled}
+        disabled={isDisabled}
       />
 
       {!preview && (
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          disabled={disabled}
+          disabled={isDisabled}
           className="flex items-center justify-center gap-1.5 w-full py-2 text-xs font-bold text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
         >
           <Upload className="w-3.5 h-3.5" />
-          Chọn ảnh
+          {isUploading ? "Đang lưu..." : "Chọn ảnh"}
         </button>
       )}
     </div>
@@ -243,10 +241,16 @@ export default function LicensePlateMismatchPage() {
   const prefillReason    = location.state?.prefillReason ?? "";
   const prefillExitPlateImageUrl = location.state?.prefillExitPlateImageUrl ?? location.state?.exitPlateImageUrl ?? null;
   const prefillExitVehicleImageUrl = location.state?.prefillExitVehicleImageUrl ?? location.state?.exitVehicleImageUrl ?? null;
+  const prefillExitPlateSnapshotId = location.state?.exitPlateSnapshotId ?? null;
+  const prefillExitVehicleSnapshotId = location.state?.exitVehicleSnapshotId ?? null;
+  const prefillOcrConfidence = location.state?.ocrConfidence ?? null;
 
   // Exit image state
   const [exitPlatePreview, setExitPlatePreview]     = useState(null);
   const [exitVehiclePreview, setExitVehiclePreview] = useState(null);
+  const [exitPlateSnapshotId, setExitPlateSnapshotId] = useState(null);
+  const [exitVehicleSnapshotId, setExitVehicleSnapshotId] = useState(null);
+  const [ocrConfidence, setOcrConfidence] = useState(prefillOcrConfidence);
   const [imageErrors, setImageErrors]               = useState({});
 
   // Always fetch fresh — staleTime: 0, no cache
@@ -273,6 +277,7 @@ export default function LicensePlateMismatchPage() {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm({
     defaultValues: { actualPlate: prefillPlate, reason: prefillReason },
@@ -284,8 +289,45 @@ export default function LicensePlateMismatchPage() {
     // Set images to prefilled values or null
     setExitPlatePreview(prefillExitPlateImageUrl);
     setExitVehiclePreview(prefillExitVehicleImageUrl);
+    setExitPlateSnapshotId(prefillExitPlateSnapshotId);
+    setExitVehicleSnapshotId(prefillExitVehicleSnapshotId);
+    setOcrConfidence(prefillOcrConfidence);
     setImageErrors({});
-  }, [prefillPlate, prefillReason, prefillExitPlateImageUrl, prefillExitVehicleImageUrl, reset]);
+  }, [
+    prefillExitPlateImageUrl,
+    prefillExitPlateSnapshotId,
+    prefillExitVehicleImageUrl,
+    prefillExitVehicleSnapshotId,
+    prefillOcrConfidence,
+    prefillPlate,
+    prefillReason,
+    reset,
+  ]);
+
+  const handleSnapshotUpload = async (imageType, imageSource) => {
+    const isPlate = imageType === "EXIT_PLATE";
+    const snapshot = await parkingImageSnapshotService.upload({
+      imageSource,
+      imageType,
+      sessionId: Number(parkingSessionId),
+      capturedAt: new Date().toISOString(),
+    });
+
+    if (isPlate) {
+      setExitPlatePreview(snapshot.imageUrl);
+      setExitPlateSnapshotId(snapshot.id ?? snapshot.snapshotId);
+      setOcrConfidence(snapshot.confidence ?? snapshot.ocrConfidence ?? null);
+      if (snapshot.detectedPlateNumber) {
+        setValue("actualPlate", snapshot.detectedPlateNumber, { shouldValidate: true });
+      }
+      setImageErrors((prev) => ({ ...prev, exitPlate: undefined }));
+      return;
+    }
+
+    setExitVehiclePreview(snapshot.imageUrl);
+    setExitVehicleSnapshotId(snapshot.id ?? snapshot.snapshotId);
+    setImageErrors((prev) => ({ ...prev, exitVehicle: undefined }));
+  };
 
   if (!parkingSessionId) {
     return (
@@ -331,7 +373,9 @@ export default function LicensePlateMismatchPage() {
         reason: data.reason,
         exitPlateImageUrl: exitPlatePreview,
         exitVehicleImageUrl: exitVehiclePreview,
-        ocrConfidence: location.state?.ocrConfidence ?? undefined,
+        exitPlateSnapshotId,
+        exitVehicleSnapshotId,
+        ocrConfidence: ocrConfidence ?? undefined,
       },
       {
         onSuccess: () => {
@@ -408,6 +452,8 @@ export default function LicensePlateMismatchPage() {
                     prefillReason: "",
                     prefillExitPlateImageUrl: statusData?.exitPlateImageUrl ?? null,
                     prefillExitVehicleImageUrl: statusData?.exitVehicleImageUrl ?? null,
+                    exitPlateSnapshotId: statusData?.exitPlateSnapshotId ?? null,
+                    exitVehicleSnapshotId: statusData?.exitVehicleSnapshotId ?? null,
                     isResubmit:    true,
                   },
                 })
@@ -498,12 +544,11 @@ export default function LicensePlateMismatchPage() {
                   label="Exit Plate Image"
                   description="Photo clearly showing the rear/front license plate of the vehicle leaving."
                   preview={exitPlatePreview}
-                  onSelect={(dataUrl) => {
-                    setExitPlatePreview(dataUrl);
-                    setImageErrors((prev) => ({ ...prev, exitPlate: undefined }));
-                  }}
+                  onSelect={(dataUrl) => handleSnapshotUpload("EXIT_PLATE", dataUrl)}
                   onRemove={() => {
                     setExitPlatePreview(null);
+                    setExitPlateSnapshotId(null);
+                    setOcrConfidence(null);
                     setImageErrors((prev) => ({ ...prev, exitPlate: "Vui lòng tải ảnh biển số xe ra." }));
                   }}
                   error={imageErrors.exitPlate}
@@ -514,12 +559,10 @@ export default function LicensePlateMismatchPage() {
                   label="Exit Full Vehicle Image"
                   description="Photo showing the complete vehicle leaving the parking lot."
                   preview={exitVehiclePreview}
-                  onSelect={(dataUrl) => {
-                    setExitVehiclePreview(dataUrl);
-                    setImageErrors((prev) => ({ ...prev, exitVehicle: undefined }));
-                  }}
+                  onSelect={(dataUrl) => handleSnapshotUpload("EXIT_VEHICLE", dataUrl)}
                   onRemove={() => {
                     setExitVehiclePreview(null);
+                    setExitVehicleSnapshotId(null);
                     setImageErrors((prev) => ({ ...prev, exitVehicle: "Vui lòng tải ảnh toàn xe ra." }));
                   }}
                   error={imageErrors.exitVehicle}

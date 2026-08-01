@@ -31,6 +31,7 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence
         public DbSet<ReservationExtension> ReservationExtensions { get; set; }
         public DbSet<Payment> Payments { get; set; }
         public DbSet<ParkingSessionImage> ParkingSessionImages { get; set; }
+        public DbSet<VehicleSnapshotUpload> VehicleSnapshotUploads { get; set; }
         public DbSet<LostCardCaseDocument> LostCardCaseDocuments { get; set; }
         // Thêm dòng này vào danh sách DbSet
         public DbSet<LostCardCase> LostCardCases { get; set; }

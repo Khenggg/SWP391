@@ -31,6 +31,8 @@ function MismatchStatusBlock({
   vehicleTypes,
   exitPlateImageUrl,
   exitVehicleImageUrl,
+  exitPlateSnapshotId,
+  exitVehicleSnapshotId,
   ocrConfidence,
 }) {
   const navigate = useNavigate();
@@ -54,6 +56,8 @@ function MismatchStatusBlock({
     },
     exitPlateImageUrl,
     exitVehicleImageUrl,
+    exitPlateSnapshotId,
+    exitVehicleSnapshotId,
     ocrConfidence,
   });
 
@@ -205,6 +209,8 @@ export default function ExitConfirmation({
   vehicleTypes,
   exitPlateImageUrl,
   exitVehicleImageUrl,
+  exitPlateSnapshotId,
+  exitVehicleSnapshotId,
   ocrConfidence,
 }) {
   return (
@@ -247,6 +253,8 @@ export default function ExitConfirmation({
           vehicleTypes={vehicleTypes}
           exitPlateImageUrl={exitPlateImageUrl}
           exitVehicleImageUrl={exitVehicleImageUrl}
+          exitPlateSnapshotId={exitPlateSnapshotId}
+          exitVehicleSnapshotId={exitVehicleSnapshotId}
           ocrConfidence={ocrConfidence}
         />
 

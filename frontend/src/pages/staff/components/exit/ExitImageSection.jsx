@@ -6,6 +6,7 @@ import { prepareParkingImage } from "@/lib/parkingImage";
 function ImageSlot({ label, url, onClear, inputRef, onChange, disabled, id, readOnly }) {
   const [hasLoadError, setHasLoadError] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => setHasLoadError(false), [url]);
 
@@ -14,13 +15,18 @@ function ImageSlot({ label, url, onClear, inputRef, onChange, disabled, id, read
     event.target.value = "";
     if (!file) return;
 
+    setIsUploading(true);
     try {
-      onChange?.(await prepareParkingImage(file));
+      await onChange?.(await prepareParkingImage(file));
       setUploadError("");
     } catch (error) {
       setUploadError(error.message || "Không thể xử lý ảnh đã chọn.");
+    } finally {
+      setIsUploading(false);
     }
   };
+
+  const isDisabled = disabled || isUploading;
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -31,12 +37,12 @@ function ImageSlot({ label, url, onClear, inputRef, onChange, disabled, id, read
           {!readOnly && <button type="button" onClick={onClear} className="absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-full bg-red-500 text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100"><X className="size-3.5" /></button>}
         </div>
       ) : (
-        <button type="button" disabled={disabled || readOnly} onClick={() => inputRef?.current?.click()} className={`flex aspect-video flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed transition ${readOnly ? "cursor-default border-slate-100 bg-slate-50" : "cursor-pointer border-slate-200 bg-slate-50 hover:border-indigo-300 hover:bg-indigo-50/30 disabled:cursor-not-allowed disabled:opacity-60"}`}>
+        <button type="button" disabled={isDisabled || readOnly} onClick={() => inputRef?.current?.click()} className={`flex aspect-video flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed transition ${readOnly ? "cursor-default border-slate-100 bg-slate-50" : "cursor-pointer border-slate-200 bg-slate-50 hover:border-indigo-300 hover:bg-indigo-50/30 disabled:cursor-not-allowed disabled:opacity-60"}`}>
           {readOnly ? hasLoadError ? <ImageOff className="size-5 text-amber-400" /> : <Eye className="size-5 text-slate-200" /> : <Camera className="size-5 text-slate-300" />}
           <span className={`text-[10px] font-semibold ${hasLoadError ? "text-amber-600" : "text-slate-400"}`}>{hasLoadError ? "Không tải được ảnh" : readOnly ? "Không có ảnh" : "Chưa có ảnh"}</span>
         </button>
       )}
-      {!readOnly && <><input ref={inputRef} id={id} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden" onChange={handleFileSelect} /><Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => inputRef.current?.click()} className="h-7 text-[10px] font-bold"><Upload className="mr-1 size-3" />{url ? "Đổi ảnh" : "Tải lên"}</Button></>}
+      {!readOnly && <><input ref={inputRef} id={id} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden" onChange={handleFileSelect} disabled={isDisabled} /><Button type="button" variant="outline" size="sm" disabled={isDisabled} onClick={() => inputRef.current?.click()} className="h-7 text-[10px] font-bold"><Upload className="mr-1 size-3" />{isUploading ? "Đang lưu..." : url ? "Đổi ảnh" : "Tải lên"}</Button></>}
       {uploadError && <p className="text-[10px] font-medium text-red-600">{uploadError}</p>}
     </div>
   );

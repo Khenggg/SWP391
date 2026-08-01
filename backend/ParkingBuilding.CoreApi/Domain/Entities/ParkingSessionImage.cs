@@ -15,6 +15,8 @@ namespace ParkingBuilding.CoreApi.Domain.Entities
         public string? DetectedNormalizedPlateNumber { get; set; }
         public decimal? Confidence { get; set; }
         public bool IsPrimary { get; set; }
+        public long? UploadedBy { get; set; }
+        public virtual User? UploadedByUser { get; set; }
 
         public DateTimeOffset CapturedAt { get; set; } = DateTimeOffset.UtcNow;
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

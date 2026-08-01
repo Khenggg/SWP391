@@ -35,6 +35,7 @@ using ParkingBuilding.CoreApi.Application.LostCards;
 using ParkingBuilding.CoreApi.Application.Mismatch;
 using ParkingBuilding.CoreApi.Application.LostCards.Documents;
 using ParkingBuilding.CoreApi.Application.ParkingSessions.Exit;
+using ParkingBuilding.CoreApi.Application.ParkingSessions.Snapshots;
 using ParkingBuilding.CoreApi.Infrastructure.Configuration;
 
 LocalEnvironmentFile.LoadIfPresent(Directory.GetCurrentDirectory());
@@ -151,6 +152,7 @@ builder.Services.Configure<SupabaseStorageOptions>(options =>
 });
 builder.Services.AddHttpClient<IStorageService, SupabaseStorageService>();
 builder.Services.AddScoped<IParkingSessionImageStorageService, ParkingSessionImageStorageService>();
+builder.Services.AddScoped<IParkingImageSnapshotService, ParkingImageSnapshotService>();
 builder.Services.AddScoped<ILostCardDocumentService, LostCardDocumentService>();
 builder.Services.AddScoped<IFeeCalculationService, FeeCalculationService>();
 builder.Services.AddScoped<IExitService, ExitService>();

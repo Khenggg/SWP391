@@ -50,6 +50,9 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence.Configurations
                 .HasDefaultValue(false)
                 .IsRequired();
 
+            builder.Property(x => x.UploadedBy)
+                .HasColumnName("uploaded_by");
+
             builder.Property(x => x.CapturedAt)
                 .HasColumnName("captured_at")
                 .HasColumnType("timestamp with time zone")
@@ -70,6 +73,11 @@ namespace ParkingBuilding.CoreApi.Infrastructure.Persistence.Configurations
                 .WithMany(s => s.ParkingSessionImages)
                 .HasForeignKey(x => x.SessionId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasOne(x => x.UploadedByUser)
+                .WithMany()
+                .HasForeignKey(x => x.UploadedBy)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

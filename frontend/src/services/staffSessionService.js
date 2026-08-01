@@ -49,6 +49,8 @@ export const staffSessionService = {
     reason,
     exitPlateImageUrl,
     exitVehicleImageUrl,
+    exitPlateSnapshotId,
+    exitVehicleSnapshotId,
     ocrConfidence,
   }) => {
     const response = await coreAxiosClient.post(`/parking-sessions/${sessionId}/mismatch-case`, {
@@ -56,6 +58,8 @@ export const staffSessionService = {
       reason,
       exitPlateImageUrl,
       exitVehicleImageUrl,
+      exitPlateSnapshotId,
+      exitVehicleSnapshotId,
       ocrConfidence,
     });
     if (response.success) return response.data;

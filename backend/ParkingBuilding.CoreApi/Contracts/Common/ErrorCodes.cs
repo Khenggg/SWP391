@@ -233,6 +233,13 @@ public static class ErrorCodes
     public const string ExitGateInvalid = "EXIT_GATE_INVALID";
     public const string ExitVehicleImageRequired = "EXIT_VEHICLE_IMAGE_REQUIRED";
     public const string ExitPlateImageRequired = "EXIT_PLATE_IMAGE_REQUIRED";
+    public const string SnapshotNotFound = "SNAPSHOT_NOT_FOUND";
+    public const string SnapshotTypeInvalid = "SNAPSHOT_TYPE_INVALID";
+    public const string SnapshotSessionRequired = "SNAPSHOT_SESSION_REQUIRED";
+    public const string SnapshotSessionMismatch = "SNAPSHOT_SESSION_MISMATCH";
+    public const string SnapshotOwnershipInvalid = "SNAPSHOT_OWNERSHIP_INVALID";
+    public const string SnapshotExpired = "SNAPSHOT_EXPIRED";
+    public const string SnapshotStatusInvalid = "SNAPSHOT_STATUS_INVALID";
     public const string PlateMismatchRequiresApproval = "PLATE_MISMATCH_REQUIRES_APPROVAL";
     public const string PaymentRequiredBeforeExit = "PAYMENT_REQUIRED_BEFORE_EXIT";
     public const string NoPaymentRequired = "NO_PAYMENT_REQUIRED";

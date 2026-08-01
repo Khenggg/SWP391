@@ -11,8 +11,7 @@ public sealed class ParkingSessionImageStorageService : IParkingSessionImageStor
         {
             ["image/jpeg"] = ".jpg",
             ["image/png"] = ".png",
-            ["image/webp"] = ".webp",
-            ["image/svg+xml"] = ".svg"
+            ["image/webp"] = ".webp"
         };
 
     private readonly IStorageService _storageService;
@@ -33,6 +32,34 @@ public sealed class ParkingSessionImageStorageService : IParkingSessionImageStor
         string imageKind,
         CancellationToken ct = default)
     {
+        var safePhase = NormalizePathSegment(phase);
+        var safeKind = NormalizePathSegment(imageKind);
+        var result = await StoreCoreAsync(
+            imageSource,
+            extension => $"sessions/{sessionId}/{safePhase}/{safeKind}_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid().ToString("N")[..6]}{extension}",
+            ct);
+
+        return result.ImageUrl;
+    }
+
+    public Task<ParkingImageStorageResult> StoreSnapshotAsync(
+        string imageSource,
+        Guid snapshotToken,
+        string imageType,
+        CancellationToken ct = default)
+    {
+        var safeImageType = NormalizePathSegment(imageType);
+        return StoreCoreAsync(
+            imageSource,
+            extension => $"snapshot-uploads/{snapshotToken:N}/{safeImageType}_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid().ToString("N")[..6]}{extension}",
+            ct);
+    }
+
+    private async Task<ParkingImageStorageResult> StoreCoreAsync(
+        string imageSource,
+        Func<string, string> buildPath,
+        CancellationToken ct)
+    {
         if (string.IsNullOrWhiteSpace(imageSource))
         {
             throw new BusinessException(ErrorCodes.FileRequired);
@@ -48,7 +75,7 @@ public sealed class ParkingSessionImageStorageService : IParkingSessionImageStor
                 throw new BusinessException(ErrorCodes.InvalidRequest);
             }
 
-            return source;
+            return new ParkingImageStorageResult { ImageUrl = source };
         }
 
         if (!_options.IsConfigured)
@@ -72,14 +99,18 @@ public sealed class ParkingSessionImageStorageService : IParkingSessionImageStor
             throw new BusinessException(ErrorCodes.FileTypeNotAllowed);
         }
 
-        var safePhase = NormalizePathSegment(phase);
-        var safeKind = NormalizePathSegment(imageKind);
-        var path = $"sessions/{sessionId}/{safePhase}/{safeKind}_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid().ToString("N")[..6]}{extension}";
+        var path = buildPath(extension);
 
         await using var stream = new MemoryStream(bytes, writable: false);
-        await _storageService.UploadAsync(stream, path, contentType, ct);
+        var uploaded = await _storageService.UploadAsync(stream, path, contentType, ct);
 
-        return $"{_options.Url!.TrimEnd('/')}/storage/v1/object/public/{_options.Bucket}/{path}";
+        return new ParkingImageStorageResult
+        {
+            ImageUrl = $"{_options.Url!.TrimEnd('/')}/storage/v1/object/public/{_options.Bucket}/{path}",
+            StoragePath = uploaded.FilePath,
+            MimeType = uploaded.ContentType,
+            SizeBytes = uploaded.SizeBytes
+        };
     }
 
     private static (string ContentType, byte[] Bytes) ParseDataUri(string source)

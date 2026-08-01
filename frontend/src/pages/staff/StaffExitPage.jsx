@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { CheckCircle2, Car, CreditCard, Receipt, Clock } from "lucide-react";
 import { staffSessionService } from "@/services/staffSessionService";
 import { parkingService } from "@/services/parkingService";
+import { parkingImageSnapshotService } from "@/services/parkingImageSnapshotService";
 import { formatDateTime, formatVND } from "@/lib/format";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,10 @@ export default function StaffExitPage() {
   const [plate, setPlate] = useState("");
   const [exitPlateImageUrl, setExitPlateImageUrl] = useState("");
   const [exitVehicleImageUrl, setExitVehicleImageUrl] = useState("");
-  const [ocrConfidence, setOcrConfidence] = useState(0.99);
+  const [exitPlateSnapshotId, setExitPlateSnapshotId] = useState(null);
+  const [exitVehicleSnapshotId, setExitVehicleSnapshotId] = useState(null);
+  const [exitDetectedPlateNumber, setExitDetectedPlateNumber] = useState(null);
+  const [ocrConfidence, setOcrConfidence] = useState(null);
   const [session, setSession] = useState(null);
   const [fee, setFee] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -105,6 +109,9 @@ export default function StaffExitPage() {
     if (!preserveExitImages) {
       setExitPlateImageUrl("");
       setExitVehicleImageUrl("");
+      setExitPlateSnapshotId(null);
+      setExitVehicleSnapshotId(null);
+      setExitDetectedPlateNumber(null);
     }
 
     try {
@@ -117,6 +124,11 @@ export default function StaffExitPage() {
       if (!preserveExitImages) {
         setExitPlateImageUrl(foundSession.exitPlateImageUrl || "");
         setExitVehicleImageUrl(foundSession.exitVehicleImageUrl || "");
+        setExitPlateSnapshotId(foundSession.exitPlateSnapshotId ?? null);
+        setExitVehicleSnapshotId(foundSession.exitVehicleSnapshotId ?? null);
+        setExitDetectedPlateNumber(foundSession.exitDetectedPlateNumber ?? null);
+        setOcrConfidence(foundSession.exitOcrConfidence ?? foundSession.ocrConfidence ?? null);
+        if (foundSession.exitDetectedPlateNumber) setPlate(foundSession.exitDetectedPlateNumber);
       }
       if (foundSession?.pendingOnlinePayment?.checkoutUrl || foundSession?.pendingOnlinePayment?.paymentUrl) {
         setPayosPaymentUrl(foundSession.pendingOnlinePayment.checkoutUrl || foundSession.pendingOnlinePayment.paymentUrl);
@@ -151,6 +163,39 @@ export default function StaffExitPage() {
 
   const runSearch = useCallback(() => loadSessionByCard(cardCode), [cardCode, loadSessionByCard]);
 
+  const handleExitImageChange = useCallback(async (imageType, imageSource) => {
+    const isPlate = imageType === "EXIT_PLATE";
+    const setImageUrl = isPlate ? setExitPlateImageUrl : setExitVehicleImageUrl;
+    const setSnapshotId = isPlate ? setExitPlateSnapshotId : setExitVehicleSnapshotId;
+
+    if (!imageSource) {
+      setImageUrl("");
+      setSnapshotId(null);
+      if (isPlate) {
+        setExitDetectedPlateNumber(null);
+        setOcrConfidence(null);
+      }
+      return;
+    }
+
+    if (!session?.sessionId) throw new Error("Cần tìm phiên gửi xe trước khi tải ảnh xe ra.");
+
+    const snapshot = await parkingImageSnapshotService.upload({
+      imageSource,
+      imageType,
+      sessionId: session.sessionId,
+      capturedAt: new Date().toISOString(),
+    });
+
+    setImageUrl(snapshot.imageUrl);
+    setSnapshotId(snapshot.id ?? snapshot.snapshotId);
+    if (isPlate) {
+      setExitDetectedPlateNumber(snapshot.detectedPlateNumber ?? null);
+      if (snapshot.detectedPlateNumber) setPlate(snapshot.detectedPlateNumber);
+      setOcrConfidence(snapshot.confidence ?? snapshot.ocrConfidence ?? null);
+    }
+  }, [session?.sessionId]);
+
   useEffect(() => {
     if (!session?.pendingOnlinePayment || session.paymentStatus === "PAID") return undefined;
     const intervalId = window.setInterval(() => {
@@ -174,7 +219,10 @@ export default function StaffExitPage() {
     setMismatchCase(null);
     setExitPlateImageUrl("");
     setExitVehicleImageUrl("");
-    setOcrConfidence(0.99);
+    setExitPlateSnapshotId(null);
+    setExitVehicleSnapshotId(null);
+    setExitDetectedPlateNumber(null);
+    setOcrConfidence(null);
     setIsCashConfirmOpen(false);
   }, []);
 
@@ -192,6 +240,8 @@ export default function StaffExitPage() {
         reason: "Xác nhận ra xe nhưng biển số khác với lúc vào",
         exitPlateImageUrl,
         exitVehicleImageUrl,
+        exitPlateSnapshotId,
+        exitVehicleSnapshotId,
         ocrConfidence,
       });
       toast.success("Đã tạo hồ sơ xử lý sự cố lệch biển số.");
@@ -236,10 +286,12 @@ export default function StaffExitPage() {
       await staffSessionService.completeExit(session.sessionId, {
         exitGateId: Number(exitGateId),
         exitPlateNumber: plate || session.plateNumber,
-        detectedPlateNumber: plate || session.plateNumber,
+        detectedPlateNumber: exitDetectedPlateNumber,
         ocrConfidence,
         exitPlateImageUrl,
         exitVehicleImageUrl,
+        exitPlateSnapshotId,
+        exitVehicleSnapshotId,
       });
       setCompletedExitSummary({
         sessionCode: session.sessionCode,
@@ -303,10 +355,12 @@ export default function StaffExitPage() {
       await staffSessionService.completeMonthlyPassExit(session.sessionId, {
         exitGateId: Number(exitGateId),
         exitPlateNumber: plate || session.plateNumber,
-        detectedPlateNumber: plate || session.plateNumber,
+        detectedPlateNumber: exitDetectedPlateNumber,
         ocrConfidence,
         exitPlateImageUrl,
         exitVehicleImageUrl,
+        exitPlateSnapshotId,
+        exitVehicleSnapshotId,
       });
       setCompletedExitSummary({
         sessionCode: session.sessionCode,
@@ -338,9 +392,9 @@ export default function StaffExitPage() {
         <div className="mx-auto grid h-full max-w-[1600px] grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
           <div className="relative flex min-h-0 flex-col gap-4">
             <ExitSearchSection cardCode={cardCode} setCardCode={setCardCode} runSearch={runSearch} isLoading={isLoading} gates={gates} exitGateId={exitGateId} setExitGateId={setExitGateId} />
-            <ExitConfirmation plate={plate} setPlate={setPlate} session={session} hasMismatch={hasMismatch} mismatchCase={mismatchCase} handleCreateMismatchCase={handleCreateMismatchCase} isCreatingMismatch={isCreatingMismatch} currentTime={currentTime} staffName={currentUser?.fullName || currentUser?.username || "Nhân viên trực"} mismatchStatus={mismatchStatus} managerReason={managerReason} vehicleTypes={vehicleTypes} exitPlateImageUrl={exitPlateImageUrl} exitVehicleImageUrl={exitVehicleImageUrl} ocrConfidence={ocrConfidence} />
+            <ExitConfirmation plate={plate} setPlate={setPlate} session={session} hasMismatch={hasMismatch} mismatchCase={mismatchCase} handleCreateMismatchCase={handleCreateMismatchCase} isCreatingMismatch={isCreatingMismatch} currentTime={currentTime} staffName={currentUser?.fullName || currentUser?.username || "Nhân viên trực"} mismatchStatus={mismatchStatus} managerReason={managerReason} vehicleTypes={vehicleTypes} exitPlateImageUrl={exitPlateImageUrl} exitVehicleImageUrl={exitVehicleImageUrl} exitPlateSnapshotId={exitPlateSnapshotId} exitVehicleSnapshotId={exitVehicleSnapshotId} ocrConfidence={ocrConfidence} />
           </div>
-          <div className="min-h-0"><section className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"><div className="flex shrink-0 items-center justify-between border-b bg-white p-3"><div className="flex items-center gap-2"><span className="flex size-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">2</span><h3 className="text-sm font-bold text-slate-800">Thông tin phiên và ảnh xe</h3></div>{session && <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Đang hoạt động</span>}</div><div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4"><ExitSessionInfo session={session} vehicleTypes={vehicleTypes} embedded /><div className="border-t border-dashed border-slate-200" /><ExitImageSection session={session} exitPlateImageUrl={exitPlateImageUrl} exitVehicleImageUrl={exitVehicleImageUrl} onPlateImageChange={setExitPlateImageUrl} onVehicleImageChange={setExitVehicleImageUrl} disabled={!session || isLoading} embedded /></div></section></div>
+          <div className="min-h-0"><section className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"><div className="flex shrink-0 items-center justify-between border-b bg-white p-3"><div className="flex items-center gap-2"><span className="flex size-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">2</span><h3 className="text-sm font-bold text-slate-800">Thông tin phiên và ảnh xe</h3></div>{session && <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Đang hoạt động</span>}</div><div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4"><ExitSessionInfo session={session} vehicleTypes={vehicleTypes} embedded /><div className="border-t border-dashed border-slate-200" /><ExitImageSection session={session} exitPlateImageUrl={exitPlateImageUrl} exitVehicleImageUrl={exitVehicleImageUrl} onPlateImageChange={(value) => handleExitImageChange("EXIT_PLATE", value)} onVehicleImageChange={(value) => handleExitImageChange("EXIT_VEHICLE", value)} disabled={!session || isLoading} embedded /></div></section></div>
           <div className="flex min-h-0 flex-col gap-4 lg:gap-6"><div className="flex min-h-0 flex-1 flex-col"><ExitFeeSummary fee={fee} session={session} /></div><ExitPayment session={session} fee={fee} canExit={canExit} isZeroCharge={isZeroCharge} hasPendingOnlinePayment={Boolean(session?.pendingOnlinePayment)} payosPaymentUrl={payosPaymentUrl || session?.pendingOnlinePayment?.checkoutUrl || session?.pendingOnlinePayment?.paymentUrl} onShowQrModal={() => setIsPayosQrModalOpen(true)} isLoading={isLoading} handleRequestCash={handleRequestCash} handlePayOS={handlePayOS} handleCompleteExitPaid={handleCompleteExitPaid} handleCompleteMonthlyExit={handleCompleteMonthlyExit} refreshSession={runSearch} mismatchBlocked={mismatchBlocked} mismatchStatus={mismatchStatus} hasExitImages={hasRequiredExitImages} /></div>
         </div>
       </main>
