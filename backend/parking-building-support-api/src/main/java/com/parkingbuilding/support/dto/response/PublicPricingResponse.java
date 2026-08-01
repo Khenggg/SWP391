@@ -16,6 +16,8 @@ public class PublicPricingResponse {
 
     private String vehicleTypeName;
 
+    private Boolean requiresSlot;
+
     private BigDecimal dayPrice;
 
     private BigDecimal nightPrice;

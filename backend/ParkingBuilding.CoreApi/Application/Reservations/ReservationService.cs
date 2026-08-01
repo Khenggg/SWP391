@@ -392,7 +392,7 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                         await _notificationWriter.CreateNotificationAsync(
                             userId: driverProfile.UserId.Value,
                             title: "Đặt chỗ thành công",
-                            content: $"Đặt chỗ thành công! Mã đặt chỗ {reservationCode} cho xe biển số {plateNumber ?? "N/A"}.",
+                            content: $"Đặt chỗ thành công! Mã đặt chỗ {reservationCode} cho loại xe {vehicleType.Name}. Biển số sẽ được xác nhận tại cổng vào.",
                             type: "RESERVATION",
                             priority: "NORMAL",
                             reservationId: reservation.Id);
@@ -404,7 +404,7 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                         targetType: "Reservation",
                         targetId: reservation.Id.ToString(),
                         actorUserId: actorUserId,
-                        newValue: $"Code: {reservationCode}, Plate: {normalizedPlate}, SlotId: {reservation.SlotId}, AreaId: {reservation.AreaId}"
+                        newValue: $"Code: {reservationCode}, VehicleTypeId: {reservation.VehicleTypeId}, SlotId: {reservation.SlotId}, AreaId: {reservation.AreaId}"
                     );
                 }
                 catch (Exception)
@@ -756,7 +756,7 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                     await _notificationWriter.CreateNotificationAsync(
                         userId: driverProfile.UserId.Value,
                         title: "Đã hủy đơn đặt chỗ",
-                        content: $"Mã đặt chỗ {reservation.ReservationCode} cho xe biển số {reservation.PlateNumber ?? "N/A"} đã bị hủy.",
+                        content: $"Mã đặt chỗ {reservation.ReservationCode} đã bị hủy.",
                         type: "RESERVATION",
                         priority: "NORMAL",
                         reservationId: reservation.Id);
@@ -993,7 +993,7 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                         await _notificationWriter.CreateNotificationAsync(
                             userId: expDriverUserId.Value,
                             title: "Đơn đặt chỗ đã hết hạn",
-                            content: $"Mã đặt chỗ {reservation.ReservationCode} cho xe biển số {reservation.PlateNumber ?? "N/A"} đã bị hủy tự động do quá thời gian check-in.",
+                            content: $"Mã đặt chỗ {reservation.ReservationCode} đã bị hủy tự động do quá thời gian check-in.",
                             type: "RESERVATION",
                             priority: "HIGH",
                             reservationId: reservation.Id);
@@ -1130,7 +1130,7 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                         UserId = targetUserId.Value,
                         ReservationId = r.Id,
                         Title = "Cảnh báo sắp hết hạn đặt chỗ",
-                        Content = $"Mã đặt chỗ {r.ReservationCode} cho biển số {r.PlateNumber ?? "N/A"} sẽ hết hạn vào lúc {r.ExpiresAt.ToLocalTime():HH:mm:ss}. Vui lòng kiểm tra và hoàn thành lượt đỗ xe.",
+                        Content = $"Mã đặt chỗ {r.ReservationCode} sẽ hết hạn vào lúc {r.ExpiresAt.ToLocalTime():HH:mm:ss}. Vui lòng kiểm tra và hoàn thành lượt đỗ xe.",
                         Type = "RESERVATION",
                         Priority = "HIGH",
                         IsRead = false,
@@ -1269,7 +1269,7 @@ namespace ParkingBuilding.CoreApi.Application.Reservations
                 NormalizedPlateNumber = reservation.NormalizedPlateNumber,
                 ExpiresAt = reservation.ExpiresAt,
                 RequiresSlot = requiresSlot,
-                PlateRequiredAtEntry = !string.IsNullOrWhiteSpace(reservation.NormalizedPlateNumber) || requiresSlot
+                PlateRequiredAtEntry = false
             };
 
             var now = DateTimeOffset.UtcNow;

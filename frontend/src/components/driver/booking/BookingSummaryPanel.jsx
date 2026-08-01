@@ -42,10 +42,13 @@ export default function BookingSummaryPanel({
   hourlyPrice = 20000,
   recentHistory = [],
   isHistoryLoading = false,
-  activeReservation = null
+  activeReservation = null,
+  vehicleTypes = []
 }) {
-  const displayVehicle = activeReservation 
-    ? { plateNumber: activeReservation.plateNumber, vehicleTypeName: activeReservation.vehicleTypeName || (activeReservation.vehicleTypeId === 5 ? "Ô Tô" : "Xe Máy") }
+  const activeVehicleTypeName = activeReservation?.vehicleTypeName
+    || vehicleTypes.find((item) => String(item.vehicleTypeId) === String(activeReservation?.vehicleTypeId))?.vehicleTypeName;
+  const displayVehicle = activeReservation
+    ? { vehicleTypeName: activeVehicleTypeName }
     : selectedVehicle;
     
   const displayAreaName = activeReservation?.areaName || selectedAreaName;
@@ -65,8 +68,8 @@ export default function BookingSummaryPanel({
             <span className="font-semibold text-slate-800 text-right">
               {displayVehicle ? (
                 <>
-                  <span className="mr-2 uppercase">{displayVehicle.plateNumber || displayVehicle.plate}</span>
-                  <span className="text-xs text-slate-500">({displayVehicle.vehicleTypeName || "Không xác định"})</span>
+                  <span className="block uppercase">{displayVehicle.vehicleTypeName || "Không xác định"}</span>
+                  <span className="block text-xs font-medium text-slate-500">Biển số xác nhận tại cổng</span>
                 </>
               ) : "Chưa chọn"}
             </span>
@@ -146,7 +149,7 @@ export default function BookingSummaryPanel({
                     </span>
                   </div>
                   <div className="text-slate-600 font-medium">
-                    {item.areaName || "--"} - Biển số: {item.plateNumber || "--"}
+                    {item.areaName || "--"} - {item.vehicleTypeName || `Loại xe #${item.vehicleTypeId}`}
                   </div>
                 </div>
               </div>

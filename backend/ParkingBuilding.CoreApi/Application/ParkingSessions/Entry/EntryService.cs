@@ -561,7 +561,9 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                 Action = "SESSION_CREATED",
                 TargetType = "ParkingSession",
                 TargetId = newSession.SessionCode,
-                Reason = $"Xe vãng lai {request.LicensePlate} vào bãi thành công.",
+                Reason = request.NoPlate
+                    ? $"Xe vãng lai không biển số ({request.VehicleDescription}) vào bãi thành công."
+                    : $"Xe vãng lai {request.LicensePlate} vào bãi thành công.",
                 ActorUserId = staffId
             });
 
@@ -633,42 +635,17 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
             if (activeReservation.VehicleTypeId != request.VehicleTypeId)
                 throw new BusinessException(ErrorCodes.ReservationVehicleTypeMismatch);
 
-            var normalizedPlate = NormalizePlate(request.LicensePlate);
-
-            if (!string.IsNullOrWhiteSpace(activeReservation.NormalizedPlateNumber))
+            var normalizedPlate = request.NoPlate ? null : NormalizePlate(request.LicensePlate);
+            Vehicle? actualRegisteredVehicle = null;
+            if (!request.NoPlate && !string.IsNullOrWhiteSpace(normalizedPlate))
             {
-                if (activeReservation.NormalizedPlateNumber != normalizedPlate)
-                {
-                    throw new BusinessException(ErrorCodes.ReservationPlateMismatch);
-                }
-            }
-            else
-            {
-                if (request.NoPlate)
-                {
-                    if (vehicleType.RequiresSlot)
-                    {
-                        throw new BusinessException(ErrorCodes.PlateRequiredForSlotVehicle);
-                    }
-
-                    if (string.IsNullOrWhiteSpace(request.VehicleDescription))
-                    {
-                        throw new BusinessException(ErrorCodes.VehicleDescriptionRequired);
-                    }
-
-                    activeReservation.PlateNumber = null;
-                    activeReservation.NormalizedPlateNumber = null;
-                }
-                else
-                {
-                    if (string.IsNullOrWhiteSpace(request.LicensePlate))
-                    {
-                        throw new BusinessException(ErrorCodes.EntryPlateRequired);
-                    }
-
-                    activeReservation.PlateNumber = request.LicensePlate.Trim();
-                    activeReservation.NormalizedPlateNumber = normalizedPlate;
-                }
+                actualRegisteredVehicle = await _dbContext.Vehicles
+                    .FirstOrDefaultAsync(v =>
+                        v.DriverId == activeReservation.DriverId &&
+                        v.NormalizedPlateNumber == normalizedPlate &&
+                        v.VehicleTypeId == request.VehicleTypeId &&
+                        v.ApprovalStatus == "APPROVED" &&
+                        v.Status == "ACTIVE");
             }
 
             if (request.SelectedAreaId != activeReservation.AreaId)
@@ -719,7 +696,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                 SessionCode = $"SESS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}",
                 CardId = card.Id,
                 DriverId = activeReservation.DriverId,
-                VehicleId = activeReservation.VehicleId,
+                VehicleId = actualRegisteredVehicle?.Id,
                 PlateNumber = request.NoPlate ? null : request.LicensePlate,
                 NormalizedPlateNumber = request.NoPlate ? null : normalizedPlate,
                 NoPlate = request.NoPlate,
@@ -788,7 +765,9 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                 Action = "SESSION_CREATED",
                 TargetType = "ParkingSession",
                 TargetId = newSession.SessionCode,
-                Reason = $"Xe booking {request.LicensePlate} vào bãi thành công.",
+                Reason = request.NoPlate
+                    ? $"Xe booking không biển số ({request.VehicleDescription}) vào bãi thành công."
+                    : $"Xe booking {request.LicensePlate} vào bãi thành công.",
                 ActorUserId = staffId
             });
 
@@ -1051,6 +1030,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
                 CardCode = session.ParkingCard?.CardNumber ?? string.Empty,
                 QrToken = session.ParkingCard?.QrToken ?? string.Empty,
                 PlateNumber = session.PlateNumber,
+                NoPlate = session.NoPlate,
                 VehicleDescription = session.VehicleDescription,
                 VehicleTypeId = session.VehicleTypeId,
                 VehicleTypeName = vehicleType?.Name ?? string.Empty,
@@ -1105,9 +1085,6 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Entry
 
             if (request.NoPlate)
             {
-                if (vehicleType.RequiresSlot)
-                    throw new BusinessException(ErrorCodes.PlateRequiredForSlotVehicle);
-
                 if (string.IsNullOrWhiteSpace(request.VehicleDescription))
                     throw new BusinessException(ErrorCodes.VehicleDescriptionRequired);
             }

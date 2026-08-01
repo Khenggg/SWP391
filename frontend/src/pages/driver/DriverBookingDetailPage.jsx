@@ -13,11 +13,8 @@ const formatDateTime = (dateStr) => {
   return `${pad(d.getHours())}:${pad(d.getMinutes())} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 };
 
-const getVehicleTypeLabel = (vehicleTypeId) => {
-  if (vehicleTypeId === 5) return "Ô TÔ";
-  if (vehicleTypeId === 7) return "XE VẬN CHUYỂN";
-  return "XE MÁY";
-};
+const getVehicleTypeLabel = (reservation) =>
+  reservation.vehicleTypeName || `Loại xe #${reservation.vehicleTypeId}`;
 
 const getStatusBadge = (status) => {
   switch (status) {
@@ -177,7 +174,7 @@ export default function DriverBookingDetailPage() {
 
   const checkInQrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(reservation.reservationCode)}&size=240`;
   const isConfirmed = reservation.status === "CONFIRMED";
-  const hourlyPrice = reservation.vehicleTypeId === 5 ? 20000 : 5000;
+  const hourlyPrice = Number(reservation.snapshotReservationHourlyPrice ?? 0);
 
   return (
     <div className="max-w-md mx-auto py-6 px-4 space-y-6 animate-fadeIn">
@@ -228,15 +225,15 @@ export default function DriverBookingDetailPage() {
         <div className="p-6 space-y-5">
           <div className="grid grid-cols-2 gap-y-4 gap-x-3 text-xs">
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Biển số xe</p>
-              <p className="font-black text-slate-800 text-sm tracking-wide bg-slate-100 inline-block px-2.5 py-1 rounded-lg border border-slate-200 font-mono">
-                {reservation.plateNumber}
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Biển số thực tế</p>
+              <p className="font-bold text-slate-700 text-xs bg-slate-100 inline-block px-2.5 py-1 rounded-lg border border-slate-200">
+                Xác nhận tại cổng vào
               </p>
             </div>
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Loại phương tiện</p>
               <p className="font-extrabold text-slate-700 text-sm pt-1 uppercase">
-                {getVehicleTypeLabel(reservation.vehicleTypeId)}
+                {getVehicleTypeLabel(reservation)}
               </p>
             </div>
             <div>

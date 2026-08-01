@@ -33,8 +33,11 @@ export default function ExitSessionInfo({ session, vehicleTypes = [], embedded =
               </div>
               <div className="flex-1">
                 <p className="text-2xl font-black text-slate-800 tracking-tight leading-none mb-1">
-                  {session.plateNumber || "CHƯA RÕ"}
+                  {session.noPlate ? "KHÔNG BIỂN SỐ" : (session.plateNumber || "CHƯA RÕ")}
                 </p>
+                {session.noPlate && session.vehicleDescription && (
+                  <p className="mb-1 text-xs font-semibold text-slate-600">{session.vehicleDescription}</p>
+                )}
                 <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
                   <Badge variant="secondary" className="text-[10px] bg-slate-200 text-slate-700">
                     {session.customerType === "MONTHLY" ? "VÉ THÁNG" : "VÃNG LAI"}
@@ -101,7 +104,7 @@ export default function ExitSessionInfo({ session, vehicleTypes = [], embedded =
               </div>
             </div>
 
-            <div className="mt-2 pt-4 border-t border-slate-100 flex justify-end">
+            {!session.noPlate && <div className="mt-2 pt-4 border-t border-slate-100 flex justify-end">
               <button
                 type="button"
                 onClick={() => navigate("/staff/license-plate-mismatch", {
@@ -125,7 +128,7 @@ export default function ExitSessionInfo({ session, vehicleTypes = [], embedded =
                 <AlertTriangle className="w-4 h-4" />
                 ⚠ Báo Cáo Sai Biển Số
               </button>
-            </div>
+            </div>}
           </>
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-slate-400 py-8">

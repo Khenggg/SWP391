@@ -16,6 +16,9 @@ public class ActiveReservationResponse {
     BigDecimal bookingAmount;
     String plateNumber;
     Long vehicleTypeId;
+    String vehicleTypeName;
+    BigDecimal snapshotReservationHourlyPrice;
+    Integer reservedDurationMinutes;
     Long floorId;
     Long areaId;
     String areaName;

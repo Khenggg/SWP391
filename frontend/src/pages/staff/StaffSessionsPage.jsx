@@ -38,7 +38,7 @@ export default function StaffSessionsPage() {
     const text = query.trim().toLowerCase();
     if (!text) return sessions;
     return sessions.filter((item) =>
-      `${item.sessionCode} ${item.cardCode} ${item.plateNumber} ${item.vehicleTypeName} ${item.paymentStatus}`
+      `${item.sessionCode} ${item.cardCode} ${item.plateNumber || ""} ${item.vehicleDescription || ""} ${item.vehicleTypeName} ${item.paymentStatus}`
         .toLowerCase()
         .includes(text)
     );
@@ -116,7 +116,8 @@ export default function StaffSessionsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="font-mono font-bold text-slate-900">{session.plateNumber || "---"}</div>
+                        <div className="font-mono font-bold text-slate-900">{session.noPlate ? "Không biển số" : (session.plateNumber || "---")}</div>
+                        {session.noPlate && session.vehicleDescription && <div className="text-xs text-amber-700">{session.vehicleDescription}</div>}
                         <div className="text-xs text-slate-500 font-medium">{session.vehicleTypeName}</div>
                       </TableCell>
                       <TableCell className="font-medium text-slate-700">

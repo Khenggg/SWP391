@@ -427,8 +427,10 @@ function BookingDetailModal({ open, onClose, booking }) {
           {/* Booking Info List */}
           <div className="space-y-2 text-xs font-semibold text-slate-600 divide-y divide-slate-100">
             <div className="flex items-center justify-between pb-1.5">
-              <span className="text-slate-400 font-bold">Biển số xe:</span>
-              <LicensePlate plate={booking.plateNumber} size="sm" />
+              <span className="text-slate-400 font-bold">Loại xe:</span>
+              <span className="font-bold text-slate-800">
+                {booking.vehicleTypeName || `Loại xe #${booking.vehicleTypeId}`}
+              </span>
             </div>
 
             <div className="flex items-center justify-between pt-2">
@@ -590,7 +592,7 @@ function BookingHistoryTab() {
               <TableHeader>
                 <TableRow className="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider">
                   <TableHead className="py-4 px-5">Ngày tạo</TableHead>
-                  <TableHead className="py-4 px-5">Biển số</TableHead>
+                  <TableHead className="py-4 px-5">Loại xe</TableHead>
                   <TableHead className="py-4 px-5">Khu vực / Slot</TableHead>
                   <TableHead className="py-4 px-5">Thời gian</TableHead>
                   <TableHead className="py-4 px-5 text-right">Phí booking</TableHead>
@@ -603,7 +605,10 @@ function BookingHistoryTab() {
                   <TableRow key={item.id} className="hover:bg-slate-50/60 transition">
                     <TableCell className="py-4 px-5 font-bold text-slate-700">{formatDate(item.createdAt)}</TableCell>
                     <TableCell className="py-4 px-5">
-                      <LicensePlate plate={item.plateNumber} size="md" />
+                      <div className="font-bold text-slate-800">
+                        {item.vehicleTypeName || `Loại xe #${item.vehicleTypeId}`}
+                      </div>
+                      <div className="text-slate-400 text-[10px] mt-0.5">Biển số xác nhận tại cổng</div>
                     </TableCell>
                     <TableCell className="py-4 px-5">
                       <div className="font-bold text-slate-800">{item.areaName || "—"}</div>

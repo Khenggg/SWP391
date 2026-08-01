@@ -250,9 +250,7 @@ export default function StaffEntryPage() {
       setForm((current) => ({
         ...current,
         entryMode: "RESERVATION",
-        noPlate: result.plateRequiredAtEntry ? false : current.noPlate,
-        vehicleDescription: result.plateRequiredAtEntry ? "" : current.vehicleDescription,
-        licensePlate: result.plateNumber || current.licensePlate,
+        licensePlate: current.licensePlate,
         vehicleTypeId: result.vehicleTypeId ? String(result.vehicleTypeId) : current.vehicleTypeId,
       }));
 
@@ -286,11 +284,7 @@ export default function StaffEntryPage() {
     return suggestion?.suggestedSlotId ?? null;
   }, [overrideEnabled, overrideSlotId, cardCheck, form.entryMode, reservationCheck, suggestion]);
 
-  const noPlateAllowed = useMemo(() => {
-    if (form.entryMode === "MONTHLY") return false;
-    if (form.entryMode === "RESERVATION" && reservationCheck?.plateRequiredAtEntry) return false;
-    return !requiresSlotFromVehicleTypeId(derivedVehicleTypeId, vehicleTypes);
-  }, [derivedVehicleTypeId, form.entryMode, reservationCheck, vehicleTypes]);
+  const noPlateAllowed = form.entryMode !== "MONTHLY";
 
   useEffect(() => {
     if (!noPlateAllowed && form.noPlate) {
@@ -347,7 +341,7 @@ export default function StaffEntryPage() {
       { label: "Thẻ hợp lệ", passed: form.entryMode === "MONTHLY" ? Boolean(cardCheck?.monthlyEntryToken) : isNormalCardVerified },
       { label: "Cổng vào hợp lệ", passed: Boolean(entryGateId && entryGateId > 0) },
       { label: form.noPlate ? "Mô tả xe" : "Biển số", passed: form.noPlate ? Boolean(normalizeText(form.vehicleDescription)) : Boolean(normalizeText(form.licensePlate)) },
-      { label: "Ảnh biển số xe vào", passed: Boolean(normalizeText(form.entryPlateImageUrl)) },
+      { label: form.noPlate ? "Ảnh nhận dạng xe vào" : "Ảnh biển số xe vào", passed: Boolean(normalizeText(form.entryPlateImageUrl)) },
       { label: "Ảnh toàn xe vào", passed: Boolean(normalizeText(form.entryVehicleImageUrl)) },
       {
         label: form.entryMode === "CASUAL" ? (overrideEnabled ? "Vị trí can thiệp" : "Gợi ý vị trí") : form.entryMode === "MONTHLY" ? "Xác minh vé tháng" : "Xác minh booking",
@@ -459,6 +453,7 @@ export default function StaffEntryPage() {
           <div className="flex min-h-0 flex-col gap-4 md:col-span-4">
             <div className="h-[60%] shrink-0">
               <EntryImageSection
+                noPlate={form.noPlate}
                 plateImageUrl={form.entryPlateImageUrl}
                 vehicleImageUrl={form.entryVehicleImageUrl}
                 onPlateImageChange={(value) => handleEntryImageChange("ENTRY_PLATE", value)}

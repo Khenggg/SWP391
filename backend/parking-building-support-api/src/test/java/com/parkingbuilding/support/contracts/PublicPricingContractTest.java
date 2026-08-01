@@ -40,6 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *   "pricingRuleId": Long,
  *   "vehicleTypeId": Long,
  *   "vehicleTypeName": String,
+ *   "requiresSlot": Boolean,
  *   "dayPrice": BigDecimal >= 0,
  *   "nightPrice": BigDecimal >= 0,
  *   "monthlyPrice": BigDecimal >= 0,
@@ -80,6 +81,7 @@ class PublicPricingContractTest {
         activeVehicleType.setId(1L);
         activeVehicleType.setName("Motorbike");
         activeVehicleType.setIsActive(true);
+        activeVehicleType.setRequiresSlot(false);
 
         activePricingRule = new PricingRuleReadEntity();
         activePricingRule.setId(10L);
@@ -157,6 +159,7 @@ class PublicPricingContractTest {
                 .andExpect(jsonPath("$.data[0].pricingRuleId").isNumber())
                 .andExpect(jsonPath("$.data[0].vehicleTypeId").isNumber())
                 .andExpect(jsonPath("$.data[0].vehicleTypeName").isNotEmpty())
+                .andExpect(jsonPath("$.data[0].requiresSlot").isBoolean())
                 .andExpect(jsonPath("$.data[0].dayPrice").isNumber())
                 .andExpect(jsonPath("$.data[0].nightPrice").isNumber())
                 .andExpect(jsonPath("$.data[0].monthlyPrice").isNumber())

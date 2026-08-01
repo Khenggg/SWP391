@@ -88,6 +88,7 @@ export default function ExitImageSection({ session, exitPlateImageUrl, exitVehic
   const hasRequiredExitImages = Boolean(exitPlateImageUrl && exitVehicleImageUrl);
   const entryPlateUrl = session?.entryPlateImageUrl || "";
   const entryVehicleUrl = session?.entryVehicleImageUrl || "";
+  const plateImageLabel = session?.noPlate ? "Vùng nhận dạng" : "Biển số";
 
   const handleZoom = (url, title) => {
     setZoomImage({ url, title });
@@ -100,9 +101,9 @@ export default function ExitImageSection({ session, exitPlateImageUrl, exitVehic
         <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${hasRequiredExitImages ? "border-emerald-200 bg-emerald-50 text-emerald-600" : "border-red-200 bg-red-50 text-red-500"}`}>{hasRequiredExitImages ? "Đủ 2 ảnh xe ra" : "Bắt buộc 2 ảnh xe ra"}</span>
       </div>
       <div className={embedded ? "mt-4 space-y-4" : "space-y-4 p-4"}>
-        {session && <><div><div className="mb-2 flex items-center gap-2"><div className="size-2 rounded-full bg-blue-500" /><span className="text-xs font-bold text-blue-700">Ảnh lúc vào</span></div><div className="grid grid-cols-2 gap-3"><ImageSlot label="Biển số lúc vào" url={entryPlateUrl} readOnly onZoom={handleZoom} /><ImageSlot label="Toàn thể xe lúc vào" url={entryVehicleUrl} readOnly onZoom={handleZoom} /></div></div><div className="border-t border-dashed border-slate-200" /></>}
-        <div><div className="mb-2 flex items-center gap-2"><div className="size-2 rounded-full bg-emerald-500" /><span className="text-xs font-bold text-emerald-700">Ảnh lúc ra</span></div><div className="grid grid-cols-2 gap-3"><ImageSlot label="Biển số lúc ra *" url={exitPlateImageUrl} onClear={() => onPlateImageChange("")} inputRef={plateInputRef} onChange={onPlateImageChange} disabled={disabled} id="exit-plate-image" onZoom={handleZoom} /><ImageSlot label="Toàn thể xe lúc ra *" url={exitVehicleImageUrl} onClear={() => onVehicleImageChange("")} inputRef={vehicleInputRef} onChange={onVehicleImageChange} disabled={disabled} id="exit-vehicle-image" onZoom={handleZoom} /></div></div>
-        {!hasRequiredExitImages && <p className="text-center text-[10px] font-semibold text-red-500">Tải đủ ảnh biển số và ảnh toàn xe trước khi xác nhận xe ra.</p>}
+        {session && <><div><div className="mb-2 flex items-center gap-2"><div className="size-2 rounded-full bg-blue-500" /><span className="text-xs font-bold text-blue-700">Ảnh lúc vào</span></div><div className="grid grid-cols-2 gap-3"><ImageSlot label={`${plateImageLabel} lúc vào`} url={entryPlateUrl} readOnly onZoom={handleZoom} /><ImageSlot label="Toàn thể xe lúc vào" url={entryVehicleUrl} readOnly onZoom={handleZoom} /></div></div><div className="border-t border-dashed border-slate-200" /></>}
+        <div><div className="mb-2 flex items-center gap-2"><div className="size-2 rounded-full bg-emerald-500" /><span className="text-xs font-bold text-emerald-700">Ảnh lúc ra</span></div><div className="grid grid-cols-2 gap-3"><ImageSlot label={`${plateImageLabel} lúc ra *`} url={exitPlateImageUrl} onClear={() => onPlateImageChange("")} inputRef={plateInputRef} onChange={onPlateImageChange} disabled={disabled} id="exit-plate-image" onZoom={handleZoom} /><ImageSlot label="Toàn thể xe lúc ra *" url={exitVehicleImageUrl} onClear={() => onVehicleImageChange("")} inputRef={vehicleInputRef} onChange={onVehicleImageChange} disabled={disabled} id="exit-vehicle-image" onZoom={handleZoom} /></div></div>
+        {!hasRequiredExitImages && <p className="text-center text-[10px] font-semibold text-red-500">Tải đủ ảnh {plateImageLabel.toLowerCase()} và ảnh toàn xe trước khi xác nhận xe ra.</p>}
       </div>
 
       <Dialog open={Boolean(zoomImage)} onOpenChange={(open) => !open && setZoomImage(null)}>

@@ -128,7 +128,7 @@ export default function StaffExitPage() {
         setExitVehicleSnapshotId(foundSession.exitVehicleSnapshotId ?? null);
         setExitDetectedPlateNumber(foundSession.exitDetectedPlateNumber ?? null);
         setOcrConfidence(foundSession.exitOcrConfidence ?? foundSession.ocrConfidence ?? null);
-        if (foundSession.exitDetectedPlateNumber) setPlate(foundSession.exitDetectedPlateNumber);
+        if (!foundSession.noPlate && foundSession.exitDetectedPlateNumber) setPlate(foundSession.exitDetectedPlateNumber);
       }
       if (foundSession?.pendingOnlinePayment?.checkoutUrl || foundSession?.pendingOnlinePayment?.paymentUrl) {
         setPayosPaymentUrl(foundSession.pendingOnlinePayment.checkoutUrl || foundSession.pendingOnlinePayment.paymentUrl);
@@ -191,10 +191,10 @@ export default function StaffExitPage() {
     setSnapshotId(snapshot.id ?? snapshot.snapshotId);
     if (isPlate) {
       setExitDetectedPlateNumber(snapshot.detectedPlateNumber ?? null);
-      if (snapshot.detectedPlateNumber) setPlate(snapshot.detectedPlateNumber);
+      if (!session.noPlate && snapshot.detectedPlateNumber) setPlate(snapshot.detectedPlateNumber);
       setOcrConfidence(snapshot.confidence ?? snapshot.ocrConfidence ?? null);
     }
-  }, [session?.sessionId]);
+  }, [session?.noPlate, session?.sessionId]);
 
   useEffect(() => {
     if (!session?.pendingOnlinePayment || session.paymentStatus === "PAID") return undefined;
@@ -204,7 +204,13 @@ export default function StaffExitPage() {
     return () => window.clearInterval(intervalId);
   }, [loadSessionByCard, session?.cardCode, session?.paymentStatus, session?.pendingOnlinePayment]);
 
-  const hasMismatch = useMemo(() => Boolean(session && normalizePlate(session.plateNumber) !== normalizePlate(plate)), [plate, session]);
+  const hasMismatch = useMemo(() => Boolean(
+    session
+      && !session.noPlate
+      && normalizePlate(session.plateNumber)
+      && normalizePlate(plate)
+      && normalizePlate(session.plateNumber) !== normalizePlate(plate)
+  ), [plate, session]);
   const hasRequiredExitImages = Boolean(exitPlateImageUrl && exitVehicleImageUrl);
   const isZeroCharge = useMemo(() => session?.customerType === "CASUAL" && Number(fee?.totalAmount || 0) <= 0, [fee?.totalAmount, session?.customerType]);
   const paymentReady = useMemo(() => session?.customerType === "MONTHLY" || session?.paymentStatus === "PAID" || isZeroCharge, [isZeroCharge, session]);

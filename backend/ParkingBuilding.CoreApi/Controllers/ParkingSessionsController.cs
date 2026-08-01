@@ -68,6 +68,8 @@ namespace ParkingBuilding.CoreApi.Controllers
                     sessionCode = s.SessionCode,
                     cardCode = s.ParkingCard.CardNumber,
                     plateNumber = s.PlateNumber,
+                    noPlate = s.NoPlate,
+                    vehicleDescription = s.VehicleDescription,
                     vehicleTypeName = _context.VehicleTypes
                         .Where(vt => vt.Id == s.VehicleTypeId)
                         .Select(vt => vt.Name)
@@ -259,6 +261,8 @@ namespace ParkingBuilding.CoreApi.Controllers
                 status = session.Status,
                 cardCode = session.ParkingCard?.CardNumber,
                 plateNumber = session.PlateNumber,
+                noPlate = session.NoPlate,
+                vehicleDescription = session.VehicleDescription,
                 entryTime = session.EntryTime,
                 customerType = session.CustomerType,
                 paymentStatus = session.PaymentStatus,
