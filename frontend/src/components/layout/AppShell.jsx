@@ -46,7 +46,7 @@ const MENUS = {
     { label: "Cho xe ra", path: "/staff/exit", icon: ArrowRightFromLine },
     { label: "Báo mất thẻ", path: "/staff/lost-card", icon: ShieldAlert },
     { label: "Tìm phiên gửi", path: "/staff/sessions", icon: Search },
-    { label: "License Plate Mismatch", path: "/staff/license-plate-mismatch", icon: AlertTriangle },
+    { label: "Lệch Biển Số", path: "/staff/license-plate-mismatch", icon: AlertTriangle },
   ],
   [USER_ROLES.MANAGER]: [
     { label: "Bảng vận hành", path: "/manager/dashboard", icon: LayoutDashboard },
