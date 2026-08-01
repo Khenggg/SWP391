@@ -13,6 +13,8 @@ const APP_STATUS_BADGE = {
   PAID: "bg-indigo-100 text-indigo-700 border-indigo-300",
   ACTIVE: "bg-emerald-100 text-emerald-700 border-emerald-300",
   REJECTED: "bg-rose-100 text-rose-700 border-rose-300",
+  LOCKED: "bg-rose-100 text-rose-700 border-rose-300",
+  EXPIRED: "bg-slate-100 text-slate-700 border-slate-300",
 };
 
 const APP_STATUS_LABEL = {
@@ -21,6 +23,8 @@ const APP_STATUS_LABEL = {
   PAID: "Chờ cấp thẻ",
   ACTIVE: "Đang hoạt động",
   REJECTED: "Bị từ chối",
+  LOCKED: "Đã khóa",
+  EXPIRED: "Hết hạn",
 };
 
 const formatDate = (dateStr) => {
@@ -92,12 +96,17 @@ export default function ApplicationReviewTable({
                   {Number(app.price).toLocaleString("vi-VN")} ₫
                 </TableCell>
                 <TableCell className="py-4 px-5 text-center">
-                  <Badge
-                    variant="outline"
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${APP_STATUS_BADGE[app.status] || "bg-slate-100 text-slate-500 border-slate-200"}`}
-                  >
-                    {APP_STATUS_LABEL[app.status] || app.status}
-                  </Badge>
+                  {(() => {
+                    const displayStatus = (app.status === "ACTIVE" && app.monthlyPassStatus) ? app.monthlyPassStatus : app.status;
+                    return (
+                      <Badge
+                        variant="outline"
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${APP_STATUS_BADGE[displayStatus] || "bg-slate-100 text-slate-500 border-slate-200"}`}
+                      >
+                        {APP_STATUS_LABEL[displayStatus] || displayStatus}
+                      </Badge>
+                    );
+                  })()}
                 </TableCell>
                 <TableCell className="py-4 px-5 text-right text-slate-400">{formatDate(app.createdAt)}</TableCell>
               </TableRow>

@@ -654,6 +654,11 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
                 });
             }
 
+            var associatedPass = monthlyPasses
+                .Where(mp => mp.PlateNumber == application.Vehicle?.PlateNumber)
+                .OrderByDescending(mp => mp.EndDate)
+                .FirstOrDefault();
+
             return new MonthlyPassApplicationResponse
             {
                 Id = application.Id,
@@ -661,9 +666,12 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
                 VehicleId = application.VehicleId,
                 VehiclePlateNumber = application.Vehicle?.PlateNumber ?? "—",
                 VehicleTypeName = application.Vehicle?.VehicleType?.Name ?? "Unknown",
+                Brand = application.Vehicle?.Brand,
+                Color = application.Vehicle?.Color,
                 StartDate = application.StartDate,
                 Price = application.Price,
                 Status = application.Status,
+                MonthlyPassStatus = associatedPass?.Status,
                 RejectionReason = application.RejectionReason,
                 PaymentMethod = application.PaymentMethod,
                 PaymentReferenceNo = application.PaymentReferenceNo,

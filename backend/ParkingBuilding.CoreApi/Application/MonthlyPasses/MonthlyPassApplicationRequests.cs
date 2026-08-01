@@ -55,9 +55,12 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
         public long VehicleId { get; set; }
         public string VehiclePlateNumber { get; set; } = null!;
         public string VehicleTypeName { get; set; } = null!;
+        public string? Brand { get; set; }
+        public string? Color { get; set; }
         public DateTime StartDate { get; set; }
         public decimal Price { get; set; }
         public string Status { get; set; } = null!;
+        public string? MonthlyPassStatus { get; set; }
         public string? RejectionReason { get; set; }
         public string? PaymentMethod { get; set; }
         public string? PaymentReferenceNo { get; set; }
