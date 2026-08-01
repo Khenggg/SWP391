@@ -8,6 +8,7 @@ import NotFoundPage from "../pages/error/NotFoundPage";
 import UnauthorizedPage from "../pages/error/UnauthorizedPage";
 import LoginPage from "../pages/public/LoginPage";
 
+import HomePage from "../pages/public/HomePage";
 import ParkingInfoPage from "../pages/public/ParkingInfoPage";
 import RulesPage from "../pages/public/RulesPage";
 import PublicPricingPage from "../pages/public/PublicPricingPage";
@@ -56,7 +57,7 @@ export default function AppRoutes({ isAuthenticated, userRole, currentUser, onLo
   return (
     <Routes>
       <Route element={<PublicLayout />}>
-        <Route path="/" element={<ParkingInfoPage />} />
+        <Route path="/" element={<HomePage />} />
         <Route path="/parking-info" element={<ParkingInfoPage />} />
         <Route path="/rules" element={<RulesPage />} />
         <Route path="/pricing" element={<PublicPricingPage />} />
