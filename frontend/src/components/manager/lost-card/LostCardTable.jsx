@@ -1,5 +1,4 @@
 import React from "react";
-import { Eye } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,14 +28,13 @@ export default function LostCardTable({
             <TableHead className="whitespace-nowrap">Thời gian tạo</TableHead>
             <TableHead className="whitespace-nowrap">Lý do mất thẻ</TableHead>
             <TableHead className="whitespace-nowrap text-center">Mức độ</TableHead>
-            <TableHead className="whitespace-nowrap text-center">Thao tác</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            <TableRow><TableCell colSpan={9} className="text-center py-10 text-slate-500">Đang tải dữ liệu...</TableCell></TableRow>
+            <TableRow><TableCell colSpan={8} className="text-center py-10 text-slate-500">Đang tải dữ liệu...</TableCell></TableRow>
           ) : cases.length === 0 ? (
-            <TableRow><TableCell colSpan={9} className="text-center py-10 text-slate-500">Không tìm thấy yêu cầu nào</TableCell></TableRow>
+            <TableRow><TableCell colSpan={8} className="text-center py-10 text-slate-500">Không tìm thấy yêu cầu nào</TableCell></TableRow>
           ) : (
             cases.map((item) => {
               const isSelected = selectedCaseId === item.id;
@@ -93,11 +91,6 @@ export default function LostCardTable({
                     <Badge variant="outline" className={`px-2 py-0.5 text-[10px] font-bold border ${PRIORITY_BADGE[priority]}`}>
                       {priorityLabel}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600 bg-white border border-slate-200 shadow-sm" onClick={(e) => { e.stopPropagation(); onRowClick(item); }}>
-                      <Eye className="w-4 h-4" />
-                    </Button>
                   </TableCell>
                 </TableRow>
               );

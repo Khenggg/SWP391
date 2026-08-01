@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { RefreshCw, ChevronLeft, ChevronRight, Clock, CheckCircle2, XCircle, ExternalLink } from "lucide-react";
+import { RefreshCw, ChevronLeft, ChevronRight, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { useMismatchCases } from "@/hooks/useLicensePlateMismatch";
 import { Button } from "@/components/ui/button";
 import {
@@ -150,7 +150,7 @@ export default function MismatchApprovalsPage() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  {["ID", "Session ID", "Biển số đăng ký", "Biển số thực tế", "Nhân viên báo cáo", "Thời gian", "Trạng thái", ""].map((h) => (
+                  {["ID", "Session ID", "Biển số đăng ký", "Biển số thực tế", "Nhân viên báo cáo", "Thời gian", "Trạng thái"].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">
                       {h}
                     </th>
@@ -174,15 +174,6 @@ export default function MismatchApprovalsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={item.status} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); navigate(`/manager/mismatch-approvals/${item.id}`); }}
-                        className="text-indigo-600 hover:text-indigo-800 transition-colors"
-                        title="Xem chi tiết"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </button>
                     </td>
                   </tr>
                 ))}

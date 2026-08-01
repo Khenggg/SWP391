@@ -45,6 +45,8 @@ function formatVND(amount) {
 
 export default function SessionsAdministrationPage() {
   const [sessions, setSessions] = useState([]);
+  const [floors, setFloors] = useState([]);
+  const [areas, setAreas] = useState([]);
   const [slots, setSlots] = useState([]);
   const [vehicleTypes, setVehicleTypes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,6 +63,8 @@ export default function SessionsAdministrationPage() {
   const [action, setAction] = useState(null);
   const [reason, setReason] = useState("");
   const [newSlotId, setNewSlotId] = useState("");
+  const [selectedFloorId, setSelectedFloorId] = useState("");
+  const [selectedAreaId, setSelectedAreaId] = useState("");
 
   const loadData = async () => {
     setIsLoading(true);
@@ -71,12 +75,16 @@ export default function SessionsAdministrationPage() {
       if (filterVehicleType !== "ALL") params.vehicleTypeId = filterVehicleType;
       if (filterSearch) params.keyword = filterSearch;
       
-      const [sessionData, slotData, vTypes] = await Promise.all([
+      const [sessionData, floorData, areaData, slotData, vTypes] = await Promise.all([
         adminSessionService.getSessions(params),
+        parkingService.getFloors(),
+        parkingService.getAreas(),
         parkingService.getSlots(),
         parkingService.getVehicleTypes()
       ]);
       setSessions(sessionData || []);
+      setFloors(floorData || []);
+      setAreas(areaData || []);
       setSlots(slotData || []);
       setVehicleTypes(vTypes || []);
     } catch (error) {
@@ -98,19 +106,42 @@ export default function SessionsAdministrationPage() {
     loadData();
   }
 
-  const availableSlots = slots.filter((slot) => slot.status === "AVAILABLE");
+  const isCarSession = selectedSession && (
+    (selectedSession.vehicleType?.name || selectedSession.vehicleTypeName || "").toLowerCase().includes("ô tô") ||
+    (selectedSession.vehicleType?.name || selectedSession.vehicleTypeName || "").toLowerCase().includes("o to")
+  );
+
+  // Cascading filter: areas for the selected floor matching the session vehicle type
+  const filteredAreas = areas.filter(a => {
+    const belongsToFloor = String(a.floorId) === selectedFloorId;
+    const isActive = a.status === "ACTIVE";
+    if (!belongsToFloor || !isActive) return false;
+    
+    const isCarArea = (a.vehicleTypeNames || []).some(name => name.toLowerCase().includes("ô tô") || name.toLowerCase().includes("o to"));
+    return isCarSession ? isCarArea : !isCarArea;
+  });
+
+  // Available slots for the selected area
+  const filteredSlots = slots.filter(s =>
+    String(s.areaId) === selectedAreaId &&
+    s.status === "AVAILABLE"
+  );
 
   const openActionDialog = (session, act) => {
     setSelectedSession(session);
     setAction(act);
     setReason("");
     setNewSlotId("");
+    setSelectedFloorId("");
+    setSelectedAreaId("");
   };
 
   const closeDialog = () => {
     setAction(null);
     setReason("");
     setNewSlotId("");
+    setSelectedFloorId("");
+    setSelectedAreaId("");
   };
 
   const submitAction = async () => {
@@ -121,16 +152,23 @@ export default function SessionsAdministrationPage() {
     }
 
     try {
-
       if (action === "cancel") {
         await adminSessionService.cancel(selectedSession.id, { reason });
       }
       if (action === "moveSlot") {
-        if (!newSlotId) {
-          toast.error("Vui lòng chọn slot mới.");
-          return;
+        if (isCarSession) {
+          if (!newSlotId) {
+            toast.error("Vui lòng chọn slot mới.");
+            return;
+          }
+          await adminSessionService.moveSlot(selectedSession.id, { reason, newSlotId });
+        } else {
+          if (!selectedAreaId) {
+            toast.error("Vui lòng chọn khu vực mới.");
+            return;
+          }
+          await adminSessionService.moveSlot(selectedSession.id, { reason, targetAreaId: selectedAreaId });
         }
-        await adminSessionService.moveSlot(selectedSession.id, { reason, newSlotId });
       }
       toast.success("Thao tác thành công.");
       closeDialog();
@@ -427,7 +465,7 @@ export default function SessionsAdministrationPage() {
             <p className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">Thao tác quản trị</p>
             <div className="grid grid-cols-2 gap-2">
               <Button variant="outline" className="w-full justify-center bg-white hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200" onClick={() => openActionDialog(selectedSession, "moveSlot")}>
-                <ArrowRightLeft className="w-4 h-4 mr-2" /> Chuyển slot
+                <ArrowRightLeft className="w-4 h-4 mr-2" /> Chuyển vị trí
               </Button>
               <Button variant="outline" className="w-full justify-center text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 bg-white" onClick={() => openActionDialog(selectedSession, "cancel")}>
                 <Ban className="w-4 h-4 mr-2" /> Hủy phiên
@@ -442,10 +480,10 @@ export default function SessionsAdministrationPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {action === "moveSlot" ? "Điều chuyển slot thủ công" : "Hủy phiên"}
+              {action === "moveSlot" ? (isCarSession ? "Điều chuyển slot thủ công" : "Điều chuyển khu vực thủ công") : "Hủy phiên"}
             </DialogTitle>
             <DialogDescription>
-              {action === "moveSlot" ? "Chuyển xe sang slot AVAILABLE khi cảm biến hoặc slot gặp lỗi." : 
+              {action === "moveSlot" ? (isCarSession ? "Chuyển xe sang slot AVAILABLE khi cảm biến hoặc slot gặp lỗi." : "Điều chuyển xe máy sang khu vực đỗ mới.") : 
                "Chuyển phiên sang CANCELLED để giải phóng vận hành."}
             </DialogDescription>
           </DialogHeader>
@@ -454,26 +492,68 @@ export default function SessionsAdministrationPage() {
             <div className="rounded-lg border bg-slate-50 p-3 text-sm">
               <div className="font-mono font-black">{selectedSession.sessionCode}</div>
               <div className="mt-1 text-slate-500">{selectedSession.card?.code || selectedSession.cardCode} / {selectedSession.plateNumber || "Không biển"}</div>
+              {isCarSession && !selectedSession.slotCode && (
+                <div className="mt-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 p-2 rounded font-medium">
+                  ⚠️ Phiên xe này chưa có vị trí đỗ cũ. Yêu cầu điều chuyển có thể bị từ chối bởi hệ thống (Yêu cầu phải có vị trí đỗ cũ).
+                </div>
+              )}
             </div>
           )}
 
           <div className="space-y-4 py-2">
             {action === "moveSlot" && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Slot mới <span className="text-red-500">*</span></label>
-                <Select value={newSlotId} onValueChange={setNewSlotId}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Chọn slot AVAILABLE" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableSlots.length === 0 && <SelectItem value="none" disabled>Không có slot trống</SelectItem>}
-                    {availableSlots.map((slot) => (
-                      <SelectItem key={slot.id} value={String(slot.id)}>
-                        {[slot.floorCode, slot.areaCode, slot.slotCode].filter(Boolean).join(" / ") || `Slot #${slot.id}`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Tầng <span className="text-red-500">*</span></label>
+                  <Select value={selectedFloorId} onValueChange={(v) => { setSelectedFloorId(v); setSelectedAreaId(""); setNewSlotId(""); }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Chọn tầng" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {floors.filter(f => f.status === "ACTIVE").map((floor) => (
+                        <SelectItem key={floor.id} value={String(floor.id)}>
+                          {floor.floorCode} - {floor.floorName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">{isCarSession ? "Khu vực (Ô tô)" : "Khu vực (Xe máy)"} <span className="text-red-500">*</span></label>
+                  <Select value={selectedAreaId} onValueChange={(v) => { setSelectedAreaId(v); setNewSlotId(""); }} disabled={!selectedFloorId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={!selectedFloorId ? "Chọn tầng trước" : filteredAreas.length === 0 ? "Tầng này không có khu vực phù hợp" : "Chọn khu vực"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredAreas.length === 0 && <SelectItem value="none" disabled>Không có khu vực phù hợp</SelectItem>}
+                      {filteredAreas.map((area) => (
+                        <SelectItem key={area.id} value={String(area.id)}>
+                          {area.areaCode} - {area.areaName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {isCarSession && (
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Slot mới <span className="text-red-500">*</span></label>
+                    <Select value={newSlotId} onValueChange={setNewSlotId} disabled={!selectedAreaId}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={!selectedAreaId ? "Chọn khu vực trước" : filteredSlots.length === 0 ? "Không có slot trống" : "Chọn slot AVAILABLE"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredSlots.length === 0 && <SelectItem value="none" disabled>Không có slot trống</SelectItem>}
+                        {filteredSlots.map((slot) => (
+                          <SelectItem key={slot.id} value={String(slot.id)}>
+                            {slot.slotCode}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             )}
 
