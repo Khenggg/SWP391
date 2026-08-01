@@ -103,7 +103,7 @@ export default function ExitSessionInfo({ session, vehicleTypes = [], embedded =
                 className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors"
               >
                 <AlertTriangle className="w-4 h-4" />
-                ⚠ Report Plate Mismatch
+                ⚠ Báo Cáo Sai Biển Số
               </button>
             </div>
           </>
