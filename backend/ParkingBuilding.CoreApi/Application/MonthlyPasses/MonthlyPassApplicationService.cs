@@ -48,14 +48,38 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
             var vehicle = await _context.Vehicles
                 .FirstOrDefaultAsync(v => v.NormalizedPlateNumber == normalizedPlate && v.Status == "ACTIVE");
 
-            var isCar = "CAR".Equals(request.VehicleType, StringComparison.OrdinalIgnoreCase);
             var vehicleTypeObj = await _context.VehicleTypes
-                .FirstOrDefaultAsync(vt => vt.IsActive && vt.RequiresSlot == isCar);
+                .FirstOrDefaultAsync(vt => vt.Id == request.VehicleTypeId && vt.IsActive);
             if (vehicleTypeObj == null)
             {
                 throw new BusinessException("INVALID_VEHICLE_TYPE", StatusCodes.Status400BadRequest);
             }
 
+            // 2. Tìm bảng giá trước tiên
+            var activeRule = await _context.PricingRules
+                .Where(p => p.VehicleTypeId == vehicleTypeObj.Id && p.Status == "ACTIVE" && p.EffectiveFrom <= DateTimeOffset.UtcNow)
+                .OrderByDescending(p => p.EffectiveFrom)
+                .ThenByDescending(p => p.Id)
+                .FirstOrDefaultAsync();
+
+            activeRule ??= await _context.PricingRules
+                .Where(p => p.VehicleTypeId == vehicleTypeObj.Id && p.Status == "ACTIVE")
+                .OrderByDescending(p => p.EffectiveFrom)
+                .ThenByDescending(p => p.Id)
+                .FirstOrDefaultAsync();
+
+            activeRule ??= await _context.PricingRules
+                .Where(p => p.VehicleTypeId == vehicleTypeObj.Id)
+                .OrderByDescending(p => p.EffectiveFrom)
+                .ThenByDescending(p => p.Id)
+                .FirstOrDefaultAsync();
+
+            if (activeRule == null)
+            {
+                throw new BusinessException(ErrorCodes.PricingRuleNotFound, StatusCodes.Status404NotFound);
+            }
+
+            // 3. Tạo/Cập nhật Vehicle PENDING
             if (vehicle != null)
             {
                 if (vehicle.DriverId != driverProfile.Id)
@@ -99,29 +123,6 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
                 _context.Vehicles.Add(vehicle);
             }
             await _context.SaveChangesAsync();
-
-            // 2. Tìm bảng giá
-            var activeRule = await _context.PricingRules
-                .Where(p => p.VehicleTypeId == vehicle.VehicleTypeId && p.Status == "ACTIVE" && p.EffectiveFrom <= DateTimeOffset.UtcNow)
-                .OrderByDescending(p => p.EffectiveFrom)
-                .ThenByDescending(p => p.Id)
-                .FirstOrDefaultAsync();
-
-            activeRule ??= await _context.PricingRules
-                .Where(p => p.VehicleTypeId == vehicle.VehicleTypeId && p.Status == "ACTIVE")
-                .OrderByDescending(p => p.EffectiveFrom)
-                .ThenByDescending(p => p.Id)
-                .FirstOrDefaultAsync();
-
-            activeRule ??= await _context.PricingRules
-                .Where(p => p.VehicleTypeId == vehicle.VehicleTypeId)
-                .OrderByDescending(p => p.EffectiveFrom)
-                .ThenByDescending(p => p.Id)
-                .FirstOrDefaultAsync();
-            if (activeRule == null)
-            {
-                throw new BusinessException(ErrorCodes.PricingRuleNotFound, StatusCodes.Status404NotFound);
-            }
 
             // 3. Tạo MonthlyPassApplication
             var application = new MonthlyPassApplication

@@ -11,7 +11,7 @@ import { parkingService } from "@/services/parkingService";
 export default function ApplicationFormDialog({ open, onClose, onSubmit, vehicles: initialVehicles = [] }) {
   const [form, setForm] = useState({
     licensePlate: "",
-    vehicleType: "",
+    vehicleTypeId: "",
     brand: "",
     color: "",
     description: "",
@@ -31,7 +31,7 @@ export default function ApplicationFormDialog({ open, onClose, onSubmit, vehicle
     if (open) {
       setForm({
         licensePlate: "",
-        vehicleType: "",
+        vehicleTypeId: "",
         brand: "",
         color: "",
         description: "",
@@ -89,11 +89,10 @@ export default function ApplicationFormDialog({ open, onClose, onSubmit, vehicle
     }
     const found = userVehicles.find((v) => String(v.id) === String(vehicleId));
     if (found) {
-      const typeStr = found.vehicleTypeName || found.vehicleType || "";
       setForm((prev) => ({
         ...prev,
         licensePlate: found.licensePlate || found.plateNumber || "",
-        vehicleType: typeStr,
+        vehicleTypeId: String(found.vehicleTypeId || ""),
         brand: found.brand || "",
         color: found.color || "",
         description: found.description || prev.description || "",
@@ -103,14 +102,14 @@ export default function ApplicationFormDialog({ open, onClose, onSubmit, vehicle
   };
 
   const handleSelectType = (val) => {
-    setForm((prev) => ({ ...prev, vehicleType: val }));
-    setErrors((prev) => ({ ...prev, vehicleType: undefined }));
+    setForm((prev) => ({ ...prev, vehicleTypeId: val }));
+    setErrors((prev) => ({ ...prev, vehicleTypeId: undefined }));
   };
 
   const validate = () => {
     const e = {};
     if (!form.licensePlate.trim()) e.licensePlate = "Biển số xe là bắt buộc.";
-    if (!form.vehicleType.trim()) e.vehicleType = "Loại xe là bắt buộc.";
+    if (!form.vehicleTypeId) e.vehicleTypeId = "Loại xe là bắt buộc.";
     if (!form.brand.trim()) e.brand = "Hãng xe là bắt buộc.";
     if (!form.color.trim()) e.color = "Màu xe là bắt buộc.";
     if (!form.startDate) e.startDate = "Bắt buộc chọn ngày bắt đầu.";
@@ -130,6 +129,7 @@ export default function ApplicationFormDialog({ open, onClose, onSubmit, vehicle
     try {
       const payload = {
         ...form,
+        vehicleTypeId: Number(form.vehicleTypeId),
         cccdFrontImageUrl: "",
         cccdBackImageUrl: "",
         faceImageUrl: "",
@@ -255,7 +255,7 @@ export default function ApplicationFormDialog({ open, onClose, onSubmit, vehicle
                   Loại phương tiện <span className="text-rose-500">*</span>
                 </label>
                 <Select
-                  value={form.vehicleType}
+                  value={form.vehicleTypeId}
                   onValueChange={handleSelectType}
                 >
                   <SelectTrigger className="w-full text-sm font-semibold uppercase">
@@ -269,14 +269,14 @@ export default function ApplicationFormDialog({ open, onClose, onSubmit, vehicle
                   </SelectTrigger>
                   <SelectContent>
                     {dbVehicleTypes.map((vt) => (
-                      <SelectItem key={vt.id} value={vt.name}>
+                      <SelectItem key={vt.id} value={String(vt.id)}>
                         {vt.name.toUpperCase()}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.vehicleType && (
-                  <p className="text-[11px] text-rose-500 mt-1">{errors.vehicleType}</p>
+                {errors.vehicleTypeId && (
+                  <p className="text-[11px] text-rose-500 mt-1">{errors.vehicleTypeId}</p>
                 )}
               </div>
 
