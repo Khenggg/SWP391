@@ -675,6 +675,41 @@ Table parking_session_images {
   Note: 'CHECKS: image_url must be non-blank; thumbnail_url must be NULL or non-blank; confidence must be NULL or between 0 and 100. Stores image metadata only; actual image files live in storage.'
 }
 
+Table vehicle_snapshot_uploads {
+  id bigserial [pk, increment, not null]
+  snapshot_token uuid [not null, default: `gen_random_uuid()`]
+  session_id bigint [null]
+  image_type varchar(30) [not null]
+  image_url varchar(500) [not null]
+  storage_path varchar(500) [null]
+  mime_type varchar(100) [null]
+  size_bytes bigint [null]
+  upload_status varchar(20) [not null, default: 'UPLOADED']
+  ocr_status varchar(20) [not null, default: 'NOT_REQUESTED']
+  ocr_provider varchar(100) [null]
+  ocr_processed_at timestamptz [null]
+  ocr_error text [null]
+  ocr_payload jsonb [null]
+  detected_plate_number varchar(30) [null]
+  detected_normalized_plate_number varchar(30) [null]
+  confidence numeric(5,2) [null]
+  uploaded_by bigint [null]
+  captured_at timestamptz [not null, default: `now()`]
+  attached_at timestamptz [null]
+  expires_at timestamptz [null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`, note: 'Maintained by set_updated_at trigger']
+
+  indexes {
+    snapshot_token [unique, name: 'uq_vehicle_snapshot_uploads_token']
+    (session_id, image_type, upload_status, captured_at) [name: 'ix_vehicle_snapshot_uploads_session_type']
+    (uploaded_by, upload_status, expires_at) [name: 'ix_vehicle_snapshot_uploads_owner_status']
+    created_at [name: 'ix_vehicle_snapshot_uploads_pending_ocr']
+  }
+
+  Note: 'Temporary upload staging table for ANPR OCR plate recognition before attaching snapshot to parking_sessions.'
+}
+
 Table payments {
   id bigserial [pk, increment, not null]
   session_id bigint [null]
@@ -1053,6 +1088,8 @@ Ref fk_sessions_override_by: users.id < parking_sessions.override_by
 Ref fk_sessions_plate_corrected_by: users.id < parking_sessions.plate_corrected_by
 
 Ref fk_session_images_session: parking_sessions.id < parking_session_images.session_id
+Ref fk_vehicle_snapshot_uploads_session: parking_sessions.id < vehicle_snapshot_uploads.session_id [delete: set null]
+Ref fk_vehicle_snapshot_uploads_uploaded_by: users.id < vehicle_snapshot_uploads.uploaded_by [delete: set null]
 
 Ref fk_payments_session: parking_sessions.id < payments.session_id
 Ref fk_payments_reservation: reservations.id < payments.reservation_id
