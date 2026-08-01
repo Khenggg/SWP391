@@ -259,7 +259,7 @@ export default function MonthlyPassManagementPage() {
                   <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
                   <SelectItem value="PENDING">⏳ Chờ duyệt</SelectItem>
                   <SelectItem value="APPROVED_AWAITING_PAYMENT">💳 Chờ thanh toán</SelectItem>
-                  <SelectItem value="PAID">💵 Đã thanh toán</SelectItem>
+                  <SelectItem value="PAID">💵 Chờ cấp thẻ</SelectItem>
                   <SelectItem value="ACTIVE">✅ Đang hoạt động</SelectItem>
                   <SelectItem value="REJECTED">❌ Bị từ chối</SelectItem>
                 </SelectContent>
