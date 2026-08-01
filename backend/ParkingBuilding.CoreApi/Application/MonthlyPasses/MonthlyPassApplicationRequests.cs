@@ -57,7 +57,9 @@ namespace ParkingBuilding.CoreApi.Application.MonthlyPasses
         public long DriverId { get; set; }
         public long VehicleId { get; set; }
         public string VehiclePlateNumber { get; set; } = null!;
+        public long VehicleTypeId { get; set; }
         public string VehicleTypeName { get; set; } = null!;
+        public bool RequiresSlot { get; set; } = true;
         public string? Brand { get; set; }
         public string? Color { get; set; }
         public DateTime StartDate { get; set; }

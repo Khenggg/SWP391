@@ -56,6 +56,8 @@ export default function ApplicationReviewPanel({ application, onClose, onRefresh
   const [floors, setFloors] = useState([]);
   const [areas, setAreas] = useState([]);
   const [slots, setSlots] = useState([]);
+  const [vehicleTypes, setVehicleTypes] = useState([]);
+  const [selectedFloorId, setSelectedFloorId] = useState("");
   const [selectedAreaId, setSelectedAreaId] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState("");
   const [loadingCards, setLoadingCards] = useState(false);
@@ -65,19 +67,22 @@ export default function ApplicationReviewPanel({ application, onClose, onRefresh
   const handleOpenRfidModal = async () => {
     setLoadingCards(true);
     setRfidCardCode("");
+    setSelectedFloorId("");
     setSelectedAreaId("");
     setSelectedSlotId("");
     try {
-      const [cards, fetchedFloors, fetchedAreas, fetchedSlots] = await Promise.all([
+      const [cards, fetchedFloors, fetchedAreas, fetchedSlots, fetchedVTypes] = await Promise.all([
         cardService.getAvailableCards(),
         parkingService.getFloors().catch(() => []),
         parkingService.getAreas().catch(() => []),
         parkingService.getSlots().catch(() => []),
+        parkingService.getVehicleTypes().catch(() => []),
       ]);
       setAvailableCards(cards);
       setFloors(fetchedFloors);
       setAreas(fetchedAreas);
       setSlots(fetchedSlots);
+      setVehicleTypes(fetchedVTypes);
       setShowRfidModal(true);
     } catch (e) {
       toast.error("Không thể tải danh sách thẻ trống hoặc cấu hình bãi xe.");
@@ -471,18 +476,26 @@ export default function ApplicationReviewPanel({ application, onClose, onRefresh
               )}
             </div>
 
-            {slots.length > 0 && (
+            {/* 2. Chọn Tầng đỗ */}
+            {floors.length > 0 && (
               <div>
-                <label className="block text-slate-500 mb-1.5">Chọn Slot đỗ cố định (nếu có):</label>
-                <Select value={selectedSlotId} onValueChange={setSelectedSlotId}>
+                <label className="block text-slate-500 mb-1.5">Chọn Tầng đỗ:</label>
+                <Select
+                  value={selectedFloorId}
+                  onValueChange={(val) => {
+                    setSelectedFloorId(val);
+                    setSelectedAreaId("");
+                    setSelectedSlotId("");
+                  }}
+                >
                   <SelectTrigger className="w-full text-xs font-bold bg-white border-slate-200">
-                    <SelectValue placeholder="-- Tự động chọn hoặc chọn Slot --" />
+                    <SelectValue placeholder="-- Tự động chọn hoặc chọn Tầng --" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">-- Tự động gán Slot khả dụng --</SelectItem>
-                    {slots.filter(s => s.status === "AVAILABLE").map((slot) => (
-                      <SelectItem key={slot.id} value={String(slot.id)}>
-                        Slot {slot.slotCode || slot.code} ({slot.areaName || `Khu ${slot.areaCode || ""}`})
+                    <SelectItem value="">-- Tất cả các tầng --</SelectItem>
+                    {floors.filter(f => f.status === "ACTIVE").map((f) => (
+                      <SelectItem key={f.id} value={String(f.id)}>
+                        Tầng {f.floorCode || f.code} ({f.floorName || f.name || ""})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -490,20 +503,72 @@ export default function ApplicationReviewPanel({ application, onClose, onRefresh
               </div>
             )}
 
-            {areas.length > 0 && !selectedSlotId && (
+            {/* 3. Chọn Khu vực đỗ */}
+            {areas.length > 0 && (
               <div>
                 <label className="block text-slate-500 mb-1.5">Chọn Khu vực đỗ:</label>
-                <Select value={selectedAreaId} onValueChange={setSelectedAreaId}>
+                <Select
+                  value={selectedAreaId}
+                  onValueChange={(val) => {
+                    setSelectedAreaId(val);
+                    setSelectedSlotId("");
+                    if (val) {
+                      const foundArea = areas.find(a => String(a.id) === String(val));
+                      if (foundArea?.floorId) setSelectedFloorId(String(foundArea.floorId));
+                    }
+                  }}
+                >
                   <SelectTrigger className="w-full text-xs font-bold bg-white border-slate-200">
                     <SelectValue placeholder="-- Tự động chọn hoặc chọn Khu vực --" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">-- Tự động gán Khu vực khả dụng --</SelectItem>
-                    {areas.filter(a => a.status === "ACTIVE").map((area) => (
-                      <SelectItem key={area.id} value={String(area.id)}>
-                        {area.areaName || area.name || area.code} ({area.floorCode || `Tầng ${area.floorId}`})
-                      </SelectItem>
-                    ))}
+                    {areas
+                      .filter(a => a.status === "ACTIVE" && (!selectedFloorId || String(a.floorId) === String(selectedFloorId)))
+                      .map((area) => (
+                        <SelectItem key={area.id} value={String(area.id)}>
+                          {area.areaName || area.name || area.code} ({area.floorCode ? `Tầng ${area.floorCode}` : `Tầng ${area.floorId}`})
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* 4. Chọn Slot đỗ cố định (Chỉ hiển thị nếu loại xe cấu hình CẦN SLOT - requiresSlot = true) */}
+            {(application?.requiresSlot ?? vehicleTypes.find(vt => String(vt.id) === String(application?.vehicleTypeId))?.requiresSlot ?? true) && (
+              <div>
+                <label className="block text-slate-500 mb-1.5">Chọn Slot đỗ cố định (Cần Slot):</label>
+                <Select
+                  value={selectedSlotId}
+                  onValueChange={(val) => {
+                    setSelectedSlotId(val);
+                    if (val) {
+                      const foundSlot = slots.find(s => String(s.id) === String(val));
+                      if (foundSlot?.areaId) {
+                        setSelectedAreaId(String(foundSlot.areaId));
+                        const foundArea = areas.find(a => String(a.id) === String(foundSlot.areaId));
+                        if (foundArea?.floorId) setSelectedFloorId(String(foundArea.floorId));
+                      }
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full text-xs font-bold bg-white border-slate-200">
+                    <SelectValue placeholder="-- Tự động chọn hoặc chọn Slot --" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">-- Tự động gán Slot khả dụng --</SelectItem>
+                    {slots
+                      .filter(s => s.status === "AVAILABLE" 
+                        && (!selectedAreaId || String(s.areaId) === String(selectedAreaId))
+                        && (!selectedFloorId || String(areas.find(a => String(a.id) === String(s.areaId))?.floorId) === String(selectedFloorId))
+                        && (!application?.vehicleTypeId || String(s.allowedVehicleTypeId) === String(application.vehicleTypeId))
+                      )
+                      .map((slot) => (
+                        <SelectItem key={slot.id} value={String(slot.id)}>
+                          Slot {slot.slotCode || slot.code} ({slot.areaName || `Khu ${slot.areaCode || ""}`})
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
