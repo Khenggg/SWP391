@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import QRCode from "qrcode";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -77,11 +77,23 @@ export default function PayOSPaymentModal({ open, onClose, application, onPaymen
     return () => clearInterval(timer);
   }, [open, timeLeft, isSuccess]);
 
+  // Track timeLeft value using ref to avoid re-triggering polling interval every second
+  const timeLeftRef = useRef(timeLeft);
+  useEffect(() => {
+    timeLeftRef.current = timeLeft;
+  }, [timeLeft]);
+
   // Polling check transaction status
   useEffect(() => {
-    if (!open || !application || isSuccess || timeLeft <= 0) return;
+    if (!open || !application || isSuccess) return;
 
     const checkInterval = setInterval(async () => {
+      // Exit if timer has expired
+      if (timeLeftRef.current <= 0) {
+        clearInterval(checkInterval);
+        return;
+      }
+
       try {
         const app = await driverService.getMonthlyPassApplicationById(application.id);
         // Under C# workflow, when paid, application status transitions to PAID
@@ -99,7 +111,7 @@ export default function PayOSPaymentModal({ open, onClose, application, onPaymen
     }, 4000);
 
     return () => clearInterval(checkInterval);
-  }, [open, application, isSuccess, timeLeft, onPaymentSuccess]);
+  }, [open, application, isSuccess, onPaymentSuccess]);
 
   const handleCopy = (text, fieldName) => {
     navigator.clipboard.writeText(text);
