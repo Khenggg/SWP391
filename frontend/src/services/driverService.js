@@ -140,7 +140,7 @@ export const driverService = {
    * Lấy chi tiết đơn đăng ký vé tháng.
    */
   getMonthlyPassApplicationById: async (id) => {
-    const res = await coreAxiosClient.get(`/monthly-passes/applications/${id}`);
+    const res = await coreAxiosClient.get(`/monthly-passes/applications/${id}?t=${Date.now()}`);
     if (res.success && res.data) return res.data;
     throw new Error(res.message || "Không thể tải chi tiết đơn đăng ký.");
   },
