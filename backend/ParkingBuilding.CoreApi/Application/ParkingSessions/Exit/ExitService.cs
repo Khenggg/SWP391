@@ -121,6 +121,11 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                     throw new BusinessException(ErrorCodes.ExitGateInvalid);
                 }
 
+                if (gate.FloorId != 0 && session.FloorId != 0 && gate.FloorId != session.FloorId)
+                {
+                    throw new BusinessException(ErrorCodes.ExitGateFloorMismatch, StatusCodes.Status400BadRequest);
+                }
+
                 await EnsureRequiredVehicleImagesAsync(
                     session.Id,
                     request.ExitPlateImageUrl,
@@ -361,6 +366,11 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                 if (gate == null || gate.GateType != "EXIT" || gate.Status != "ACTIVE")
                 {
                     throw new BusinessException(ErrorCodes.ExitGateInvalid);
+                }
+
+                if (gate.FloorId != 0 && session.FloorId != 0 && gate.FloorId != session.FloorId)
+                {
+                    throw new BusinessException(ErrorCodes.ExitGateFloorMismatch, StatusCodes.Status400BadRequest);
                 }
 
                 await EnsureRequiredVehicleImagesAsync(

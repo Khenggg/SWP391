@@ -213,6 +213,8 @@ export default function ExitConfirmation({
   exitPlateSnapshotId,
   exitVehicleSnapshotId,
   ocrConfidence,
+  isExitGateFloorMismatch,
+  selectedExitGate,
 }) {
   return (
     <section className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden min-h-0">
@@ -225,6 +227,17 @@ export default function ExitConfirmation({
         )}
       </div>
       <div className="p-4 flex flex-col gap-4 overflow-y-auto min-h-0 flex-1">
+        {isExitGateFloorMismatch && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-900 flex flex-col gap-1">
+            <p className="font-bold flex items-center gap-1.5 text-red-800">
+              🚫 Cổng ra ({selectedExitGate?.gateCode || exitGateId}) không thuộc Tầng đỗ xe!
+            </p>
+            <p className="text-[11px] text-red-700">
+              Xe đã đỗ tại <strong>Tầng {session?.floorId}</strong> nhưng Cổng ra được chọn thuộc <strong>Tầng {selectedExitGate?.floorId}</strong>. Vui lòng đổi sang Cổng ra thuộc Tầng {session?.floorId} để cho xe ra bãi.
+            </p>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">

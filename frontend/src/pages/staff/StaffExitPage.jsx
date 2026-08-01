@@ -204,6 +204,12 @@ export default function StaffExitPage() {
     return () => window.clearInterval(intervalId);
   }, [loadSessionByCard, session?.cardCode, session?.paymentStatus, session?.pendingOnlinePayment]);
 
+  const selectedExitGate = useMemo(() => gates.find((g) => String(g.id) === String(exitGateId)), [gates, exitGateId]);
+  const isExitGateFloorMismatch = useMemo(() => {
+    if (!session?.floorId || !selectedExitGate?.floorId) return false;
+    return String(session.floorId) !== String(selectedExitGate.floorId);
+  }, [session?.floorId, selectedExitGate?.floorId]);
+
   const hasMismatch = useMemo(() => Boolean(
     session
       && !session.noPlate
@@ -215,7 +221,7 @@ export default function StaffExitPage() {
   const isZeroCharge = useMemo(() => session?.customerType === "CASUAL" && Number(fee?.totalAmount || 0) <= 0, [fee?.totalAmount, session?.customerType]);
   const paymentReady = useMemo(() => session?.customerType === "MONTHLY" || session?.paymentStatus === "PAID" || isZeroCharge, [isZeroCharge, session]);
   const mismatchBlocked = mismatchStatus === "PENDING" || mismatchStatus === "REJECTED";
-  const canExit = Boolean(paymentReady && !mismatchBlocked && hasRequiredExitImages);
+  const canExit = Boolean(paymentReady && !mismatchBlocked && hasRequiredExitImages && !isExitGateFloorMismatch);
 
   const resetPage = useCallback(() => {
     setCardCode("");
@@ -398,7 +404,7 @@ export default function StaffExitPage() {
         <div className="mx-auto grid h-full max-w-[1600px] grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
           <div className="relative flex min-h-0 flex-col gap-4">
             <ExitSearchSection cardCode={cardCode} setCardCode={setCardCode} runSearch={runSearch} isLoading={isLoading} gates={gates} exitGateId={exitGateId} setExitGateId={setExitGateId} />
-            <ExitConfirmation plate={plate} setPlate={setPlate} session={session} hasMismatch={hasMismatch} mismatchCase={mismatchCase} handleCreateMismatchCase={handleCreateMismatchCase} isCreatingMismatch={isCreatingMismatch} currentTime={currentTime} staffName={currentUser?.fullName || currentUser?.username || "Nhân viên trực"} mismatchStatus={mismatchStatus} managerReason={managerReason} vehicleTypes={vehicleTypes} exitPlateImageUrl={exitPlateImageUrl} exitVehicleImageUrl={exitVehicleImageUrl} exitPlateSnapshotId={exitPlateSnapshotId} exitVehicleSnapshotId={exitVehicleSnapshotId} ocrConfidence={ocrConfidence} />
+            <ExitConfirmation plate={plate} setPlate={setPlate} session={session} hasMismatch={hasMismatch} mismatchCase={mismatchCase} handleCreateMismatchCase={handleCreateMismatchCase} isCreatingMismatch={isCreatingMismatch} currentTime={currentTime} staffName={currentUser?.fullName || currentUser?.username || "Nhân viên trực"} mismatchStatus={mismatchStatus} managerReason={managerReason} vehicleTypes={vehicleTypes} exitPlateImageUrl={exitPlateImageUrl} exitVehicleImageUrl={exitVehicleImageUrl} exitPlateSnapshotId={exitPlateSnapshotId} exitVehicleSnapshotId={exitVehicleSnapshotId} ocrConfidence={ocrConfidence} isExitGateFloorMismatch={isExitGateFloorMismatch} selectedExitGate={selectedExitGate} />
           </div>
           <div className="min-h-0"><section className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"><div className="flex shrink-0 items-center justify-between border-b bg-white p-3"><div className="flex items-center gap-2"><span className="flex size-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">2</span><h3 className="text-sm font-bold text-slate-800">Thông tin phiên và ảnh xe</h3></div>{session && <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Đang hoạt động</span>}</div><div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4"><ExitSessionInfo session={session} vehicleTypes={vehicleTypes} embedded /><div className="border-t border-dashed border-slate-200" /><ExitImageSection session={session} exitPlateImageUrl={exitPlateImageUrl} exitVehicleImageUrl={exitVehicleImageUrl} onPlateImageChange={(value) => handleExitImageChange("EXIT_PLATE", value)} onVehicleImageChange={(value) => handleExitImageChange("EXIT_VEHICLE", value)} disabled={!session || isLoading} embedded /></div></section></div>
           <div className="flex min-h-0 flex-col gap-4 lg:gap-6"><div className="flex min-h-0 flex-1 flex-col"><ExitFeeSummary fee={fee} session={session} /></div><ExitPayment session={session} fee={fee} canExit={canExit} isZeroCharge={isZeroCharge} hasPendingOnlinePayment={Boolean(session?.pendingOnlinePayment)} payosPaymentUrl={payosPaymentUrl || session?.pendingOnlinePayment?.checkoutUrl || session?.pendingOnlinePayment?.paymentUrl} onShowQrModal={() => setIsPayosQrModalOpen(true)} isLoading={isLoading} handleRequestCash={handleRequestCash} handlePayOS={handlePayOS} handleCompleteExitPaid={handleCompleteExitPaid} handleCompleteMonthlyExit={handleCompleteMonthlyExit} refreshSession={runSearch} mismatchBlocked={mismatchBlocked} mismatchStatus={mismatchStatus} hasExitImages={hasRequiredExitImages} /></div>

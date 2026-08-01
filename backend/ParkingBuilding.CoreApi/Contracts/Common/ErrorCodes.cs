@@ -230,6 +230,7 @@ public static class ErrorCodes
     public const string ReservationSlotAlreadyReserved = "RESERVATION_SLOT_ALREADY_RESERVED";
     public const string ReservationAreaFull = "RESERVATION_AREA_FULL";
     public const string ExitGateInvalid = "EXIT_GATE_INVALID";
+    public const string ExitGateFloorMismatch = "EXIT_GATE_FLOOR_MISMATCH";
     public const string ExitVehicleImageRequired = "EXIT_VEHICLE_IMAGE_REQUIRED";
     public const string ExitPlateImageRequired = "EXIT_PLATE_IMAGE_REQUIRED";
     public const string SnapshotNotFound = "SNAPSHOT_NOT_FOUND";
