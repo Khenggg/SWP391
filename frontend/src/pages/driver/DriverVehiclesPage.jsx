@@ -87,23 +87,34 @@ export default function DriverVehiclesPage() {
     setLoading(true);
     setError("");
     try {
-      const [vehiclesRes, appsRes, profileRes] = await Promise.all([
-        import("../../services/vehicleService").then(m => m.vehicleService.getVehicles()),
-        driverService.getMonthlyPassApplications({
+      const [vehiclesRes, profileRes] = await Promise.all([
+        import("../../services/vehicleService").then(m => m.vehicleService.getVehicles()).catch(() => ({ items: [] })),
+        driverService.getDriverProfile().catch(() => null)
+      ]);
+
+      const vehicleItems = vehiclesRes?.items || [];
+      setVehicles(vehicleItems);
+
+      const derivedDriverType = profileRes?.driverType || (vehicleItems.length > 0 ? "RESIDENT" : "VISITOR");
+      const residentFlag = derivedDriverType === "RESIDENT";
+      setIsResident(residentFlag);
+
+      if (residentFlag) {
+        const appsRes = await driverService.getMonthlyPassApplications({
           keyword,
           status: filterStatus,
           page,
           pageSize: PAGE_SIZE,
-        }),
-        driverService.getDriverProfile().catch(() => null)
-      ]);
-      setVehicles(vehiclesRes.items || []);
-      setApplications(appsRes.items || []);
-      setTotalPages(appsRes.totalPages || 1);
-      setTotalItems(appsRes.totalItems || 0);
+        }).catch(() => ({ items: [], totalPages: 1, totalItems: 0 }));
 
-      const derivedDriverType = profileRes?.driverType || (vehiclesRes.items?.length > 0 ? "RESIDENT" : "VISITOR");
-      setIsResident(derivedDriverType === "RESIDENT");
+        setApplications(appsRes?.items || []);
+        setTotalPages(appsRes?.totalPages || 1);
+        setTotalItems(appsRes?.totalItems || 0);
+      } else {
+        setApplications([]);
+        setTotalPages(1);
+        setTotalItems(0);
+      }
     } catch (err) {
       setError(err.message || "Không thể tải dữ liệu.");
     } finally {
