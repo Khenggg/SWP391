@@ -67,7 +67,7 @@ export default function PaymentStep({ activeReservation, onPaymentComplete, onCa
 
       if (!qrPayload) {
         setQrDataUrl("");
-        setQrError("Khong co du lieu QR tu PayOS.");
+        setQrError("Không có dữ liệu QR từ PayOS.");
         return;
       }
 
@@ -89,7 +89,7 @@ export default function PaymentStep({ activeReservation, onPaymentComplete, onCa
         console.error("Unable to render PayOS QR:", error);
         if (!cancelled) {
           setQrDataUrl("");
-          setQrError("Khong the tao anh QR.");
+          setQrError("Không thể tạo ảnh QR.");
         }
       }
     };

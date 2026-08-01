@@ -47,8 +47,8 @@ export default function LostCardApprovalsPage() {
       const data = await approvalService.getLostCardCases();
       setCases(data || []);
     } catch (error) {
-      console.error("Loi lay danh sach ho so mat the:", error);
-      toast.error("Khong the tai du lieu ho so mat the.");
+      console.error("Lỗi lấy danh sách hồ sơ mất thẻ:", error);
+      toast.error("Không thể tải dữ liệu hồ sơ mất thẻ.");
     } finally {
       setIsLoading(false);
     }
@@ -127,7 +127,7 @@ export default function LostCardApprovalsPage() {
       const detail = await approvalService.getLostCardCaseById(item.id);
       setSelectedCase(detail);
     } catch (error) {
-      toast.error(error.message || "Khong the tai chi tiet ho so.");
+      toast.error(error.message || "Không thể tải chi tiết hồ sơ.");
     }
   };
 
@@ -140,7 +140,7 @@ export default function LostCardApprovalsPage() {
   const confirmDecision = async () => {
     if (!selectedCase) return;
     if (decisionType !== "APPROVE" && !reasonText.trim()) {
-      toast.error("Vui long nhap ly do tu choi.");
+      toast.error("Vui lòng nhập lý do từ chối.");
       return;
     }
 
@@ -148,17 +148,17 @@ export default function LostCardApprovalsPage() {
     try {
       if (decisionType === "APPROVE") {
         await approvalService.approveLostCardCase(selectedCase.id, { reason: reasonText });
-        toast.success("Da phe duyet ho so mat the.");
+        toast.success("Đã phê duyệt hồ sơ mất thẻ.");
       } else {
         await approvalService.rejectLostCardCase(selectedCase.id, { reason: reasonText });
-        toast.success("Da tu choi ho so mat the.");
+        toast.success("Đã từ chối hồ sơ mất thẻ.");
       }
 
       setShowReasonDialog(false);
       setSelectedCase(null);
       await loadCases();
     } catch (error) {
-      toast.error(error.message || "Xu ly ho so that bai.");
+      toast.error(error.message || "Xử lý hồ sơ thất bại.");
     } finally {
       setIsSubmitting(false);
     }
@@ -278,16 +278,16 @@ export default function LostCardApprovalsPage() {
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{decisionType === "APPROVE" ? "Phe duyet ho so" : "Tu choi ho so"}</DialogTitle>
+            <DialogTitle>{decisionType === "APPROVE" ? "Phê duyệt hồ sơ" : "Từ chối hồ sơ"}</DialogTitle>
             <DialogDescription>
               {decisionType === "APPROVE"
-                ? "Nhap ghi chu neu can truoc khi phe duyet."
-                : "Nhap ly do tu choi."}
+                ? "Nhập ghi chú nếu cần trước khi phê duyệt."
+                : "Nhập lý do từ chối."}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Input
-              placeholder={decisionType === "APPROVE" ? "Ghi chu phe duyet" : "Ly do tu choi"}
+              placeholder={decisionType === "APPROVE" ? "Ghi chú phê duyệt" : "Lý do từ chối"}
               value={reasonText}
               onChange={(event) => setReasonText(event.target.value)}
             />
