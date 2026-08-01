@@ -143,10 +143,12 @@ export default function DriverVehiclesPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
           <h2 className="text-2xl font-black text-slate-800 uppercase tracking-wide">
-            Quản Lý Phương Tiện & Vé Tháng
+            {isResident ? "Quản Lý Phương Tiện & Vé Tháng" : "Phương Tiện Của Tôi"}
           </h2>
           <p className="text-slate-500 text-sm font-semibold">
-            Danh sách phương tiện và đơn đăng ký gửi xe vé tháng của bạn.
+            {isResident
+              ? "Danh sách phương tiện và đơn đăng ký gửi xe vé tháng của bạn."
+              : "Danh sách các phương tiện bạn đã từng sử dụng để gửi xe hoặc đặt chỗ."}
           </p>
         </div>
         {isResident && (
@@ -159,6 +161,26 @@ export default function DriverVehiclesPage() {
           </Button>
         )}
       </div>
+
+      {/* Visitor Guidance Banner */}
+      {!isResident && (
+        <Card className="bg-gradient-to-r from-slate-50 to-purple-50/60 border border-slate-200 p-4 rounded-xl shadow-sm">
+          <div className="flex items-start gap-3">
+            <Info className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-slate-200 text-slate-700">
+                  TÀI KHOẢN VẮNG LAI
+                </span>
+                <h4 className="text-xs font-bold text-slate-800">Dịch vụ gửi xe theo lượt</h4>
+              </div>
+              <p className="text-xs text-slate-600 font-semibold leading-relaxed">
+                Tài khoản Vắng lai áp dụng phí gửi xe tính theo từng lượt đỗ tại Cổng ra/vào. Để đăng ký **Vé tháng ưu đãi dành cho cư dân**, vui lòng liên hệ Ban quản lý để chuyển đổi tài khoản sang **Cư Dân**.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Active Vehicles Section */}
       <ActiveVehiclesSection 
