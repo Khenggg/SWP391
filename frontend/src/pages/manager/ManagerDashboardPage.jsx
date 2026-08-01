@@ -145,7 +145,7 @@ export default function ManagerDashboardPage() {
           icon={<CheckCircle2 className="w-5 h-5" />} colorClass={{ bg: "bg-emerald-500", text: "text-emerald-600" }} isLoading={isLoading}
         />
         <StatCard 
-          label="Tỷ lệ lấp đầy (bãi xe)" value={`${occupancyRate}%`} subText="%"
+          label="Tỷ lệ lấp đầy (Ô tô)" value={`${occupancyRate}%`} subText="%"
           icon={<PieChart className="w-5 h-5" />} colorClass={{ bg: "bg-purple-500", text: "text-purple-600" }} isLoading={isLoading}
         />
         <StatCard 

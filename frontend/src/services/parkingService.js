@@ -105,6 +105,11 @@ export const parkingService = {
     return res.success ? res.data : [];
   },
 
+  getActiveSessions: async () => {
+    const res = await coreAxiosClient.get("/staff/sessions/active");
+    return res.success ? res.data : [];
+  },
+
   // Add / Edit structures (Manager actions)
   addFloor: async (floorData) => {
     const res = await coreAxiosClient.post("/floors", floorData);
@@ -146,5 +151,17 @@ export const parkingService = {
     const res = await coreAxiosClient.patch(`/slots/${id}/status`, { status });
     if (res.success) return res.data;
     throw new Error(res.message || "Cập nhật trạng thái slot thất bại");
+  },
+
+  createVehicleType: async (typeData) => {
+    const res = await coreAxiosClient.post("/vehicle-types", typeData);
+    if (res.success) return res.data;
+    throw new Error(res.message || "Thêm loại xe thất bại");
+  },
+
+  deleteVehicleType: async (id) => {
+    const res = await coreAxiosClient.delete(`/vehicle-types/${id}`);
+    if (res.success) return res.data;
+    throw new Error(res.message || "Xóa loại xe thất bại");
   }
 };

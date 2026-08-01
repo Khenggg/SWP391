@@ -11,11 +11,12 @@ import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Search, Plus, RefreshCw, Eye, Info } from "lucide-react";
+import { Search, Plus, RefreshCw, Eye, Info, Settings } from "lucide-react";
 import { COMMON_STATUS } from "@/constants";
 
 import PricingRuleModal from "@/components/manager/pricing/PricingRuleModal";
 import PricingRuleSidebar from "@/components/manager/pricing/PricingRuleSidebar";
+import VehicleTypeManagerModal from "@/components/manager/pricing/VehicleTypeManagerModal";
 
 function formatVND(amount) { return Number(amount).toLocaleString("vi-VN") + "đ"; }
 function formatDate(dateString) {
@@ -46,6 +47,7 @@ export default function PricingManagementPage() {
   
   // Form Modal
   const [showModal, setShowModal] = useState(false);
+  const [showVehicleManager, setShowVehicleManager] = useState(false);
   const [editingRule, setEditingRule] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [formErrors, setFormErrors] = useState({});
@@ -183,6 +185,16 @@ export default function PricingManagementPage() {
     }
   };
 
+  const handleVehicleTypeCreated = async (newTypeId) => {
+    try {
+      const types = await parkingService.getVehicleTypes();
+      setVehicleTypes(types);
+      setForm((p) => ({ ...p, vehicleTypeId: String(newTypeId) }));
+    } catch (e) {
+      toast.error("Lỗi đồng bộ danh sách loại xe: " + e.message);
+    }
+  };
+
   return (
     <div className="flex h-full gap-4">
       {/* Main Content Area */}
@@ -234,6 +246,10 @@ export default function PricingManagementPage() {
             <Button variant="outline" className="bg-white" onClick={handleRefresh}>
               <RefreshCw className="w-4 h-4 mr-2" />
               Làm mới
+            </Button>
+            <Button variant="outline" className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50" onClick={() => setShowVehicleManager(true)}>
+              <Settings className="w-4 h-4 mr-2 text-slate-500" />
+              Quản lý loại xe
             </Button>
             <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={openCreate}>
               <Plus className="w-4 h-4 mr-2" />
@@ -324,6 +340,14 @@ export default function PricingManagementPage() {
         formErrors={formErrors}
         handleSave={handleSave}
         vehicleTypes={vehicleTypes}
+        onVehicleTypeCreated={handleVehicleTypeCreated}
+      />
+
+      <VehicleTypeManagerModal 
+        isOpen={showVehicleManager}
+        onClose={setShowVehicleManager}
+        vehicleTypes={vehicleTypes}
+        onRefresh={fetchData}
       />
     </div>
   );

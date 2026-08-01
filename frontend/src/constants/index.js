@@ -49,6 +49,23 @@ export const SLOT_STATUS = {
   LOCKED: "LOCKED",
 };
 
+// Màu sắc tương ứng với trạng thái slot
+export const SLOT_STATUS_COLORS = {
+  AVAILABLE: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  OCCUPIED: "border-blue-300 bg-blue-50 text-blue-700",
+  LOCKED: "border-red-200 bg-red-50 text-red-700",
+  MAINTENANCE: "border-amber-200 bg-amber-50 text-amber-700",
+};
+
+// Nhãn hiển thị trạng thái slot
+export const STATUS_LABELS = {
+  ACTIVE: "ACTIVE",
+  LOCKED: "LOCKED",
+  MAINTENANCE: "MAINTENANCE",
+  AVAILABLE: "AVAILABLE",
+  OCCUPIED: "OCCUPIED",
+};
+
 // Trạng thái vé tháng cư dân (Monthly Pass Status)
 export const PASS_STATUS = {
   ACTIVE: "ACTIVE",
