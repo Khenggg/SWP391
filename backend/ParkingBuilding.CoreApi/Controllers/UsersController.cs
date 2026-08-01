@@ -21,7 +21,7 @@ using ParkingBuilding.CoreApi.Infrastructure.Persistence;
 
 namespace ParkingBuilding.CoreApi.Controllers;
 
-[Authorize(Roles = "ADMIN")]
+[Authorize(Roles = "ADMIN, MANAGER")]
 [Route("api/core/users")]
 public class UsersController : BaseApiController
 {
@@ -196,6 +196,7 @@ public class UsersController : BaseApiController
     }
 
     [HttpPost]
+    [Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> Create([FromBody] CreateUserDto? model)
     {
         if (model == null)
@@ -296,6 +297,7 @@ public class UsersController : BaseApiController
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> Update(long id, [FromBody] UpdateUserDto? model)
     {
         if (model == null)
@@ -372,6 +374,7 @@ public class UsersController : BaseApiController
     }
 
     [HttpPatch("{id}/status")]
+    [Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> ChangeStatus(long id, [FromBody] ChangeStatusDto? model)
     {
         if (model == null || string.IsNullOrWhiteSpace(model.Status))
@@ -444,6 +447,7 @@ public class UsersController : BaseApiController
     }
 
     [HttpPatch("{id}/role")]
+    [Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> ChangeRole(long id, [FromBody] ChangeRoleDto? model)
     {
         if (model == null || string.IsNullOrWhiteSpace(model.Role))
@@ -521,6 +525,9 @@ public class UsersController : BaseApiController
         var cleanDriverType = model.DriverType.Trim().ToUpperInvariant();
         if (cleanDriverType != "RESIDENT" && cleanDriverType != "VISITOR")
             return BusinessError(ErrorCodes.InvalidRequest, "Phân loại Driver chỉ có thể là RESIDENT hoặc VISITOR.");
+
+        if (User.IsInRole("MANAGER") && cleanDriverType != "RESIDENT")
+            return BusinessError(ErrorCodes.InvalidRequest, "Manager chỉ có thể chuyển đổi thành Cư dân (RESIDENT).");
 
         if (string.IsNullOrWhiteSpace(model.Reason))
             return Failure(
@@ -624,6 +631,7 @@ public class UsersController : BaseApiController
 
     // This remains a soft-delete operation; no hard delete is performed.
     [HttpDelete("{id}")]
+    [Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> Delete(long id)
     {
         var user = await _context.Users.FirstOrDefaultAsync(item => item.Id == id && !item.DeletedAt.HasValue);

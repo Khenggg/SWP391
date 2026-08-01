@@ -1,0 +1,918 @@
+import React, { useState, useEffect, useMemo } from "react";
+import { userService } from "../../services/userService";
+import { auditService } from "../../services/auditService";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import { toast } from "sonner";
+import {
+  Search,
+  RefreshCcw,
+  Plus,
+  Users,
+  Shield,
+  Briefcase,
+  UserCheck,
+  Lock,
+  Edit,
+  UserCog,
+  Trash2,
+  Maximize2,
+  Mail,
+  Phone,
+  FileText,
+  Activity
+} from "lucide-react";
+
+import { USER_ROLES, USER_STATUS } from "@/constants";
+
+const ROLE_BADGE = {
+  [USER_ROLES.ADMIN]: "bg-red-50 text-red-700 border-red-200",
+  [USER_ROLES.MANAGER]: "bg-blue-50 text-blue-700 border-blue-200",
+  [USER_ROLES.STAFF]: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  [USER_ROLES.DRIVER]: "bg-slate-50 text-slate-700 border-slate-200",
+};
+
+const STATUS_BADGE = {
+  [USER_STATUS.ACTIVE]: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  [USER_STATUS.LOCKED]: "bg-red-50 text-red-700 border-red-200",
+  [USER_STATUS.INACTIVE]: "bg-slate-50 text-slate-500 border-slate-200",
+};
+
+const ROLES = Object.values(USER_ROLES);
+const STATUSES = Object.values(USER_STATUS);
+const INTERNAL_ROLES = ROLES.filter((role) => role !== USER_ROLES.DRIVER);
+
+const EMPTY_FORM = { username: "", fullName: "", email: "", phone: "", role: USER_ROLES.STAFF, password: "", reason: "" };
+
+const Field = ({ label, error, ...props }) => (
+  <div>
+    <label className="block text-xs font-bold text-slate-600 uppercase mb-1">
+      {label} {props.required && <span className="text-red-500">*</span>}
+    </label>
+    <Input className={error ? "border-red-500" : ""} {...props} />
+    {error && <p className="text-xs text-red-500 mt-1 font-medium">{error}</p>}
+  </div>
+);
+
+const parseUserApiErrors = (error) => {
+  const fieldErrors = {};
+  const errors = Array.isArray(error?.errors) ? error.errors : [];
+  errors.forEach((item) => {
+    // Parse định dạng "fieldName: error message" từ backend
+    const separator = item.indexOf(":");
+    if (separator > 0) {
+      const field = item.slice(0, separator).trim();
+      const message = item.slice(separator + 1).trim();
+      // Chỉ gán nếu trường này là field của form (không phải error code chung)
+      const knownFields = ["username", "fullName", "email", "phone", "password", "role", "reason", "request", "status"];
+      if (knownFields.includes(field)) {
+        fieldErrors[field] = message;
+      }
+    }
+  });
+
+  const errorFieldMap = {
+    USERNAME_ALREADY_EXISTS: "username",
+    EMAIL_ALREADY_EXISTS: "email",
+    PHONE_ALREADY_EXISTS: "phone",
+    INVALID_USER_ROLE: "role",
+    INVALID_USER_STATUS: "status",
+    REASON_REQUIRED: "reason",
+  };
+  const field = errorFieldMap[error?.errorCode];
+  if (field && !fieldErrors[field]) fieldErrors[field] = error.message;
+  return fieldErrors;
+};
+
+export default function ManagerUserPage() {
+  const [users, setUsers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Filters
+  const [filterRole, setFilterRole] = useState("ALL");
+  const [filterStatus, setFilterStatus] = useState("ALL");
+  const [searchText, setSearchText] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Selection & Audit
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [recentActivities, setRecentActivities] = useState([]);
+  const [isLoadingActivities, setIsLoadingActivities] = useState(false);
+
+  // Modals
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showDriverTypeModal, setShowDriverTypeModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showActivityModal, setShowActivityModal] = useState(false);
+  
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [formErrors, setFormErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      const data = await userService.getUsers({
+        keyword: appliedSearch,
+        role: filterRole === "ALL" ? "" : filterRole,
+        status: filterStatus === "ALL" ? "" : filterStatus,
+        page,
+        pageSize,
+      });
+      setUsers(data.items);
+      setTotalItems(data.totalItems);
+      setTotalPages(Math.max(1, data.totalPages));
+    } catch (err) {
+      toast.error(err.message || "Không thể tải danh sách người dùng");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, [appliedSearch, filterRole, filterStatus, page, pageSize]);
+
+  useEffect(() => {
+    if (selectedUser) {
+      fetchUserActivities(selectedUser.username);
+    } else {
+      setRecentActivities([]);
+    }
+  }, [selectedUser]);
+
+  const fetchUserActivities = async (username) => {
+    try {
+      setIsLoadingActivities(true);
+      // Gọi API F054
+      const logs = await auditService.getAuditLogs({ actor: username, size: 5 });
+      setRecentActivities(logs || []);
+    } catch (err) {
+      console.error("Lỗi khi tải hoạt động:", err);
+      setRecentActivities([]);
+    } finally {
+      setIsLoadingActivities(false);
+    }
+  };
+
+  // Stats calculation
+  const stats = useMemo(() => {
+    const total = users.length;
+    const adminCount = users.filter(u => u.role === USER_ROLES.ADMIN).length;
+    const managerCount = users.filter(u => u.role === USER_ROLES.MANAGER).length;
+    const staffCount = users.filter(u => u.role === USER_ROLES.STAFF).length;
+    const lockedCount = users.filter(u => u.status === USER_STATUS.LOCKED).length;
+    
+    const getPercent = (count) => total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+    
+    return {
+      total,
+      admin: { count: adminCount, percent: getPercent(adminCount) },
+      manager: { count: managerCount, percent: getPercent(managerCount) },
+      staff: { count: staffCount, percent: getPercent(staffCount) },
+      locked: { count: lockedCount, percent: getPercent(lockedCount) },
+    };
+  }, [users]);
+
+  // Filtering
+  const filtered = users;
+
+  const handleSearch = () => {
+    setPage(1);
+    setAppliedSearch(searchText.trim());
+  };
+  const handleReset = () => {
+    setSearchText("");
+    setAppliedSearch("");
+    setFilterRole("ALL");
+    setFilterStatus("ALL");
+    setPage(1);
+  };
+
+  // Validations
+  const validate = (data, isCreate) => {
+    const errs = {};
+    const username = data.username?.trim() || "";
+    const usernamePattern = /^(?=.{6,30}$)(?!.*[_-]{2})[A-Za-z][A-Za-z0-9_-]*[A-Za-z0-9]$/;
+    if (!data.fullName?.trim()) errs.fullName = "Bắt buộc";
+    if (isCreate && !username) errs.username = "Bắt buộc";
+    else if (isCreate && !usernamePattern.test(username)) errs.username = "Username phải dài 6-30 ký tự, bắt đầu bằng chữ cái và không có dấu phân cách liên tiếp.";
+    if (isCreate && !data.password?.trim()) errs.password = "Bắt buộc";
+    else if (isCreate && !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,100}$/.test(data.password)) errs.password = "Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và chữ số.";
+    if (!data.role) errs.role = "Bắt buộc";
+    if (data.email && !/^\S+@\S+\.\S+$/.test(data.email)) errs.email = "Email không hợp lệ";
+    return errs;
+  };
+
+  const setField = (e, val) => {
+    if (typeof e === "string") {
+      setForm((p) => ({ ...p, [e]: val }));
+      setFormErrors((p) => ({ ...p, [e]: undefined }));
+    } else {
+      const { name, value } = e.target;
+      setForm((p) => ({ ...p, [name]: value }));
+      setFormErrors((p) => ({ ...p, [name]: undefined }));
+    }
+  };
+
+  // Modals Handlers
+  const openCreate = () => { setForm(EMPTY_FORM); setFormErrors({}); setShowCreateModal(true); };
+  const openEdit = (u) => { setForm({ ...u }); setFormErrors({}); setSelectedUser(u); setShowEditModal(true); };
+  const openRole = (u) => { setForm({ ...u, reason: "" }); setFormErrors({}); setSelectedUser(u); setShowRoleModal(true); };
+  const openStatus = (u) => { setForm({ ...u, reason: "" }); setFormErrors({}); setSelectedUser(u); setShowStatusModal(true); };
+  const openDriverType = (u) => { setForm({ ...u, driverType: "RESIDENT", apartmentNumber: u.apartmentNumber || "", cccdNumber: u.cccdNumber || "", reason: "" }); setFormErrors({}); setSelectedUser(u); setShowDriverTypeModal(true); };
+  const openDetail = (u) => { setSelectedUser(u); setShowDetailModal(true); };
+  const openActivity = (u) => { setSelectedUser(u); setShowActivityModal(true); };
+
+  const handleCreate = async () => {
+    if (isSubmitting) return;
+    const errs = validate(form, true);
+    if (Object.keys(errs).length > 0) return setFormErrors(errs);
+    try {
+      setIsSubmitting(true);
+      const created = await userService.addUser(form);
+      setPage(1);
+      await fetchUsers();
+      setIsSubmitting(false);
+      setShowCreateModal(false);
+      toast.success("Tạo người dùng thành công!");
+    } catch (err) {
+      setIsSubmitting(false);
+      const apiErrors = parseUserApiErrors(err);
+      if (Object.keys(apiErrors).length > 0) setFormErrors(apiErrors);
+      toast.error(err.message);
+    }
+  };
+
+  const handleEdit = async () => {
+    if (isSubmitting) return;
+    const errs = validate(form, false);
+    if (Object.keys(errs).length > 0) return setFormErrors(errs);
+    try {
+      setIsSubmitting(true);
+      const updated = await userService.updateUser(selectedUser.id, form);
+      setUsers((prev) => prev.map((u) => u.id === selectedUser.id ? updated : u));
+      if (selectedUser?.id === updated.id) setSelectedUser(updated);
+      setIsSubmitting(false);
+      setShowEditModal(false);
+      toast.success("Cập nhật thông tin thành công!");
+    } catch (err) {
+      setIsSubmitting(false);
+      const apiErrors = parseUserApiErrors(err);
+      if (Object.keys(apiErrors).length > 0) setFormErrors(apiErrors);
+      toast.error(err.message);
+    }
+  };
+
+  const handleRole = async () => {
+    if (isSubmitting) return;
+    if (!form.reason?.trim()) {
+      setFormErrors({ reason: "Bắt buộc nhập lý do." });
+      return;
+    }
+    try {
+      setIsSubmitting(true);
+      const updated = await userService.updateUserRole(selectedUser.id, form.role, form.reason.trim());
+      const merged = { ...selectedUser, ...updated, role: updated.newRole || form.role };
+      setUsers((prev) => prev.map((u) => u.id === selectedUser.id ? merged : u));
+      if (selectedUser?.id === updated.id) setSelectedUser(merged);
+      setIsSubmitting(false);
+      setShowRoleModal(false);
+      toast.success(`Đã đổi vai trò thành ${form.role}`);
+    } catch (err) {
+      setIsSubmitting(false);
+      const apiErrors = parseUserApiErrors(err);
+      if (Object.keys(apiErrors).length > 0) setFormErrors(apiErrors);
+      toast.error(err.message);
+    }
+  };
+
+  const handleStatus = async () => {
+    if (isSubmitting) return;
+    if (!form.reason?.trim()) {
+      setFormErrors({ reason: "Bắt buộc nhập lý do." });
+      return;
+    }
+    try {
+      setIsSubmitting(true);
+      const updated = await userService.updateUserStatus(selectedUser.id, form.status, form.reason.trim());
+      const merged = { ...selectedUser, ...updated, status: updated.newStatus || form.status };
+      setUsers((prev) => prev.map((u) => u.id === selectedUser.id ? merged : u));
+      if (selectedUser?.id === updated.id) setSelectedUser(merged);
+      setIsSubmitting(false);
+      setShowStatusModal(false);
+      toast.success(`Đã cập nhật trạng thái thành ${form.status}`);
+    } catch (err) {
+      setIsSubmitting(false);
+      const apiErrors = parseUserApiErrors(err);
+      if (Object.keys(apiErrors).length > 0) setFormErrors(apiErrors);
+      toast.error(err.message);
+    }
+  };
+
+  const handleDriverType = async () => {
+    if (isSubmitting) return;
+    const errs = {};
+    if (form.driverType === "RESIDENT") {
+      if (!form.apartmentNumber?.trim()) errs.apartmentNumber = "Bắt buộc nhập Số căn hộ khi chuyển sang Cư dân.";
+      if (!form.cccdNumber?.trim()) errs.cccdNumber = "Bắt buộc nhập Số CCCD khi chuyển sang Cư dân.";
+    }
+    if (!form.reason?.trim()) errs.reason = "Bắt buộc nhập lý do.";
+    if (Object.keys(errs).length > 0) {
+      setFormErrors(errs);
+      return;
+    }
+    try {
+      setIsSubmitting(true);
+      const updated = await userService.updateDriverType(
+        selectedUser.id,
+        form.driverType,
+        form.reason.trim(),
+        form.apartmentNumber?.trim(),
+        form.cccdNumber?.trim()
+      );
+      const merged = {
+        ...selectedUser,
+        ...updated,
+        driverType: updated.newDriverType || form.driverType,
+        apartmentNumber: form.apartmentNumber?.trim(),
+        cccdNumber: form.cccdNumber?.trim()
+      };
+      setUsers((prev) => prev.map((u) => u.id === selectedUser.id ? merged : u));
+      if (selectedUser?.id === updated.id) setSelectedUser(merged);
+      setIsSubmitting(false);
+      setShowDriverTypeModal(false);
+      toast.success(`Đã đổi loại Driver thành ${form.driverType === "RESIDENT" ? "CƯ DÂN" : "VẮNG LAI"}`);
+    } catch (err) {
+      setIsSubmitting(false);
+      const apiErrors = parseUserApiErrors(err);
+      if (Object.keys(apiErrors).length > 0) setFormErrors(apiErrors);
+      toast.error(err.message);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-6 max-w-[1600px] mx-auto p-2 pb-10">
+      
+      {/* Page Header */}
+      <div>
+        <h1 className="text-2xl font-black text-slate-800 tracking-tight">Quản lý Tài khoản</h1>
+        <p className="text-sm text-slate-500 mt-1">Tạo, cập nhật, khóa/mở khóa tài khoản và thay đổi vai trò người dùng nội bộ</p>
+      </div>
+
+      {/* Stats Row */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tổng tài khoản</p>
+            </div>
+          </div>
+          <div>
+            <span className="text-3xl font-black text-slate-800">{stats.total}</span>
+            <p className="text-xs text-slate-400 font-medium mt-1">Toàn hệ thống</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-600">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Admin</p>
+            </div>
+          </div>
+          <div>
+            <span className="text-3xl font-black text-slate-800">{stats.admin.count}</span>
+            <p className="text-xs text-slate-400 font-medium mt-1">{stats.admin.percent}% tổng số</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+              <Briefcase className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Manager</p>
+            </div>
+          </div>
+          <div>
+            <span className="text-3xl font-black text-slate-800">{stats.manager.count}</span>
+            <p className="text-xs text-slate-400 font-medium mt-1">{stats.manager.percent}% tổng số</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+              <UserCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Staff</p>
+            </div>
+          </div>
+          <div>
+            <span className="text-3xl font-black text-slate-800">{stats.staff.count}</span>
+            <p className="text-xs text-slate-400 font-medium mt-1">{stats.staff.percent}% tổng số</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tài khoản bị khóa</p>
+            </div>
+          </div>
+          <div>
+            <span className="text-3xl font-black text-slate-800">{stats.locked.count}</span>
+            <p className="text-xs text-slate-400 font-medium mt-1">{stats.locked.percent}% tổng số</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Layout Grid */}
+      <div className="flex flex-col gap-6 min-h-0">
+        
+        {/* Left Column (Table & Filters) */}
+        <div className="w-full flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          
+          {/* Filters */}
+          <div className="p-4 border-b border-slate-100 flex flex-wrap lg:flex-nowrap items-end gap-3 bg-slate-50/50">
+            <div className="flex-1 min-w-[250px]">
+              <label className="text-xs font-bold text-slate-500 mb-1.5 block">Tìm kiếm</label>
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                <Input 
+                  placeholder="Tên, username, email, SĐT..." 
+                  className="pl-9 h-9 text-sm bg-white border-slate-200 shadow-sm"
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                />
+              </div>
+            </div>
+            <div className="w-40">
+              <label className="text-xs font-bold text-slate-500 mb-1.5 block">Vai trò</label>
+              <Select value={filterRole} onValueChange={(value) => { setFilterRole(value); setPage(1); }}>
+                <SelectTrigger className="h-9 bg-white border-slate-200 shadow-sm text-sm font-medium">
+                  <SelectValue placeholder="Tất cả vai trò" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Tất cả vai trò</SelectItem>
+                  <SelectItem value="ADMIN">ADMIN</SelectItem>
+                  <SelectItem value="MANAGER">MANAGER</SelectItem>
+                  <SelectItem value="STAFF">STAFF</SelectItem>
+                  <SelectItem value="DRIVER_RESIDENT">DRIVER (Cư dân)</SelectItem>
+                  <SelectItem value="DRIVER_VISITOR">DRIVER (Vãng lai)</SelectItem>
+                  <SelectItem value="DRIVER">DRIVER (Tất cả tài xế)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-40">
+              <label className="text-xs font-bold text-slate-500 mb-1.5 block">Trạng thái</label>
+              <Select value={filterStatus} onValueChange={(value) => { setFilterStatus(value); setPage(1); }}>
+                <SelectTrigger className="h-9 bg-white border-slate-200 shadow-sm text-sm font-medium">
+                  <SelectValue placeholder="Tất cả trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="ACTIVE">ACTIVE</SelectItem>
+                  <SelectItem value="LOCKED">LOCKED</SelectItem>
+                  <SelectItem value="INACTIVE">INACTIVE</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+               <Button onClick={handleSearch} className="h-9 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm px-4">
+                 Tìm kiếm
+               </Button>
+               <Button variant="outline" onClick={handleReset} className="h-9 border-slate-200 text-slate-600 font-semibold px-3">
+                 Xóa lọc
+               </Button>
+            </div>
+          </div>
+
+          {/* User Table */}
+          <div className="flex-1 overflow-x-auto min-h-[400px]">
+            {isLoading ? (
+              <div className="p-12 text-center text-slate-400 font-medium">Đang tải danh sách tài khoản...</div>
+            ) : filtered.length === 0 ? (
+              <div className="p-12 text-center text-slate-400 font-medium">Không tìm thấy tài khoản nào phù hợp</div>
+            ) : (
+              <Table>
+                <TableHeader className="bg-slate-50/80 sticky top-0">
+                  <TableRow>
+                    <TableHead className="w-16 text-xs font-bold uppercase text-slate-500">Mã ID</TableHead>
+                    <TableHead className="text-xs font-bold uppercase text-slate-500">Họ và Tên</TableHead>
+                    <TableHead className="text-xs font-bold uppercase text-slate-500">Tên đăng nhập</TableHead>
+                    <TableHead className="text-xs font-bold uppercase text-slate-500">Email</TableHead>
+                    <TableHead className="text-xs font-bold uppercase text-slate-500">Số Điện Thoại</TableHead>
+                    <TableHead className="text-xs font-bold uppercase text-slate-500 text-center">Vai Trò</TableHead>
+                    <TableHead className="text-xs font-bold uppercase text-slate-500 text-center">Trạng Thái</TableHead>
+
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((user, idx) => (
+                      <TableRow 
+                        key={user.id} 
+                        className={`transition-colors cursor-pointer hover:bg-slate-50/80 ${selectedUser?.id === user.id ? 'bg-indigo-50/50' : ''}`}
+                        onClick={() => openDetail(user)}
+                      >
+                        <TableCell className="py-3 font-mono text-xs font-bold text-slate-500">U{String(idx + 1).padStart(3, '0')}</TableCell>
+                        <TableCell className="py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs shrink-0 overflow-hidden">
+                               {user.fullName.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="font-bold text-slate-700 text-sm whitespace-nowrap">{user.fullName}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-3 font-medium text-slate-700">{user.username}</TableCell>
+                        <TableCell className="py-3 text-slate-500 text-sm">{user.email || "-"}</TableCell>
+                        <TableCell className="py-3 font-mono text-slate-600 text-sm">{user.phone || "-"}</TableCell>
+                        <TableCell className="py-3 text-center">
+                          {user.role === "DRIVER" ? (
+                            user.driverType === "RESIDENT" ? (
+                              <Badge variant="outline" className="px-2 py-0.5 rounded text-[10px] font-black uppercase border bg-purple-50 text-purple-700 border-purple-200">
+                                DRIVER (Cư dân{user.apartmentNumber ? ` - ${user.apartmentNumber}` : ''})
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="px-2 py-0.5 rounded text-[10px] font-black uppercase border bg-slate-100 text-slate-700 border-slate-300">
+                                DRIVER (Vãng lai)
+                              </Badge>
+                            )
+                          ) : (
+                            <Badge variant="outline" className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase border ${ROLE_BADGE[user.role] || "bg-slate-50 text-slate-700"}`}>
+                              {user.role}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-3 text-center">
+                          <Badge variant="outline" className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase border ${STATUS_BADGE[user.status]}`}>
+                            {user.status}
+                          </Badge>
+                        </TableCell>
+
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+          
+          {/* Pagination */}
+          <div className="p-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500 bg-slate-50/50">
+             <span>Hiển thị {filtered.length > 0 ? 1 : 0} - {filtered.length} trong {filtered.length} kết quả</span>
+             <div className="flex items-center gap-1">
+                <span className="mr-2">{page} / {totalPages}</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-7 w-7 border-slate-200"
+                  disabled={isLoading || page <= 1}
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                >&laquo;</Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-7 w-7 border-slate-200"
+                  disabled={isLoading || page >= totalPages}
+                  onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                >&raquo;</Button>
+             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Create Modal */}
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Tạo Người Dùng Mới</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Field label="Username" name="username" placeholder="vd: Staff03 hoặc Hung-Tran" required value={form.username || ""} onChange={setField} error={formErrors.username} />
+            <Field label="Họ & Tên" name="fullName" placeholder="Nguyễn Văn A" required value={form.fullName || ""} onChange={setField} error={formErrors.fullName} />
+            <Field label="Email" name="email" type="email" placeholder="abc@parking.vn" value={form.email || ""} onChange={setField} error={formErrors.email} />
+            <Field label="Điện Thoại" name="phone" placeholder="09xxxxxxxx" value={form.phone || ""} onChange={setField} />
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Vai Trò <span className="text-red-500">*</span></label>
+              <Select value={form.role || "STAFF"} onValueChange={(val) => setField("role", val)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Chọn vai trò" />
+                </SelectTrigger>
+                <SelectContent>
+                  {INTERNAL_ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <Field label="Mật Khẩu" name="password" type="password" placeholder="••••••••" required value={form.password || ""} onChange={setField} error={formErrors.password} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateModal(false)}>Hủy</Button>
+            <Button onClick={handleCreate} className="bg-blue-600 hover:bg-blue-700">Tạo Tài Khoản</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Modal */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sửa Thông Tin: {selectedUser?.username}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Field label="Họ & Tên" name="fullName" required value={form.fullName || ""} onChange={setField} error={formErrors.fullName} />
+            <Field label="Email" name="email" type="email" value={form.email || ""} onChange={setField} error={formErrors.email} />
+            <Field label="Điện Thoại" name="phone" value={form.phone || ""} onChange={setField} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditModal(false)}>Hủy</Button>
+            <Button onClick={handleEdit} className="bg-blue-600 hover:bg-blue-700">Lưu thay đổi</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Role Modal */}
+      <Dialog open={showRoleModal} onOpenChange={setShowRoleModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Đổi Vai Trò: {selectedUser?.username}</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <label className="block text-xs font-bold text-slate-600 uppercase mb-3">Vai Trò Mới</label>
+            <div className="space-y-2">
+                  {INTERNAL_ROLES.map((r) => (
+                <label key={r} className="flex items-center gap-3 p-3 rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 border border-slate-200 transition">
+                  <input disabled={isSubmitting} type="radio" name="role" value={r} checked={form.role === r} onChange={() => setField("role", r)} className="accent-indigo-600 w-4 h-4"/>
+                  <Badge variant="outline" className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase border ${ROLE_BADGE[r]}`}>{r}</Badge>
+                </label>
+              ))}
+            </div>
+          </div>
+          <Field label="Reason" name="reason" placeholder="Reason for role change" required disabled={isSubmitting} value={form.reason || ""} onChange={setField} error={formErrors.reason} />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRoleModal(false)}>Hủy</Button>
+            <Button onClick={handleRole} className="bg-indigo-600 hover:bg-indigo-700 text-white">Đổi Vai Trò</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Status Modal */}
+      <Dialog open={showStatusModal} onOpenChange={setShowStatusModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Đổi Trạng Thái: {selectedUser?.username}</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <label className="block text-xs font-bold text-slate-600 uppercase mb-3">Trạng Thái Mới</label>
+            <div className="space-y-2">
+              {STATUSES.map((s) => (
+                <label key={s} className="flex items-center gap-3 p-3 rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 border border-slate-200 transition">
+                  <input disabled={isSubmitting} type="radio" name="status" value={s} checked={form.status === s} onChange={() => setField("status", s)} className="accent-amber-600 w-4 h-4"/>
+                  <Badge variant="outline" className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase border ${STATUS_BADGE[s]}`}>{s}</Badge>
+                </label>
+              ))}
+            </div>
+          </div>
+          <Field label="Reason" name="reason" placeholder="Reason for status change" required disabled={isSubmitting} value={form.reason || ""} onChange={setField} error={formErrors.reason} />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowStatusModal(false)}>Hủy</Button>
+            <Button onClick={handleStatus} className="bg-amber-600 hover:bg-amber-700 text-white">Cập nhật</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Driver Type Modal */}
+      <Dialog open={showDriverTypeModal} onOpenChange={setShowDriverTypeModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Đổi Loại Driver: {selectedUser?.username}</DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-600 uppercase mb-2">Phân loại Driver Mới</label>
+              <div className="grid grid-cols-1 gap-2">
+                <label className={`flex items-center justify-center gap-2 p-3 rounded-xl cursor-pointer border transition ${form.driverType === "RESIDENT" ? "bg-purple-50 border-purple-300 text-purple-700 font-bold" : "bg-slate-50 hover:bg-slate-100 border-slate-200"}`}>
+                  <input disabled={isSubmitting} type="radio" name="driverType" value="RESIDENT" checked={true} onChange={() => setField("driverType", "RESIDENT")} className="accent-purple-600 w-4 h-4"/>
+                  <span className="text-xs uppercase font-extrabold">CƯ DÂN (RESIDENT)</span>
+                </label>
+              </div>
+            </div>
+
+            {form.driverType === "RESIDENT" && (
+              <div className="p-3.5 bg-purple-50/70 rounded-xl border border-purple-200 space-y-3">
+                <p className="text-[11px] font-extrabold text-purple-900 uppercase tracking-wide">Thông tin Cư dân bắt buộc</p>
+                <Field
+                  label="Số Căn hộ"
+                  name="apartmentNumber"
+                  placeholder="Ví dụ: A-1204, B-0502"
+                  required
+                  disabled={isSubmitting}
+                  value={form.apartmentNumber || ""}
+                  onChange={setField}
+                  error={formErrors.apartmentNumber}
+                />
+                <Field
+                  label="Số CCCD / CMND"
+                  name="cccdNumber"
+                  placeholder="Ví dụ: 012345678999"
+                  required
+                  disabled={isSubmitting}
+                  value={form.cccdNumber || ""}
+                  onChange={setField}
+                  error={formErrors.cccdNumber}
+                />
+              </div>
+            )}
+
+            <Field label="Lý do" name="reason" placeholder="Lý do chuyển đổi loại Driver" required disabled={isSubmitting} value={form.reason || ""} onChange={setField} error={formErrors.reason} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDriverTypeModal(false)}>Hủy</Button>
+            <Button onClick={handleDriverType} className="bg-purple-600 hover:bg-purple-700 text-white font-bold">Cập nhật Loại Driver</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Account Details Modal */}
+      <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Chi tiết tài khoản</DialogTitle>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="py-2 space-y-4">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-black text-xl shrink-0">
+                  {selectedUser.fullName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h2 className="text-base font-black text-slate-800">{selectedUser.fullName}</h2>
+                    <Badge variant="outline" className={`px-1.5 py-0 text-[9px] font-black uppercase border ${ROLE_BADGE[selectedUser.role]}`}>
+                      {selectedUser.role}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-medium text-slate-500">{selectedUser.username}</span>
+                    <Badge variant="outline" className={`px-1.5 py-0 text-[9px] font-black uppercase border ${STATUS_BADGE[selectedUser.status]}`}>
+                      {selectedUser.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3 text-sm bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+                  <div className="flex items-center gap-1.5 text-slate-500 font-medium text-xs">
+                    <Mail className="w-3.5 h-3.5" /> Email
+                  </div>
+                  <div className="font-semibold text-slate-700 truncate">{selectedUser.email || "-"}</div>
+                </div>
+                <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+                  <div className="flex items-center gap-1.5 text-slate-500 font-medium text-xs">
+                    <Phone className="w-3.5 h-3.5" /> SĐT
+                  </div>
+                  <div className="font-mono font-medium text-slate-700">{selectedUser.phone || "-"}</div>
+                </div>
+                {selectedUser.role === "DRIVER" && (
+                  <>
+                    <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+                      <div className="flex items-center gap-1.5 text-slate-500 font-medium text-xs">
+                        <Users className="w-3.5 h-3.5" /> Phân loại
+                      </div>
+                      <div className="font-bold text-xs">
+                        {selectedUser.driverType === "RESIDENT" ? (
+                          <span className="text-purple-700 bg-purple-100 border border-purple-200 px-2 py-0.5 rounded font-black">
+                            DRIVER CƯ DÂN
+                          </span>
+                        ) : (
+                          <span className="text-slate-600 bg-slate-200 border border-slate-300 px-2 py-0.5 rounded font-bold">
+                            DRIVER VẮNG LAI
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {selectedUser.driverType === "RESIDENT" && (
+                      <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+                        <div className="flex items-center gap-1.5 text-slate-500 font-medium text-xs">
+                          <Briefcase className="w-3.5 h-3.5" /> Căn hộ
+                        </div>
+                        <div className="font-bold text-slate-800 text-sm">
+                          {selectedUser.apartmentNumber || "Chưa cập nhật"}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+                <div className="grid grid-cols-[100px_1fr] items-start gap-2">
+                  <div className="flex items-center gap-1.5 text-slate-500 font-medium text-xs mt-0.5">
+                    <FileText className="w-3.5 h-3.5" /> Ghi chú
+                  </div>
+                  <div className="font-medium text-slate-700 text-xs leading-relaxed">
+                    Chưa có ghi chú hệ thống.
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <Button variant="outline" className="w-full border-indigo-200 text-indigo-700 font-bold hover:bg-indigo-50 h-9 shadow-sm text-xs" onClick={() => { setShowDetailModal(false); openActivity(selectedUser); }}>
+                  <Activity className="w-3.5 h-3.5 mr-2 text-indigo-500" /> Xem hoạt động gần đây
+                </Button>
+                {selectedUser.role === "DRIVER" && selectedUser.driverType !== "RESIDENT" && (
+                  <Button variant="outline" className="w-full border-purple-200 text-purple-700 font-bold hover:bg-purple-50 h-9 shadow-sm text-xs" onClick={() => { setShowDetailModal(false); openDriverType(selectedUser); }}>
+                    <Users className="w-3.5 h-3.5 mr-2 text-purple-600" /> Đổi loại Driver thành Cư dân
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDetailModal(false)}>Đóng</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Recent Activity Modal */}
+      <Dialog open={showActivityModal} onOpenChange={setShowActivityModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Hoạt động gần đây: {selectedUser?.username}</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 max-h-[350px] overflow-y-auto">
+            {isLoadingActivities ? (
+              <div className="py-8 flex flex-col items-center justify-center text-center">
+                <RefreshCcw className="w-6 h-6 text-indigo-400 animate-spin mb-2" />
+                <p className="text-xs font-medium text-slate-400">Đang tải...</p>
+              </div>
+            ) : recentActivities.length === 0 ? (
+              <div className="py-8 flex flex-col items-center justify-center text-center">
+                <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-2">
+                  <Activity className="w-5 h-5 text-slate-300" />
+                </div>
+                <p className="text-xs font-medium text-slate-400">Chưa có hoạt động nào được ghi nhận.</p>
+              </div>
+            ) : (
+              <div className="space-y-4 pr-2">
+                {recentActivities.map((act, i) => (
+                  <div key={i} className="flex gap-3 relative">
+                    <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0 z-10 text-slate-500">
+                      <Activity className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="flex-1 pb-2">
+                      <p className="text-sm text-slate-700 font-medium leading-snug">{act.action}</p>
+                      <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">{act.time}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowActivityModal(false)}>Đóng</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
