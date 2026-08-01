@@ -42,41 +42,42 @@ notificationAxiosClient.interceptors.response.use(
 
 export const notificationService = {
   /**
-   * Lấy toàn bộ thông báo của một user. BE trả về List<NotificationResponse> trực tiếp.
+   * Lấy toàn bộ thông báo của một user.
    * Fields: id, title, content, type (MONTHLY_PASS|PAYMENT|RESERVATION|PRICE_CHANGE|SYSTEM),
    *         priority (LOW|NORMAL|HIGH), isRead, readAt, createdAt
    */
   getNotifications: async (userId) => {
-    const data = await notificationAxiosClient.get(`/${userId}`);
-    return Array.isArray(data) ? data : [];
+    const res = await notificationAxiosClient.get(`/${userId}`);
+    const list = res && typeof res === "object" && "success" in res ? res.data : res;
+    return Array.isArray(list) ? list : [];
   },
 
   /**
    * Lấy danh sách thông báo chưa đọc.
    */
   getUnreadNotifications: async (userId) => {
-    const data = await notificationAxiosClient.get(`/${userId}/unread`);
-    return Array.isArray(data) ? data : [];
+    const res = await notificationAxiosClient.get(`/${userId}/unread`);
+    const list = res && typeof res === "object" && "success" in res ? res.data : res;
+    return Array.isArray(list) ? list : [];
   },
 
   /**
-   * Đếm số thông báo chưa đọc. BE trả về number trực tiếp.
+   * Đếm số thông báo chưa đọc.
    */
   getUnreadCount: async (userId) => {
-    const data = await notificationAxiosClient.get(`/${userId}/count`);
-    return typeof data === "number" ? data : 0;
+    const res = await notificationAxiosClient.get(`/${userId}/count`);
+    const count = res && typeof res === "object" && "success" in res ? res.data : res;
+    return typeof count === "number" ? count : 0;
   },
 
   /**
-   * Đánh dấu đã đọc — Backend chưa expose endpoint này trong NotificationController.
-   * Gọi gracefully, nếu lỗi 404/405 thì bỏ qua và chỉ cập nhật local state.
+   * Đánh dấu đã đọc.
    */
   markAsRead: async (id) => {
     try {
-      const data = await notificationAxiosClient.patch(`/${id}/read`);
-      return data;
+      const res = await notificationAxiosClient.patch(`/${id}/read`);
+      return res && typeof res === "object" && "success" in res ? res.data : res;
     } catch {
-      // Endpoint chưa có ở BE → cập nhật local UI thôi
       return null;
     }
   },
