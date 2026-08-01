@@ -81,7 +81,7 @@ export default function LostCardSidePanel({
             <span className="font-mono font-medium text-slate-800">{item.parkingSession?.plateNumber || item.plateNumber || "--"}</span>
 
             <span className="text-slate-500">Loại xe</span>
-            <span className="font-medium text-slate-800">{item.vehicleTypeName || (item.parkingSession?.vehicleTypeId === 1 ? 'Xe máy' : item.parkingSession?.vehicleTypeId === 2 ? 'Ô tô' : 'Xe vận chuyển') || "--"}</span>
+            <span className="font-medium text-slate-800">{item.vehicleTypeName || "--"}</span>
 
             <span className="text-slate-500">Số điện thoại</span>
             <span className="font-medium text-slate-800">{item.phone || "--"}</span>

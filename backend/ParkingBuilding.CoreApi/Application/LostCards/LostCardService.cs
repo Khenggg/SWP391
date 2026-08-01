@@ -299,6 +299,14 @@ public class LostCardService : ILostCardService
             .Take(effectivePageSize)
             .ToListAsync();
 
+        foreach (var item in items)
+        {
+            if (item.Status == "PENDING" && item.ParkingSession != null)
+            {
+                item.LostCardFee = item.ParkingSession.SnapshotLostCardFee;
+            }
+        }
+
         return (items, totalItems, totalPages);
     }
 
@@ -310,6 +318,7 @@ public class LostCardService : ILostCardService
         var lostCardCase = await _context.LostCardCases
             .Include(lc => lc.ParkingCard)
             .Include(lc => lc.ParkingSession)
+                .ThenInclude(ps => ps.VehicleType)
             .Include(lc => lc.ApprovedByUser)
             .AsNoTracking()
             .FirstOrDefaultAsync(lc => lc.Id == caseId);
@@ -317,6 +326,11 @@ public class LostCardService : ILostCardService
         if (lostCardCase == null)
         {
             throw new BusinessException(ErrorCodes.LostCardCaseNotFound, StatusCodes.Status404NotFound);
+        }
+
+        if (lostCardCase.Status == "PENDING" && lostCardCase.ParkingSession != null)
+        {
+            lostCardCase.LostCardFee = lostCardCase.ParkingSession.SnapshotLostCardFee;
         }
 
         return lostCardCase;

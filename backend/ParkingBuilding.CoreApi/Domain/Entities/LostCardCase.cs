@@ -49,6 +49,9 @@ public class LostCardCase
     public DateTimeOffset? ApprovedAt { get; set; }
     public string? RejectionReason { get; set; }
 
+    [NotMapped]
+    public string? VehicleTypeName => ParkingSession?.VehicleType?.Name;
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 }
