@@ -52,7 +52,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
             var queryLower = queryClean.ToLower();
             var queryNormalizedPlate = NormalizePlate(queryClean);
 
-            // Search for an active session matching EITHER the Card Number OR the License Plate OR Normalized Plate
+            // Search for an active session matching EITHER the Card Number OR the License Plate OR Normalized Plate OR Session Code
             var session = await _context.ParkingSessions
                 .Include(s => s.ParkingCard)
                 .Include(s => s.PricingRule)
@@ -61,6 +61,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Exit
                     (s.Status == "ACTIVE" || s.Status == "LOST_CARD_PENDING") &&
                     ((s.ParkingCard != null && s.ParkingCard.CardNumber != null && s.ParkingCard.CardNumber.ToLower() == queryLower)
                      || (s.PlateNumber != null && s.PlateNumber.ToLower() == queryLower)
+                     || (s.SessionCode != null && s.SessionCode.ToLower() == queryLower)
                      || (!string.IsNullOrEmpty(queryNormalizedPlate) && s.NormalizedPlateNumber != null && s.NormalizedPlateNumber == queryNormalizedPlate)));
 
             if (session == null)

@@ -222,12 +222,13 @@ export default function StaffLostCardTrackingTable({
                             </Button>
                           ) : (
                             <Button
-                              size="sm"
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs h-8 px-3"
-                              onClick={() =>
-                                navigate(`/staff/exit?query=${encodeURIComponent(card || plate || "")}`)
-                              }
-                            >
+                               size="sm"
+                               className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs h-8 px-3"
+                               onClick={() => {
+                                 const sessionCode = item.parkingSession?.sessionCode || item.parkingSession?.SessionCode || item.session?.sessionCode || item.sessionCode || "";
+                                 navigate(`/staff/exit?query=${encodeURIComponent(sessionCode || card || displayPlate || "")}`);
+                               }}
+                             >
                               Cho xe ra
                               <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                             </Button>
