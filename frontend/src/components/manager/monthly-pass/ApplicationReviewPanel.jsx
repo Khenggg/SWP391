@@ -27,7 +27,7 @@ const APP_STATUS_BADGE = {
 const APP_STATUS_LABEL = {
   PENDING: "Chờ duyệt",
   APPROVED_AWAITING_PAYMENT: "Chờ thanh toán",
-  PAID: "Đã thanh toán",
+  PAID: "Chờ cấp thẻ",
   ACTIVE: "Đang hoạt động",
   REJECTED: "Bị từ chối",
 };
