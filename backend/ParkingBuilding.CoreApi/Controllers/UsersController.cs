@@ -466,71 +466,50 @@ public class UsersController : BaseApiController
         if (reason.Length > 500)
             return ValidationFailure(new[] { "reason: Reason must not exceed 500 characters." });
 
-        IActionResult result = null!;
-        var strategy = _context.Database.CreateExecutionStrategy();
-        await strategy.ExecuteAsync(async () =>
+        var user = await _context.Users.FirstOrDefaultAsync(item => item.Id == id && !item.DeletedAt.HasValue);
+        if (user == null)
+            return UserNotFoundFailure();
+
+        if (user.Role == UserRole.DRIVER)
+            return Failure("Tài khoản Driver không thể thay đổi vai trò.", ErrorCodes.InvalidUserRole, StatusCodes.Status400BadRequest, new[] { ErrorCodes.InvalidUserRole });
+
+        var actorUserId = GetActorUserId();
+        if (actorUserId == user.Id && user.Role == UserRole.ADMIN && parsedRole != UserRole.ADMIN)
         {
-            await using var transaction = await _context.Database.BeginTransactionAsync();
-            var user = await _context.Users.FirstOrDefaultAsync(item => item.Id == id && !item.DeletedAt.HasValue);
-            if (user == null)
-            {
-                await transaction.RollbackAsync();
-                result = UserNotFoundFailure();
-                return;
-            }
+            await WriteAuditAsync("USER_SELF_PROTECTION_BLOCKED", id.ToString(), reason: ErrorCodes.CannotChangeOwnRole);
+            return ConflictFailure(ErrorCodes.CannotChangeOwnRole);
+        }
 
-            if (user.Role == UserRole.DRIVER)
-            {
-                await transaction.RollbackAsync();
-                result = Failure("Tài khoản Driver không thể thay đổi vai trò.", ErrorCodes.InvalidUserRole, StatusCodes.Status400BadRequest, new[] { ErrorCodes.InvalidUserRole });
-                return;
-            }
+        if (user.Role == UserRole.ADMIN
+            && user.Status == UserStatus.ACTIVE
+            && parsedRole != UserRole.ADMIN
+            && !await HasAnotherActiveAdminAsync(user.Id))
+        {
+            await WriteAuditAsync("USER_LAST_ADMIN_PROTECTION_BLOCKED", id.ToString(), reason: ErrorCodes.CannotDemoteLastAdmin);
+            return ConflictFailure(ErrorCodes.CannotDemoteLastAdmin);
+        }
 
-            var actorUserId = GetActorUserId();
-            if (actorUserId == user.Id && user.Role == UserRole.ADMIN && parsedRole != UserRole.ADMIN)
-            {
-                await transaction.RollbackAsync();
-                await WriteAuditAsync("USER_SELF_PROTECTION_BLOCKED", id.ToString(), reason: ErrorCodes.CannotChangeOwnRole);
-                result = ConflictFailure(ErrorCodes.CannotChangeOwnRole);
-                return;
-            }
+        var oldRole = user.Role.ToString().ToUpper();
+        user.Role = parsedRole;
+        user.UpdatedAt = DateTimeOffset.UtcNow;
+        await _context.SaveChangesAsync();
 
-            if (user.Role == UserRole.ADMIN
-                && user.Status == UserStatus.ACTIVE
-                && parsedRole != UserRole.ADMIN
-                && !await HasAnotherActiveAdminAsync(user.Id))
-            {
-                await transaction.RollbackAsync();
-                await WriteAuditAsync("USER_LAST_ADMIN_PROTECTION_BLOCKED", id.ToString(), reason: ErrorCodes.CannotDemoteLastAdmin);
-                result = ConflictFailure(ErrorCodes.CannotDemoteLastAdmin);
-                return;
-            }
+        await WriteAuditAsync(
+            "USER_ROLE_CHANGED",
+            user.Id.ToString(),
+            JsonSerializer.Serialize(new { role = oldRole }),
+            JsonSerializer.Serialize(new { role = user.Role.ToString().ToUpper(), reason }));
 
-            var oldRole = user.Role.ToString().ToUpper();
-            user.Role = parsedRole;
-            user.UpdatedAt = DateTimeOffset.UtcNow;
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            await WriteAuditAsync(
-                "USER_ROLE_CHANGED",
-                user.Id.ToString(),
-                JsonSerializer.Serialize(new { role = oldRole }),
-                JsonSerializer.Serialize(new { role = user.Role.ToString().ToUpper(), reason }));
-
-            result = Success(new
-            {
-                id = user.Id,
-                fullName = user.FullName,
-                username = user.Username,
-                oldRole,
-                newRole = user.Role.ToString().ToUpper(),
-                reason,
-                updatedAt = user.UpdatedAt
-            }, "User role changed successfully");
-        });
-
-        return result;
+        return Success(new
+        {
+            id = user.Id,
+            fullName = user.FullName,
+            username = user.Username,
+            oldRole,
+            newRole = user.Role.ToString().ToUpper(),
+            reason,
+            updatedAt = user.UpdatedAt
+        }, "User role changed successfully");
     }
 
     [HttpPatch("{id}/driver-type")]
@@ -554,100 +533,83 @@ public class UsersController : BaseApiController
         if (reason.Length > 500)
             return ValidationFailure(new[] { "reason: Reason must not exceed 500 characters." });
 
-        IActionResult result = null!;
-        var strategy = _context.Database.CreateExecutionStrategy();
-        await strategy.ExecuteAsync(async () =>
+        var user = await _context.Users.FirstOrDefaultAsync(item => item.Id == id && !item.DeletedAt.HasValue);
+        if (user == null)
+            return UserNotFoundFailure();
+
+        if (user.Role != UserRole.DRIVER)
+            return BusinessError(ErrorCodes.InvalidRequest, "Chỉ tài khoản Driver mới có thể thay đổi phân loại Driver.");
+
+        var driverProfile = await _context.DriverProfiles.FirstOrDefaultAsync(dp => dp.UserId == user.Id);
+        var oldDriverType = driverProfile != null ? driverProfile.DriverType : "VISITOR";
+
+        if (driverProfile == null)
         {
-            await using var transaction = await _context.Database.BeginTransactionAsync();
-            var user = await _context.Users.FirstOrDefaultAsync(item => item.Id == id && !item.DeletedAt.HasValue);
-            if (user == null)
+            driverProfile = new DriverProfile
             {
-                await transaction.RollbackAsync();
-                result = UserNotFoundFailure();
-                return;
-            }
-
-            if (user.Role != UserRole.DRIVER)
-            {
-                await transaction.RollbackAsync();
-                result = BusinessError(ErrorCodes.InvalidRequest, "Chỉ tài khoản Driver mới có thể thay đổi phân loại Driver.");
-                return;
-            }
-
-            var driverProfile = await _context.DriverProfiles.FirstOrDefaultAsync(dp => dp.UserId == user.Id);
-            if (driverProfile == null)
-            {
-                driverProfile = new DriverProfile
-                {
-                    UserId = user.Id,
-                    FullName = user.FullName,
-                    Phone = user.Phone,
-                    Email = user.Email,
-                    Status = "ACTIVE",
-                    DriverType = cleanDriverType,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                    UpdatedAt = DateTimeOffset.UtcNow
-                };
-                _context.DriverProfiles.Add(driverProfile);
-            }
-
-            var oldDriverType = driverProfile.DriverType;
+                UserId = user.Id,
+                FullName = user.FullName,
+                Phone = user.Phone,
+                Email = user.Email,
+                Status = "ACTIVE",
+                DriverType = cleanDriverType,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+            _context.DriverProfiles.Add(driverProfile);
+        }
+        else
+        {
             driverProfile.DriverType = cleanDriverType;
             driverProfile.UpdatedAt = DateTimeOffset.UtcNow;
+        }
 
-            if (cleanDriverType == "RESIDENT")
+        if (cleanDriverType == "RESIDENT")
+        {
+            driverProfile.ResidentVerified = true;
+            driverProfile.ResidentVerifiedAt = DateTimeOffset.UtcNow;
+            driverProfile.ResidentVerifiedBy = GetActorUserId();
+        }
+        else if (cleanDriverType == "VISITOR" && oldDriverType == "RESIDENT")
+        {
+            driverProfile.ResidentVerified = false;
+
+            var activePasses = await _context.MonthlyPasses
+                .Where(p => p.DriverId == driverProfile.Id && p.Status == "ACTIVE")
+                .ToListAsync();
+
+            foreach (var pass in activePasses)
             {
-                driverProfile.ResidentVerified = true;
-                driverProfile.ResidentVerifiedAt = DateTimeOffset.UtcNow;
-                driverProfile.ResidentVerifiedBy = GetActorUserId();
-            }
-            // Nếu chuyển từ RESIDENT -> VISITOR: Tự động vô hiệu hóa ResidentVerified và Hủy vé tháng còn hiệu lực
-            else if (cleanDriverType == "VISITOR" && oldDriverType == "RESIDENT")
-            {
-                driverProfile.ResidentVerified = false;
+                pass.Status = "CANCELLED";
+                pass.UpdatedAt = DateTime.UtcNow;
 
-                // Tự động chuyển các vé tháng còn hiệu lực (ACTIVE) sang CANCELLED
-                var activePasses = await _context.MonthlyPasses
-                    .Where(p => p.DriverId == driverProfile.Id && p.Status == "ACTIVE")
-                    .ToListAsync();
-
-                foreach (var pass in activePasses)
+                if (pass.SlotId.HasValue)
                 {
-                    pass.Status = "CANCELLED";
-                    pass.UpdatedAt = DateTime.UtcNow;
-
-                    // Giải phóng vị trí đỗ cố định nếu có
-                    if (pass.SlotId.HasValue)
-                    {
-                        var slot = await _context.Slots.FindAsync(pass.SlotId.Value);
-                        if (slot != null) slot.Status = "AVAILABLE";
-                    }
+                    var slot = await _context.Slots.FindAsync(pass.SlotId.Value);
+                    if (slot != null) slot.Status = "AVAILABLE";
                 }
             }
+        }
 
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
+        await _context.SaveChangesAsync();
 
-            await WriteAuditAsync(
-                "DRIVER_TYPE_CHANGED",
-                user.Id.ToString(),
-                JsonSerializer.Serialize(new { driverType = oldDriverType, residentVerified = oldDriverType == "RESIDENT" }),
-                JsonSerializer.Serialize(new { driverType = cleanDriverType, residentVerified = driverProfile.ResidentVerified, reason }));
+        await WriteAuditAsync(
+            "DRIVER_TYPE_CHANGED",
+            user.Id.ToString(),
+            JsonSerializer.Serialize(new { driverType = oldDriverType, residentVerified = oldDriverType == "RESIDENT" }),
+            JsonSerializer.Serialize(new { driverType = cleanDriverType, residentVerified = driverProfile.ResidentVerified, reason }));
 
-            result = Success(new
-            {
-                id = user.Id,
-                fullName = user.FullName,
-                username = user.Username,
-                role = user.Role.ToString().ToUpper(),
-                oldDriverType,
-                newDriverType = cleanDriverType,
-                reason,
-                updatedAt = driverProfile.UpdatedAt
-            }, "Driver type changed successfully");
-        });
-
-        return result;
+        return Success(new
+        {
+            id = user.Id,
+            fullName = user.FullName,
+            username = user.Username,
+            role = user.Role.ToString().ToUpper(),
+            oldDriverType,
+            newDriverType = cleanDriverType,
+            reason,
+            updatedAt = driverProfile.UpdatedAt
+        }, "Driver type changed successfully");
     }
 
     // This remains a soft-delete operation; no hard delete is performed.
