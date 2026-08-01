@@ -477,65 +477,83 @@ export default function ApplicationReviewPanel({ application, onClose, onRefresh
             </div>
 
             {/* 2. Chọn Tầng đỗ */}
-            {floors.length > 0 && (
-              <div>
-                <label className="block text-slate-500 mb-1.5">Chọn Tầng đỗ:</label>
-                <Select
-                  value={selectedFloorId || "ALL"}
-                  onValueChange={(val) => {
-                    const nextVal = val === "ALL" ? "" : val;
-                    setSelectedFloorId(nextVal);
-                    setSelectedAreaId("");
-                    setSelectedSlotId("");
-                  }}
-                >
-                  <SelectTrigger className="w-full text-xs font-bold bg-white border-slate-200">
-                    <SelectValue placeholder="-- Tự động chọn hoặc chọn Tầng --" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">-- Tất cả các tầng --</SelectItem>
-                    {floors.filter(f => f.status === "ACTIVE").map((f) => (
-                      <SelectItem key={f.id} value={String(f.id)}>
-                        Tầng {f.floorCode || f.code} ({f.floorName || f.name || ""})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            {(() => {
+              const appVtId = application?.vehicleTypeId;
+              // Active areas supporting this vehicle type
+              const matchingAreas = areas.filter(a => 
+                a.status === "ACTIVE" &&
+                (!appVtId || !a.vehicleTypeIds || a.vehicleTypeIds.length === 0 || a.vehicleTypeIds.some(vtId => String(vtId) === String(appVtId)))
+              );
+              const matchingFloorIds = new Set(matchingAreas.map(a => String(a.floorId)));
+              const filteredFloors = floors.filter(f => f.status === "ACTIVE" && (matchingFloorIds.size === 0 || matchingFloorIds.has(String(f.id))));
+
+              return filteredFloors.length > 0 && (
+                <div>
+                  <label className="block text-slate-500 mb-1.5">Chọn Tầng đỗ (Lọc theo loại xe):</label>
+                  <Select
+                    value={selectedFloorId || "ALL"}
+                    onValueChange={(val) => {
+                      const nextVal = val === "ALL" ? "" : val;
+                      setSelectedFloorId(nextVal);
+                      setSelectedAreaId("");
+                      setSelectedSlotId("");
+                    }}
+                  >
+                    <SelectTrigger className="w-full text-xs font-bold bg-white border-slate-200">
+                      <SelectValue placeholder="-- Tự động chọn hoặc chọn Tầng --" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">-- Tất cả tầng hợp lệ --</SelectItem>
+                      {filteredFloors.map((f) => (
+                        <SelectItem key={f.id} value={String(f.id)}>
+                          Tầng {f.floorCode || f.code} ({f.floorName || f.name || ""})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              );
+            })()}
 
             {/* 3. Chọn Khu vực đỗ */}
-            {areas.length > 0 && (
-              <div>
-                <label className="block text-slate-500 mb-1.5">Chọn Khu vực đỗ:</label>
-                <Select
-                  value={selectedAreaId || "AUTO"}
-                  onValueChange={(val) => {
-                    const nextVal = val === "AUTO" ? "" : val;
-                    setSelectedAreaId(nextVal);
-                    setSelectedSlotId("");
-                    if (nextVal) {
-                      const foundArea = areas.find(a => String(a.id) === String(nextVal));
-                      if (foundArea?.floorId) setSelectedFloorId(String(foundArea.floorId));
-                    }
-                  }}
-                >
-                  <SelectTrigger className="w-full text-xs font-bold bg-white border-slate-200">
-                    <SelectValue placeholder="-- Tự động chọn hoặc chọn Khu vực --" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="AUTO">-- Tự động gán Khu vực khả dụng --</SelectItem>
-                    {areas
-                      .filter(a => a.status === "ACTIVE" && (!selectedFloorId || String(a.floorId) === String(selectedFloorId)))
-                      .map((area) => (
+            {(() => {
+              const appVtId = application?.vehicleTypeId;
+              const filteredAreas = areas.filter(a => 
+                a.status === "ACTIVE" &&
+                (!selectedFloorId || String(a.floorId) === String(selectedFloorId)) &&
+                (!appVtId || !a.vehicleTypeIds || a.vehicleTypeIds.length === 0 || a.vehicleTypeIds.some(vtId => String(vtId) === String(appVtId)))
+              );
+
+              return filteredAreas.length > 0 && (
+                <div>
+                  <label className="block text-slate-500 mb-1.5">Chọn Khu vực đỗ (Hợp lệ với loại xe):</label>
+                  <Select
+                    value={selectedAreaId || "AUTO"}
+                    onValueChange={(val) => {
+                      const nextVal = val === "AUTO" ? "" : val;
+                      setSelectedAreaId(nextVal);
+                      setSelectedSlotId("");
+                      if (nextVal) {
+                        const foundArea = areas.find(a => String(a.id) === String(nextVal));
+                        if (foundArea?.floorId) setSelectedFloorId(String(foundArea.floorId));
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-full text-xs font-bold bg-white border-slate-200">
+                      <SelectValue placeholder="-- Tự động chọn hoặc chọn Khu vực --" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="AUTO">-- Tự động gán Khu vực khả dụng --</SelectItem>
+                      {filteredAreas.map((area) => (
                         <SelectItem key={area.id} value={String(area.id)}>
                           {area.areaName || area.name || area.code} ({area.floorCode ? `Tầng ${area.floorCode}` : `Tầng ${area.floorId}`})
                         </SelectItem>
                       ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              );
+            })()}
 
             {/* 4. Chọn Slot đỗ cố định (Chỉ hiển thị nếu loại xe cấu hình CẦN SLOT - requiresSlot = true) */}
             {(application?.requiresSlot ?? vehicleTypes.find(vt => String(vt.id) === String(application?.vehicleTypeId))?.requiresSlot ?? true) && (
