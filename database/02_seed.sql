@@ -87,6 +87,13 @@ ON CONFLICT (id) DO UPDATE SET
     status = EXCLUDED.status,
     updated_at = now();
 
+INSERT INTO floor_vehicle_types (floor_id, vehicle_type_id)
+VALUES
+    (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7),
+    (2, 3), (2, 4), (2, 5), (2, 6), (2, 7),
+    (3, 1), (3, 2), (3, 3), (3, 4)
+ON CONFLICT (floor_id, vehicle_type_id) DO NOTHING;
+
 INSERT INTO areas (id, floor_id, area_code, area_name, priority_order, status, total_capacity)
 VALUES
     (1, 1, 'A', 'B1 - Khu xe máy A', 10, 'ACTIVE', 150),

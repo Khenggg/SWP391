@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ParkingBuilding.CoreApi.Contracts.Common;
 using Microsoft.Extensions.Configuration;
 using ParkingBuilding.CoreApi.Infrastructure.Persistence;
@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 
 namespace ParkingBuilding.CoreApi.Application.ParkingSessions.LocationSuggestion
 {
@@ -49,13 +50,14 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.LocationSuggestion
             var expiresAt = DateTimeOffset.UtcNow.AddSeconds(expireSeconds);
 
             var activeReservationSlotIds = await _dbContext.Reservations
-                    .Where(r => r.Status == "PENDING" || r.Status == "CONFIRMED")
-                    .Where(r => r.SlotId != null)
-                    .Select(r => r.SlotId!.Value)
-                    .ToListAsync();
+                .Where(r => r.Status == "PENDING" || r.Status == "CONFIRMED")
+                .Where(r => r.SlotId != null)
+                .Select(r => r.SlotId!.Value)
+                .ToListAsync();
 
-                if (vehicleType.RequiresSlot)
+            if (vehicleType.RequiresSlot)
             {
+                // Find available slot on the requested gate's floor
                 var suggestedSlot = await _dbContext.Slots
                     .Include(s => s.Area)
                         .ThenInclude(a => a.Floor)
@@ -72,9 +74,31 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.LocationSuggestion
                     .FirstOrDefaultAsync();
 
                 if (suggestedSlot == null)
-                    throw new BusinessException(ErrorCodes.NoAvailableLocation);
+                {
+                    // Check if other floors have space to give actionable message
+                    var otherSlot = await _dbContext.Slots
+                        .Include(s => s.Area)
+                            .ThenInclude(a => a.Floor)
+                        .Where(s =>
+                            s.Status == "AVAILABLE" &&
+                            s.AllowedVehicleTypeId == request.VehicleTypeId &&
+                            s.Area.FloorId != gate.FloorId &&
+                            s.Area.Status == "ACTIVE" &&
+                            s.Area.Floor.Status == "ACTIVE" &&
+                            s.Area.AreaVehicleTypes.Any(avt => avt.VehicleTypeId == request.VehicleTypeId) &&
+                            !activeReservationSlotIds.Contains(s.Id))
+                        .OrderBy(s => s.Area.Floor.FloorCode)
+                        .FirstOrDefaultAsync();
 
-                // Get alternatives
+                    if (otherSlot != null)
+                    {
+                        throw new BusinessException($"Tầng '{gate.Floor.FloorCode}' ({gate.Floor.FloorName}) hiện đã hết Slot cho xe '{vehicleType.Name}'. Vui lòng điều hướng xe di chuyển sang Tầng '{otherSlot.Area.Floor.FloorCode}' ({otherSlot.Area.Floor.FloorName}) vẫn còn chỗ.", StatusCodes.Status400BadRequest);
+                    }
+
+                    throw new BusinessException($"Tất cả các tầng đều đã hết Slot trống cho xe '{vehicleType.Name}'.", StatusCodes.Status400BadRequest);
+                }
+
+                // Get alternatives on the same floor
                 var alternatives = await _dbContext.Slots
                     .Include(s => s.Area)
                         .ThenInclude(a => a.Floor)
@@ -105,7 +129,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.LocationSuggestion
                 {
                     SuggestionType = "SLOT",
                     VehicleTypeId = request.VehicleTypeId,
-                    EntryGateId = request.EntryGateId,
+                    EntryGateId = gate.Id,
                     SuggestedFloorId = suggestedSlot.Area.FloorId,
                     SuggestedAreaId = suggestedSlot.AreaId,
                     SuggestedSlotId = suggestedSlot.Id,
@@ -121,6 +145,9 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.LocationSuggestion
                     SuggestionType = "SLOT",
                     VehicleTypeId = request.VehicleTypeId,
                     EntryGateId = request.EntryGateId,
+                    SuggestedEntryGateId = gate.Id,
+                    SuggestedEntryGateCode = gate.GateCode,
+                    IsFloorSwitched = false,
                     SuggestedFloorId = suggestedSlot.Area.FloorId,
                     SuggestedFloorCode = suggestedSlot.Area.Floor.FloorCode,
                     SuggestedAreaId = suggestedSlot.AreaId,
@@ -134,6 +161,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.LocationSuggestion
             }
             else
             {
+                // Find available area on gate's floor
                 var areas = await _dbContext.Areas
                     .Include(a => a.Floor)
                     .Include(a => a.AreaVehicleTypes)
@@ -146,11 +174,30 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.LocationSuggestion
                     .ThenBy(a => a.Id)
                     .ToListAsync();
 
-                // Filter in memory for capacity to handle simple operations safely
                 var suggestedArea = areas.FirstOrDefault(a => a.CurrentRealOccupancy + a.CurrentBookedSlots < a.TotalCapacity);
 
                 if (suggestedArea == null)
-                    throw new BusinessException(ErrorCodes.NoAvailableLocation);
+                {
+                    // Check other floors
+                    var otherArea = await _dbContext.Areas
+                        .Include(a => a.Floor)
+                        .Include(a => a.AreaVehicleTypes)
+                        .Where(a =>
+                            a.FloorId != gate.FloorId &&
+                            a.Status == "ACTIVE" &&
+                            a.Floor.Status == "ACTIVE" &&
+                            a.AreaVehicleTypes.Any(av => av.VehicleTypeId == request.VehicleTypeId) &&
+                            a.CurrentRealOccupancy + a.CurrentBookedSlots < a.TotalCapacity)
+                        .OrderBy(a => a.Floor.FloorCode)
+                        .FirstOrDefaultAsync();
+
+                    if (otherArea != null)
+                    {
+                        throw new BusinessException($"Tầng '{gate.Floor.FloorCode}' ({gate.Floor.FloorName}) hiện đã hết chỗ đỗ cho xe '{vehicleType.Name}'. Vui lòng điều hướng xe di chuyển sang Tầng '{otherArea.Floor.FloorCode}' ({otherArea.Floor.FloorName}) vẫn còn chỗ.", StatusCodes.Status400BadRequest);
+                    }
+
+                    throw new BusinessException($"Tất cả các tầng đều đã hết chỗ đỗ cho xe '{vehicleType.Name}'.", StatusCodes.Status400BadRequest);
+                }
 
                 // Get alternatives
                 var alternatives = areas
@@ -173,7 +220,7 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.LocationSuggestion
                 {
                     SuggestionType = "AREA",
                     VehicleTypeId = request.VehicleTypeId,
-                    EntryGateId = request.EntryGateId,
+                    EntryGateId = gate.Id,
                     SuggestedFloorId = suggestedArea.FloorId,
                     SuggestedAreaId = suggestedArea.Id,
                     SuggestedSlotId = null,
@@ -189,6 +236,9 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.LocationSuggestion
                     SuggestionType = "AREA",
                     VehicleTypeId = request.VehicleTypeId,
                     EntryGateId = request.EntryGateId,
+                    SuggestedEntryGateId = gate.Id,
+                    SuggestedEntryGateCode = gate.GateCode,
+                    IsFloorSwitched = false,
                     SuggestedFloorId = suggestedArea.FloorId,
                     SuggestedFloorCode = suggestedArea.Floor.FloorCode,
                     SuggestedAreaId = suggestedArea.Id,

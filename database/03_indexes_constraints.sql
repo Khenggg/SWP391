@@ -208,6 +208,7 @@ CREATE INDEX IF NOT EXISTS ix_cards_current_session ON parking_cards(current_ses
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_floors_code ON floors(floor_code);
 CREATE INDEX IF NOT EXISTS ix_floors_status ON floors(status);
+CREATE INDEX IF NOT EXISTS ix_floor_vehicle_types_vehicle_type ON floor_vehicle_types(vehicle_type_id);
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_areas_floor_code ON areas(floor_id, area_code);
 CREATE INDEX IF NOT EXISTS ix_areas_status ON areas(status);

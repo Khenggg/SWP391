@@ -9,6 +9,9 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.LocationSuggestion
 
         public long VehicleTypeId { get; set; }
         public long EntryGateId { get; set; }
+        public long? SuggestedEntryGateId { get; set; }
+        public string? SuggestedEntryGateCode { get; set; }
+        public bool IsFloorSwitched { get; set; }
 
         public long SuggestedFloorId { get; set; }
         public string SuggestedFloorCode { get; set; } = null!;

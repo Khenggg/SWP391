@@ -270,6 +270,34 @@ export default function StaffEntryPage() {
     return form.vehicleTypeId;
   }, [cardCheck, form.entryMode, form.vehicleTypeId, reservationCheck]);
 
+  const availableGates = useMemo(() => {
+    if (!derivedVehicleTypeId) return gates;
+    const vtId = parseNumber(derivedVehicleTypeId);
+    if (!vtId) return gates;
+
+    // Filter floors that allow this vehicle type (or floors with no vehicle type restrictions configured)
+    const validFloorIds = new Set(
+      floors
+        .filter(f => !f.vehicleTypeIds || f.vehicleTypeIds.length === 0 || f.vehicleTypeIds.includes(vtId))
+        .map(f => f.id)
+    );
+
+    const filtered = gates.filter(g => validFloorIds.has(g.floorId));
+    return filtered.length > 0 ? filtered : gates;
+  }, [derivedVehicleTypeId, floors, gates]);
+
+  useEffect(() => {
+    if (availableGates.length > 0) {
+      const currentValid = availableGates.some(g => String(g.id) === String(form.entryGateId));
+      if (!currentValid) {
+        setForm(current => ({
+          ...current,
+          entryGateId: String(availableGates[0].id)
+        }));
+      }
+    }
+  }, [availableGates, form.entryGateId]);
+
   const selectedAreaId = useMemo(() => {
     if (overrideEnabled && overrideAreaId) return parseNumber(overrideAreaId);
     if (form.entryMode === "MONTHLY") return cardCheck?.fixedAreaId ?? null;
@@ -475,7 +503,7 @@ export default function StaffEntryPage() {
                 canLoadSuggestion={canLoadSuggestion}
                 isLoadingSuggestion={isLoadingSuggestion}
                 noPlateAllowed={noPlateAllowed}
-                gates={gates}
+                gates={availableGates}
                 vehicleTypes={vehicleTypes}
                 onCheckCard={handleCheckCard}
                 onCheckReservation={handleCheckReservation}
