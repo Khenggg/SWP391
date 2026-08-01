@@ -188,7 +188,7 @@ namespace ParkingBuilding.CoreApi.Controllers
                 .FirstOrDefaultAsync();
 
             var isCardLost = session.ParkingCard?.Status == Domain.Entities.CardStatus.LOST || lostCardCase != null;
-            var lostCardReportedPlate = lostCardCase?.PlateNumber;
+            var lostCardReportedPlate = lostCardCase != null ? session.PlateNumber : null;
 
             var sessionImages = await _context.ParkingSessionImages
                 .AsNoTracking()
