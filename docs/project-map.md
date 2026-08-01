@@ -68,8 +68,8 @@ This file contains the directory tree and full code contents of the non-ignored 
           - 📄 CancelActiveSessionRequest.cs * (0.2 KB)
           - 📄 ISessionAdminService.cs * (0.5 KB)
           - 📄 MoveSessionSlotRequest.cs * (0.2 KB)
-          - 📄 SessionAdminService.cs * (10.1 KB)
-          - 📄 SessionSearchResponse.cs * (1.1 KB)
+          - 📄 SessionAdminService.cs * (15.8 KB)
+          - 📄 SessionSearchResponse.cs * (1.7 KB)
         - 📁 **Entry/**
           - 📄 ClaimSessionResponse.cs * (1.5 KB)
           - 📄 CreateEntryRequest.cs * (1.3 KB)
@@ -112,7 +112,7 @@ This file contains the directory tree and full code contents of the non-ignored 
         - 📁 **Slots/**
           - 📄 CreateSlotRequest.cs * (0.2 KB)
           - 📄 SlotResponse.cs * (0.2 KB)
-          - 📄 SlotService.cs * (6.1 KB)
+          - 📄 SlotService.cs * (6.3 KB)
           - 📄 UpdateSlotStatusRequest.cs * (0.1 KB)
       - 📁 **Payments/**
         - 📄 CreateOnlineExitPaymentRequest.cs * (0.2 KB)
@@ -150,8 +150,8 @@ This file contains the directory tree and full code contents of the non-ignored 
       - 📁 **Common/**
         - 📄 ApiResponse.cs * (3.2 KB)
         - 📄 BusinessException.cs * (0.4 KB)
-        - 📄 ErrorCodes.cs * (17.7 KB)
-        - 📄 ErrorMessages.cs * (20.0 KB)
+        - 📄 ErrorCodes.cs * (17.8 KB)
+        - 📄 ErrorMessages.cs * (20.1 KB)
         - 📄 PagedResponse.cs * (0.9 KB)
         - 📄 UsernamePolicy.cs * (0.8 KB)
       - 📁 **Requests/**
@@ -279,6 +279,7 @@ This file contains the directory tree and full code contents of the non-ignored 
       - 📄 AuthContractTests.cs * (0.2 KB)
       - 📄 CardsContractTests.cs * (0.2 KB)
       - 📄 PricingContractTests.cs * (0.2 KB)
+      - 📄 SessionAdminContractTests.cs * (1.6 KB)
       - 📄 StructureContractTests.cs * (0.3 KB)
       - 📄 UsersContractTests.cs * (0.2 KB)
     - 📁 **Fixtures/**
@@ -333,7 +334,7 @@ This file contains the directory tree and full code contents of the non-ignored 
       - 📁 **audit/**
         - 📄 AuditLogFilters.jsx * (4.5 KB)
         - 📄 AuditLogSidePanel.jsx * (5.2 KB)
-        - 📄 AuditLogTable.jsx * (3.9 KB)
+        - 📄 AuditLogTable.jsx * (3.5 KB)
         - 📄 AuditLogView.jsx * (7.9 KB)
       - 📁 **driver/**
         - 📁 **booking/**
@@ -375,7 +376,7 @@ This file contains the directory tree and full code contents of the non-ignored 
         - 📁 **lost-card/**
           - 📄 LostCardFilters.jsx * (6.8 KB)
           - 📄 LostCardSidePanel.jsx * (6.6 KB)
-          - 📄 LostCardTable.jsx * (6.0 KB)
+          - 📄 LostCardTable.jsx * (5.5 KB)
         - 📁 **mismatch/**
           - 📄 MismatchFilters.jsx * (7.6 KB)
           - 📄 MismatchSidePanel.jsx * (6.9 KB)
@@ -383,9 +384,9 @@ This file contains the directory tree and full code contents of the non-ignored 
         - 📁 **monthly-pass/**
           - 📄 ApplicationReviewPanel.jsx * (19.5 KB)
           - 📄 ApplicationReviewTable.jsx * (6.2 KB)
-          - 📄 MonthlyPassFilters.jsx * (4.5 KB)
+          - 📄 MonthlyPassFilters.jsx * (4.8 KB)
           - 📄 MonthlyPassSidePanel.jsx * (8.1 KB)
-          - 📄 MonthlyPassTable.jsx * (6.5 KB)
+          - 📄 MonthlyPassTable.jsx * (5.0 KB)
         - 📁 **pricing/**
           - 📄 PricingRuleModal.jsx * (9.8 KB)
           - 📄 PricingRuleSidebar.jsx * (5.3 KB)
@@ -408,7 +409,7 @@ This file contains the directory tree and full code contents of the non-ignored 
       - 📁 **staff/**
         - 📁 **entry/**
           - 📄 EntryActionPanel.jsx * (2.9 KB)
-          - 📄 EntryFormPanel.jsx * (7.1 KB)
+          - 📄 EntryFormPanel.jsx * (8.2 KB)
           - 📄 EntryImageSection.jsx * (6.1 KB)
           - 📄 EntryPageHeader.jsx * (1.5 KB)
           - 📄 EntrySuggestionPanel.jsx * (3.3 KB)
@@ -445,8 +446,8 @@ This file contains the directory tree and full code contents of the non-ignored 
     - 📁 **pages/**
       - 📁 **admin/**
         - 📄 AdminAuditLogPage.jsx * (0.2 KB)
-        - 📄 SessionsAdministrationPage.jsx * (24.8 KB)
-        - 📄 UserManagementPage.jsx * (44.4 KB)
+        - 📄 SessionsAdministrationPage.jsx * (28.4 KB)
+        - 📄 UserManagementPage.jsx * (43.5 KB)
       - 📁 **driver/**
         - 📄 DriverBookingDetailPage.jsx * (20.9 KB)
         - 📄 DriverBookingPage.jsx * (16.7 KB)
@@ -459,14 +460,14 @@ This file contains the directory tree and full code contents of the non-ignored 
         - 📄 UnauthorizedPage.jsx * (1.6 KB)
       - 📁 **manager/**
         - 📄 AuditLogsPage.jsx * (0.2 KB)
-        - 📄 CardManagementPage.jsx * (14.2 KB)
-        - 📄 LostCardApprovalsPage.jsx * (11.2 KB)
+        - 📄 CardManagementPage.jsx * (13.5 KB)
+        - 📄 LostCardApprovalsPage.jsx * (11.4 KB)
         - 📄 ManagerDashboardPage.jsx * (18.6 KB)
-        - 📄 MismatchApprovalsPage.jsx * (10.3 KB)
+        - 📄 MismatchApprovalsPage.jsx * (9.9 KB)
         - 📄 MismatchCaseDetailPage.jsx * (14.8 KB)
         - 📄 MonthlyPassManagementPage.jsx * (21.4 KB)
-        - 📄 PricingManagementPage.jsx * (15.6 KB)
-        - 📄 ReportsPage.jsx * (5.4 KB)
+        - 📄 PricingManagementPage.jsx * (15.0 KB)
+        - 📄 ReportsPage.jsx * (5.7 KB)
         - 📄 StructureManagementPage.jsx * (16.6 KB)
       - 📁 **public/**
         - 📄 AvailableSlotsPage.jsx * (22.2 KB)
@@ -491,12 +492,12 @@ This file contains the directory tree and full code contents of the non-ignored 
           - 📄 LicensePlateInfo.jsx * (3.6 KB)
           - 📄 LicensePlateMismatchForm.jsx * (3.7 KB)
         - 📄 LicensePlateMismatchPage.jsx * (25.1 KB)
-        - 📄 StaffEntryPage.jsx * (24.0 KB)
+        - 📄 StaffEntryPage.jsx * (24.2 KB)
         - 📄 StaffExitPage.jsx * (25.2 KB)
-        - 📄 StaffLostCardPage.jsx * (12.2 KB)
+        - 📄 StaffLostCardPage.jsx * (12.5 KB)
         - 📄 StaffSessionsPage.jsx * (9.1 KB)
     - 📁 **services/**
-      - 📄 adminSessionService.js * (1.3 KB)
+      - 📄 adminSessionService.js * (1.5 KB)
       - 📄 approvalService.js * (2.0 KB)
       - 📄 auditService.js * (0.5 KB)
       - 📄 authService.js * (1.8 KB)
@@ -4697,7 +4698,8 @@ namespace ParkingBuilding.CoreApi.Application.ParkingSessions.Admin;
 
 public class MoveSessionSlotRequest
 {
-    public long TargetSlotId { get; set; }
+    public long? TargetSlotId { get; set; }
+    public long? TargetAreaId { get; set; }
     public string? Reason { get; set; }
 }
 ```
@@ -4819,69 +4821,187 @@ public class SessionAdminService : ISessionAdminService
                     throw new BusinessException(ErrorCodes.InvalidStatus);
                 }
 
-                if (!session.SlotId.HasValue || session.Slot == null || session.Area == null)
+                if (session.Area == null)
                 {
-                    throw new BusinessException(ErrorCodes.SlotRequired);
+                    throw new BusinessException(ErrorCodes.AreaNotFound);
                 }
 
-                var oldSlot = session.Slot;
+                var vehicleType = await _context.VehicleTypes
+                    .FirstOrDefaultAsync(vt => vt.Id == session.VehicleTypeId);
+                if (vehicleType == null)
+                {
+                    throw new BusinessException(ErrorCodes.VehicleTypeNotFound);
+                }
+
                 var oldArea = session.Area;
+                var now = DateTimeOffset.UtcNow;
 
-                var newSlot = await _context.Slots
-                    .Include(s => s.Area)
-                    .FirstOrDefaultAsync(s => s.Id == request.TargetSlotId);
-
-                if (newSlot == null)
+                if (vehicleType.RequiresSlot)
                 {
-                    throw new BusinessException(ErrorCodes.SlotNotFound);
+                    if (!request.TargetSlotId.HasValue)
+                    {
+                        throw new BusinessException(ErrorCodes.SelectedSlotRequired);
+                    }
+
+                    if (!session.SlotId.HasValue || session.Slot == null)
+                    {
+                        throw new BusinessException(ErrorCodes.SlotRequired);
+                    }
+
+                    if (session.SlotId.Value == request.TargetSlotId.Value)
+                    {
+                        throw new BusinessException(ErrorCodes.SessionMoveTargetUnchanged);
+                    }
+
+                    var newSlot = await _context.Slots
+                        .Include(s => s.Area)
+                            .ThenInclude(a => a.Floor)
+                        .Include(s => s.Area)
+                            .ThenInclude(a => a.AreaVehicleTypes)
+                        .FirstOrDefaultAsync(s => s.Id == request.TargetSlotId.Value);
+
+                    if (newSlot == null)
+                    {
+                        throw new BusinessException(ErrorCodes.SlotNotFound);
+                    }
+
+                    if (newSlot.Status != "AVAILABLE" || newSlot.CurrentSessionId.HasValue)
+                    {
+                        throw new BusinessException(ErrorCodes.SlotNotAvailable);
+                    }
+
+                    if (newSlot.AllowedVehicleTypeId != session.VehicleTypeId)
+                    {
+                        throw new BusinessException(ErrorCodes.SlotVehicleTypeMismatch);
+                    }
+
+                    if (newSlot.Area.Status != "ACTIVE")
+                    {
+                        throw new BusinessException(ErrorCodes.SelectedAreaNotActive);
+                    }
+
+                    if (newSlot.Area.Floor == null || newSlot.Area.Floor.Status != "ACTIVE")
+                    {
+                        throw new BusinessException(ErrorCodes.SelectedFloorNotActive);
+                    }
+
+                    if (!newSlot.Area.AreaVehicleTypes.Any(av => av.VehicleTypeId == session.VehicleTypeId))
+                    {
+                        throw new BusinessException(ErrorCodes.AreaVehicleTypeMismatch);
+                    }
+
+                    if (oldArea.Id != newSlot.AreaId &&
+                        newSlot.Area.CurrentRealOccupancy + newSlot.Area.CurrentBookedSlots >= newSlot.Area.TotalCapacity)
+                    {
+                        throw new BusinessException(ErrorCodes.SelectedAreaFull);
+                    }
+
+                    var oldSlot = session.Slot;
+                    oldSlot.CurrentSessionId = null;
+                    oldSlot.Status = "AVAILABLE";
+                    oldSlot.UpdatedAt = now;
+
+                    newSlot.CurrentSessionId = session.Id;
+                    newSlot.Status = "OCCUPIED";
+                    newSlot.UpdatedAt = now;
+
+                    session.SlotId = newSlot.Id;
+                    session.AreaId = newSlot.AreaId;
+                    session.FloorId = newSlot.Area.FloorId;
+                    session.UpdatedAt = now;
+
+                    if (oldArea.Id != newSlot.AreaId)
+                    {
+                        oldArea.CurrentRealOccupancy = Math.Max(0, oldArea.CurrentRealOccupancy - 1);
+                        oldArea.UpdatedAt = now;
+
+                        newSlot.Area.CurrentRealOccupancy++;
+                        newSlot.Area.UpdatedAt = now;
+                    }
+
+                    await _auditWriterService.WriteAuditLogAsync(
+                        action: "MOVE_SESSION_SLOT",
+                        targetType: "ParkingSession",
+                        targetId: session.Id.ToString(),
+                        actorUserId: adminId,
+                        oldValue: oldSlot.SlotCode,
+                        newValue: newSlot.SlotCode,
+                        reason: request.Reason
+                    );
                 }
-
-                if (newSlot.Status != "AVAILABLE")
+                else
                 {
-                    throw new BusinessException(ErrorCodes.SlotNotAvailable);
-                }
+                    if (request.TargetSlotId.HasValue)
+                    {
+                        throw new BusinessException(ErrorCodes.SlotMustBeNullForAreaManagedVehicle);
+                    }
 
-                if (newSlot.AllowedVehicleTypeId != session.VehicleTypeId)
-                {
-                    throw new BusinessException(ErrorCodes.SlotVehicleTypeMismatch);
-                }
+                    if (!request.TargetAreaId.HasValue)
+                    {
+                        throw new BusinessException(ErrorCodes.SelectedAreaRequired);
+                    }
 
-                // Update Old Slot
-                oldSlot.CurrentSessionId = null;
-                oldSlot.Status = "AVAILABLE";
-                oldSlot.UpdatedAt = DateTimeOffset.UtcNow;
+                    if (oldArea.Id == request.TargetAreaId.Value)
+                    {
+                        throw new BusinessException(ErrorCodes.SessionMoveTargetUnchanged);
+                    }
 
-                // Update New Slot
-                newSlot.CurrentSessionId = session.Id;
-                newSlot.Status = "OCCUPIED";
-                newSlot.UpdatedAt = DateTimeOffset.UtcNow;
+                    var newArea = await _context.Areas
+                        .Include(a => a.Floor)
+                        .Include(a => a.AreaVehicleTypes)
+                        .FirstOrDefaultAsync(a => a.Id == request.TargetAreaId.Value);
 
-                // Update Session
-                session.SlotId = newSlot.Id;
-                session.AreaId = newSlot.AreaId;
-                session.FloorId = newSlot.Area.FloorId;
-                session.UpdatedAt = DateTimeOffset.UtcNow;
+                    if (newArea == null)
+                    {
+                        throw new BusinessException(ErrorCodes.AreaNotFound);
+                    }
 
-                // Update Area Occupancy
-                if (oldArea.Id != newSlot.AreaId)
-                {
+                    if (newArea.Status != "ACTIVE")
+                    {
+                        throw new BusinessException(ErrorCodes.SelectedAreaNotActive);
+                    }
+
+                    if (newArea.Floor == null || newArea.Floor.Status != "ACTIVE")
+                    {
+                        throw new BusinessException(ErrorCodes.SelectedFloorNotActive);
+                    }
+
+                    if (!newArea.AreaVehicleTypes.Any(av => av.VehicleTypeId == session.VehicleTypeId))
+                    {
+                        throw new BusinessException(ErrorCodes.AreaVehicleTypeMismatch);
+                    }
+
+                    if (newArea.CurrentRealOccupancy + newArea.CurrentBookedSlots >= newArea.TotalCapacity)
+                    {
+                        throw new BusinessException(ErrorCodes.SelectedAreaFull);
+                    }
+
+                    if (session.SlotId.HasValue || session.Slot != null)
+                    {
+                        throw new BusinessException(ErrorCodes.SlotMustBeNullForAreaManagedVehicle);
+                    }
+
                     oldArea.CurrentRealOccupancy = Math.Max(0, oldArea.CurrentRealOccupancy - 1);
-                    oldArea.UpdatedAt = DateTimeOffset.UtcNow;
+                    oldArea.UpdatedAt = now;
 
-                    newSlot.Area.CurrentRealOccupancy++;
-                    newSlot.Area.UpdatedAt = DateTimeOffset.UtcNow;
+                    newArea.CurrentRealOccupancy++;
+                    newArea.UpdatedAt = now;
+
+                    session.FloorId = newArea.FloorId;
+                    session.AreaId = newArea.Id;
+                    session.SlotId = null;
+                    session.UpdatedAt = now;
+
+                    await _auditWriterService.WriteAuditLogAsync(
+                        action: "MOVE_SESSION_AREA",
+                        targetType: "ParkingSession",
+                        targetId: session.Id.ToString(),
+                        actorUserId: adminId,
+                        oldValue: oldArea.AreaCode,
+                        newValue: newArea.AreaCode,
+                        reason: request.Reason
+                    );
                 }
-
-                // Write Audit Log
-                await _auditWriterService.WriteAuditLogAsync(
-                    action: "MOVE_SESSION_SLOT",
-                    targetType: "ParkingSession",
-                    targetId: session.Id.ToString(),
-                    actorUserId: adminId,
-                    oldValue: oldSlot.SlotCode,
-                    newValue: newSlot.SlotCode,
-                    reason: request.Reason
-                );
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -4909,9 +5029,11 @@ public class SessionAdminService : ISessionAdminService
                     from xg in xgGroup.DefaultIfEmpty()
                     join a in _context.Areas on s.AreaId equals a.Id into aGroup
                     from a in aGroup.DefaultIfEmpty()
+                    join f in _context.Floors on s.FloorId equals f.Id into fGroup
+                    from f in fGroup.DefaultIfEmpty()
                     join sl in _context.Slots on s.SlotId equals sl.Id into slGroup
                     from sl in slGroup.DefaultIfEmpty()
-                    select new { s, c, vt, eg, xg, a, sl };
+                    select new { s, c, vt, eg, xg, f, a, sl };
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {
@@ -4953,15 +5075,24 @@ public class SessionAdminService : ISessionAdminService
             Id = x.s.Id,
             SessionCode = x.s.SessionCode,
             PlateNumber = x.s.PlateNumber,
+            NoPlate = x.s.NoPlate,
             CustomerType = x.s.CustomerType,
             Status = x.s.Status,
             EntryTime = x.s.EntryTime,
+            FloorId = x.s.FloorId,
+            FloorCode = x.f != null ? x.f.FloorCode : null,
+            AreaId = x.s.AreaId,
             AreaCode = x.a?.AreaCode,
+            SlotId = x.s.SlotId,
             SlotCode = x.sl?.SlotCode,
             CardCode = x.c?.CardNumber,
+            VehicleTypeId = x.s.VehicleTypeId,
             VehicleTypeName = x.vt?.Name,
+            RequiresSlot = x.vt != null && x.vt.RequiresSlot,
             EntryGateCode = x.eg?.GateCode,
             ExitGateCode = x.xg?.GateCode,
+            EntryStaffId = x.s.EntryStaffId,
+            ExitStaffId = x.s.ExitStaffId,
             SnapshotDayPrice = x.s.SnapshotDayPrice,
             SnapshotNightPrice = x.s.SnapshotNightPrice,
             SnapshotMonthlyPrice = x.s.SnapshotMonthlyPrice,
@@ -4969,7 +5100,11 @@ public class SessionAdminService : ISessionAdminService
             PaymentStatus = x.s.PaymentStatus,
             ExitTime = x.s.ExitTime,
             VehicleDescription = x.s.VehicleDescription,
-            PaymentRequired = x.s.PaymentRequired
+            PaymentRequired = x.s.PaymentRequired,
+            SuggestedSlotId = x.s.SuggestedSlotId,
+            OverrideSlotId = x.s.OverrideSlotId,
+            OverrideReason = x.s.OverrideReason,
+            CancellationReason = x.s.CancellationReason
         }).ToList();
     }
 }
@@ -4987,17 +5122,26 @@ public class SessionSearchResponse
     public long Id { get; set; }
     public string SessionCode { get; set; } = string.Empty;
     public string? PlateNumber { get; set; }
+    public bool NoPlate { get; set; }
     public string CustomerType { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public DateTimeOffset EntryTime { get; set; }
+    public long FloorId { get; set; }
+    public string? FloorCode { get; set; }
+    public long AreaId { get; set; }
     public string? AreaCode { get; set; }
+    public long? SlotId { get; set; }
     public string? SlotCode { get; set; }
 
     // New fields added
     public string? CardCode { get; set; }
+    public long VehicleTypeId { get; set; }
     public string? VehicleTypeName { get; set; }
+    public bool RequiresSlot { get; set; }
     public string? EntryGateCode { get; set; }
     public string? ExitGateCode { get; set; }
+    public long EntryStaffId { get; set; }
+    public long? ExitStaffId { get; set; }
     public decimal SnapshotDayPrice { get; set; }
     public decimal SnapshotNightPrice { get; set; }
     public decimal SnapshotMonthlyPrice { get; set; }
@@ -5006,6 +5150,10 @@ public class SessionSearchResponse
     public DateTimeOffset? ExitTime { get; set; }
     public string? VehicleDescription { get; set; }
     public bool PaymentRequired { get; set; }
+    public long? SuggestedSlotId { get; set; }
+    public long? OverrideSlotId { get; set; }
+    public string? OverrideReason { get; set; }
+    public string? CancellationReason { get; set; }
 }
 ```
 
@@ -8879,6 +9027,8 @@ public class SlotResponse
 
     public string SlotCode { get; set; } = null!;
 
+    public long AllowedVehicleTypeId { get; set; }
+
     public string Status { get; set; } = null!;
 }
 ```
@@ -8960,6 +9110,7 @@ public class SlotService
             Id = entity.Id,
             AreaId = entity.AreaId,
             SlotCode = entity.SlotCode,
+            AllowedVehicleTypeId = entity.AllowedVehicleTypeId,
             Status = entity.Status
         };
     }
@@ -9050,6 +9201,7 @@ public class SlotService
             Id = slot.Id,
             AreaId = slot.AreaId,
             SlotCode = slot.SlotCode,
+            AllowedVehicleTypeId = slot.AllowedVehicleTypeId,
             Status = slot.Status
         };
     }
@@ -9062,6 +9214,7 @@ public class SlotService
                 Id = x.Id,
                 AreaId = x.AreaId,
                 SlotCode = x.SlotCode,
+                AllowedVehicleTypeId = x.AllowedVehicleTypeId,
                 Status = x.Status
             })
             .ToListAsync();
@@ -13553,6 +13706,7 @@ public static class ErrorCodes
     public const string SessionNotFound = "SESSION_NOT_FOUND";
     public const string SessionAlreadyClaimed = "SESSION_ALREADY_CLAIMED";
     public const string SessionNotOwnedByDriver = "SESSION_NOT_OWNED_BY_DRIVER";
+    public const string SessionMoveTargetUnchanged = "SESSION_MOVE_TARGET_UNCHANGED";
     public const string LicensePlateRequired = "LICENSE_PLATE_REQUIRED";
     public const string PlateAlreadyMapped = "PLATE_ALREADY_MAPPED";
     public const string PlateAlreadyHasActiveReservation = "PLATE_ALREADY_HAS_ACTIVE_RESERVATION";
@@ -13807,6 +13961,7 @@ public static class ErrorMessages
         [ErrorCodes.SessionNotFound] = "Khong tim thay phien gui xe.",
         [ErrorCodes.SessionAlreadyClaimed] = "Phien gui xe da duoc lien ket voi tai khoan khac.",
         [ErrorCodes.SessionNotOwnedByDriver] = "Phien gui xe chua duoc lien ket voi tai khoan lai xe nay.",
+        [ErrorCodes.SessionMoveTargetUnchanged] = "Vi tri moi phai khac vi tri hien tai.",
         [ErrorCodes.LicensePlateRequired] = "Bien so xe la bat buoc.",
         [ErrorCodes.PlateAlreadyMapped] = "Bien so da duoc gan cho doi tuong khac.",
         [ErrorCodes.PlateAlreadyHasActiveReservation] = "Bien so da co booking dang hoat dong.",
@@ -23772,6 +23927,62 @@ public class PricingContractTests
 {
     [Fact(Skip = "Scaffold only - implement pricing contract assertions.")]
     public Task Pricing_contract_should_match_expected_shape() => Task.CompletedTask;
+}
+```
+
+### File: `backend/ParkingBuilding.CoreApi.Tests/Contracts/SessionAdminContractTests.cs`
+
+```csharp
+using System.Text.Json;
+using ParkingBuilding.CoreApi.Application.ParkingSessions.Admin;
+using ParkingBuilding.CoreApi.Application.ParkingStructure.Slots;
+
+namespace ParkingBuilding.CoreApi.Tests.Contracts;
+
+public class SessionAdminContractTests
+{
+    private static readonly JsonSerializerOptions WebJsonOptions = new(JsonSerializerDefaults.Web);
+
+    [Fact]
+    public void Move_request_should_accept_an_area_target_without_a_slot_target()
+    {
+        var request = JsonSerializer.Deserialize<MoveSessionSlotRequest>(
+            """{"targetAreaId":42,"reason":"Move area-managed vehicle"}""",
+            WebJsonOptions);
+
+        Assert.NotNull(request);
+        Assert.Equal(42, request.TargetAreaId);
+        Assert.Null(request.TargetSlotId);
+    }
+
+    [Fact]
+    public void Session_search_response_should_expose_location_and_slot_requirement()
+    {
+        var response = new SessionSearchResponse
+        {
+            FloorId = 1,
+            FloorCode = "B1",
+            AreaId = 2,
+            SlotId = null,
+            VehicleTypeId = 3,
+            RequiresSlot = false
+        };
+
+        Assert.Equal(1, response.FloorId);
+        Assert.Equal("B1", response.FloorCode);
+        Assert.Equal(2, response.AreaId);
+        Assert.Null(response.SlotId);
+        Assert.Equal(3, response.VehicleTypeId);
+        Assert.False(response.RequiresSlot);
+    }
+
+    [Fact]
+    public void Slot_response_should_expose_its_allowed_vehicle_type()
+    {
+        var response = new SlotResponse { AllowedVehicleTypeId = 3 };
+
+        Assert.Equal(3, response.AllowedVehicleTypeId);
+    }
 }
 ```
 
@@ -57755,8 +57966,7 @@ export default function AuditLogSidePanel({ log, onClose, mode }) {
 ### File: `frontend/src/components/audit/AuditLogTable.jsx`
 
 ```javascript
-import React from "react";
-import { Clock, User, LayoutGrid, Eye } from "lucide-react";
+import { Clock, User, LayoutGrid } from "lucide-react";
 import { formatDateTime } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -57774,14 +57984,13 @@ export default function AuditLogTable({ logs, isLoading, selectedLogId, onRowCli
             <TableHead className="font-semibold text-slate-600 whitespace-nowrap">Hành động</TableHead>
             <TableHead className="font-semibold text-slate-600 whitespace-nowrap"><LayoutGrid className="w-4 h-4 inline-block mr-1 mb-0.5 text-slate-400" /> Đối tượng</TableHead>
             <TableHead className="font-semibold text-slate-600 whitespace-nowrap">Nguồn</TableHead>
-            <TableHead className="font-semibold text-slate-600 whitespace-nowrap w-[50px] text-center"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            <TableRow><TableCell colSpan={7} className="text-center py-10 text-slate-500">Đang tải nhật ký...</TableCell></TableRow>
+            <TableRow><TableCell colSpan={6} className="text-center py-10 text-slate-500">Đang tải nhật ký...</TableCell></TableRow>
           ) : logs.length === 0 ? (
-            <TableRow><TableCell colSpan={7} className="text-center py-10 text-slate-500">Không tìm thấy dữ liệu nhật ký phù hợp</TableCell></TableRow>
+            <TableRow><TableCell colSpan={6} className="text-center py-10 text-slate-500">Không tìm thấy dữ liệu nhật ký phù hợp</TableCell></TableRow>
           ) : (
             logs.map((log, idx) => {
               const isSelected = selectedLogId === log.id;
@@ -57807,11 +58016,6 @@ export default function AuditLogTable({ logs, isLoading, selectedLogId, onRowCli
                     <Badge variant="outline" className={`text-[10px] ${log.sourceService === 'CORE_API' ? 'text-blue-600 border-blue-200 bg-blue-50' : 'text-purple-600 border-purple-200 bg-purple-50'}`}>
                       {log.sourceService || 'UNKNOWN'}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Button variant="ghost" size="icon" className={`h-8 w-8 ${isSelected ? 'text-blue-600' : 'text-slate-400'}`}>
-                      <Eye className="w-4 h-4" />
-                    </Button>
                   </TableCell>
                 </TableRow>
               );
@@ -62514,7 +62718,6 @@ export default function LostCardSidePanel({
 
 ```javascript
 import React from "react";
-import { Eye } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -62544,14 +62747,13 @@ export default function LostCardTable({
             <TableHead className="whitespace-nowrap">Thời gian tạo</TableHead>
             <TableHead className="whitespace-nowrap">Lý do mất thẻ</TableHead>
             <TableHead className="whitespace-nowrap text-center">Mức độ</TableHead>
-            <TableHead className="whitespace-nowrap text-center">Thao tác</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            <TableRow><TableCell colSpan={9} className="text-center py-10 text-slate-500">Đang tải dữ liệu...</TableCell></TableRow>
+            <TableRow><TableCell colSpan={8} className="text-center py-10 text-slate-500">Đang tải dữ liệu...</TableCell></TableRow>
           ) : cases.length === 0 ? (
-            <TableRow><TableCell colSpan={9} className="text-center py-10 text-slate-500">Không tìm thấy yêu cầu nào</TableCell></TableRow>
+            <TableRow><TableCell colSpan={8} className="text-center py-10 text-slate-500">Không tìm thấy yêu cầu nào</TableCell></TableRow>
           ) : (
             cases.map((item) => {
               const isSelected = selectedCaseId === item.id;
@@ -62605,11 +62807,6 @@ export default function LostCardTable({
                     <Badge variant="outline" className={`px-2 py-0.5 text-[10px] font-bold border ${PRIORITY_BADGE[priority] || "border-slate-200 bg-slate-50 text-slate-500"}`}>
                       {priorityLabel}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600 bg-white border border-slate-200 shadow-sm" onClick={(e) => { e.stopPropagation(); onRowClick(item); }}>
-                      <Eye className="w-4 h-4" />
-                    </Button>
                   </TableCell>
                 </TableRow>
               );
@@ -63718,6 +63915,11 @@ export default function MonthlyPassFilters({
               className="pl-9 bg-slate-50 border-slate-200"
               value={filterKeyword}
               onChange={e => setFilterKeyword(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  onSearch();
+                }
+              }}
             />
           </div>
         </div>
@@ -63761,6 +63963,11 @@ export default function MonthlyPassFilters({
             className="bg-slate-50 border-slate-200"
             value={filterDateRange}
             onChange={e => setFilterDateRange(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter") {
+                onSearch();
+              }
+            }}
           />
         </div>
 
@@ -63957,10 +64164,8 @@ export default function MonthlyPassSidePanel({
 
 ```javascript
 import React from "react";
-import { Eye, Edit, RefreshCw, Lock, Unlock } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import LicensePlate from "@/components/ui/license-plate";
 import { PASS_STATUS } from "@/constants";
 
@@ -63984,10 +64189,7 @@ export default function MonthlyPassTable({
   passes,
   isLoading,
   selectedPassId,
-  onRowClick,
-  onEdit,
-  onRenew,
-  onLockToggle
+  onRowClick
 }) {
   return (
     <div className="overflow-x-auto flex-1">
@@ -64002,14 +64204,13 @@ export default function MonthlyPassTable({
             <TableHead className="whitespace-nowrap">Hiệu lực</TableHead>
             <TableHead className="whitespace-nowrap text-center">Số ngày còn lại</TableHead>
             <TableHead className="whitespace-nowrap text-center">Trạng thái</TableHead>
-            <TableHead className="whitespace-nowrap text-center">Thao tác</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            <TableRow><TableCell colSpan={9} className="text-center py-10 text-slate-500">Đang tải dữ liệu...</TableCell></TableRow>
+            <TableRow><TableCell colSpan={8} className="text-center py-10 text-slate-500">Đang tải dữ liệu...</TableCell></TableRow>
           ) : passes.length === 0 ? (
-            <TableRow><TableCell colSpan={9} className="text-center py-10 text-slate-500">Không tìm thấy vé tháng nào</TableCell></TableRow>
+            <TableRow><TableCell colSpan={8} className="text-center py-10 text-slate-500">Không tìm thấy vé tháng nào</TableCell></TableRow>
           ) : (
             passes.map((pass) => {
               const remainingDays = calculateRemainingDays(pass.endDate);
@@ -64059,22 +64260,6 @@ export default function MonthlyPassTable({
                     <Badge variant="outline" className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeClass}`}>
                       {statusDisplay}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-blue-600" onClick={() => onRowClick(pass)}>
-                        <Eye className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-slate-800" onClick={() => onEdit(pass)}>
-                        <Edit className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-emerald-600" onClick={() => onRenew(pass)}>
-                        <RefreshCw className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className={`h-7 w-7 text-slate-400 ${pass.status === PASS_STATUS.LOCKED ? 'hover:text-emerald-600' : 'hover:text-red-600'}`} onClick={() => onLockToggle(pass)}>
-                        {pass.status === PASS_STATUS.LOCKED ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-                      </Button>
-                    </div>
                   </TableCell>
                 </TableRow>
               );
@@ -66297,6 +66482,8 @@ export default function EntryFormPanel({
   canLoadSuggestion,
   gates = [],
   vehicleTypes = [],
+  onCheckCard,
+  onCheckReservation,
 }) {
   const confidence = form?.ocrConfidence != null ? Number(form.ocrConfidence) : null;
   const isLowConfidence = confidence != null && confidence < 70;
@@ -66349,6 +66536,17 @@ export default function EntryFormPanel({
                 onChange={(event) => onFieldChange("licensePlate", event.target.value.toUpperCase())}
                 placeholder="Ví dụ: 30F-123.45"
                 disabled={form.noPlate}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    if (form.entryMode === "MONTHLY" && onCheckCard && form.cardCode?.trim()) {
+                      onCheckCard();
+                    } else if (form.entryMode === "RESERVATION" && onCheckReservation && form.reservationCode?.trim()) {
+                      onCheckReservation();
+                    } else if (form.entryMode === "CASUAL" && canLoadSuggestion && onLoadSuggestion) {
+                      onLoadSuggestion();
+                    }
+                  }
+                }}
                 className={`h-8 border-slate-200 bg-slate-50 text-sm font-bold uppercase focus-visible:ring-blue-500 ${
                   isLowConfidence ? "border-red-300 ring-2 ring-red-100" : ""
                 }`}
@@ -66367,12 +66565,32 @@ export default function EntryFormPanel({
           )}
 
           <Field label="Mã thẻ" required>
-            <Input value={form.cardCode} onChange={(event) => onFieldChange("cardCode", event.target.value.toUpperCase())} placeholder="VD: C001" className="h-8 border-slate-200 bg-slate-50 text-sm font-bold uppercase text-blue-700 focus-visible:ring-blue-500" />
+            <Input
+              value={form.cardCode}
+              onChange={(event) => onFieldChange("cardCode", event.target.value.toUpperCase())}
+              placeholder="VD: C001"
+              className="h-8 border-slate-200 bg-slate-50 text-sm font-bold uppercase text-blue-700 focus-visible:ring-blue-500"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && onCheckCard && form.cardCode?.trim()) {
+                  onCheckCard();
+                }
+              }}
+            />
           </Field>
 
           {form.entryMode === "RESERVATION" ? (
             <Field label="Mã Booking" required>
-              <Input value={form.reservationCode} onChange={(event) => onFieldChange("reservationCode", event.target.value.toUpperCase())} placeholder="RES-..." className="h-8 border-slate-200 bg-slate-50 text-sm uppercase focus-visible:ring-blue-500" />
+              <Input
+                value={form.reservationCode}
+                onChange={(event) => onFieldChange("reservationCode", event.target.value.toUpperCase())}
+                placeholder="RES-..."
+                className="h-8 border-slate-200 bg-slate-50 text-sm uppercase focus-visible:ring-blue-500"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && onCheckReservation && form.reservationCode?.trim()) {
+                    onCheckReservation();
+                  }
+                }}
+              />
             </Field>
           ) : (
             <Field label="Loại xe" required>
@@ -68631,7 +68849,7 @@ export default function AdminAuditLogPage() {
 
 ```javascript
 import React, { useEffect, useState } from "react";
-import { ArrowRightLeft, Ban, RefreshCw, Eye, Search, LockKeyhole, History, Clock, X } from "lucide-react";
+import { ArrowRightLeft, Ban, RefreshCw, Search, LockKeyhole, History, Clock, X } from "lucide-react";
 import { toast } from "sonner";
 import { adminSessionService } from "@/services/adminSessionService";
 import { parkingService } from "@/services/parkingService";
@@ -68677,6 +68895,8 @@ function formatVND(amount) {
 
 export default function SessionsAdministrationPage() {
   const [sessions, setSessions] = useState([]);
+  const [floors, setFloors] = useState([]);
+  const [areas, setAreas] = useState([]);
   const [slots, setSlots] = useState([]);
   const [vehicleTypes, setVehicleTypes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -68693,6 +68913,8 @@ export default function SessionsAdministrationPage() {
   const [action, setAction] = useState(null);
   const [reason, setReason] = useState("");
   const [newSlotId, setNewSlotId] = useState("");
+  const [selectedFloorId, setSelectedFloorId] = useState("");
+  const [selectedAreaId, setSelectedAreaId] = useState("");
 
   const loadData = async () => {
     setIsLoading(true);
@@ -68703,12 +68925,16 @@ export default function SessionsAdministrationPage() {
       if (filterVehicleType !== "ALL") params.vehicleTypeId = filterVehicleType;
       if (filterSearch) params.keyword = filterSearch;
 
-      const [sessionData, slotData, vTypes] = await Promise.all([
+      const [sessionData, floorData, areaData, slotData, vTypes] = await Promise.all([
         adminSessionService.getSessions(params),
+        parkingService.getFloors(),
+        parkingService.getAreas(),
         parkingService.getSlots(),
         parkingService.getVehicleTypes()
       ]);
       setSessions(sessionData || []);
+      setFloors(floorData || []);
+      setAreas(areaData || []);
       setSlots(slotData || []);
       setVehicleTypes(vTypes || []);
     } catch (error) {
@@ -68730,19 +68956,50 @@ export default function SessionsAdministrationPage() {
     loadData();
   }
 
-  const availableSlots = slots.filter((slot) => slot.status === "AVAILABLE");
+  const selectedVehicleType = vehicleTypes.find((vehicleType) =>
+    String(vehicleType.id) === String(selectedSession?.vehicleTypeId)
+  );
+  const isCarSession = Boolean(
+    selectedSession && (selectedSession.requiresSlot ?? selectedVehicleType?.requiresSlot)
+  );
+  const selectedVehicleTypeId = selectedSession?.vehicleTypeId ?? selectedVehicleType?.id;
+
+  // Cascading filter: areas for the selected floor matching the session vehicle type
+  const filteredAreas = areas.filter((area) => {
+    const belongsToFloor = String(area.floorId) === selectedFloorId;
+    const isActive = area.status === "ACTIVE";
+    if (!belongsToFloor || !isActive) return false;
+
+    const supportsVehicleType = (area.vehicleTypeIds || []).some(
+      (vehicleTypeId) => String(vehicleTypeId) === String(selectedVehicleTypeId)
+    );
+    const isCurrentArea = String(area.id) === String(selectedSession?.areaId);
+    return supportsVehicleType && (isCarSession || !isCurrentArea);
+  });
+
+  // Available slots for the selected area
+  const filteredSlots = slots.filter(s =>
+    String(s.areaId) === selectedAreaId &&
+    s.status === "AVAILABLE" &&
+    String(s.allowedVehicleTypeId) === String(selectedVehicleTypeId) &&
+    String(s.id) !== String(selectedSession?.slotId)
+  );
 
   const openActionDialog = (session, act) => {
     setSelectedSession(session);
     setAction(act);
     setReason("");
     setNewSlotId("");
+    setSelectedFloorId("");
+    setSelectedAreaId("");
   };
 
   const closeDialog = () => {
     setAction(null);
     setReason("");
     setNewSlotId("");
+    setSelectedFloorId("");
+    setSelectedAreaId("");
   };
 
   const submitAction = async () => {
@@ -68753,16 +69010,23 @@ export default function SessionsAdministrationPage() {
     }
 
     try {
-
       if (action === "cancel") {
         await adminSessionService.cancel(selectedSession.id, { reason });
       }
       if (action === "moveSlot") {
-        if (!newSlotId) {
-          toast.error("Vui lòng chọn slot mới.");
-          return;
+        if (isCarSession) {
+          if (!newSlotId) {
+            toast.error("Vui lòng chọn slot mới.");
+            return;
+          }
+          await adminSessionService.moveSlot(selectedSession.id, { reason, targetSlotId: newSlotId });
+        } else {
+          if (!selectedAreaId) {
+            toast.error("Vui lòng chọn khu vực mới.");
+            return;
+          }
+          await adminSessionService.moveSlot(selectedSession.id, { reason, targetAreaId: selectedAreaId });
         }
-        await adminSessionService.moveSlot(selectedSession.id, { reason, newSlotId });
       }
       toast.success("Thao tác thành công.");
       closeDialog();
@@ -68774,8 +69038,8 @@ export default function SessionsAdministrationPage() {
   };
 
   return (
-    <div className="flex h-full gap-4">
-      <div className="flex flex-col flex-1 gap-4 transition-all duration-300">
+    <div className="flex h-full gap-4 overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0 gap-4 transition-all duration-300">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Quản lý Phiên Gửi Xe</h2>
           <p className="text-sm text-slate-500 mt-1">Tra cứu, theo dõi và xử lý các phiên gửi xe đang hoạt động hoặc phát sinh sự cố.</p>
@@ -68790,6 +69054,11 @@ export default function SessionsAdministrationPage() {
               className="pl-9 bg-slate-50"
               value={filterSearch}
               onChange={e => setFilterSearch(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  loadData();
+                }
+              }}
             />
           </div>
 
@@ -68862,14 +69131,14 @@ export default function SessionsAdministrationPage() {
                   <TableHead className="font-semibold text-slate-600 whitespace-nowrap text-center">Thời gian vào</TableHead>
                   <TableHead className="font-semibold text-slate-600 whitespace-nowrap text-center">Trạng thái phiên</TableHead>
                   <TableHead className="font-semibold text-slate-600 whitespace-nowrap text-center">Thanh toán</TableHead>
-                  <TableHead className="font-semibold text-slate-600 whitespace-nowrap text-center">Thao tác</TableHead>
+
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-10 text-slate-500">Đang tải dữ liệu...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center py-10 text-slate-500">Đang tải dữ liệu...</TableCell></TableRow>
                 ) : sessions.length === 0 ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-10 text-slate-500">Không tìm thấy phiên gửi nào</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center py-10 text-slate-500">Không tìm thấy phiên gửi nào</TableCell></TableRow>
                 ) : (
                   sessions.map(session => (
                     <TableRow
@@ -68896,19 +69165,7 @@ export default function SessionsAdministrationPage() {
                           {session.paymentStatus}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-center" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-center gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600" onClick={() => setSelectedSession(session)}>
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600" onClick={() => openActionDialog(session, "moveSlot")} title="Chuyển slot">
-                            <ArrowRightLeft className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600" onClick={() => openActionDialog(session, "cancel")} title="Hủy phiên">
-                            <Ban className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+
                     </TableRow>
                   ))
                 )}
@@ -68923,7 +69180,7 @@ export default function SessionsAdministrationPage() {
 
       {/* Detail Panel */}
       {selectedSession && !action && (
-        <div className="w-[400px] bg-white border border-slate-200 rounded-lg flex flex-col shadow-sm flex-shrink-0 animate-in slide-in-from-right-4">
+        <div className="w-[400px] min-w-[320px] bg-white border border-slate-200 rounded-lg flex flex-col shadow-sm shrink-0 animate-in slide-in-from-right-4">
           <div className="flex items-center justify-between p-4 border-b border-slate-100">
             <h3 className="font-bold text-lg text-slate-800">Chi tiết phiên</h3>
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setSelectedSession(null)}>
@@ -69066,7 +69323,7 @@ export default function SessionsAdministrationPage() {
             <p className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">Thao tác quản trị</p>
             <div className="grid grid-cols-2 gap-2">
               <Button variant="outline" className="w-full justify-center bg-white hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200" onClick={() => openActionDialog(selectedSession, "moveSlot")}>
-                <ArrowRightLeft className="w-4 h-4 mr-2" /> Chuyển slot
+                <ArrowRightLeft className="w-4 h-4 mr-2" /> Chuyển vị trí
               </Button>
               <Button variant="outline" className="w-full justify-center text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 bg-white" onClick={() => openActionDialog(selectedSession, "cancel")}>
                 <Ban className="w-4 h-4 mr-2" /> Hủy phiên
@@ -69081,10 +69338,10 @@ export default function SessionsAdministrationPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {action === "moveSlot" ? "Điều chuyển slot thủ công" : "Hủy phiên"}
+              {action === "moveSlot" ? (isCarSession ? "Điều chuyển slot thủ công" : "Điều chuyển khu vực thủ công") : "Hủy phiên"}
             </DialogTitle>
             <DialogDescription>
-              {action === "moveSlot" ? "Chuyển xe sang slot AVAILABLE khi cảm biến hoặc slot gặp lỗi." :
+              {action === "moveSlot" ? (isCarSession ? "Chuyển xe sang slot AVAILABLE khi cảm biến hoặc slot gặp lỗi." : "Điều chuyển xe máy sang khu vực đỗ mới.") :
                "Chuyển phiên sang CANCELLED để giải phóng vận hành."}
             </DialogDescription>
           </DialogHeader>
@@ -69093,26 +69350,68 @@ export default function SessionsAdministrationPage() {
             <div className="rounded-lg border bg-slate-50 p-3 text-sm">
               <div className="font-mono font-black">{selectedSession.sessionCode}</div>
               <div className="mt-1 text-slate-500">{selectedSession.card?.code || selectedSession.cardCode} / {selectedSession.plateNumber || "Không biển"}</div>
+              {isCarSession && !selectedSession.slotCode && (
+                <div className="mt-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 p-2 rounded font-medium">
+                  ⚠️ Phiên xe này chưa có vị trí đỗ cũ. Yêu cầu điều chuyển có thể bị từ chối bởi hệ thống (Yêu cầu phải có vị trí đỗ cũ).
+                </div>
+              )}
             </div>
           )}
 
           <div className="space-y-4 py-2">
             {action === "moveSlot" && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Slot mới <span className="text-red-500">*</span></label>
-                <Select value={newSlotId} onValueChange={setNewSlotId}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Chọn slot AVAILABLE" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableSlots.length === 0 && <SelectItem value="none" disabled>Không có slot trống</SelectItem>}
-                    {availableSlots.map((slot) => (
-                      <SelectItem key={slot.id} value={String(slot.id)}>
-                        {slot.floorCode || slot.floor?.code} / {slot.areaCode || slot.area?.code} / {slot.code}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Tầng <span className="text-red-500">*</span></label>
+                  <Select value={selectedFloorId} onValueChange={(v) => { setSelectedFloorId(v); setSelectedAreaId(""); setNewSlotId(""); }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Chọn tầng" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {floors.filter(f => f.status === "ACTIVE").map((floor) => (
+                        <SelectItem key={floor.id} value={String(floor.id)}>
+                          {floor.floorCode} - {floor.floorName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">{isCarSession ? "Khu vực (Ô tô)" : "Khu vực (Xe máy)"} <span className="text-red-500">*</span></label>
+                  <Select value={selectedAreaId} onValueChange={(v) => { setSelectedAreaId(v); setNewSlotId(""); }} disabled={!selectedFloorId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={!selectedFloorId ? "Chọn tầng trước" : filteredAreas.length === 0 ? "Tầng này không có khu vực phù hợp" : "Chọn khu vực"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredAreas.length === 0 && <SelectItem value="none" disabled>Không có khu vực phù hợp</SelectItem>}
+                      {filteredAreas.map((area) => (
+                        <SelectItem key={area.id} value={String(area.id)}>
+                          {area.areaCode} - {area.areaName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {isCarSession && (
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Slot mới <span className="text-red-500">*</span></label>
+                    <Select value={newSlotId} onValueChange={setNewSlotId} disabled={!selectedAreaId}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={!selectedAreaId ? "Chọn khu vực trước" : filteredSlots.length === 0 ? "Không có slot trống" : "Chọn slot AVAILABLE"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredSlots.length === 0 && <SelectItem value="none" disabled>Không có slot trống</SelectItem>}
+                        {filteredSlots.map((slot) => (
+                          <SelectItem key={slot.id} value={String(slot.id)}>
+                            {slot.slotCode}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             )}
 
@@ -69178,7 +69477,6 @@ import {
   Briefcase,
   UserCheck,
   Lock,
-  Eye,
   Edit,
   UserCog,
   Trash2,
@@ -69318,7 +69616,7 @@ export default function UserManagementPage() {
     try {
       setIsLoadingActivities(true);
       // Gọi API F054
-      const logs = await auditService.getAuditLogs({ targetUser: username, limit: 5 });
+      const logs = await auditService.getAuditLogs({ actor: username, size: 5 });
       setRecentActivities(logs || []);
     } catch (err) {
       console.error("Lỗi khi tải hoạt động:", err);
@@ -69675,7 +69973,7 @@ export default function UserManagementPage() {
                     <TableHead className="text-xs font-bold uppercase text-slate-500">Số Điện Thoại</TableHead>
                     <TableHead className="text-xs font-bold uppercase text-slate-500 text-center">Vai Trò</TableHead>
                     <TableHead className="text-xs font-bold uppercase text-slate-500 text-center">Trạng Thái</TableHead>
-                    <TableHead className="w-28 text-xs font-bold uppercase text-slate-500 text-center">Thao tác</TableHead>
+
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -69719,19 +70017,7 @@ export default function UserManagementPage() {
                             {user.status}
                           </Badge>
                         </TableCell>
-                        <TableCell className="py-3 text-center">
-                          <div className="flex justify-center gap-1" onClick={(e) => e.stopPropagation()}>
-                             <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50" title="Xem hoạt động gần đây" onClick={() => openActivity(user)}>
-                               <Eye className="w-4 h-4" />
-                             </Button>
-                             <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-blue-600 hover:bg-blue-50" title="Chỉnh sửa thông tin" onClick={() => openEdit(user)}>
-                               <Edit className="w-4 h-4" />
-                             </Button>
-                             <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-amber-600 hover:bg-amber-50" title="Đổi vai trò / phân loại" onClick={() => user.role === 'DRIVER' ? openDriverType(user) : openRole(user)}>
-                               <UserCog className="w-4 h-4" />
-                             </Button>
-                          </div>
-                        </TableCell>
+
                       </TableRow>
                     ))}
                 </TableBody>
@@ -69971,6 +70257,9 @@ export default function UserManagementPage() {
               </div>
 
               <div className="space-y-2 pt-2 border-t border-slate-100">
+                <Button variant="outline" className="w-full border-indigo-200 text-indigo-700 font-bold hover:bg-indigo-50 h-9 shadow-sm text-xs" onClick={() => { setShowDetailModal(false); openActivity(selectedUser); }}>
+                  <Activity className="w-3.5 h-3.5 mr-2 text-indigo-500" /> Xem hoạt động gần đây
+                </Button>
                 <Button variant="default" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-9 shadow-sm text-xs" onClick={() => { setShowDetailModal(false); openEdit(selectedUser); }}>
                   <Edit className="w-3.5 h-3.5 mr-2" /> Chỉnh sửa
                 </Button>
@@ -72605,7 +72894,7 @@ import {
 import { toast } from "sonner";
 import EmptyState from "@/components/ui/empty-state";
 import { CARD_STATUS } from "@/constants";
-import { Search, RefreshCw, Eye, Plus, EyeOff } from "lucide-react";
+import { Search, RefreshCw, Plus, EyeOff } from "lucide-react";
 
 import CardStatCards from "@/components/manager/card/CardStatCards";
 import CreateCardModal from "@/components/manager/card/CreateCardModal";
@@ -72788,8 +73077,8 @@ export default function CardManagementPage() {
 
       <CardStatCards stats={stats} />
 
-      <div className="flex gap-4 h-[calc(100vh-280px)] min-h-[500px]">
-        <div className={`flex flex-col bg-white border border-gray-200 rounded-xl shadow-sm h-full transition-all duration-300 ${selectedCard ? "w-full lg:w-[calc(100%-366px)] hidden lg:flex" : "w-full"}`}>
+      <div className="flex gap-4 h-[calc(100vh-280px)] min-h-[500px] overflow-hidden">
+        <div className={`flex flex-col bg-white border border-gray-200 rounded-xl shadow-sm h-full transition-all duration-300 min-w-0 ${selectedCard ? "w-full lg:w-[calc(100%-366px)] hidden lg:flex" : "w-full"}`}>
 
           <div className="p-4 border-b border-gray-100 flex flex-wrap gap-3 items-center justify-between bg-gray-50/50 rounded-t-xl">
             <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
@@ -72832,17 +73121,16 @@ export default function CardManagementPage() {
                   <TableHead className="w-[140px]">Trạng thái</TableHead>
                   <TableHead className="w-[130px]">Loại khách</TableHead>
                   <TableHead className="w-[130px]">Tầng gửi</TableHead>
-                  <TableHead className="text-right w-[100px]">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-32 text-center text-gray-500">Đang tải dữ liệu...</TableCell>
+                    <TableCell colSpan={5} className="h-32 text-center text-gray-500">Đang tải dữ liệu...</TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-64">
+                    <TableCell colSpan={5} className="h-64">
                       <EmptyState icon={<EyeOff className="w-12 h-12" />} title="Không tìm thấy thẻ xe" description="Thử thay đổi bộ lọc hoặc tìm kiếm khác." />
                     </TableCell>
                   </TableRow>
@@ -72883,16 +73171,6 @@ export default function CardManagementPage() {
                         ) : (
                           <span className="text-gray-400">-</span>
                         )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" onClick={() => setSelectedCard(c)} title="Xem chi tiết">
-                            <Eye className="h-4 w-4 text-gray-500" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => openStatusModal(c)} title="Đổi trạng thái">
-                            <RefreshCw className="h-4 w-4 text-amber-500" />
-                          </Button>
-                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -73107,8 +73385,8 @@ export default function LostCardApprovalsPage() {
   };
 
   return (
-    <div className="flex h-full gap-4">
-      <div className="flex flex-1 flex-col gap-6 overflow-hidden transition-all duration-300">
+    <div className="flex h-full gap-4 overflow-hidden">
+      <div className="flex flex-1 flex-col gap-6 overflow-hidden min-w-0 transition-all duration-300">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-slate-800">Phê duyệt thẻ mất</h2>
@@ -73232,6 +73510,11 @@ export default function LostCardApprovalsPage() {
               placeholder={decisionType === "APPROVE" ? "Ghi chú phê duyệt" : "Lý do từ chối"}
               value={reasonText}
               onChange={(event) => setReasonText(event.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  confirmDecision();
+                }
+              }}
             />
           </div>
           <DialogFooter>
@@ -73602,7 +73885,7 @@ export default function ManagerDashboardPage() {
 ```javascript
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { RefreshCw, ChevronLeft, ChevronRight, Clock, CheckCircle2, XCircle, ExternalLink } from "lucide-react";
+import { RefreshCw, ChevronLeft, ChevronRight, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { useMismatchCases } from "@/hooks/useLicensePlateMismatch";
 import { Button } from "@/components/ui/button";
 import {
@@ -73752,7 +74035,7 @@ export default function MismatchApprovalsPage() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  {["ID", "Session ID", "Biển số đăng ký", "Biển số thực tế", "Nhân viên báo cáo", "Thời gian", "Trạng thái", ""].map((h) => (
+                  {["ID", "Session ID", "Biển số đăng ký", "Biển số thực tế", "Nhân viên báo cáo", "Thời gian", "Trạng thái"].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">
                       {h}
                     </th>
@@ -73776,15 +74059,6 @@ export default function MismatchApprovalsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={item.status} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); navigate(`/manager/mismatch-approvals/${item.id}`); }}
-                        className="text-indigo-600 hover:text-indigo-800 transition-colors"
-                        title="Xem chi tiết"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </button>
                     </td>
                   </tr>
                 ))}
@@ -74375,9 +74649,9 @@ export default function MonthlyPassManagementPage() {
   };
 
   return (
-    <div className="flex h-full gap-4">
+    <div className="flex h-full gap-4 overflow-hidden">
       {/* ── Main panel ── */}
-      <div className="flex flex-col flex-1 gap-6 overflow-hidden">
+      <div className="flex flex-col flex-1 gap-6 overflow-hidden min-w-0">
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -74685,7 +74959,7 @@ import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Search, Plus, RefreshCw, Eye, Info, Settings } from "lucide-react";
+import { Search, Plus, RefreshCw, Info, Settings } from "lucide-react";
 import { COMMON_STATUS } from "@/constants";
 
 import PricingRuleModal from "@/components/manager/pricing/PricingRuleModal";
@@ -74870,9 +75144,9 @@ export default function PricingManagementPage() {
   };
 
   return (
-    <div className="flex h-full gap-4">
+    <div className="flex h-full gap-4 overflow-hidden">
       {/* Main Content Area */}
-      <div className="flex flex-col flex-1 gap-4 transition-all duration-300 overflow-hidden">
+      <div className="flex flex-col flex-1 gap-4 transition-all duration-300 min-w-0 overflow-hidden">
         {/* Header */}
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Quản lý Cấu hình Giá</h2>
@@ -74953,12 +75227,11 @@ export default function PricingManagementPage() {
                   <TableHead className="font-semibold text-slate-600 text-right whitespace-nowrap">Phí mất thẻ</TableHead>
                   <TableHead className="font-semibold text-slate-600 text-center whitespace-nowrap">Hiệu lực từ</TableHead>
                   <TableHead className="font-semibold text-slate-600 text-center whitespace-nowrap">Trạng thái</TableHead>
-                  <TableHead className="font-semibold text-slate-600 text-center whitespace-nowrap">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-10 text-slate-500">Không tìm thấy rule nào</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center py-10 text-slate-500">Không tìm thấy rule nào</TableCell></TableRow>
                 ) : filtered.map((rule) => (
                   <TableRow
                     key={rule.id}
@@ -74977,13 +75250,6 @@ export default function PricingManagementPage() {
                       <Badge variant="outline" className={`text-[10px] uppercase font-bold tracking-wider ${STATUS_BADGE[rule.status] || STATUS_BADGE.ACTIVE}`}>
                         {rule.status}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-center" onClick={e => e.stopPropagation()}>
-                      <div className="flex items-center justify-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600" onClick={() => setSelectedRule(rule)}>
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -75142,6 +75408,11 @@ export default function ReportsPage() {
                 value={dateRange.from}
                 onChange={(e) => setDateRange(prev => ({...prev, from: e.target.value}))}
                 className="bg-transparent border-none text-sm focus:ring-0 text-slate-700 font-medium cursor-pointer"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    loadData();
+                  }
+                }}
               />
             </div>
             <div className="h-4 w-[1px] bg-slate-300"></div>
@@ -75152,6 +75423,11 @@ export default function ReportsPage() {
                 value={dateRange.to}
                 onChange={(e) => setDateRange(prev => ({...prev, to: e.target.value}))}
                 className="bg-transparent border-none text-sm focus:ring-0 text-slate-700 font-medium cursor-pointer"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    loadData();
+                  }
+                }}
               />
             </div>
             <Button
@@ -79983,7 +80259,20 @@ export default function StaffEntryPage() {
 
           <div className="flex min-h-0 flex-col gap-4 md:col-span-5">
             <div className="min-h-0 flex-1">
-              <EntryFormPanel form={form} derivedVehicleTypeId={derivedVehicleTypeId} onFieldChange={setField} onEntryModeChange={setEntryMode} onLoadSuggestion={handleLoadSuggestion} canLoadSuggestion={canLoadSuggestion} isLoadingSuggestion={isLoadingSuggestion} noPlateAllowed={noPlateAllowed} gates={gates} vehicleTypes={vehicleTypes} />
+              <EntryFormPanel
+                form={form}
+                derivedVehicleTypeId={derivedVehicleTypeId}
+                onFieldChange={setField}
+                onEntryModeChange={setEntryMode}
+                onLoadSuggestion={handleLoadSuggestion}
+                canLoadSuggestion={canLoadSuggestion}
+                isLoadingSuggestion={isLoadingSuggestion}
+                noPlateAllowed={noPlateAllowed}
+                gates={gates}
+                vehicleTypes={vehicleTypes}
+                onCheckCard={handleCheckCard}
+                onCheckReservation={handleCheckReservation}
+              />
             </div>
             <div className="h-[35%] shrink-0"><EntrySuggestionPanel suggestion={suggestion} /></div>
           </div>
@@ -80776,6 +81065,11 @@ export default function StaffLostCardPage() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Nhập biển số xe (VD: 30F-123.45) hoặc mã thẻ C016..."
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSearch();
+                }
+              }}
             />
             <Button onClick={handleSearch} disabled={isSubmitting}>
               <Search className="mr-1.5 h-4 w-4" />
@@ -80812,7 +81106,13 @@ export default function StaffLostCardPage() {
               <CardDescription>Thông tin này sẽ được đưa vào hàng đợi phê duyệt của Manager.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-3 md:grid-cols-2">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSubmit();
+                }}
+                className="grid gap-3 md:grid-cols-2"
+              >
                 <Input
                   placeholder="Người báo mất *"
                   value={form.reporterName}
@@ -80856,6 +81156,7 @@ export default function StaffLostCardPage() {
                         <Badge key={index} variant="secondary" className="flex items-center gap-1 pl-3 pr-1 py-1">
                           <span className="max-w-[120px] truncate">{file.name}</span>
                           <Button
+                            type="button"
                             variant="ghost"
                             size="icon"
                             className="ml-1 h-4 w-4 rounded-full"
@@ -80870,11 +81171,11 @@ export default function StaffLostCardPage() {
                   )}
                 </div>
 
-                <Button className="mt-2 md:col-span-2" onClick={handleSubmit} disabled={isSubmitting}>
+                <Button type="submit" className="mt-2 md:col-span-2" disabled={isSubmitting}>
                   <FileWarning className="mr-1.5 h-4 w-4" />
                   {isSubmitting ? "Đang xử lý..." : "Tạo hồ sơ chờ duyệt"}
                 </Button>
-              </div>
+              </form>
             </CardContent>
           </Card>
         </div>
@@ -81129,8 +81430,12 @@ export const adminSessionService = {
     throw new Error(response.message || "Hủy phiên thất bại");
   },
 
-  moveSlot: async (sessionId, { reason, newSlotId }) => {
-    const response = await coreAxiosClient.post(`/session-admin/${sessionId}/move-slot`, { reason, newSlotId });
+  moveSlot: async (sessionId, { reason, targetSlotId, targetAreaId }) => {
+    const payload = { reason };
+    if (targetSlotId) payload.targetSlotId = Number(targetSlotId);
+    if (targetAreaId) payload.targetAreaId = Number(targetAreaId);
+
+    const response = await coreAxiosClient.post(`/session-admin/${sessionId}/move-slot`, payload);
     if (response.success) {
       return response.data;
     }

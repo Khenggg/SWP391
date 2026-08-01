@@ -38,9 +38,9 @@ const PAYMENT_STATUS_BADGE = {
   "WAIVED": "bg-slate-100 text-slate-600 border-slate-200"
 };
 
-function formatVND(amount) { 
+function formatVND(amount) {
   if (amount === undefined || amount === null) return "-";
-  return Number(amount).toLocaleString("vi-VN") + "đ"; 
+  return Number(amount).toLocaleString("vi-VN") + "đ";
 }
 
 export default function SessionsAdministrationPage() {
@@ -50,7 +50,7 @@ export default function SessionsAdministrationPage() {
   const [slots, setSlots] = useState([]);
   const [vehicleTypes, setVehicleTypes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Filters
   const [filterSearch, setFilterSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
@@ -74,7 +74,7 @@ export default function SessionsAdministrationPage() {
       if (filterCustomerType !== "ALL") params.customerType = filterCustomerType;
       if (filterVehicleType !== "ALL") params.vehicleTypeId = filterVehicleType;
       if (filterSearch) params.keyword = filterSearch;
-      
+
       const [sessionData, floorData, areaData, slotData, vTypes] = await Promise.all([
         adminSessionService.getSessions(params),
         parkingService.getFloors(),
@@ -106,25 +106,33 @@ export default function SessionsAdministrationPage() {
     loadData();
   }
 
-  const isCarSession = selectedSession && (
-    (selectedSession.vehicleType?.name || selectedSession.vehicleTypeName || "").toLowerCase().includes("ô tô") ||
-    (selectedSession.vehicleType?.name || selectedSession.vehicleTypeName || "").toLowerCase().includes("o to")
+  const selectedVehicleType = vehicleTypes.find((vehicleType) =>
+    String(vehicleType.id) === String(selectedSession?.vehicleTypeId)
   );
+  const isCarSession = Boolean(
+    selectedSession && (selectedSession.requiresSlot ?? selectedVehicleType?.requiresSlot)
+  );
+  const selectedVehicleTypeId = selectedSession?.vehicleTypeId ?? selectedVehicleType?.id;
 
   // Cascading filter: areas for the selected floor matching the session vehicle type
-  const filteredAreas = areas.filter(a => {
-    const belongsToFloor = String(a.floorId) === selectedFloorId;
-    const isActive = a.status === "ACTIVE";
+  const filteredAreas = areas.filter((area) => {
+    const belongsToFloor = String(area.floorId) === selectedFloorId;
+    const isActive = area.status === "ACTIVE";
     if (!belongsToFloor || !isActive) return false;
-    
-    const isCarArea = (a.vehicleTypeNames || []).some(name => name.toLowerCase().includes("ô tô") || name.toLowerCase().includes("o to"));
-    return isCarSession ? isCarArea : !isCarArea;
+
+    const supportsVehicleType = (area.vehicleTypeIds || []).some(
+      (vehicleTypeId) => String(vehicleTypeId) === String(selectedVehicleTypeId)
+    );
+    const isCurrentArea = String(area.id) === String(selectedSession?.areaId);
+    return supportsVehicleType && (isCarSession || !isCurrentArea);
   });
 
   // Available slots for the selected area
   const filteredSlots = slots.filter(s =>
     String(s.areaId) === selectedAreaId &&
-    s.status === "AVAILABLE"
+    s.status === "AVAILABLE" &&
+    String(s.allowedVehicleTypeId) === String(selectedVehicleTypeId) &&
+    String(s.id) !== String(selectedSession?.slotId)
   );
 
   const openActionDialog = (session, act) => {
@@ -161,7 +169,7 @@ export default function SessionsAdministrationPage() {
             toast.error("Vui lòng chọn slot mới.");
             return;
           }
-          await adminSessionService.moveSlot(selectedSession.id, { reason, newSlotId });
+          await adminSessionService.moveSlot(selectedSession.id, { reason, targetSlotId: newSlotId });
         } else {
           if (!selectedAreaId) {
             toast.error("Vui lòng chọn khu vực mới.");
@@ -173,7 +181,7 @@ export default function SessionsAdministrationPage() {
       toast.success("Thao tác thành công.");
       closeDialog();
       await loadData();
-      setSelectedSession(null); 
+      setSelectedSession(null);
     } catch (error) {
       toast.error(error.message || "Không thể thực hiện thao tác.");
     }
@@ -191,8 +199,8 @@ export default function SessionsAdministrationPage() {
         <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-slate-200">
           <div className="relative flex-1 max-w-xs">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <Input 
-              placeholder="Tìm mã phiên, thẻ, biển số..." 
+            <Input
+              placeholder="Tìm mã phiên, thẻ, biển số..."
               className="pl-9 bg-slate-50"
               value={filterSearch}
               onChange={e => setFilterSearch(e.target.value)}
@@ -203,7 +211,7 @@ export default function SessionsAdministrationPage() {
               }}
             />
           </div>
-          
+
           <div className="flex flex-col gap-1">
             <span className="text-[10px] text-slate-500 font-medium">Trạng thái</span>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -283,8 +291,8 @@ export default function SessionsAdministrationPage() {
                   <TableRow><TableCell colSpan={9} className="text-center py-10 text-slate-500">Không tìm thấy phiên gửi nào</TableCell></TableRow>
                 ) : (
                   sessions.map(session => (
-                    <TableRow 
-                      key={session.id} 
+                    <TableRow
+                      key={session.id}
                       className={`hover:bg-slate-50 cursor-pointer ${selectedSession?.id === session.id && !action ? "bg-blue-50/50" : ""}`}
                       onClick={() => setSelectedSession(session)}
                     >
@@ -329,7 +337,7 @@ export default function SessionsAdministrationPage() {
               <X className="w-4 h-4" />
             </Button>
           </div>
-          
+
           <div className="p-5 flex-1 overflow-y-auto space-y-4 text-sm">
             <div className="flex justify-between items-center bg-blue-50/50 p-2 rounded-md">
               <span className="text-slate-500 font-medium">Mã phiên</span>
@@ -361,7 +369,7 @@ export default function SessionsAdministrationPage() {
             </div>
 
             <div className="w-full h-px bg-slate-100" />
-            
+
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-slate-500">Cổng vào / Cổng ra</span>
@@ -392,7 +400,7 @@ export default function SessionsAdministrationPage() {
             </div>
 
             <div className="w-full h-px bg-slate-100" />
-            
+
             <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 space-y-2">
               <div className="flex justify-between items-center mb-3">
                 <span className="font-semibold text-slate-700">Snapshot giá (khi vào)</span>
@@ -483,7 +491,7 @@ export default function SessionsAdministrationPage() {
               {action === "moveSlot" ? (isCarSession ? "Điều chuyển slot thủ công" : "Điều chuyển khu vực thủ công") : "Hủy phiên"}
             </DialogTitle>
             <DialogDescription>
-              {action === "moveSlot" ? (isCarSession ? "Chuyển xe sang slot AVAILABLE khi cảm biến hoặc slot gặp lỗi." : "Điều chuyển xe máy sang khu vực đỗ mới.") : 
+              {action === "moveSlot" ? (isCarSession ? "Chuyển xe sang slot AVAILABLE khi cảm biến hoặc slot gặp lỗi." : "Điều chuyển xe máy sang khu vực đỗ mới.") :
                "Chuyển phiên sang CANCELLED để giải phóng vận hành."}
             </DialogDescription>
           </DialogHeader>

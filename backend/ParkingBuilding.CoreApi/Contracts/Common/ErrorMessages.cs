@@ -137,6 +137,7 @@ public static class ErrorMessages
         [ErrorCodes.SessionNotFound] = "Khong tim thay phien gui xe.",
         [ErrorCodes.SessionAlreadyClaimed] = "Phien gui xe da duoc lien ket voi tai khoan khac.",
         [ErrorCodes.SessionNotOwnedByDriver] = "Phien gui xe chua duoc lien ket voi tai khoan lai xe nay.",
+        [ErrorCodes.SessionMoveTargetUnchanged] = "Vi tri moi phai khac vi tri hien tai.",
         [ErrorCodes.LicensePlateRequired] = "Bien so xe la bat buoc.",
         [ErrorCodes.PlateAlreadyMapped] = "Bien so da duoc gan cho doi tuong khac.",
         [ErrorCodes.PlateAlreadyHasActiveReservation] = "Bien so da co booking dang hoat dong.",

@@ -30,11 +30,11 @@ export const adminSessionService = {
     throw new Error(response.message || "Hủy phiên thất bại");
   },
 
-  moveSlot: async (sessionId, { reason, newSlotId, targetAreaId }) => {
+  moveSlot: async (sessionId, { reason, targetSlotId, targetAreaId }) => {
     const payload = { reason };
-    if (newSlotId) payload.targetSlotId = Number(newSlotId);
+    if (targetSlotId) payload.targetSlotId = Number(targetSlotId);
     if (targetAreaId) payload.targetAreaId = Number(targetAreaId);
-    
+
     const response = await coreAxiosClient.post(`/session-admin/${sessionId}/move-slot`, payload);
     if (response.success) {
       return response.data;

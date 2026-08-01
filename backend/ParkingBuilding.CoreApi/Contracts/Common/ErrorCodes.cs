@@ -146,6 +146,7 @@ public static class ErrorCodes
     public const string SessionNotFound = "SESSION_NOT_FOUND";
     public const string SessionAlreadyClaimed = "SESSION_ALREADY_CLAIMED";
     public const string SessionNotOwnedByDriver = "SESSION_NOT_OWNED_BY_DRIVER";
+    public const string SessionMoveTargetUnchanged = "SESSION_MOVE_TARGET_UNCHANGED";
     public const string LicensePlateRequired = "LICENSE_PLATE_REQUIRED";
     public const string PlateAlreadyMapped = "PLATE_ALREADY_MAPPED";
     public const string PlateAlreadyHasActiveReservation = "PLATE_ALREADY_HAS_ACTIVE_RESERVATION";

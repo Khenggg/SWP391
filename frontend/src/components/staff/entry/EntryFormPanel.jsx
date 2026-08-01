@@ -119,11 +119,11 @@ export default function EntryFormPanel({
           )}
 
           <Field label="Mã thẻ" required>
-            <Input 
-              value={form.cardCode} 
-              onChange={(event) => onFieldChange("cardCode", event.target.value.toUpperCase())} 
-              placeholder="VD: C001" 
-              className="h-8 border-slate-200 bg-slate-50 text-sm font-bold uppercase text-blue-700 focus-visible:ring-blue-500" 
+            <Input
+              value={form.cardCode}
+              onChange={(event) => onFieldChange("cardCode", event.target.value.toUpperCase())}
+              placeholder="VD: C001"
+              className="h-8 border-slate-200 bg-slate-50 text-sm font-bold uppercase text-blue-700 focus-visible:ring-blue-500"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && onCheckCard && form.cardCode?.trim()) {
                   onCheckCard();
@@ -134,11 +134,11 @@ export default function EntryFormPanel({
 
           {form.entryMode === "RESERVATION" ? (
             <Field label="Mã Booking" required>
-              <Input 
-                value={form.reservationCode} 
-                onChange={(event) => onFieldChange("reservationCode", event.target.value.toUpperCase())} 
-                placeholder="RES-..." 
-                className="h-8 border-slate-200 bg-slate-50 text-sm uppercase focus-visible:ring-blue-500" 
+              <Input
+                value={form.reservationCode}
+                onChange={(event) => onFieldChange("reservationCode", event.target.value.toUpperCase())}
+                placeholder="RES-..."
+                className="h-8 border-slate-200 bg-slate-50 text-sm uppercase focus-visible:ring-blue-500"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && onCheckReservation && form.reservationCode?.trim()) {
                     onCheckReservation();
