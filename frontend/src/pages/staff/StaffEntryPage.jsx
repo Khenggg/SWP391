@@ -327,10 +327,23 @@ export default function StaffEntryPage() {
   );
 
   const isMonthlyPlateMismatch = useMemo(() => {
-    if (form.entryMode !== "MONTHLY" || !cardCheck?.plateNumber || !form.licensePlate) return false;
-    return normalizeText(cardCheck.plateNumber).replace(/[^A-Z0-9]/gi, "").toUpperCase()
-      !== normalizeText(form.licensePlate).replace(/[^A-Z0-9]/gi, "").toUpperCase();
-  }, [cardCheck, form.entryMode, form.licensePlate]);
+    if (form.entryMode !== "MONTHLY" || !cardCheck?.plateNumber) return false;
+
+    const registeredPlate = normalizeText(cardCheck.plateNumber).replace(/[^A-Z0-9]/gi, "").toUpperCase();
+
+    const ocrPlate = form.detectedNormalizedPlateNumber || form.detectedPlateNumber;
+    if (ocrPlate) {
+      const cleanOcr = normalizeText(ocrPlate).replace(/[^A-Z0-9]/gi, "").toUpperCase();
+      if (cleanOcr && cleanOcr !== registeredPlate) return true;
+    }
+
+    if (form.licensePlate) {
+      const cleanInput = normalizeText(form.licensePlate).replace(/[^A-Z0-9]/gi, "").toUpperCase();
+      if (cleanInput && cleanInput !== registeredPlate) return true;
+    }
+
+    return false;
+  }, [cardCheck, form.entryMode, form.licensePlate, form.detectedPlateNumber, form.detectedNormalizedPlateNumber]);
 
   const canCheckCard = Boolean(normalizeText(form.cardCode) && entryGateId && entryGateId > 0);
   const canCheckReservation = Boolean(form.entryMode === "RESERVATION" && normalizeText(form.reservationCode) && entryGateId && entryGateId > 0);
